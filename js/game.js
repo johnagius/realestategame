@@ -29,12 +29,36 @@ const GameEngine = {
       insurance: {},        // cityId -> { type: level } insurance purchased
       disasterHistory: [],  // record of past disasters
       mitigations: {},      // propertyId -> { type: true/false }
-      globalMitigations: {} // global mitigations purchased
+      globalMitigations: {}, // global mitigations purchased
+      // Banking & Loans
+      loans: [],            // { id, bankId, principal, remainingBalance, interestRate, monthlyPayment, termMonths, monthsLeft }
+      totalLoanInterestPaid: 0,
+      bankRateModifier: 0,  // global rate shift from events
+      // Businesses
+      businesses: {},       // cityId -> [businesses available]
+      ownedStakes: [],      // { businessId, cityId, stakePct, purchasePrice, monthPurchased }
+      totalDividendsEarned: 0,
+      // Auto-sell rules
+      autoSellRules: [],    // { propertyId, type: 'pct'|'value', threshold }
+      // Auto-advance
+      autoAdvanceSpeed: 0   // 0=off, 1=slow, 2=medium, 3=fast
     };
 
     // Generate initial market for all cities
     GameData.cities.forEach(city => {
       this.state.marketProperties[city.id] = GameData.generateCityProperties(city.id);
+    });
+
+    // Generate initial businesses for all cities
+    GameData.cities.forEach(city => {
+      this.state.businesses[city.id] = [];
+      const bizTypes = Object.keys(GameData.businessTypes);
+      const count = 3 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < count; i++) {
+        const type = bizTypes[Math.floor(Math.random() * bizTypes.length)];
+        const biz = GameData.generateBusiness(city.id, type);
+        if (biz) this.state.businesses[city.id].push(biz);
+      }
     });
 
     this.save();
@@ -80,10 +104,7 @@ const GameEngine = {
   },
 
   // ---- Calculate net worth ----
-  getNetWorth() {
-    const propertyValue = this.state.properties.reduce((sum, p) => sum + p.currentValue, 0);
-    return this.state.cash + propertyValue;
-  },
+  // getNetWorth is defined at bottom with loan/stake awareness
 
   // ---- Get monthly income ----
   getMonthlyIncome() {
@@ -826,9 +847,35 @@ const GameEngine = {
       }
     });
 
-    // 10. Track net worth
+    // 10. Process loan payments
+    results.loanPayments = this.processLoanPayments();
+    results.expenses += results.loanPayments;
+
+    // 11. Process businesses & collect dividends
+    results.dividends = this.processBusinesses();
+    results.rentIncome += results.dividends;
+
+    // 12. Process auto-sell rules
+    results.autoSold = this.processAutoSells();
+
+    // 13. Occasionally add new businesses to cities
+    GameData.cities.forEach(city => {
+      if (!this.state.businesses[city.id]) this.state.businesses[city.id] = [];
+      if (this.state.businesses[city.id].length < 8 && Math.random() < 0.15) {
+        const types = Object.keys(GameData.businessTypes);
+        const type = types[Math.floor(Math.random() * types.length)];
+        const biz = GameData.generateBusiness(city.id, type);
+        if (biz) this.state.businesses[city.id].push(biz);
+      }
+    });
+
+    // 14. Shift bank rates slowly
+    if (!this.state.bankRateModifier) this.state.bankRateModifier = 0;
+    this.state.bankRateModifier += (Math.random() - 0.5) * 0.002;
+    this.state.bankRateModifier = Math.max(-0.02, Math.min(0.02, this.state.bankRateModifier));
+
+    // 15. Track net worth
     this.state.networthHistory.push(this.getNetWorth());
-    // Keep last 120 months
     if (this.state.networthHistory.length > 120) {
       this.state.networthHistory.shift();
     }
@@ -941,7 +988,325 @@ const GameEngine = {
       vacantCount: props.filter(p => !p.isRented && !p.isRefurbishing && !p.isBuilding).length,
       refurbishingCount: props.filter(p => p.isRefurbishing).length,
       buildingCount: props.filter(p => p.isBuilding).length,
-      citiesPresent: [...new Set(props.map(p => p.cityId))].length
+      citiesPresent: [...new Set(props.map(p => p.cityId))].length,
+      totalLoanDebt: (this.state.loans || []).reduce((s, l) => s + l.remainingBalance, 0),
+      monthlyLoanPayments: (this.state.loans || []).reduce((s, l) => s + l.monthlyPayment, 0),
+      businessStakeValue: this.getBusinessStakeValue(),
+      monthlyDividends: this.getMonthlyDividends()
     };
+  },
+
+  // ========== BANKING & LOANS ==========
+
+  getLoanOffers(amount) {
+    const netWorth = this.getNetWorth();
+    const existingDebt = (this.state.loans || []).reduce((s, l) => s + l.remainingBalance, 0);
+    const offers = [];
+
+    GameData.banks.forEach(bank => {
+      if (bank.minNetWorth && netWorth < bank.minNetWorth) return;
+
+      const maxLoan = Math.round(netWorth * bank.maxLoanPct) - existingDebt;
+      if (maxLoan <= 0) return;
+
+      const loanAmount = Math.min(amount, maxLoan);
+      if (loanAmount <= 0) return;
+
+      bank.termMonths.forEach(term => {
+        // Rate varies by term length and market conditions
+        let rate = bank.baseRate + (this.state.bankRateModifier || 0);
+        rate += (Math.random() - 0.5) * bank.rateVariance;
+        // Longer terms = slightly higher rates
+        rate += (term / 240) * 0.01;
+        rate = Math.max(0.01, Math.round(rate * 1000) / 1000);
+
+        const monthlyRate = rate / 12;
+        const monthlyPayment = Math.round(
+          loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, term)) /
+          (Math.pow(1 + monthlyRate, term) - 1)
+        );
+        const totalRepayment = monthlyPayment * term;
+
+        offers.push({
+          bankId: bank.id,
+          bankName: bank.name,
+          bankIcon: bank.icon,
+          amount: loanAmount,
+          maxAmount: maxLoan,
+          interestRate: rate,
+          termMonths: term,
+          monthlyPayment,
+          totalRepayment,
+          totalInterest: totalRepayment - loanAmount
+        });
+      });
+    });
+
+    return offers;
+  },
+
+  takeLoan(bankId, amount, termMonths) {
+    const offers = this.getLoanOffers(amount);
+    const offer = offers.find(o => o.bankId === bankId && o.termMonths === termMonths);
+    if (!offer) return { success: false, message: 'Loan offer not available.' };
+
+    const loan = {
+      id: 'loan_' + Date.now(),
+      bankId,
+      bankName: offer.bankName,
+      principal: offer.amount,
+      remainingBalance: offer.amount,
+      interestRate: offer.interestRate,
+      monthlyPayment: offer.monthlyPayment,
+      termMonths,
+      monthsLeft: termMonths,
+      monthTaken: this.state.month
+    };
+
+    if (!this.state.loans) this.state.loans = [];
+    this.state.loans.push(loan);
+    this.state.cash += offer.amount;
+
+    this.save();
+    return {
+      success: true,
+      message: `Loan of ${GameData.formatMoney(offer.amount)} from ${offer.bankName} at ${(offer.interestRate * 100).toFixed(1)}% over ${termMonths} months. Payment: ${GameData.formatMoney(offer.monthlyPayment)}/mo.`
+    };
+  },
+
+  repayLoan(loanId, amount) {
+    if (!this.state.loans) return { success: false, message: 'No loans.' };
+    const loan = this.state.loans.find(l => l.id === loanId);
+    if (!loan) return { success: false, message: 'Loan not found.' };
+
+    const repayAmount = amount ? Math.min(amount, loan.remainingBalance) : loan.remainingBalance;
+    if (this.state.cash < repayAmount) {
+      return { success: false, message: `Not enough cash. Need ${GameData.formatMoney(repayAmount)}.` };
+    }
+
+    this.state.cash -= repayAmount;
+    loan.remainingBalance -= repayAmount;
+
+    if (loan.remainingBalance <= 0) {
+      this.state.loans = this.state.loans.filter(l => l.id !== loanId);
+      this.save();
+      return { success: true, message: `Loan fully repaid! Paid ${GameData.formatMoney(repayAmount)}.` };
+    }
+
+    this.save();
+    return { success: true, message: `Repaid ${GameData.formatMoney(repayAmount)}. Remaining: ${GameData.formatMoney(loan.remainingBalance)}.` };
+  },
+
+  processLoanPayments() {
+    if (!this.state.loans) return 0;
+    let totalPaid = 0;
+
+    this.state.loans = this.state.loans.filter(loan => {
+      const payment = Math.min(loan.monthlyPayment, loan.remainingBalance);
+      const interestPortion = Math.round(loan.remainingBalance * loan.interestRate / 12);
+
+      this.state.cash -= payment;
+      loan.remainingBalance -= (payment - interestPortion);
+      loan.monthsLeft--;
+      totalPaid += payment;
+
+      if (!this.state.totalLoanInterestPaid) this.state.totalLoanInterestPaid = 0;
+      this.state.totalLoanInterestPaid += interestPortion;
+
+      if (loan.remainingBalance <= 0 || loan.monthsLeft <= 0) {
+        return false; // Remove paid-off loan
+      }
+      return true;
+    });
+
+    return totalPaid;
+  },
+
+  // ========== BUSINESS STAKES ==========
+
+  getBusinessStakeValue() {
+    if (!this.state.ownedStakes) return 0;
+    let total = 0;
+    this.state.ownedStakes.forEach(stake => {
+      const cityBiz = (this.state.businesses || {})[stake.cityId] || [];
+      const biz = cityBiz.find(b => b.id === stake.businessId);
+      if (biz) total += Math.round(biz.totalValue * stake.stakePct / 100);
+    });
+    return total;
+  },
+
+  getMonthlyDividends() {
+    if (!this.state.ownedStakes) return 0;
+    let total = 0;
+    this.state.ownedStakes.forEach(stake => {
+      const cityBiz = (this.state.businesses || {})[stake.cityId] || [];
+      const biz = cityBiz.find(b => b.id === stake.businessId);
+      if (biz && biz.monthlyProfit > 0) {
+        total += Math.round(biz.monthlyProfit * stake.stakePct / 100 * biz.performance);
+      }
+    });
+    return total;
+  },
+
+  buyStake(businessId, cityId, stakePct) {
+    if (!this.state.businesses) return { success: false, message: 'No businesses available.' };
+    const cityBiz = this.state.businesses[cityId];
+    if (!cityBiz) return { success: false, message: 'City not found.' };
+    const biz = cityBiz.find(b => b.id === businessId);
+    if (!biz) return { success: false, message: 'Business not found.' };
+
+    stakePct = Math.min(stakePct, biz.availableStake);
+    if (stakePct <= 0) return { success: false, message: 'No stake available.' };
+
+    const cost = Math.round(biz.totalValue * stakePct / 100);
+    if (this.state.cash < cost) {
+      return { success: false, message: `Not enough cash. Need ${GameData.formatMoney(cost)}.` };
+    }
+
+    this.state.cash -= cost;
+    biz.availableStake -= stakePct;
+
+    if (!this.state.ownedStakes) this.state.ownedStakes = [];
+    // Check if already own stake in this business
+    const existing = this.state.ownedStakes.find(s => s.businessId === businessId);
+    if (existing) {
+      existing.stakePct += stakePct;
+      existing.purchasePrice += cost;
+    } else {
+      this.state.ownedStakes.push({
+        businessId,
+        cityId,
+        stakePct,
+        purchasePrice: cost,
+        monthPurchased: this.state.month
+      });
+    }
+
+    this.save();
+    return {
+      success: true,
+      message: `Bought ${stakePct}% of ${biz.name} for ${GameData.formatMoney(cost)}. Est. dividends: ${GameData.formatMoney(Math.round(biz.monthlyProfit * stakePct / 100))}/mo.`
+    };
+  },
+
+  sellStake(businessId) {
+    if (!this.state.ownedStakes) return { success: false, message: 'No stakes owned.' };
+    const stakeIdx = this.state.ownedStakes.findIndex(s => s.businessId === businessId);
+    if (stakeIdx === -1) return { success: false, message: 'Stake not found.' };
+
+    const stake = this.state.ownedStakes[stakeIdx];
+    const cityBiz = (this.state.businesses || {})[stake.cityId] || [];
+    const biz = cityBiz.find(b => b.id === businessId);
+    if (!biz) return { success: false, message: 'Business not found.' };
+
+    const saleValue = Math.round(biz.totalValue * stake.stakePct / 100 * 0.97); // 3% fee
+    this.state.cash += saleValue;
+    biz.availableStake += stake.stakePct;
+    this.state.ownedStakes.splice(stakeIdx, 1);
+
+    const profit = saleValue - stake.purchasePrice;
+    this.save();
+    return {
+      success: true,
+      message: `Sold ${stake.stakePct}% stake for ${GameData.formatMoney(saleValue)}. ${profit >= 0 ? 'Profit' : 'Loss'}: ${GameData.formatMoney(Math.abs(profit))}.`
+    };
+  },
+
+  processBusinesses() {
+    // Fluctuate business performance and collect dividends
+    let dividends = 0;
+    if (!this.state.businesses) return dividends;
+
+    Object.keys(this.state.businesses).forEach(cityId => {
+      this.state.businesses[cityId].forEach(biz => {
+        // Performance fluctuation
+        const shift = (Math.random() - 0.48) * biz.riskFactor * 0.2;
+        biz.performance = Math.max(0.3, Math.min(1.8, biz.performance + shift));
+
+        // Update revenue/expenses
+        const typeDef = GameData.businessTypes[biz.type];
+        if (typeDef) {
+          biz.monthlyRevenue = Math.round(biz.monthlyRevenue * (1 + (Math.random() - 0.48) * 0.05));
+          biz.monthlyExpenses = Math.round(biz.monthlyExpenses * (1 + (Math.random() - 0.48) * 0.03));
+          biz.monthlyProfit = biz.monthlyRevenue - biz.monthlyExpenses;
+        }
+
+        // Value fluctuation
+        biz.totalValue = Math.round(biz.totalValue * (1 + (Math.random() - 0.48) * 0.03));
+      });
+    });
+
+    // Collect dividends from owned stakes
+    if (this.state.ownedStakes) {
+      this.state.ownedStakes.forEach(stake => {
+        const cityBiz = this.state.businesses[stake.cityId] || [];
+        const biz = cityBiz.find(b => b.id === stake.businessId);
+        if (biz && biz.monthlyProfit > 0) {
+          const div = Math.round(biz.monthlyProfit * stake.stakePct / 100 * biz.performance);
+          dividends += div;
+        }
+      });
+    }
+
+    this.state.cash += dividends;
+    if (!this.state.totalDividendsEarned) this.state.totalDividendsEarned = 0;
+    this.state.totalDividendsEarned += dividends;
+
+    return dividends;
+  },
+
+  // ========== AUTO-SELL ==========
+
+  addAutoSellRule(propertyId, type, threshold) {
+    // type: 'pct' (appreciation %) or 'value' (absolute value)
+    if (!this.state.autoSellRules) this.state.autoSellRules = [];
+    // Remove existing rule for this property
+    this.state.autoSellRules = this.state.autoSellRules.filter(r => r.propertyId !== propertyId);
+    this.state.autoSellRules.push({ propertyId, type, threshold });
+    this.save();
+    return { success: true, message: `Auto-sell set: will sell when ${type === 'pct' ? 'appreciation reaches ' + threshold + '%' : 'value reaches ' + GameData.formatMoney(threshold)}.` };
+  },
+
+  removeAutoSellRule(propertyId) {
+    if (!this.state.autoSellRules) return;
+    this.state.autoSellRules = this.state.autoSellRules.filter(r => r.propertyId !== propertyId);
+    this.save();
+  },
+
+  processAutoSells() {
+    if (!this.state.autoSellRules) return [];
+    const sold = [];
+
+    this.state.autoSellRules = this.state.autoSellRules.filter(rule => {
+      const prop = this.state.properties.find(p => p.id === rule.propertyId);
+      if (!prop) return false; // property no longer owned
+
+      let shouldSell = false;
+      if (rule.type === 'pct') {
+        const appreciation = ((prop.currentValue - prop.purchasePrice) / prop.purchasePrice) * 100;
+        shouldSell = appreciation >= rule.threshold;
+      } else if (rule.type === 'value') {
+        shouldSell = prop.currentValue >= rule.threshold;
+      }
+
+      if (shouldSell && !prop.isBuilding && !prop.isRefurbishing) {
+        const result = this.sellProperty(prop.id);
+        if (result.success) {
+          sold.push({ property: prop, result });
+          return false; // Remove rule
+        }
+      }
+      return true;
+    });
+
+    return sold;
+  },
+
+  // ========== UPDATED NET WORTH ==========
+  getNetWorth() {
+    const propertyValue = this.state.properties.reduce((sum, p) => sum + p.currentValue, 0);
+    const stakeValue = this.getBusinessStakeValue();
+    const debt = (this.state.loans || []).reduce((sum, l) => sum + l.remainingBalance, 0);
+    return this.state.cash + propertyValue + stakeValue - debt;
   }
 };
