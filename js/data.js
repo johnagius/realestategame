@@ -328,6 +328,30 @@ const GameData = {
     cape_town: ['Camps Bay', 'Clifton', 'Sea Point', 'Waterfront', 'Gardens', 'Green Point', 'Constantia', 'Hout Bay']
   },
 
+  // ---- City Map Coordinates (% x, % y on world map) ----
+  cityCoords: {
+    new_york:    { x: 26, y: 33 },
+    london:      { x: 46, y: 24 },
+    paris:       { x: 47, y: 28 },
+    tokyo:       { x: 85, y: 33 },
+    dubai:       { x: 60, y: 42 },
+    singapore:   { x: 76, y: 57 },
+    hong_kong:   { x: 80, y: 41 },
+    sydney:      { x: 88, y: 76 },
+    los_angeles: { x: 15, y: 35 },
+    miami:       { x: 24, y: 42 },
+    barcelona:   { x: 47, y: 32 },
+    rome:        { x: 50, y: 31 },
+    berlin:      { x: 50, y: 24 },
+    amsterdam:   { x: 47, y: 23 },
+    toronto:     { x: 23, y: 29 },
+    monaco:      { x: 48, y: 30 },
+    shanghai:    { x: 81, y: 36 },
+    mumbai:      { x: 67, y: 44 },
+    sao_paulo:   { x: 33, y: 70 },
+    cape_town:   { x: 52, y: 78 }
+  },
+
   // ---- Random Events ----
   events: [
     {

@@ -1366,6 +1366,295 @@ h4 { font-size: 1rem; }
   }
 }
 
+/* ---------- World Map ---------- */
+.world-map-container {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 2px solid var(--border);
+  margin-bottom: 12px;
+  background: #D4E8F0;
+  flex-shrink: 0;
+}
+
+.world-map {
+  position: relative;
+  width: 100%;
+  padding-bottom: 50%;
+}
+
+.world-map-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#world-map-pins {
+  position: absolute;
+  inset: 0;
+}
+
+.map-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.2s ease;
+  z-index: 2;
+}
+
+.map-pin:hover {
+  transform: translate(-50%, -100%) scale(1.25);
+  z-index: 10;
+}
+
+.map-pin-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--secondary);
+  border: 2px solid #FFF;
+  margin: 0 auto;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  position: relative;
+}
+
+.map-pin-dot.owned {
+  background: var(--primary);
+  width: 16px;
+  height: 16px;
+}
+
+.map-pin-dot::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--secondary);
+}
+
+.map-pin-dot.owned::after {
+  border-top-color: var(--primary);
+}
+
+.map-pin-label {
+  font-size: 0.55rem;
+  font-weight: 800;
+  color: var(--text);
+  background: rgba(255,255,255,0.85);
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-top: 2px;
+  white-space: nowrap;
+  text-shadow: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* ---------- Business Cards ---------- */
+.business-card {
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  transition: all var(--transition);
+  animation: slideUp 0.4s ease backwards;
+}
+
+.business-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.business-icon {
+  font-size: 1.6rem;
+}
+
+.business-card-name {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.business-card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 8px 0;
+  font-size: 0.75rem;
+}
+
+.business-stat {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-light);
+}
+
+.business-stat strong {
+  color: var(--text);
+}
+
+.business-performance {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  margin-bottom: 8px;
+}
+
+.perf-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.perf-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* ---------- Bank / Loan Cards ---------- */
+.bank-card {
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 10px;
+}
+
+.bank-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.bank-icon { font-size: 1.6rem; }
+
+.bank-name {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  color: var(--primary-dark);
+}
+
+.bank-description {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.loan-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.loan-option {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.loan-option:hover {
+  border-color: var(--primary);
+  background: rgba(44, 110, 73, 0.04);
+}
+
+.loan-term {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.loan-rate {
+  font-size: 0.7rem;
+  color: var(--secondary);
+  font-weight: 700;
+}
+
+.loan-payment {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  margin-top: 4px;
+}
+
+.active-loan {
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.loan-info { flex: 1; }
+
+.loan-info-bank {
+  font-weight: 800;
+  font-size: 0.9rem;
+  margin-bottom: 2px;
+}
+
+.loan-info-detail {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+/* ---------- Auto-advance controls ---------- */
+.speed-controls {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.speed-btn {
+  padding: 4px 10px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.speed-btn.active {
+  background: var(--primary);
+  color: #FFF;
+  border-color: var(--primary);
+}
+
+/* ---------- Auto-sell badge ---------- */
+.autosell-badge {
+  background: var(--gold);
+  color: #FFF;
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
 /* ---------- Print Hidden ---------- */
 @media print {
   #hud, #main-nav { display: none; }
