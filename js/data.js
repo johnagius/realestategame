@@ -363,12 +363,60 @@ const GameData = {
       probability: 0.04
     },
     {
-      id: 'market_crash',
+      id: 'market_downturn',
       title: 'Market Downturn',
       icon: '📉',
-      description: 'Economic uncertainty hits {city}\'s property market.',
-      effect: { type: 'city_value_change', value: -0.06 },
-      probability: 0.03
+      description: 'Economic uncertainty hits {city}\'s property market. Values dip.',
+      effect: { type: 'city_value_change', value: -0.08 },
+      probability: 0.04
+    },
+    {
+      id: 'market_crash',
+      title: 'Market Crash!',
+      icon: '💥',
+      description: 'Panic selling triggers a severe crash in {city}. Property values plummet!',
+      effect: { type: 'city_crash', value: -0.20 },
+      probability: 0.012
+    },
+    {
+      id: 'global_recession',
+      title: 'Global Recession!',
+      icon: '🌍💥',
+      description: 'A worldwide economic recession hammers all markets. Values drop sharply everywhere.',
+      effect: { type: 'global_crash', value: -0.15 },
+      probability: 0.006
+    },
+    {
+      id: 'housing_bubble_burst',
+      title: 'Housing Bubble Burst!',
+      icon: '🫧',
+      description: 'The property bubble in {city} has burst! Prices collapse as buyers vanish.',
+      effect: { type: 'city_crash', value: -0.30 },
+      probability: 0.005
+    },
+    {
+      id: 'business_sector_crash',
+      title: 'Business Sector Crash',
+      icon: '📊',
+      description: 'Corporate failures cascade through {city}. Businesses lose major value.',
+      effect: { type: 'city_business_crash', value: -0.25 },
+      probability: 0.015
+    },
+    {
+      id: 'currency_crisis',
+      title: 'Currency Crisis',
+      icon: '💱',
+      description: 'Currency devaluation in {city}\'s region. Foreign investors pull out.',
+      effect: { type: 'city_crash', value: -0.12 },
+      probability: 0.015
+    },
+    {
+      id: 'banking_crisis',
+      title: 'Banking Crisis',
+      icon: '🏦💥',
+      description: 'Banking sector collapses in {city}. Credit dries up, market freezes.',
+      effect: { type: 'city_crash', value: -0.18 },
+      probability: 0.008
     },
     {
       id: 'tourism_surge',

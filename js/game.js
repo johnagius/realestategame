@@ -38,6 +38,13 @@ const GameEngine = {
       businesses: {},       // cityId -> [businesses available]
       ownedStakes: [],      // { businessId, cityId, stakePct, purchasePrice, monthPurchased }
       totalDividendsEarned: 0,
+      // Bank savings
+      savingsBalance: 0,    // deposited cash earning interest
+      savingsRate: 0.02,    // annual interest rate on savings
+      totalSavingsInterest: 0,
+      // Investments (stocks & bonds)
+      investments: [],      // { id, type:'stock'|'bond', name, icon, amount, purchasePrice, currentPrice, yield, risk }
+      totalInvestmentGains: 0,
       // Auto-sell rules
       autoSellRules: [],    // { propertyId, type: 'pct'|'value', threshold }
       // Auto-advance
@@ -855,7 +862,14 @@ const GameEngine = {
     results.dividends = this.processBusinesses();
     results.rentIncome += results.dividends;
 
-    // 12. Process auto-sell rules
+    // 12. Savings interest
+    results.savingsInterest = this.processSavingsInterest();
+
+    // 13. Investment returns (bonds pay coupons, stocks fluctuate)
+    results.investmentReturns = this.processInvestments();
+    results.rentIncome += results.investmentReturns;
+
+    // 14. Process auto-sell rules
     results.autoSold = this.processAutoSells();
 
     // 13. Occasionally add new businesses to cities
@@ -933,8 +947,69 @@ const GameEngine = {
       }
 
       case 'tax_change': {
-        // Slightly change city tax rate
         city.taxRate = Math.max(0.02, Math.min(0.12, city.taxRate + (Math.random() > 0.5 ? 1 : -1) * event.effect.value));
+        break;
+      }
+
+      case 'city_crash': {
+        // Severe crash: property values drop sharply in one city
+        const crashProps = [
+          ...this.state.properties.filter(p => p.cityId === cityId),
+          ...(this.state.marketProperties[cityId] || [])
+        ];
+        crashProps.forEach(p => {
+          // Each property hit slightly differently (some worse, some less)
+          const variance = 1 + (Math.random() - 0.5) * 0.4; // 0.8x to 1.2x of the crash
+          const drop = event.effect.value * variance;
+          p.currentValue = Math.round(p.currentValue * (1 + drop));
+          this.recalculateRent(p);
+        });
+        // City growth rate also takes a temporary hit
+        city.growthRate = Math.max(-0.02, city.growthRate - 0.015);
+        break;
+      }
+
+      case 'global_crash': {
+        // Global recession: all cities hit, varying severity
+        const allCityProps = [
+          ...this.state.properties,
+          ...Object.values(this.state.marketProperties).flat()
+        ];
+        allCityProps.forEach(p => {
+          const variance = 1 + (Math.random() - 0.5) * 0.3;
+          const drop = event.effect.value * variance;
+          p.currentValue = Math.round(p.currentValue * (1 + drop));
+          this.recalculateRent(p);
+        });
+        // All businesses take a hit too
+        if (this.state.businesses) {
+          Object.values(this.state.businesses).forEach(cityBizList => {
+            cityBizList.forEach(biz => {
+              biz.totalValue = Math.round(biz.totalValue * (1 + event.effect.value * 0.8));
+              biz.performance = Math.max(0.2, biz.performance * 0.7);
+              biz.monthlyRevenue = Math.round(biz.monthlyRevenue * 0.75);
+              biz.monthlyProfit = biz.monthlyRevenue - biz.monthlyExpenses;
+            });
+          });
+        }
+        // All city growth rates dip
+        GameData.cities.forEach(c => {
+          c.growthRate = Math.max(-0.03, c.growthRate - 0.01);
+        });
+        break;
+      }
+
+      case 'city_business_crash': {
+        // Businesses in a city lose value and performance
+        const cityBiz = (this.state.businesses || {})[cityId] || [];
+        cityBiz.forEach(biz => {
+          const variance = 1 + (Math.random() - 0.5) * 0.4;
+          const drop = event.effect.value * variance;
+          biz.totalValue = Math.round(biz.totalValue * (1 + drop));
+          biz.performance = Math.max(0.15, biz.performance * (0.5 + Math.random() * 0.3));
+          biz.monthlyRevenue = Math.round(biz.monthlyRevenue * (0.5 + Math.random() * 0.3));
+          biz.monthlyProfit = biz.monthlyRevenue - biz.monthlyExpenses;
+        });
         break;
       }
     }
@@ -1302,11 +1377,174 @@ const GameEngine = {
     return sold;
   },
 
+  // ========== BANK SAVINGS ==========
+
+  deposit(amount) {
+    if (!amount || amount <= 0) return { success: false, message: 'Invalid amount.' };
+    if (this.state.cash < amount) return { success: false, message: 'Not enough cash.' };
+    this.state.cash -= amount;
+    if (!this.state.savingsBalance) this.state.savingsBalance = 0;
+    this.state.savingsBalance += amount;
+    this.save();
+    return { success: true, message: `Deposited ${GameData.formatMoney(amount)}. Savings: ${GameData.formatMoney(this.state.savingsBalance)}.` };
+  },
+
+  withdraw(amount) {
+    if (!amount || amount <= 0) return { success: false, message: 'Invalid amount.' };
+    if (!this.state.savingsBalance) this.state.savingsBalance = 0;
+    if (this.state.savingsBalance < amount) return { success: false, message: 'Not enough in savings.' };
+    this.state.savingsBalance -= amount;
+    this.state.cash += amount;
+    this.save();
+    return { success: true, message: `Withdrew ${GameData.formatMoney(amount)}. Savings: ${GameData.formatMoney(this.state.savingsBalance)}.` };
+  },
+
+  processSavingsInterest() {
+    if (!this.state.savingsBalance || this.state.savingsBalance <= 0) return 0;
+    const rate = this.state.savingsRate || 0.02;
+    const monthlyInterest = Math.round(this.state.savingsBalance * rate / 12);
+    this.state.savingsBalance += monthlyInterest;
+    if (!this.state.totalSavingsInterest) this.state.totalSavingsInterest = 0;
+    this.state.totalSavingsInterest += monthlyInterest;
+    return monthlyInterest;
+  },
+
+  // ========== STOCKS & BONDS ==========
+
+  getAvailableInvestments() {
+    const baseRate = this.state.bankRateModifier || 0;
+    return [
+      // Bonds - low risk, steady returns
+      { id: 'gov_bond_short', type: 'bond', name: 'Government Bond (2yr)', icon: '🏛️',
+        unitPrice: 1000, annualYield: 0.03 + baseRate, risk: 0.02,
+        description: 'Safe, government-backed. Low yield.' },
+      { id: 'gov_bond_long', type: 'bond', name: 'Government Bond (10yr)', icon: '🏛️',
+        unitPrice: 1000, annualYield: 0.045 + baseRate, risk: 0.04,
+        description: 'Long-term government bond. Moderate yield.' },
+      { id: 'corp_bond', type: 'bond', name: 'Corporate Bond', icon: '🏢',
+        unitPrice: 5000, annualYield: 0.06 + baseRate, risk: 0.08,
+        description: 'Higher yield, some default risk.' },
+      { id: 'high_yield_bond', type: 'bond', name: 'High-Yield Bond', icon: '💰',
+        unitPrice: 5000, annualYield: 0.09 + baseRate, risk: 0.15,
+        description: 'Junk bonds. High return, high risk.' },
+      // Stocks - higher risk, variable returns
+      { id: 'index_fund', type: 'stock', name: 'Global Index Fund', icon: '🌍',
+        unitPrice: 500, annualYield: 0.08, risk: 0.15,
+        description: 'Diversified global equities. Solid long-term.' },
+      { id: 'tech_etf', type: 'stock', name: 'Tech ETF', icon: '💻',
+        unitPrice: 1000, annualYield: 0.12, risk: 0.25,
+        description: 'Technology sector. High growth, volatile.' },
+      { id: 'realestate_reit', type: 'stock', name: 'Real Estate REIT', icon: '🏠',
+        unitPrice: 2000, annualYield: 0.07, risk: 0.12,
+        description: 'Real estate investment trust. Steady dividends.' },
+      { id: 'emerging_markets', type: 'stock', name: 'Emerging Markets Fund', icon: '🚀',
+        unitPrice: 500, annualYield: 0.14, risk: 0.35,
+        description: 'High-growth developing economies. Very volatile.' },
+      { id: 'blue_chip', type: 'stock', name: 'Blue Chip Stocks', icon: '💎',
+        unitPrice: 2000, annualYield: 0.06, risk: 0.10,
+        description: 'Large established companies. Reliable.' },
+      { id: 'commodities', type: 'stock', name: 'Commodities Fund', icon: '🛢️',
+        unitPrice: 1000, annualYield: 0.05, risk: 0.20,
+        description: 'Oil, gold, metals. Inflation hedge.' }
+    ];
+  },
+
+  buyInvestment(investmentId, units) {
+    const available = this.getAvailableInvestments();
+    const inv = available.find(i => i.id === investmentId);
+    if (!inv) return { success: false, message: 'Investment not found.' };
+
+    units = Math.max(1, Math.floor(units || 1));
+    const cost = inv.unitPrice * units;
+    if (this.state.cash < cost) return { success: false, message: `Not enough cash. Need ${GameData.formatMoney(cost)}.` };
+
+    this.state.cash -= cost;
+    if (!this.state.investments) this.state.investments = [];
+
+    // Check if already holding this
+    const existing = this.state.investments.find(i => i.id === investmentId);
+    if (existing) {
+      existing.units += units;
+      existing.totalInvested += cost;
+    } else {
+      this.state.investments.push({
+        id: investmentId,
+        type: inv.type,
+        name: inv.name,
+        icon: inv.icon,
+        units: units,
+        purchaseUnitPrice: inv.unitPrice,
+        currentUnitPrice: inv.unitPrice,
+        totalInvested: cost,
+        annualYield: inv.annualYield,
+        risk: inv.risk
+      });
+    }
+
+    this.save();
+    return { success: true, message: `Bought ${units} units of ${inv.name} for ${GameData.formatMoney(cost)}.` };
+  },
+
+  sellInvestment(investmentId, units) {
+    if (!this.state.investments) return { success: false, message: 'No investments.' };
+    const inv = this.state.investments.find(i => i.id === investmentId);
+    if (!inv) return { success: false, message: 'Investment not found.' };
+
+    units = Math.min(units || inv.units, inv.units);
+    const saleValue = Math.round(inv.currentUnitPrice * units);
+    const costBasis = Math.round(inv.totalInvested * (units / inv.units));
+
+    this.state.cash += saleValue;
+    inv.units -= units;
+    inv.totalInvested -= costBasis;
+
+    if (!this.state.totalInvestmentGains) this.state.totalInvestmentGains = 0;
+    this.state.totalInvestmentGains += (saleValue - costBasis);
+
+    if (inv.units <= 0) {
+      this.state.investments = this.state.investments.filter(i => i.id !== investmentId);
+    }
+
+    this.save();
+    const profit = saleValue - costBasis;
+    return { success: true, message: `Sold ${units} units for ${GameData.formatMoney(saleValue)}. ${profit >= 0 ? 'Gain' : 'Loss'}: ${GameData.formatMoney(Math.abs(profit))}.` };
+  },
+
+  processInvestments() {
+    if (!this.state.investments) return 0;
+    let totalReturn = 0;
+
+    this.state.investments.forEach(inv => {
+      // Monthly price fluctuation
+      const monthlyYield = inv.annualYield / 12;
+      const randomShock = (Math.random() - 0.48) * inv.risk * 0.5;
+      const monthlyChange = monthlyYield + randomShock;
+
+      inv.currentUnitPrice = Math.max(1, Math.round(inv.currentUnitPrice * (1 + monthlyChange)));
+
+      // Bonds pay monthly coupon
+      if (inv.type === 'bond') {
+        const coupon = Math.round(inv.currentUnitPrice * inv.units * inv.annualYield / 12);
+        this.state.cash += coupon;
+        totalReturn += coupon;
+      }
+    });
+
+    return totalReturn;
+  },
+
+  getInvestmentValue() {
+    if (!this.state.investments) return 0;
+    return this.state.investments.reduce((sum, inv) => sum + (inv.currentUnitPrice * inv.units), 0);
+  },
+
   // ========== UPDATED NET WORTH ==========
   getNetWorth() {
     const propertyValue = this.state.properties.reduce((sum, p) => sum + p.currentValue, 0);
     const stakeValue = this.getBusinessStakeValue();
+    const investmentValue = this.getInvestmentValue();
+    const savings = this.state.savingsBalance || 0;
     const debt = (this.state.loans || []).reduce((sum, l) => sum + l.remainingBalance, 0);
-    return this.state.cash + propertyValue + stakeValue - debt;
+    return this.state.cash + propertyValue + stakeValue + investmentValue + savings - debt;
   }
 };

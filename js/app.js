@@ -342,6 +342,52 @@ const App = {
     GameEngine.removeAutoSellRule(propertyId);
     GameUI.toast('Auto-sell rule removed.', 'info');
     GameUI.renderProperty(propertyId);
+  },
+
+  // ---- Bank Savings ----
+  deposit(amount) {
+    var result = GameEngine.deposit(amount);
+    if (result.success) {
+      GameUI.toast(result.message, 'success');
+      GameUI.updateHUD();
+      GameUI.renderBank();
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+  },
+
+  withdraw(amount) {
+    var result = GameEngine.withdraw(amount);
+    if (result.success) {
+      GameUI.toast(result.message, 'success');
+      GameUI.updateHUD();
+      GameUI.renderBank();
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+  },
+
+  // ---- Investments ----
+  buyInvestment(investmentId, units) {
+    var result = GameEngine.buyInvestment(investmentId, units);
+    if (result.success) {
+      GameUI.toast(result.message, 'success');
+      GameUI.updateHUD();
+      GameUI.renderBank();
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+  },
+
+  sellInvestment(investmentId, units) {
+    var result = GameEngine.sellInvestment(investmentId, units);
+    if (result.success) {
+      GameUI.toast(result.message, 'success');
+      GameUI.updateHUD();
+      GameUI.renderBank();
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
   }
 };
 

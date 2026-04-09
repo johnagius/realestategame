@@ -37,8 +37,8 @@
       <span id="hud-cash" class="hud-value">€500,000</span>
     </div>
     <div class="hud-item hud-center">
-      <span class="hud-label">Date</span>
-      <span id="hud-date" class="hud-value">Jan 2024</span>
+      <span id="hud-speed" class="hud-speed"></span>
+      <span id="hud-date" class="hud-value" style="font-size:0.8rem">Jan 2024</span>
     </div>
     <div class="hud-item hud-right">
       <span class="hud-label">Net Worth</span>
@@ -51,21 +51,21 @@
     <div class="screen-header">
       <h2>🌍 World Cities</h2>
       <div style="display:flex;gap:6px;align-items:center">
-        <button id="btn-map-toggle" class="btn btn-ghost btn-small">🗺️ Map</button>
+        <button id="btn-map-toggle" class="btn btn-ghost btn-small">📋 List</button>
         <button id="btn-advance-month" class="btn btn-accent btn-advance">
           Next Month ▶
         </button>
       </div>
     </div>
     <!-- World Map View -->
-    <div id="world-map-container" class="world-map-container" style="display:none">
+    <div id="world-map-container" class="world-map-container">
       <div id="world-map" class="world-map">
         <svg id="world-map-svg" viewBox="0 0 1000 500" class="world-map-svg"></svg>
         <div id="world-map-pins"></div>
       </div>
     </div>
     <!-- Grid View -->
-    <div id="cities-list-view">
+    <div id="cities-list-view" style="display:none">
       <div class="search-bar">
         <input type="text" id="city-search" placeholder="Search cities..." class="search-input">
       </div>
