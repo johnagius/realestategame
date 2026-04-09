@@ -9,7 +9,7 @@ const GameUI = {
   currentProperty: null,
   currentCityTab: 'market',
   currentPortfolioFilter: 'all',
-  mapView: false,
+  mapView: true,
   autoTimer: null,
 
   // ---- Show a screen ----
@@ -43,6 +43,8 @@ const GameUI = {
     document.getElementById('hud-cash').textContent = GameData.formatMoney(s.cash);
     document.getElementById('hud-date').textContent = GameEngine.getDateString();
     document.getElementById('hud-networth').textContent = GameData.formatMoney(GameEngine.getNetWorth());
+    // Speed controls in HUD
+    document.getElementById('hud-speed').innerHTML = this.renderSpeedControls();
   },
 
   // ---- Toast notification ----
@@ -73,6 +75,7 @@ const GameUI = {
     var html = '';
     cities.forEach(function(city, i) {
       var summary = GameEngine.getCitySummary(city.id);
+      var inflRate = city.inflationRate !== undefined ? city.inflationRate : 0.02;
       html += '<div class="city-card" data-tier="' + city.tier + '" data-city="' + city.id + '" style="animation-delay:' + (i * 0.05) + 's">' +
         '<div class="city-card-header">' +
           '<span class="city-flag">' + city.flag + '</span>' +
@@ -94,6 +97,12 @@ const GameUI = {
             '<span class="city-stat-value">' + GameData.formatMoneyShort(summary.avgPrice) + '</span>' +
             '<span class="city-stat-label">Avg Price</span>' +
           '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">' +
+          '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px">📊 Tax ' + Math.round(city.taxRate * 100) + '%</span>' +
+          '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px">📈 ' + (city.growthRate * 100).toFixed(1) + '%</span>' +
+          '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px">🏠 ' + (city.rentYield * 100).toFixed(1) + '%</span>' +
+          '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px">💹 ' + (inflRate * 100).toFixed(1) + '%</span>' +
         '</div>' +
       '</div>';
     });
@@ -525,6 +534,16 @@ const GameUI = {
       '<div class="event-description">' + description + '</div>' +
       (effectText ? '<div class="event-effect ' + (effectClass || 'positive') + '">' + effectText + '</div>' : '');
     overlay.classList.add('active');
+
+    // Auto-dismiss if auto-advance is running
+    var speed = (GameEngine.state && GameEngine.state.autoAdvanceSpeed) || 0;
+    if (speed > 0) {
+      var dismissMs = speed >= 3 ? 800 : speed >= 2 ? 1500 : 2500;
+      if (this._eventDismissTimer) clearTimeout(this._eventDismissTimer);
+      this._eventDismissTimer = setTimeout(function() {
+        overlay.classList.remove('active');
+      }, dismissMs);
+    }
   },
 
   // ---- Show modal ----
@@ -597,8 +616,70 @@ const GameUI = {
     var s = GameEngine.state;
     var loans = s.loans || [];
     var netWorth = GameEngine.getNetWorth();
+    var savings = s.savingsBalance || 0;
+    var savingsRate = s.savingsRate || 0.02;
 
     var html = '';
+
+    // Savings account
+    html += '<div class="finance-section">' +
+      '<div class="finance-section-title">💰 Savings Account</div>' +
+      '<div class="finance-card">' +
+        '<div class="finance-row"><span class="finance-row-label">Balance</span><span class="finance-row-value">' + GameData.formatMoney(savings) + '</span></div>' +
+        '<div class="finance-row"><span class="finance-row-label">Interest Rate</span><span class="finance-row-value positive">' + (savingsRate * 100).toFixed(1) + '% APR</span></div>' +
+        '<div class="finance-row"><span class="finance-row-label">Monthly Interest</span><span class="finance-row-value positive">+' + GameData.formatMoney(Math.round(savings * savingsRate / 12)) + '</span></div>' +
+        '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">' +
+          '<button class="btn btn-primary btn-small" onclick="App.deposit(50000)">Deposit €50K</button>' +
+          '<button class="btn btn-primary btn-small" onclick="App.deposit(100000)">€100K</button>' +
+          '<button class="btn btn-primary btn-small" onclick="App.deposit(500000)">€500K</button>' +
+          '<button class="btn btn-secondary btn-small" onclick="App.withdraw(50000)">Withdraw €50K</button>' +
+          '<button class="btn btn-secondary btn-small" onclick="App.withdraw(100000)">€100K</button>' +
+          (savings > 0 ? '<button class="btn btn-secondary btn-small" onclick="App.withdraw(' + savings + ')">All</button>' : '') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+    // Investments (stocks & bonds)
+    var investments = s.investments || [];
+    html += '<div class="finance-section">' +
+      '<div class="finance-section-title">📈 Investments</div>';
+
+    if (investments.length > 0) {
+      investments.forEach(function(inv) {
+        var currentVal = inv.currentUnitPrice * inv.units;
+        var gain = currentVal - inv.totalInvested;
+        var gainPct = inv.totalInvested > 0 ? ((gain / inv.totalInvested) * 100).toFixed(1) : '0.0';
+        html += '<div class="active-loan">' +
+          '<div class="loan-info">' +
+            '<div class="loan-info-bank">' + inv.icon + ' ' + inv.name + '</div>' +
+            '<div class="loan-info-detail">' + inv.units + ' units · ' + GameData.formatMoney(currentVal) + ' <span class="' + (gain >= 0 ? 'text-success' : 'text-danger') + '">(' + (gain >= 0 ? '+' : '') + gainPct + '%)</span></div>' +
+          '</div>' +
+          '<div style="display:flex;gap:4px">' +
+            '<button class="btn btn-small btn-primary" onclick="App.buyInvestment(\'' + inv.id + '\', 1)">+1</button>' +
+            '<button class="btn btn-small btn-danger" onclick="App.sellInvestment(\'' + inv.id + '\', ' + inv.units + ')">Sell</button>' +
+          '</div>' +
+        '</div>';
+      });
+    }
+
+    // Available investments to buy
+    html += '<div class="finance-card mt-8"><div style="margin-bottom:8px"><strong>Buy Investments</strong></div>';
+    var available = GameEngine.getAvailableInvestments();
+    available.forEach(function(inv) {
+      var typeBadge = inv.type === 'bond' ? '🔵 Bond' : '🟢 Stock';
+      html += '<div class="finance-row" style="flex-wrap:wrap;gap:6px">' +
+        '<div style="flex:1;min-width:150px">' +
+          '<div style="font-weight:700;font-size:0.85rem">' + inv.icon + ' ' + inv.name + '</div>' +
+          '<div style="font-size:0.7rem;color:var(--text-muted)">' + typeBadge + ' · ' + GameData.formatMoney(inv.unitPrice) + '/unit · Yield: ' + (inv.annualYield * 100).toFixed(1) + '% · Risk: ' + (inv.risk * 100).toFixed(0) + '%</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:4px">' +
+          '<button class="btn btn-small btn-secondary" onclick="App.buyInvestment(\'' + inv.id + '\', 1)">1x</button>' +
+          '<button class="btn btn-small btn-primary" onclick="App.buyInvestment(\'' + inv.id + '\', 5)">5x</button>' +
+          '<button class="btn btn-small btn-accent" onclick="App.buyInvestment(\'' + inv.id + '\', 10)">10x</button>' +
+        '</div>' +
+      '</div>';
+    });
+    html += '</div></div>';
 
     // Active loans section
     if (loans.length > 0) {
