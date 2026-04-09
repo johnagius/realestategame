@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Property Empire</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2C6E49">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+
+  <!-- ==================== SPLASH SCREEN ==================== -->
+  <div id="screen-splash" class="screen active">
+    <div class="splash-bg"></div>
+    <div class="splash-content">
+      <div class="splash-icon">🏛️</div>
+      <h1 class="splash-title">Property Empire</h1>
+      <p class="splash-subtitle">Build your real estate fortune across the world's greatest cities</p>
+      <div class="splash-buttons">
+        <button id="btn-new-game" class="btn btn-primary btn-large">New Game</button>
+        <button id="btn-continue-game" class="btn btn-secondary btn-large" style="display:none">Continue Game</button>
+      </div>
+      <p class="splash-version">v1.0</p>
+    </div>
+  </div>
+
+  <!-- ==================== HUD (Top Bar) ==================== -->
+  <div id="hud" class="hidden">
+    <div class="hud-item">
+      <span class="hud-label">Cash</span>
+      <span id="hud-cash" class="hud-value">€500,000</span>
+    </div>
+    <div class="hud-item hud-center">
+      <span class="hud-label">Date</span>
+      <span id="hud-date" class="hud-value">Jan 2024</span>
+    </div>
+    <div class="hud-item hud-right">
+      <span class="hud-label">Net Worth</span>
+      <span id="hud-networth" class="hud-value">€500,000</span>
+    </div>
+  </div>
+
+  <!-- ==================== MAP SCREEN (Cities) ==================== -->
+  <div id="screen-map" class="screen game-screen">
+    <div class="screen-header">
+      <h2>🌍 World Cities</h2>
+      <button id="btn-advance-month" class="btn btn-accent btn-advance">
+        Next Month ▶
+      </button>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="city-search" placeholder="Search cities..." class="search-input">
+    </div>
+    <div id="cities-grid" class="card-grid"></div>
+  </div>
+
+  <!-- ==================== CITY SCREEN ==================== -->
+  <div id="screen-city" class="screen game-screen">
+    <div class="screen-header">
+      <button id="btn-back-city" class="btn btn-ghost btn-back">← Back</button>
+      <h2 id="city-title">City</h2>
+    </div>
+    <div id="city-info" class="city-info-bar"></div>
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="market">🏪 Market</button>
+      <button class="tab-btn" data-tab="owned">🔑 My Properties</button>
+    </div>
+    <div id="city-properties" class="card-grid"></div>
+    <div id="city-empty" class="empty-state" style="display:none">
+      <span class="empty-icon">🏗️</span>
+      <p>No properties available</p>
+    </div>
+  </div>
+
+  <!-- ==================== PROPERTY DETAIL SCREEN ==================== -->
+  <div id="screen-property" class="screen game-screen">
+    <div class="screen-header">
+      <button id="btn-back-property" class="btn btn-ghost btn-back">← Back</button>
+      <h2 id="property-title">Property</h2>
+    </div>
+    <div id="property-detail"></div>
+  </div>
+
+  <!-- ==================== PORTFOLIO SCREEN ==================== -->
+  <div id="screen-portfolio" class="screen game-screen">
+    <div class="screen-header">
+      <h2>📋 My Portfolio</h2>
+      <button class="btn btn-accent btn-advance btn-advance-alt">Next Month ▶</button>
+    </div>
+    <div id="portfolio-summary"></div>
+    <div id="portfolio-filters" class="filter-bar">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="rented">Rented</button>
+      <button class="filter-btn" data-filter="vacant">Vacant</button>
+      <button class="filter-btn" data-filter="refurbishing">Refurbishing</button>
+    </div>
+    <div id="portfolio-list" class="card-grid"></div>
+    <div id="portfolio-empty" class="empty-state" style="display:none">
+      <span class="empty-icon">🏠</span>
+      <p>No properties owned yet</p>
+      <button class="btn btn-primary" onclick="GameUI.showScreen('map')">Browse Cities</button>
+    </div>
+  </div>
+
+  <!-- ==================== FINANCES SCREEN ==================== -->
+  <div id="screen-finances" class="screen game-screen">
+    <div class="screen-header">
+      <h2>💰 Finances</h2>
+      <button class="btn btn-accent btn-advance btn-advance-alt">Next Month ▶</button>
+    </div>
+    <div id="finances-content"></div>
+  </div>
+
+  <!-- ==================== SETTINGS SCREEN ==================== -->
+  <div id="screen-settings" class="screen game-screen">
+    <div class="screen-header">
+      <h2>⚙️ Settings</h2>
+    </div>
+    <div id="settings-content"></div>
+  </div>
+
+  <!-- ==================== BOTTOM NAVIGATION ==================== -->
+  <nav id="main-nav" class="hidden">
+    <button class="nav-btn active" data-screen="map">
+      <span class="nav-icon">🌍</span>
+      <span class="nav-label">Cities</span>
+    </button>
+    <button class="nav-btn" data-screen="portfolio">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Portfolio</span>
+    </button>
+    <button class="nav-btn" data-screen="finances">
+      <span class="nav-icon">💰</span>
+      <span class="nav-label">Finances</span>
+    </button>
+    <button class="nav-btn" data-screen="settings">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">More</span>
+    </button>
+  </nav>
+
+  <!-- ==================== MODAL OVERLAY ==================== -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div id="modal" class="modal">
+      <button id="modal-close" class="modal-close">✕</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <!-- ==================== TOAST NOTIFICATION ==================== -->
+  <div id="toast-container"></div>
+
+  <!-- ==================== EVENT POPUP ==================== -->
+  <div id="event-overlay" class="event-overlay">
+    <div id="event-popup" class="event-popup">
+      <div id="event-content"></div>
+      <button id="event-dismiss" class="btn btn-primary">OK</button>
+    </div>
+  </div>
+
+  <!-- ==================== SCRIPTS ==================== -->
+  <script src="js/data.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
