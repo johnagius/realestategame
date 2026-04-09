@@ -933,8 +933,69 @@ const GameEngine = {
       }
 
       case 'tax_change': {
-        // Slightly change city tax rate
         city.taxRate = Math.max(0.02, Math.min(0.12, city.taxRate + (Math.random() > 0.5 ? 1 : -1) * event.effect.value));
+        break;
+      }
+
+      case 'city_crash': {
+        // Severe crash: property values drop sharply in one city
+        const crashProps = [
+          ...this.state.properties.filter(p => p.cityId === cityId),
+          ...(this.state.marketProperties[cityId] || [])
+        ];
+        crashProps.forEach(p => {
+          // Each property hit slightly differently (some worse, some less)
+          const variance = 1 + (Math.random() - 0.5) * 0.4; // 0.8x to 1.2x of the crash
+          const drop = event.effect.value * variance;
+          p.currentValue = Math.round(p.currentValue * (1 + drop));
+          this.recalculateRent(p);
+        });
+        // City growth rate also takes a temporary hit
+        city.growthRate = Math.max(-0.02, city.growthRate - 0.015);
+        break;
+      }
+
+      case 'global_crash': {
+        // Global recession: all cities hit, varying severity
+        const allCityProps = [
+          ...this.state.properties,
+          ...Object.values(this.state.marketProperties).flat()
+        ];
+        allCityProps.forEach(p => {
+          const variance = 1 + (Math.random() - 0.5) * 0.3;
+          const drop = event.effect.value * variance;
+          p.currentValue = Math.round(p.currentValue * (1 + drop));
+          this.recalculateRent(p);
+        });
+        // All businesses take a hit too
+        if (this.state.businesses) {
+          Object.values(this.state.businesses).forEach(cityBizList => {
+            cityBizList.forEach(biz => {
+              biz.totalValue = Math.round(biz.totalValue * (1 + event.effect.value * 0.8));
+              biz.performance = Math.max(0.2, biz.performance * 0.7);
+              biz.monthlyRevenue = Math.round(biz.monthlyRevenue * 0.75);
+              biz.monthlyProfit = biz.monthlyRevenue - biz.monthlyExpenses;
+            });
+          });
+        }
+        // All city growth rates dip
+        GameData.cities.forEach(c => {
+          c.growthRate = Math.max(-0.03, c.growthRate - 0.01);
+        });
+        break;
+      }
+
+      case 'city_business_crash': {
+        // Businesses in a city lose value and performance
+        const cityBiz = (this.state.businesses || {})[cityId] || [];
+        cityBiz.forEach(biz => {
+          const variance = 1 + (Math.random() - 0.5) * 0.4;
+          const drop = event.effect.value * variance;
+          biz.totalValue = Math.round(biz.totalValue * (1 + drop));
+          biz.performance = Math.max(0.15, biz.performance * (0.5 + Math.random() * 0.3));
+          biz.monthlyRevenue = Math.round(biz.monthlyRevenue * (0.5 + Math.random() * 0.3));
+          biz.monthlyProfit = biz.monthlyRevenue - biz.monthlyExpenses;
+        });
         break;
       }
     }
