@@ -560,5 +560,140 @@ const GameData = {
       return '€' + (amount / 1000).toFixed(0) + 'K';
     }
     return '€' + Math.round(amount);
+  },
+
+  // ---- Banks & Loan Products ----
+  banks: [
+    {
+      id: 'global_trust', name: 'Global Trust Bank', icon: '🏦',
+      description: 'Conservative rates, reliable service.',
+      baseRate: 0.045, maxLoanPct: 0.6, termMonths: [12, 24, 60, 120],
+      rateVariance: 0.005
+    },
+    {
+      id: 'metro_finance', name: 'Metro Finance', icon: '🏛️',
+      description: 'Competitive rates for property investors.',
+      baseRate: 0.038, maxLoanPct: 0.7, termMonths: [12, 36, 60, 120],
+      rateVariance: 0.008
+    },
+    {
+      id: 'pacific_capital', name: 'Pacific Capital', icon: '💎',
+      description: 'Premium banking for high-value portfolios.',
+      baseRate: 0.032, maxLoanPct: 0.8, termMonths: [24, 60, 120, 240],
+      rateVariance: 0.006,
+      minNetWorth: 1000000
+    },
+    {
+      id: 'rapid_lending', name: 'Rapid Lending', icon: '⚡',
+      description: 'Fast approval, higher rates. No questions asked.',
+      baseRate: 0.065, maxLoanPct: 0.5, termMonths: [6, 12, 24, 36],
+      rateVariance: 0.01
+    }
+  ],
+
+  // ---- Business Types (for shops/manufacturing/stakes) ----
+  businessTypes: {
+    shop: {
+      id: 'shop', name: 'Retail Shop', icon: '🛍️',
+      description: 'Street-level retail. Steady foot traffic.',
+      basePriceRange: [50000, 300000],
+      baseRevenueYield: 0.08,
+      riskFactor: 0.15,
+      employeeRange: [2, 10]
+    },
+    restaurant: {
+      id: 'restaurant', name: 'Restaurant', icon: '🍽️',
+      description: 'Food & dining. High revenue, high costs.',
+      basePriceRange: [80000, 500000],
+      baseRevenueYield: 0.10,
+      riskFactor: 0.25,
+      employeeRange: [5, 25]
+    },
+    hotel: {
+      id: 'hotel', name: 'Hotel', icon: '🏨',
+      description: 'Hospitality business. Tourism dependent.',
+      basePriceRange: [500000, 5000000],
+      baseRevenueYield: 0.07,
+      riskFactor: 0.20,
+      employeeRange: [15, 80]
+    },
+    tech_startup: {
+      id: 'tech_startup', name: 'Tech Startup', icon: '💻',
+      description: 'High risk, potentially huge returns.',
+      basePriceRange: [100000, 2000000],
+      baseRevenueYield: 0.15,
+      riskFactor: 0.40,
+      employeeRange: [5, 50]
+    },
+    factory: {
+      id: 'factory', name: 'Factory', icon: '🏭',
+      description: 'Manufacturing. Stable but capital intensive.',
+      basePriceRange: [300000, 3000000],
+      baseRevenueYield: 0.06,
+      riskFactor: 0.10,
+      employeeRange: [20, 200]
+    },
+    gym: {
+      id: 'gym', name: 'Fitness Centre', icon: '🏋️',
+      description: 'Health & fitness. Growing market.',
+      basePriceRange: [60000, 400000],
+      baseRevenueYield: 0.09,
+      riskFactor: 0.15,
+      employeeRange: [3, 15]
+    },
+    supermarket: {
+      id: 'supermarket', name: 'Supermarket', icon: '🛒',
+      description: 'Grocery retail. Essential, recession-proof.',
+      basePriceRange: [200000, 1500000],
+      baseRevenueYield: 0.05,
+      riskFactor: 0.05,
+      employeeRange: [10, 60]
+    },
+    nightclub: {
+      id: 'nightclub', name: 'Nightclub', icon: '🎶',
+      description: 'Nightlife venue. High margins, volatile.',
+      basePriceRange: [100000, 800000],
+      baseRevenueYield: 0.12,
+      riskFactor: 0.30,
+      employeeRange: [5, 30]
+    }
+  },
+
+  // Generate a business for a city
+  generateBusiness(cityId, type) {
+    const city = this.cities.find(c => c.id === cityId);
+    const typeDef = this.businessTypes[type];
+    if (!city || !typeDef) return null;
+
+    const [minP, maxP] = typeDef.basePriceRange;
+    const baseValue = minP + Math.random() * (maxP - minP);
+    const value = Math.round(baseValue * city.priceMultiplier / 1000) * 1000;
+
+    const districts = this.districts[cityId] || ['Central'];
+    const district = districts[Math.floor(Math.random() * districts.length)];
+    const adj = this.adjectives[Math.floor(Math.random() * this.adjectives.length)];
+
+    const [minEmp, maxEmp] = typeDef.employeeRange;
+    const employees = Math.round(minEmp + Math.random() * (maxEmp - minEmp));
+
+    const monthlyRevenue = Math.round((value * typeDef.baseRevenueYield * city.rentYield * 10) / 12);
+    const monthlyExpenses = Math.round(monthlyRevenue * (0.5 + Math.random() * 0.25));
+
+    return {
+      id: 'biz_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+      cityId,
+      type,
+      name: adj + ' ' + typeDef.name + ' — ' + district,
+      district,
+      totalValue: value,
+      employees,
+      monthlyRevenue,
+      monthlyExpenses,
+      monthlyProfit: monthlyRevenue - monthlyExpenses,
+      riskFactor: typeDef.riskFactor,
+      performance: 1.0, // 1.0 = normal, fluctuates
+      availableStake: 100, // % available for purchase
+      isNew: true
+    };
   }
 };
