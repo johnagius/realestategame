@@ -9,6 +9,8 @@ const GameUI = {
   currentProperty: null,
   currentCityTab: 'market',
   currentPortfolioFilter: 'all',
+  mapView: false,
+  autoTimer: null,
 
   // ---- Show a screen ----
   showScreen(screenId, data) {
@@ -28,6 +30,7 @@ const GameUI = {
       case 'city': this.renderCity(data); break;
       case 'property': this.renderProperty(data); break;
       case 'portfolio': this.renderPortfolio(); break;
+      case 'bank': this.renderBank(); break;
       case 'finances': this.renderFinances(); break;
       case 'settings': this.renderSettings(); break;
     }
@@ -53,8 +56,11 @@ const GameUI = {
     setTimeout(function() { if (toast.parentNode) toast.remove(); }, 3200);
   },
 
-  // ---- Render Map (Cities grid) ----
+  // ---- Render Map (Cities grid + world map) ----
   renderMap() {
+    // Render world map pins
+    this.renderWorldMap();
+
     const grid = document.getElementById('cities-grid');
     const search = document.getElementById('city-search').value.toLowerCase();
     let cities = GameData.cities;
@@ -118,8 +124,14 @@ const GameUI = {
   renderCityProperties() {
     var cityId = this.currentCity;
     var tab = this.currentCityTab;
-    var props;
 
+    // Handle businesses tab separately
+    if (tab === 'businesses') {
+      this.renderCityBusinesses();
+      return;
+    }
+
+    var props;
     if (tab === 'market') {
       props = GameEngine.state.marketProperties[cityId] || [];
     } else {
@@ -255,6 +267,21 @@ const GameUI = {
         var agentFee = Math.round(p.currentValue * GameData.sellingFeeRate);
         var saleProceeds = p.currentValue - agentFee;
         actionsHTML += '<button class="btn btn-danger btn-small mt-8" onclick="App.sellProperty(\'' + p.id + '\')">Sell — ' + GameData.formatMoney(saleProceeds) + ' (after ' + GameData.formatMoney(agentFee) + ' fee)</button>';
+
+        // Auto-sell
+        var autoRule = (GameEngine.state.autoSellRules || []).find(function(r) { return r.propertyId === p.id; });
+        if (autoRule) {
+          actionsHTML += '<div class="city-info-chip mt-8" style="width:100%;justify-content:space-between">' +
+            '<span>🤖 Auto-sell at ' + (autoRule.type === 'pct' ? autoRule.threshold + '% appreciation' : GameData.formatMoney(autoRule.threshold)) + '</span>' +
+            '<button class="btn btn-ghost btn-small" onclick="App.removeAutoSell(\'' + p.id + '\')">Remove</button>' +
+          '</div>';
+        } else {
+          actionsHTML += '<div style="display:flex;gap:4px;margin-top:6px">' +
+            '<button class="btn btn-ghost btn-small" onclick="App.setAutoSell(\'' + p.id + '\', \'pct\', 20)">Auto +20%</button>' +
+            '<button class="btn btn-ghost btn-small" onclick="App.setAutoSell(\'' + p.id + '\', \'pct\', 50)">Auto +50%</button>' +
+            '<button class="btn btn-ghost btn-small" onclick="App.setAutoSell(\'' + p.id + '\', \'pct\', 100)">Auto +100%</button>' +
+          '</div>';
+        }
       }
 
       // Mitigations section
@@ -420,11 +447,12 @@ const GameUI = {
     var content = document.getElementById('settings-content');
     content.innerHTML =
       '<div class="settings-section">' +
+        '<div class="settings-row"><div><div class="settings-label">Auto-Advance Time</div><div class="settings-description">Automatically advance months</div></div>' + this.renderSpeedControls() + '</div>' +
         '<div class="settings-row"><div><div class="settings-label">Save Game</div><div class="settings-description">Game saves automatically each month</div></div><button class="btn btn-primary btn-small" onclick="GameEngine.save(); GameUI.toast(\'Game saved!\', \'success\')">Save Now</button></div>' +
         '<div class="settings-row"><div><div class="settings-label">New Game</div><div class="settings-description">Start fresh with €500,000</div></div><button class="btn btn-danger btn-small" onclick="App.confirmNewGame()">Reset</button></div>' +
       '</div>' +
       '<div class="settings-section">' +
-        '<div class="settings-row"><div><div class="settings-label">Property Empire</div><div class="settings-description">v1.0 — Build your real estate fortune</div></div></div>' +
+        '<div class="settings-row"><div><div class="settings-label">Property Empire</div><div class="settings-description">v2.0 — Build your real estate fortune</div></div></div>' +
         '<div class="settings-row"><div><div class="settings-label">Month</div><div class="settings-description">' + GameEngine.getDateString() + ' (Month ' + GameEngine.state.month + ')</div></div></div>' +
       '</div>';
   },
@@ -464,6 +492,18 @@ const GameUI = {
       GameUI.toast('🏗️ ' + p.name + ' construction complete!', 'success');
     });
 
+    // Auto-sold properties
+    if (results.autoSold) {
+      results.autoSold.forEach(function(item) {
+        GameUI.toast('🤖 Auto-sold: ' + item.property.name + ' — ' + item.result.message, 'info');
+      });
+    }
+
+    // Dividends
+    if (results.dividends > 0) {
+      GameUI.toast('💼 Dividends received: +' + GameData.formatMoney(results.dividends), 'success');
+    }
+
     // Basic summary toast
     if (!hasDisasters && !hasEvents) {
       var net = results.rentIncome - results.expenses;
@@ -499,5 +539,213 @@ const GameUI = {
 
   hideModal() {
     document.getElementById('modal-overlay').classList.remove('active');
+  },
+
+  // ---- Toggle map view ----
+  toggleMapView() {
+    this.mapView = !this.mapView;
+    document.getElementById('world-map-container').style.display = this.mapView ? 'block' : 'none';
+    document.getElementById('cities-list-view').style.display = this.mapView ? 'none' : '';
+    document.getElementById('btn-map-toggle').textContent = this.mapView ? '📋 List' : '🗺️ Map';
+  },
+
+  // ---- Render World Map ----
+  renderWorldMap() {
+    var svg = document.getElementById('world-map-svg');
+    var pins = document.getElementById('world-map-pins');
+
+    // Draw simple continent shapes
+    svg.innerHTML =
+      '<rect width="1000" height="500" fill="#C8DFF0"/>' +
+      // North America
+      '<path d="M50,80 L180,60 L260,100 L280,180 L240,250 L200,280 L160,260 L120,300 L80,260 L40,200 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
+      // South America
+      '<path d="M220,310 L280,290 L320,330 L340,400 L320,460 L280,480 L240,450 L220,380 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
+      // Europe
+      '<path d="M420,60 L520,50 L560,80 L540,120 L520,150 L480,160 L440,140 L420,100 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
+      // Africa
+      '<path d="M440,180 L520,170 L560,220 L580,300 L560,380 L520,420 L480,400 L440,340 L430,260 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
+      // Asia
+      '<path d="M560,40 L700,30 L800,60 L860,100 L880,160 L840,200 L780,220 L700,210 L640,180 L580,150 L560,100 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
+      // India
+      '<path d="M640,180 L680,200 L700,260 L680,300 L640,280 L620,240 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
+      // Southeast Asia
+      '<path d="M720,220 L780,230 L800,280 L760,310 L720,290 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
+      // Australia
+      '<path d="M800,340 L900,330 L940,370 L920,420 L860,440 L800,420 L790,380 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
+      // Japan
+      '<path d="M850,100 L870,90 L880,120 L870,150 L855,140 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>';
+
+    // Render city pins
+    var pinsHTML = '';
+    GameData.cities.forEach(function(city) {
+      var coords = GameData.cityCoords[city.id];
+      if (!coords) return;
+      var summary = GameEngine.getCitySummary(city.id);
+      var hasOwned = summary.owned > 0;
+      pinsHTML += '<div class="map-pin" data-city="' + city.id + '" style="left:' + coords.x + '%;top:' + coords.y + '%">' +
+        '<div class="map-pin-dot ' + (hasOwned ? 'owned' : '') + '"></div>' +
+        '<div class="map-pin-label">' + city.name + (hasOwned ? ' (' + summary.owned + ')' : '') + '</div>' +
+      '</div>';
+    });
+    pins.innerHTML = pinsHTML;
+  },
+
+  // ---- Render Bank ----
+  renderBank() {
+    var content = document.getElementById('bank-content');
+    var s = GameEngine.state;
+    var loans = s.loans || [];
+    var netWorth = GameEngine.getNetWorth();
+
+    var html = '';
+
+    // Active loans section
+    if (loans.length > 0) {
+      html += '<div class="finance-section"><div class="finance-section-title">Active Loans</div>';
+      loans.forEach(function(loan) {
+        html += '<div class="active-loan">' +
+          '<div class="loan-info">' +
+            '<div class="loan-info-bank">' + loan.bankName + '</div>' +
+            '<div class="loan-info-detail">' + GameData.formatMoney(loan.remainingBalance) + ' remaining · ' + (loan.interestRate * 100).toFixed(1) + '% · ' + loan.monthsLeft + ' months left</div>' +
+            '<div class="loan-info-detail">' + GameData.formatMoney(loan.monthlyPayment) + '/month</div>' +
+          '</div>' +
+          '<button class="btn btn-small btn-primary" onclick="App.repayLoan(\'' + loan.id + '\')">Repay</button>' +
+        '</div>';
+      });
+      var totalDebt = loans.reduce(function(s, l) { return s + l.remainingBalance; }, 0);
+      html += '<div class="action-info mt-8">Total debt: ' + GameData.formatMoney(totalDebt) + '</div>';
+      html += '</div>';
+    }
+
+    // Loan amount selector
+    html += '<div class="finance-section">' +
+      '<div class="finance-section-title">Take a Loan</div>' +
+      '<div class="finance-card">' +
+        '<div style="margin-bottom:10px"><label class="settings-label">Loan Amount</label></div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">';
+
+    var amounts = [50000, 100000, 250000, 500000, 1000000, 2000000];
+    amounts.forEach(function(amt) {
+      html += '<button class="btn btn-secondary btn-small" onclick="App.showLoanOffers(' + amt + ')">' + GameData.formatMoneyShort(amt) + '</button>';
+    });
+    html += '</div></div></div>';
+
+    // Bank listings
+    html += '<div class="finance-section"><div class="finance-section-title">Available Banks</div>';
+    GameData.banks.forEach(function(bank) {
+      var available = !bank.minNetWorth || netWorth >= bank.minNetWorth;
+      html += '<div class="bank-card" style="' + (available ? '' : 'opacity:0.5') + '">' +
+        '<div class="bank-header">' +
+          '<span class="bank-icon">' + bank.icon + '</span>' +
+          '<div><div class="bank-name">' + bank.name + '</div>' +
+          '<div class="bank-description">' + bank.description + '</div></div>' +
+        '</div>' +
+        '<div class="city-info-bar">' +
+          '<div class="city-info-chip">📊 Base rate: <strong>' + (bank.baseRate * 100).toFixed(1) + '%</strong></div>' +
+          '<div class="city-info-chip">💰 Max: <strong>' + Math.round(bank.maxLoanPct * 100) + '% NW</strong></div>' +
+          (bank.minNetWorth ? '<div class="city-info-chip">🔒 Min NW: <strong>' + GameData.formatMoneyShort(bank.minNetWorth) + '</strong></div>' : '') +
+        '</div>' +
+      '</div>';
+    });
+    html += '</div>';
+
+    content.innerHTML = html;
+  },
+
+  // ---- Render Businesses in City ----
+  renderCityBusinesses() {
+    var cityId = this.currentCity;
+    var businesses = (GameEngine.state.businesses || {})[cityId] || [];
+    var ownedStakes = (GameEngine.state.ownedStakes || []).filter(function(s) { return s.cityId === cityId; });
+
+    var grid = document.getElementById('city-properties');
+    var empty = document.getElementById('city-empty');
+
+    if (businesses.length === 0) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      empty.querySelector('p').textContent = 'No businesses available in this city';
+      return;
+    }
+
+    empty.style.display = 'none';
+    var html = '';
+
+    businesses.forEach(function(biz, i) {
+      var typeDef = GameData.businessTypes[biz.type];
+      var myStake = ownedStakes.find(function(s) { return s.businessId === biz.id; });
+      var perfPct = Math.round(biz.performance * 100);
+      var perfColor = perfPct >= 100 ? '#2A9D8F' : perfPct >= 70 ? '#F4A261' : '#E63946';
+
+      html += '<div class="business-card" style="animation-delay:' + (i * 0.04) + 's">' +
+        '<div class="business-card-header">' +
+          '<span class="business-icon">' + typeDef.icon + '</span>' +
+          '<div><div class="business-card-name">' + biz.name + '</div></div>' +
+        '</div>' +
+        '<div class="business-card-stats">' +
+          '<div class="business-stat">Value: <strong>' + GameData.formatMoneyShort(biz.totalValue) + '</strong></div>' +
+          '<div class="business-stat">Profit: <strong class="' + (biz.monthlyProfit >= 0 ? 'text-success' : 'text-danger') + '">' + GameData.formatMoney(biz.monthlyProfit) + '/mo</strong></div>' +
+          '<div class="business-stat">Staff: <strong>' + biz.employees + '</strong></div>' +
+          '<div class="business-stat">Available: <strong>' + biz.availableStake + '%</strong></div>' +
+        '</div>' +
+        '<div class="business-performance">' +
+          '<span>Performance:</span>' +
+          '<div class="perf-bar"><div class="perf-bar-fill" style="width:' + Math.min(100, perfPct) + '%;background:' + perfColor + '"></div></div>' +
+          '<span>' + perfPct + '%</span>' +
+        '</div>';
+
+      if (myStake) {
+        html += '<div class="city-info-chip" style="width:100%;margin-bottom:6px">You own <strong>' + myStake.stakePct + '%</strong> · Dividends: <strong>' + GameData.formatMoney(Math.round(biz.monthlyProfit * myStake.stakePct / 100 * biz.performance)) + '/mo</strong></div>';
+        html += '<div style="display:flex;gap:6px">';
+        if (biz.availableStake >= 5) {
+          html += '<button class="btn btn-primary btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 10)">Buy 10%</button>';
+        }
+        html += '<button class="btn btn-danger btn-small" style="flex:1" onclick="App.sellStake(\'' + biz.id + '\')">Sell Stake</button>';
+        html += '</div>';
+      } else if (biz.availableStake >= 5) {
+        html += '<div style="display:flex;gap:6px">';
+        html += '<button class="btn btn-secondary btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 5)">Buy 5% · ' + GameData.formatMoneyShort(Math.round(biz.totalValue * 0.05)) + '</button>';
+        html += '<button class="btn btn-primary btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 10)">Buy 10% · ' + GameData.formatMoneyShort(Math.round(biz.totalValue * 0.10)) + '</button>';
+        if (biz.availableStake >= 25) {
+          html += '<button class="btn btn-accent btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 25)">25%</button>';
+        }
+        html += '</div>';
+      } else {
+        html += '<div class="action-info">Fully invested</div>';
+      }
+
+      html += '</div>';
+    });
+
+    grid.innerHTML = html;
+  },
+
+  // ---- Auto-advance controls ----
+  setAutoAdvance(speed) {
+    if (this.autoTimer) {
+      clearInterval(this.autoTimer);
+      this.autoTimer = null;
+    }
+
+    GameEngine.state.autoAdvanceSpeed = speed;
+    var intervals = { 0: 0, 1: 3000, 2: 1500, 3: 600 };
+    var ms = intervals[speed] || 0;
+
+    if (ms > 0) {
+      this.autoTimer = setInterval(function() { App.advanceMonth(); }, ms);
+    }
+    GameEngine.save();
+  },
+
+  renderSpeedControls() {
+    var speed = (GameEngine.state && GameEngine.state.autoAdvanceSpeed) || 0;
+    return '<div class="speed-controls">' +
+      '<span style="font-size:0.7rem;font-weight:700;color:var(--text-muted)">Speed:</span>' +
+      '<button class="speed-btn ' + (speed === 0 ? 'active' : '') + '" onclick="GameUI.setAutoAdvance(0)">⏸</button>' +
+      '<button class="speed-btn ' + (speed === 1 ? 'active' : '') + '" onclick="GameUI.setAutoAdvance(1)">▶</button>' +
+      '<button class="speed-btn ' + (speed === 2 ? 'active' : '') + '" onclick="GameUI.setAutoAdvance(2)">▶▶</button>' +
+      '<button class="speed-btn ' + (speed === 3 ? 'active' : '') + '" onclick="GameUI.setAutoAdvance(3)">▶▶▶</button>' +
+    '</div>';
   }
 };

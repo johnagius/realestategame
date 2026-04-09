@@ -31,6 +31,23 @@ const App = {
       btn.addEventListener('click', function() { App.advanceMonth(); });
     });
 
+    // Map toggle
+    document.getElementById('btn-map-toggle').addEventListener('click', function() {
+      GameUI.toggleMapView();
+    });
+
+    // Map pin clicks
+    document.getElementById('world-map-pins').addEventListener('click', function(e) {
+      var pin = e.target.closest('.map-pin');
+      if (pin) {
+        var cityId = pin.getAttribute('data-city');
+        GameUI.currentCityTab = 'market';
+        document.querySelectorAll('.tab-btn').forEach(function(t) { t.classList.remove('active'); });
+        document.querySelector('.tab-btn[data-tab="market"]').classList.add('active');
+        GameUI.showScreen('city', cityId);
+      }
+    });
+
     // City search
     document.getElementById('city-search').addEventListener('input', function() {
       GameUI.renderMap();
@@ -143,6 +160,8 @@ const App = {
     else if (GameUI.currentScreen === 'city') GameUI.renderCity();
     else if (GameUI.currentScreen === 'portfolio') GameUI.renderPortfolio();
     else if (GameUI.currentScreen === 'finances') GameUI.renderFinances();
+    else if (GameUI.currentScreen === 'bank') GameUI.renderBank();
+    else if (GameUI.currentScreen === 'settings') GameUI.renderSettings();
   },
 
   buyProperty(propertyId, cityId) {
@@ -237,11 +256,92 @@ const App = {
 
   doNewGame() {
     GameUI.hideModal();
+    if (GameUI.autoTimer) { clearInterval(GameUI.autoTimer); GameUI.autoTimer = null; }
     GameEngine.deleteSave();
     GameEngine.newGame();
     GameUI.updateHUD();
     GameUI.showScreen('map');
     GameUI.toast('New game started!', 'success');
+  },
+
+  // ---- Bank / Loans ----
+  showLoanOffers(amount) {
+    var offers = GameEngine.getLoanOffers(amount);
+    if (offers.length === 0) {
+      GameUI.toast('No loan offers available for this amount.', 'error');
+      return;
+    }
+
+    var html = '<p style="margin-bottom:12px">Loan offers for <strong>' + GameData.formatMoney(amount) + '</strong>:</p>';
+    offers.forEach(function(o) {
+      html += '<div class="loan-option" onclick="App.takeLoan(\'' + o.bankId + '\', ' + o.amount + ', ' + o.termMonths + ')">' +
+        '<div class="loan-term">' + o.bankIcon + ' ' + o.termMonths + ' months</div>' +
+        '<div class="loan-rate">' + (o.interestRate * 100).toFixed(1) + '% APR</div>' +
+        '<div class="loan-payment">' + GameData.formatMoney(o.monthlyPayment) + '/mo</div>' +
+        '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Total: ' + GameData.formatMoney(o.totalRepayment) + '</div>' +
+      '</div>';
+    });
+
+    GameUI.showModal('Loan Offers', '<div class="loan-options">' + html + '</div>', '');
+  },
+
+  takeLoan(bankId, amount, termMonths) {
+    GameUI.hideModal();
+    var result = GameEngine.takeLoan(bankId, amount, termMonths);
+    if (result.success) {
+      GameUI.toast(result.message, 'success');
+      GameUI.updateHUD();
+      GameUI.renderBank();
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+  },
+
+  repayLoan(loanId) {
+    var result = GameEngine.repayLoan(loanId);
+    if (result.success) {
+      GameUI.toast(result.message, 'success');
+      GameUI.updateHUD();
+      GameUI.renderBank();
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+  },
+
+  // ---- Business Stakes ----
+  buyStake(businessId, cityId, stakePct) {
+    var result = GameEngine.buyStake(businessId, cityId, stakePct);
+    if (result.success) {
+      GameUI.toast(result.message, 'success');
+      GameUI.updateHUD();
+      GameUI.renderCityBusinesses();
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+  },
+
+  sellStake(businessId) {
+    var result = GameEngine.sellStake(businessId);
+    if (result.success) {
+      GameUI.toast(result.message, 'success');
+      GameUI.updateHUD();
+      GameUI.renderCityBusinesses();
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+  },
+
+  // ---- Auto-sell ----
+  setAutoSell(propertyId, type, threshold) {
+    var result = GameEngine.addAutoSellRule(propertyId, type, threshold);
+    GameUI.toast(result.message, 'success');
+    GameUI.renderProperty(propertyId);
+  },
+
+  removeAutoSell(propertyId) {
+    GameEngine.removeAutoSellRule(propertyId);
+    GameUI.toast('Auto-sell rule removed.', 'info');
+    GameUI.renderProperty(propertyId);
   }
 };
 
