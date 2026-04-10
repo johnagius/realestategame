@@ -2659,6 +2659,66 @@ const GameEngine = {
       });
     }
 
+    // TYPE 6: Education — send a child to university
+    if (this.state.familyMembers) {
+      var children = this.state.familyMembers.filter(function(m) { return !m.isHead && m.age >= 16 && m.age <= 25 && !m.educated; });
+      if (children.length > 0 && cash > 0) {
+        var child = children[0];
+        var eduCost = Math.round(cash * 0.08);
+        decisions.push({
+          type: 'education',
+          title: '🎓 University Education',
+          description: child.name + ' (age ' + child.age + ', ' + child.trait + ') could attend university. Cost: ' + GameData.formatMoney(eduCost) + '. Improves their abilities if they become head.',
+          choices: [
+            { label: 'Send to university (' + GameData.formatMoney(eduCost) + ')', action: 'educate', data: { memberId: child.id, cost: eduCost } },
+            { label: 'Education is overrated', action: 'pass' }
+          ]
+        });
+      }
+    }
+
+    // TYPE 7: Marriage — marry into an AI family
+    if (this.state.familyMembers && this.state.aiFamilies) {
+      var eligibleChildren = this.state.familyMembers.filter(function(m) { return !m.isHead && m.age >= 18 && m.age <= 35 && !m.married; });
+      if (eligibleChildren.length > 0 && Math.random() < 0.3) {
+        var spouse = eligibleChildren[0];
+        var aiFamily = this.state.aiFamilies[Math.floor(Math.random() * this.state.aiFamilies.length)];
+        var dowry = Math.round(aiFamily.netWorth * 0.05);
+        decisions.push({
+          type: 'marriage',
+          title: '💒 Marriage Proposal',
+          description: aiFamily.icon + ' ' + aiFamily.name + ' propose a marriage alliance with ' + spouse.name + '. Dowry: ' + GameData.formatMoney(dowry) + '. Alliance improves business relations.',
+          choices: [
+            { label: 'Accept marriage (+' + GameData.formatMoney(dowry) + ', +reputation)', action: 'marry', data: { memberId: spouse.id, aiId: aiFamily.id, dowry: dowry } },
+            { label: 'Decline the proposal', action: 'pass' }
+          ]
+        });
+      }
+    }
+
+    // TYPE 8: Scandal
+    if (this.state.familyMembers && Math.random() < 0.2) {
+      var head = this.state.familyMembers.find(function(m) { return m.isHead; });
+      if (head) {
+        var scandals = [
+          { text: head.name + ' is caught in a gambling scandal! Pay hush money or face public shame.', cost: 0.05, repLoss: 12 },
+          { text: 'A rival family publishes damaging rumors about ' + head.name + '. Counter with lawyers or ignore.', cost: 0.03, repLoss: 8 },
+          { text: head.name + '\'s business dealings questioned in the press. Bribe officials or let the story run.', cost: 0.04, repLoss: 10 },
+        ];
+        var scandal = scandals[Math.floor(Math.random() * scandals.length)];
+        var bribeCost = Math.round(cash * scandal.cost);
+        decisions.push({
+          type: 'scandal',
+          title: '⚠️ Family Scandal',
+          description: scandal.text,
+          choices: [
+            { label: 'Pay ' + GameData.formatMoney(bribeCost) + ' to suppress it', action: 'suppress_scandal', data: { cost: bribeCost } },
+            { label: 'Let it play out (reputation -' + scandal.repLoss + ')', action: 'accept_scandal', data: { repLoss: scandal.repLoss } }
+          ]
+        });
+      }
+    }
+
     // Pick one decision (not all)
     if (decisions.length === 0) return null;
     var chosen = decisions[Math.floor(Math.random() * decisions.length)];
@@ -2740,6 +2800,45 @@ const GameEngine = {
           result.message = 'Not enough cash.';
           result.success = false;
         }
+        break;
+      }
+      case 'educate': {
+        var d = choiceData || decision.choices[0].data;
+        if (this.state.cash >= d.cost) {
+          this.state.cash -= d.cost;
+          var member = (this.state.familyMembers || []).find(function(m) { return m.id === d.memberId; });
+          if (member) {
+            member.educated = true;
+            member.health = Math.min(100, member.health + 10);
+            member.lifespan += 5;
+          }
+          result.message = '🎓 ' + (member ? member.name : 'Child') + ' graduated! +10 health, +5 lifespan.';
+        } else { result.message = 'Not enough cash.'; result.success = false; }
+        break;
+      }
+      case 'marry': {
+        var d = choiceData || decision.choices[0].data;
+        this.state.cash += d.dowry;
+        var member = (this.state.familyMembers || []).find(function(m) { return m.id === d.memberId; });
+        if (member) member.married = true;
+        if (!this.state.reputation) this.state.reputation = 50;
+        this.state.reputation = Math.min(100, this.state.reputation + 5);
+        result.message = '💒 Marriage alliance formed! +'+ GameData.formatMoney(d.dowry) + ' dowry, +5 reputation.';
+        break;
+      }
+      case 'suppress_scandal': {
+        var d = choiceData || decision.choices[0].data;
+        if (this.state.cash >= d.cost) {
+          this.state.cash -= d.cost;
+          result.message = 'Scandal suppressed for ' + GameData.formatMoney(d.cost) + '. Reputation preserved.';
+        } else { result.message = 'Not enough cash!'; result.success = false; }
+        break;
+      }
+      case 'accept_scandal': {
+        var d = choiceData || decision.choices[0].data;
+        if (!this.state.reputation) this.state.reputation = 50;
+        this.state.reputation = Math.max(0, this.state.reputation - d.repLoss);
+        result.message = 'Scandal made public. Reputation -' + d.repLoss + '.';
         break;
       }
       case 'pass':
