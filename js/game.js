@@ -1012,25 +1012,62 @@ const GameEngine = {
   // ---- Simulate AI families ----
   simulateAIFamilies() {
     if (!this.state.aiFamilies) return;
+    var state = this.state;
+
     this.state.aiFamilies.forEach(ai => {
       // Monthly income from their properties
       const income = ai.monthlyIncome * (0.9 + Math.random() * 0.2);
       ai.netWorth += income;
 
-      // Occasionally buy/sell (simulated)
-      if (Math.random() < ai.aggressiveness * 0.15) {
-        const investAmount = ai.netWorth * (0.02 + Math.random() * 0.05) * ai.riskTolerance;
-        ai.netWorth += investAmount * (Math.random() - 0.4); // Could gain or lose
-        ai.propertyCount += Math.random() > 0.4 ? 1 : 0;
+      // AI ACTUALLY BUYS from the market (removes properties you could buy)
+      if (Math.random() < ai.aggressiveness * 0.12) {
+        var cities = Object.keys(state.marketProperties);
+        if (cities.length > 0) {
+          var cityId = cities[Math.floor(Math.random() * cities.length)];
+          var market = state.marketProperties[cityId];
+          if (market && market.length > 2) { // Leave at least 2 for player
+            // AI picks cheapest property it can afford
+            var affordable = market.filter(p => p.currentValue < ai.netWorth * 0.3);
+            if (affordable.length > 0) {
+              var target = affordable[Math.floor(Math.random() * affordable.length)];
+              // Remove from market
+              state.marketProperties[cityId] = market.filter(p => p.id !== target.id);
+              ai.netWorth -= target.currentValue;
+              ai.propertyCount++;
+              ai.monthlyIncome += Math.round(target.monthlyRent * 0.7); // AI manages less efficiently
+            }
+          }
+        }
       }
 
-      // Market effects hit AI too
-      const marketShift = (Math.random() - 0.48) * 0.03;
-      ai.netWorth *= (1 + marketShift);
-      ai.netWorth = Math.max(100000, Math.round(ai.netWorth));
+      // AI sells occasionally (adds properties back to market)
+      if (Math.random() < 0.03 && ai.propertyCount > 2) {
+        // Generate a "sold" property back to a random market
+        var cities = Object.keys(state.marketProperties);
+        if (cities.length > 0) {
+          var cityId = cities[Math.floor(Math.random() * cities.length)];
+          var era = this.getCurrentEra();
+          var types = era.businessTypes ? ['apartment', 'house', 'commercial'] : ['farm', 'house'];
+          var type = types[Math.floor(Math.random() * types.length)];
+          if (GameData.propertyTypes[type]) {
+            var newProp = GameData.generateProperty(cityId, type);
+            if (newProp) {
+              state.marketProperties[cityId].push(newProp);
+              ai.propertyCount = Math.max(0, ai.propertyCount - 1);
+            }
+          }
+        }
+      }
 
-      // Grow income slowly
-      ai.monthlyIncome = Math.round(ai.monthlyIncome * (1 + (Math.random() - 0.45) * 0.02));
+      // Market effects hit AI too (less extreme)
+      const marketShift = (Math.random() - 0.48) * 0.02;
+      ai.netWorth *= (1 + marketShift);
+
+      // AI can also suffer crashes
+      ai.netWorth = Math.max(50, Math.round(ai.netWorth));
+
+      // Grow income based on property count
+      ai.monthlyIncome = Math.max(1, Math.round(ai.monthlyIncome * (1 + (Math.random() - 0.45) * 0.015)));
 
       // Track history
       ai.history.push(ai.netWorth);
