@@ -3041,5 +3041,88 @@ const GameGraphics = {
     // V&A Waterfront hint
     s += '<rect x="400" y="275" width="120" height="15" fill="#C0B8A8" stroke="#A0A098" stroke-width="0.5"/>';
     return s;
+  },
+
+  // ===== ROME =====
+  _city_rome() {
+    var s = '';
+    s += '<linearGradient id="rm-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5A8AB8"/><stop offset="60%" stop-color="#A0C0D0"/><stop offset="100%" stop-color="#E8D8C0"/></linearGradient>';
+    s += '<rect width="1200" height="500" fill="url(#rm-sky)"/>';
+    // Warm Italian light
+    s += '<g opacity="0.25"><ellipse cx="250" cy="40" rx="100" ry="18" fill="#FFF"/><ellipse cx="800" cy="35" rx="120" ry="20" fill="#FFF"/></g>';
+    // Distant hills
+    s += '<path d="M0,260 Q200,240 400,255 Q600,235 800,250 Q1000,238 1200,255 L1200,290 L0,290Z" fill="#8AA878" opacity="0.4"/>';
+    // Colosseum
+    s += '<g transform="translate(500, 195)">';
+    s += '<ellipse cx="55" cy="55" rx="55" ry="35" fill="#C8B898" stroke="#A89878" stroke-width="1"/>';
+    s += '<ellipse cx="55" cy="50" rx="50" ry="30" fill="#D8C8A8" stroke="#A89878" stroke-width="0.6"/>';
+    // Arches
+    s += '<g fill="#8A7A68" opacity="0.5">';
+    for (var i = 0; i < 12; i++) {
+      var ax = 15 + i * 7;
+      s += '<rect x="'+ax+'" y="40" width="4" height="18" rx="2" ry="2"/>';
+    }
+    s += '</g>';
+    // Missing section (ruin)
+    s += '<rect x="80" y="30" width="30" height="40" fill="url(#rm-sky)"/>';
+    s += '</g>';
+    // St. Peter's dome (distant)
+    s += '<g transform="translate(200, 220)" opacity="0.6">';
+    s += '<rect x="0" y="10" width="60" height="50" fill="#D0C8B4" stroke="#A8A08A" stroke-width="0.5"/>';
+    s += '<ellipse cx="30" cy="10" rx="22" ry="16" fill="#D8D0C0" stroke="#A8A08A" stroke-width="0.5"/>';
+    s += '<line x1="30" y1="-6" x2="30" y2="-14" stroke="#8A826A" stroke-width="1"/>';
+    s += '<line x1="27" y1="-10" x2="33" y2="-10" stroke="#8A826A" stroke-width="0.6"/>';
+    s += '</g>';
+    // Terracotta buildings
+    for (var bx = 10; bx < 1190; bx += 48) {
+      if (bx > 470 && bx < 640) continue; // skip Colosseum area
+      var bh = 35 + Math.sin(bx * 0.08) * 15;
+      var bc = bx % 96 < 48 ? '#D09868' : '#C08858';
+      s += '<rect x="'+bx+'" y="'+(290-bh)+'" width="42" height="'+bh+'" fill="'+bc+'" stroke="#9A7A58" stroke-width="0.5"/>';
+    }
+    s += '<rect x="0" y="290" width="1200" height="210" fill="#8AAA78"/>';
+    s += '<rect x="0" y="290" width="1200" height="15" fill="#B8A888"/>';
+    return s;
+  },
+
+  // ===== SYDNEY =====
+  _city_sydney() {
+    var s = '';
+    s += '<linearGradient id="sy-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2878B8"/><stop offset="60%" stop-color="#48A0D8"/><stop offset="100%" stop-color="#88C8E8"/></linearGradient>';
+    s += '<rect width="1200" height="500" fill="url(#sy-sky)"/>';
+    s += '<g opacity="0.3"><ellipse cx="300" cy="40" rx="110" ry="18" fill="#FFF"/><ellipse cx="900" cy="35" rx="90" ry="16" fill="#FFF"/></g>';
+    // Sydney Opera House
+    s += '<g transform="translate(400, 240)">';
+    // Shells
+    s += '<path d="M0,30 Q15,-5 30,30" fill="#F0EAE0" stroke="#C0B8A8" stroke-width="0.8"/>';
+    s += '<path d="M25,30 Q40,-10 55,30" fill="#F0EAE0" stroke="#C0B8A8" stroke-width="0.8"/>';
+    s += '<path d="M50,30 Q60,-5 70,30" fill="#E8E2D8" stroke="#C0B8A8" stroke-width="0.7"/>';
+    s += '<path d="M65,30 Q72,0 80,30" fill="#E8E2D8" stroke="#C0B8A8" stroke-width="0.6"/>';
+    // Platform
+    s += '<rect x="-10" y="30" width="100" height="8" fill="#D0C8B8" stroke="#A8A098" stroke-width="0.5"/>';
+    s += '</g>';
+    // Harbour Bridge
+    s += '<g transform="translate(600, 220)">';
+    s += '<path d="M0,50 Q75,-15 150,50" fill="none" stroke="#5A6A78" stroke-width="4"/>';
+    s += '<path d="M0,50 Q75,-10 150,50" fill="none" stroke="#6A7A88" stroke-width="2"/>';
+    for (var hx = 10; hx < 145; hx += 12) {
+      var hy = 50 - Math.sin(((hx)/150)*Math.PI) * 65;
+      s += '<line x1="'+hx+'" y1="'+hy+'" x2="'+hx+'" y2="50" stroke="#5A6A78" stroke-width="0.6"/>';
+    }
+    s += '<rect x="0" y="48" width="150" height="4" fill="#5A6A78"/>';
+    s += '</g>';
+    // City towers
+    var towers = [{x:100,w:30,h:80},{x:140,w:25,h:65},{x:175,w:35,h:95},{x:220,w:28,h:75},{x:260,w:32,h:88},{x:800,w:30,h:70},{x:840,w:38,h:90},{x:890,w:28,h:75},{x:930,w:35,h:85},{x:975,w:25,h:65},{x:1010,w:30,h:78},{x:1050,w:35,h:92},{x:1095,w:28,h:68}];
+    for (var i = 0; i < towers.length; i++) {
+      var t = towers[i];
+      s += '<rect x="'+t.x+'" y="'+(280-t.h)+'" width="'+t.w+'" height="'+t.h+'" fill="#7898B0" stroke="#5A7890" stroke-width="0.4"/>';
+    }
+    // Harbour water
+    s += '<rect x="0" y="280" width="1200" height="60" fill="#2070A0" opacity="0.5"/>';
+    s += '<g opacity="0.1" stroke="#60B0D0" stroke-width="0.5">';
+    for (var wx = 20; wx < 1180; wx += 20) { s += '<line x1="'+wx+'" y1="'+(290+Math.sin(wx*0.03)*4)+'" x2="'+(wx+8)+'" y2="'+(290+Math.sin(wx*0.03)*4+0.5)+'"/>'; }
+    s += '</g>';
+    s += '<rect x="0" y="340" width="1200" height="160" fill="#5A8A58"/>';
+    return s;
   }
 };
