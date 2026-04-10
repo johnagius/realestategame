@@ -2872,118 +2872,214 @@ const GameGraphics = {
   // ===== TORONTO =====
   _city_toronto() {
     var s = '';
-    s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
-    // CN Tower
-    s += '<g transform="translate(600, 30)">';
-    s += '<line x1="0" y1="0" x2="0" y2="250" stroke="#B8B8B8" stroke-width="3"/>';
-    s += '<ellipse cx="0" cy="160" rx="14" ry="18" fill="#C8C8D0" stroke="#A8A8B0" stroke-width="0.8"/>';
-    s += '<rect x="-16" y="155" width="32" height="8" fill="#D0D0D8" rx="2"/>';
-    s += '<polygon points="-2,0 0,-15 2,0" fill="#D0D0D0"/>';
+    s += '<linearGradient id="to-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5A8AB8"/><stop offset="60%" stop-color="#88B0D0"/><stop offset="100%" stop-color="#C0D0E0"/></linearGradient>';
+    s += '<rect width="1200" height="500" fill="url(#to-sky)"/>';
+    s += '<g opacity="0.3"><ellipse cx="300" cy="40" rx="100" ry="16" fill="#FFF"/><ellipse cx="800" cy="45" rx="120" ry="18" fill="#FFF"/></g>';
+
+    // CN Tower (iconic)
+    s += '<g transform="translate(550, 30)">';
+    s += '<line x1="0" y1="0" x2="0" y2="260" stroke="#A0A0A8" stroke-width="3.5"/>';
+    // Main pod
+    s += '<ellipse cx="0" cy="160" rx="16" ry="12" fill="#B0B0B8" stroke="#8888A0" stroke-width="0.8"/>';
+    s += '<rect x="-12" y="155" width="24" height="14" fill="#A0A0A8" rx="2"/>';
+    // Skypod
+    s += '<ellipse cx="0" cy="120" rx="8" ry="6" fill="#B8B8C0" stroke="#8888A0" stroke-width="0.5"/>';
+    // Antenna
+    s += '<line x1="0" y1="0" x2="0" y2="-25" stroke="#B0B0B8" stroke-width="1.5"/>';
+    // Support legs
+    s += '<line x1="-15" y1="260" x2="0" y2="180" stroke="#A0A0A8" stroke-width="1.5"/>';
+    s += '<line x1="15" y1="260" x2="0" y2="180" stroke="#A0A0A8" stroke-width="1.5"/>';
     s += '</g>';
-    // City buildings
-    for (var bx = 20; bx < 1180; bx += 35) {
-      var bh = 50+Math.sin(bx*0.06)*25;
-      var by = 280-bh;
-      s += '<rect x="'+bx+'" y="'+by+'" width="30" height="'+bh+'" fill="#B0B8C8" stroke="#9098A8" stroke-width="0.4"/>';
-      s += '<g fill="#88A0B8" opacity="0.3">';
-      for (var wy = by+3; wy < by+bh-3; wy += 5) { s += '<rect x="'+(bx+2)+'" y="'+wy+'" width="26" height="3"/>'; }
-      s += '</g>';
+
+    // Rogers Centre dome (beside CN Tower)
+    s += '<ellipse cx="490" cy="282" rx="40" ry="15" fill="#C8C8D0" stroke="#A0A0A8" stroke-width="0.6"/>';
+    s += '<path d="M450,282 Q490,260 530,282" fill="#B8B8C0" stroke="#A0A0A8" stroke-width="0.5"/>';
+
+    // Downtown towers (glass, varied)
+    var toTowers = [
+      {x:80,w:30,h:100},{x:118,w:24,h:80},{x:150,w:35,h:120},{x:195,w:28,h:95},
+      {x:230,w:32,h:110},{x:270,w:26,h:85},{x:310,w:38,h:130},{x:360,w:30,h:105},
+      {x:400,w:24,h:90},{x:440,w:28,h:100},
+      {x:600,w:32,h:115},{x:640,w:26,h:90},{x:680,w:35,h:125},{x:725,w:30,h:100},
+      {x:770,w:28,h:85},{x:810,w:35,h:120},{x:855,w:24,h:95},{x:890,w:30,h:110},
+      {x:935,w:28,h:80},{x:975,w:32,h:100},{x:1020,w:26,h:90},{x:1060,w:30,h:105},
+      {x:1100,w:24,h:85},{x:1140,w:28,h:95}
+    ];
+    for (var i = 0; i < toTowers.length; i++) {
+      var t = toTowers[i];
+      var by = 290 - t.h;
+      var tc = i % 3 === 0 ? '#7090A8' : i % 3 === 1 ? '#8098A8' : '#6888A0';
+      s += '<rect x="'+t.x+'" y="'+by+'" width="'+t.w+'" height="'+t.h+'" fill="'+tc+'" stroke="#5A7890" stroke-width="0.4"/>';
+      for (var fy = by+3; fy < 288; fy += 4) {
+        s += '<line x1="'+t.x+'" y1="'+fy+'" x2="'+(t.x+t.w)+'" y2="'+fy+'" stroke="#5A7A90" stroke-width="0.2" opacity="0.2"/>';
+      }
     }
+
     // Lake Ontario
-    s += '<rect x="0" y="310" width="1200" height="190" fill="url(#c-water)"/>';
-    s += '<rect x="0" y="305" width="1200" height="8" fill="url(#c-road)"/>';
-    // Maple trees
-    for (var tx = 40; tx < 1160; tx += 90) {
-      s += '<rect x="'+(tx-1)+'" y="290" width="2" height="15" fill="#5A3828"/>';
-      s += '<ellipse cx="'+tx+'" cy="282" rx="10" ry="12" fill="#C83828"/>';
-      s += '<ellipse cx="'+(tx-4)+'" cy="286" rx="7" ry="8" fill="#E84838" opacity="0.7"/>';
-    }
+    s += '<rect x="0" y="290" width="1200" height="45" fill="#3878A8" opacity="0.4"/>';
+    s += '<g opacity="0.08" stroke="#60A0C8" stroke-width="0.4">';
+    for (var wx = 10; wx < 1190; wx += 18) { s += '<line x1="'+wx+'" y1="'+(300+Math.sin(wx*0.03)*3)+'" x2="'+(wx+7)+'" y2="'+(300+Math.sin(wx*0.03)*3)+'"/>'; }
+    s += '</g>';
+
+    s += '<rect x="0" y="335" width="1200" height="165" fill="#4A7A48"/>';
+    s += '<rect x="0" y="335" width="1200" height="12" fill="#6A6A68"/>';
     return s;
   },
 
-  // ===== MONACO =====
   _city_monaco() {
     var s = '';
-    s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
-    // Hills/cliffs
-    s += '<path d="M0,200 Q200,150 400,180 Q600,130 800,170 Q1000,140 1200,190 L1200,300 L0,300Z" fill="#6A8A58"/>';
-    // Monte Carlo Casino
-    s += '<g transform="translate(500, 160)">';
-    s += '<rect x="0" y="20" width="80" height="50" fill="#E8D8C0" stroke="#C0B098" stroke-width="1"/>';
-    s += '<rect x="-5" y="15" width="90" height="8" fill="#D0C0A0" stroke="#B0A080" stroke-width="0.5"/>';
-    s += '<ellipse cx="40" cy="15" rx="20" ry="15" fill="#5A8A7A" stroke="#4A7A6A" stroke-width="0.8"/>';
-    s += '<rect x="33" y="45" width="14" height="25" fill="#5A3A20" rx="7" ry="7"/>';
-    for (var wx = 8; wx < 75; wx += 14) {
-      s += '<rect x="'+wx+'" y="28" width="8" height="12" fill="#8AB0C8" rx="4" ry="4" stroke="#C0B098" stroke-width="0.3"/>';
+    // Mediterranean sky — deep blue, warm
+    s += '<linearGradient id="mc-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1868A8"/><stop offset="50%" stop-color="#3890C8"/><stop offset="100%" stop-color="#60B0D8"/></linearGradient>';
+    s += '<rect width="1200" height="500" fill="url(#mc-sky)"/>';
+    s += '<g opacity="0.25"><ellipse cx="200" cy="35" rx="80" ry="14" fill="#FFF"/><ellipse cx="900" cy="30" rx="100" ry="16" fill="#FFF"/></g>';
+
+    // Rocky hillside (Monaco is built on cliffs)
+    s += '<path d="M0,320 Q150,260 300,280 Q500,240 700,260 Q900,220 1100,250 L1200,240 L1200,320 L0,320Z" fill="#8A9A78"/>';
+    s += '<path d="M0,320 Q200,290 400,300 Q600,270 800,290 Q1000,260 1200,280 L1200,320 L0,320Z" fill="#7A8A68" opacity="0.7"/>';
+
+    // Luxury buildings terraced on hillside
+    var mcBuildings = [
+      {x:50,y:270,w:35,h:48},{x:95,y:262,w:28,h:55},{x:130,y:258,w:40,h:60},
+      {x:180,y:255,w:32,h:62},{x:220,y:250,w:36,h:68},{x:265,y:248,w:30,h:70},
+      {x:350,y:242,w:38,h:75},{x:400,y:240,w:32,h:78},{x:440,y:245,w:28,h:72},
+      {x:520,y:238,w:35,h:80},{x:565,y:242,w:30,h:75},{x:600,y:248,w:40,h:70},
+      {x:700,y:235,w:35,h:82},{x:745,y:240,w:28,h:78},{x:780,y:248,w:32,h:70},
+      {x:850,y:230,w:38,h:88},{x:900,y:238,w:30,h:80},{x:940,y:245,w:35,h:72},
+      {x:1020,y:242,w:28,h:75},{x:1060,y:250,w:32,h:68},{x:1100,y:255,w:36,h:62}
+    ];
+    for (var i = 0; i < mcBuildings.length; i++) {
+      var b = mcBuildings[i];
+      var bc = i % 4 === 0 ? '#F0E8D8' : i % 4 === 1 ? '#E8E0D0' : i % 4 === 2 ? '#F0EAE0' : '#E0D8C8';
+      s += '<rect x="'+b.x+'" y="'+b.y+'" width="'+b.w+'" height="'+b.h+'" fill="'+bc+'" stroke="#C0B8A0" stroke-width="0.4"/>';
+      // Terracotta roofs
+      s += '<rect x="'+b.x+'" y="'+b.y+'" width="'+b.w+'" height="3" fill="#C88858" rx="0.5"/>';
+      // Balconies
+      for (var wy = b.y + 8; wy < b.y + b.h - 4; wy += 10) {
+        s += '<rect x="'+(b.x+3)+'" y="'+wy+'" width="'+(b.w-6)+'" height="5" fill="#88C0D8" opacity="0.3" rx="0.5"/>';
+      }
+    }
+
+    // Monte Carlo Casino (prominent, center)
+    s += '<g transform="translate(460, 210)">';
+    s += '<rect x="0" y="10" width="80" height="50" fill="#F0E0C8" stroke="#B8A888" stroke-width="0.8"/>';
+    s += '<path d="M-5,10 L40,-8 L85,10" fill="#7A5A38" stroke="#5A4028" stroke-width="0.6"/>';
+    // Twin towers
+    s += '<rect x="-3" y="-5" width="12" height="18" fill="#E8D8C0" stroke="#B8A888" stroke-width="0.4"/>';
+    s += '<rect x="71" y="-5" width="12" height="18" fill="#E8D8C0" stroke="#B8A888" stroke-width="0.4"/>';
+    // Dome
+    s += '<ellipse cx="40" cy="0" rx="12" ry="8" fill="#8A7A58" stroke="#6A5A38" stroke-width="0.4"/>';
+    // Entrance arches
+    s += '<g fill="#5A4A38" opacity="0.5">';
+    s += '<rect x="28" y="35" width="10" height="25" rx="5" ry="5"/>';
+    s += '<rect x="42" y="35" width="10" height="25" rx="5" ry="5"/>';
+    s += '</g>';
+    s += '</g>';
+
+    // Mediterranean Sea
+    s += '<rect x="0" y="320" width="1200" height="180" fill="#1878B0"/>';
+    s += '<g opacity="0.15" stroke="#40A8D8" stroke-width="0.5">';
+    for (var wx = 10; wx < 1190; wx += 16) {
+      s += '<line x1="'+wx+'" y1="'+(335+Math.sin(wx*0.04)*4)+'" x2="'+(wx+6)+'" y2="'+(335+Math.sin(wx*0.04)*4)+'"/>';
     }
     s += '</g>';
-    // Luxury buildings cascading down hillside
-    for (var bx = 30; bx < 1170; bx += 42) {
-      if (bx > 470 && bx < 610) continue;
-      var hillY = 200 - Math.sin((bx/1200)*Math.PI) * 50;
-      var bh = 35 + Math.random() * 20;
-      s += '<rect x="'+bx+'" y="'+(hillY-bh)+'" width="36" height="'+bh+'" fill="#F0E8D8" stroke="#D0C0A0" stroke-width="0.5"/>';
-      s += '<path d="M'+(bx-1)+','+(hillY-bh)+' L'+(bx+18)+','+(hillY-bh-5)+' L'+(bx+37)+','+(hillY-bh)+'" fill="#C87848"/>';
+
+    // Luxury yachts
+    s += '<g opacity="0.5">';
+    var yachts = [200, 450, 750, 1000];
+    for (var yi = 0; yi < yachts.length; yi++) {
+      var yx = yachts[yi];
+      s += '<path d="M'+yx+',360 Q'+(yx+10)+',355 '+(yx+25)+',358 L'+(yx+22)+',365 L'+(yx+3)+',365Z" fill="#F0F0F0" stroke="#C8C8C8" stroke-width="0.5"/>';
+      s += '<line x1="'+(yx+12)+'" y1="358" x2="'+(yx+12)+'" y2="345" stroke="#C0C0C8" stroke-width="0.8"/>';
     }
-    // Mediterranean
-    s += '<rect x="0" y="300" width="1200" height="200" fill="#3888B0"/>';
-    s += '<rect x="0" y="295" width="1200" height="8" fill="#D0C8B0"/>';
-    // Yachts
-    s += '<g fill="#FFF" stroke="#888" stroke-width="0.5">';
-    s += '<polygon points="200,320 220,315 240,320 235,325 205,325"/>';
-    s += '<line x1="220" y1="315" x2="220" y2="305" stroke="#888" stroke-width="0.8"/>';
-    s += '<polygon points="600,315 618,310 636,315 632,320 604,320"/>';
-    s += '<line x1="618" y1="310" x2="618" y2="300" stroke="#888" stroke-width="0.8"/>';
     s += '</g>';
-    // F1 track hint (red barriers)
-    s += '<g stroke="#E03030" stroke-width="2" opacity="0.3"><path d="M100,295 Q300,290 500,295 Q700,298 900,293" fill="none"/></g>';
+
+    // Harbor wall
+    s += '<path d="M300,320 Q320,340 340,320" fill="none" stroke="#8A8A82" stroke-width="2"/>';
+
     return s;
   },
 
-  // ===== SHANGHAI =====
   _city_shanghai() {
     var s = '';
-    s += '<rect width="1200" height="500" fill="#C8D0D8"/>';
-    s += '<rect width="1200" height="200" fill="#A0B8D0" opacity="0.3"/>';
-    // Oriental Pearl Tower
-    s += '<g transform="translate(500, 50)">';
-    s += '<line x1="0" y1="0" x2="0" y2="230" stroke="#C8A8B8" stroke-width="2.5"/>';
-    s += '<circle cx="0" cy="80" r="16" fill="#D888A0" stroke="#C878A0" stroke-width="1"/>';
-    s += '<circle cx="0" cy="140" r="12" fill="#D888A0" stroke="#C878A0" stroke-width="0.8"/>';
-    s += '<circle cx="0" cy="80" r="5" fill="#E8A8B8"/>';
-    s += '<rect x="-18" y="155" width="36" height="6" fill="#C8A8B8" rx="1"/>';
-    s += '<polygon points="-3,0 0,-12 3,0" fill="#D0B0C0"/>';
+    // Hazy Chinese sky
+    s += '<linearGradient id="sh-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8AAAC0"/><stop offset="50%" stop-color="#B0C0D0"/><stop offset="100%" stop-color="#D0D0D0"/></linearGradient>';
+    s += '<rect width="1200" height="500" fill="url(#sh-sky)"/>';
+    // Haze layer
+    s += '<rect x="0" y="220" width="1200" height="60" fill="#C8C8C8" opacity="0.15"/>';
+
+    // Oriental Pearl Tower (left)
+    s += '<g transform="translate(300, 50)">';
+    s += '<line x1="0" y1="0" x2="0" y2="240" stroke="#C0408" stroke-width="3"/>';
+    // Two spheres
+    s += '<circle cx="0" cy="80" r="18" fill="#C84060" stroke="#A83050" stroke-width="1"/>';
+    s += '<circle cx="0" cy="80" r="12" fill="#D06080" opacity="0.5"/>';
+    s += '<circle cx="0" cy="160" r="12" fill="#C84060" stroke="#A83050" stroke-width="0.8"/>';
     // Support legs
-    s += '<line x1="-12" y1="155" x2="-20" y2="230" stroke="#C8A8B8" stroke-width="1.5"/>';
-    s += '<line x1="12" y1="155" x2="20" y2="230" stroke="#C8A8B8" stroke-width="1.5"/>';
+    s += '<line x1="-20" y1="240" x2="0" y2="160" stroke="#B0B0B8" stroke-width="2"/>';
+    s += '<line x1="20" y1="240" x2="0" y2="160" stroke="#B0B0B8" stroke-width="2"/>';
+    s += '<line x1="-12" y1="240" x2="0" y2="80" stroke="#B0B0B8" stroke-width="1.5"/>';
+    s += '<line x1="12" y1="240" x2="0" y2="80" stroke="#B0B0B8" stroke-width="1.5"/>';
+    // Antenna
+    s += '<line x1="0" y1="0" x2="0" y2="-30" stroke="#C0C0C8" stroke-width="1.5"/>';
     s += '</g>';
-    // Shanghai Tower, SWFC, Jin Mao
-    s += '<rect x="600" y="40" width="20" height="240" fill="#A8B8C8" stroke="#8898A8" stroke-width="0.5" rx="3"/>';
-    s += '<rect x="650" y="60" width="22" height="220" fill="#B0C0D0" stroke="#90A0B0" stroke-width="0.5"/>';
-    s += '<rect x="648" y="100" width="26" height="8" fill="#C0D0E0"/>';
-    s += '<rect x="700" y="70" width="18" height="210" fill="#C8C0A8" stroke="#A8A088" stroke-width="0.5"/>';
-    // Pudong buildings
-    for (var bx = 350; bx < 900; bx += 28) {
-      if (bx > 480 && bx < 730) continue;
-      var bh = 50+Math.sin(bx*0.06)*30;
-      s += '<rect x="'+bx+'" y="'+(280-bh)+'" width="24" height="'+bh+'" fill="#B8C0C8" stroke="#98A0A8" stroke-width="0.4"/>';
+
+    // Shanghai Tower (tallest, twisted)
+    s += '<g transform="translate(700, 30)">';
+    for (var fl = 0; fl < 40; fl++) {
+      var fy = fl * 6.5;
+      var twist = fl * 1.5;
+      var fw = 14 - fl * 0.15;
+      s += '<rect x="'+(-fw/2+Math.sin(twist*Math.PI/180)*2)+'" y="'+fy+'" width="'+fw+'" height="6" fill="#88A8C0" stroke="#6888A8" stroke-width="0.2" rx="0.5"/>';
     }
-    // Puxi side (older buildings)
-    for (var bx = 20; bx < 340; bx += 35) {
-      var bh = 35+Math.sin(bx*0.08)*10;
-      s += '<rect x="'+bx+'" y="'+(270-bh)+'" width="30" height="'+bh+'" fill="#D0C8B8" stroke="#B0A898" stroke-width="0.4"/>';
+    s += '</g>';
+
+    // Pudong skyline towers
+    var pudongTowers = [
+      {x:500,w:28,h:140},{x:540,w:22,h:110},{x:570,w:32,h:160},{x:610,w:26,h:120},
+      {x:650,w:30,h:150},{x:750,w:35,h:170},{x:800,w:28,h:130},{x:840,w:24,h:105},
+      {x:880,w:32,h:145},{x:920,w:26,h:115},{x:960,w:30,h:135},{x:1000,w:22,h:100},
+      {x:1040,w:28,h:125},{x:1080,w:35,h:150},{x:1120,w:24,h:95}
+    ];
+    for (var i = 0; i < pudongTowers.length; i++) {
+      var t = pudongTowers[i];
+      var by = 290 - t.h;
+      s += '<rect x="'+t.x+'" y="'+by+'" width="'+t.w+'" height="'+t.h+'" fill="#7898B0" stroke="#5878A0" stroke-width="0.4"/>';
+      // Glass reflection strip
+      s += '<rect x="'+t.x+'" y="'+by+'" width="'+(t.w*0.2)+'" height="'+t.h+'" fill="#A0C0D8" opacity="0.08"/>';
+      // Window floors
+      for (var fy = by+4; fy < 286; fy += 5) {
+        s += '<line x1="'+t.x+'" y1="'+fy+'" x2="'+(t.x+t.w)+'" y2="'+fy+'" stroke="#6888A0" stroke-width="0.2" opacity="0.25"/>';
+      }
     }
-    for (var bx = 920; bx < 1180; bx += 35) {
-      var bh = 35+Math.cos(bx*0.08)*10;
-      s += '<rect x="'+bx+'" y="'+(270-bh)+'" width="30" height="'+bh+'" fill="#D0C8B8" stroke="#B0A898" stroke-width="0.4"/>';
+
+    // Puxi (old town, left side) — lower, denser
+    for (var bx = 20; bx < 280; bx += 28) {
+      var bh = 30 + Math.sin(bx*0.1)*12;
+      s += '<rect x="'+bx+'" y="'+(290-bh)+'" width="24" height="'+bh+'" fill="#A0988A" stroke="#8A8278" stroke-width="0.4"/>';
     }
+
     // Huangpu River
-    s += '<path d="M0,290 Q300,285 600,292 Q900,298 1200,288 L1200,320 L0,320Z" fill="url(#c-water)"/>';
-    s += '<rect x="0" y="320" width="1200" height="180" fill="url(#c-ground)"/>';
+    s += '<rect x="0" y="290" width="1200" height="40" fill="#5A7888" opacity="0.6"/>';
+    s += '<g opacity="0.08" stroke="#88B8D0" stroke-width="0.5">';
+    for (var rx = 10; rx < 1190; rx += 15) {
+      s += '<line x1="'+rx+'" y1="'+(302+Math.sin(rx*0.04)*3)+'" x2="'+(rx+6)+'" y2="'+(302+Math.sin(rx*0.04)*3)+'"/>';
+    }
+    s += '</g>';
+
+    // The Bund promenade
+    s += '<rect x="0" y="330" width="1200" height="8" fill="#B8A888"/>';
+    s += '<rect x="0" y="338" width="1200" height="162" fill="#5A7A58"/>';
+
+    // Cargo ships on river
+    s += '<g opacity="0.3">';
+    s += '<rect x="400" y="305" width="25" height="6" fill="#5A5A58" rx="1"/>';
+    s += '<rect x="405" y="301" width="8" height="4" fill="#6A6A68"/>';
+    s += '<rect x="850" y="308" width="20" height="5" fill="#5A5A58" rx="1"/>';
+    s += '</g>';
+
     return s;
   },
 
-  // ===== SAO PAULO =====
   _city_sao_paulo() {
     var s = '';
     s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
