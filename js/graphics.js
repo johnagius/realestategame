@@ -1781,131 +1781,217 @@ const GameGraphics = {
     return s;
   },
 
-  // ===== NEW YORK =====
+  // ===== NEW YORK — Premium illustrated =====
   _city_new_york() {
     var s = '';
-    s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
-    // Light clouds
-    s += '<g opacity="0.3"><ellipse cx="300" cy="40" rx="100" ry="18" fill="#fff"/><ellipse cx="800" cy="55" rx="120" ry="20" fill="#fff"/></g>';
+    // Dramatic sunset sky over Manhattan
+    s += '<linearGradient id="ny-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1A2848"/><stop offset="30%" stop-color="#3A4868"/><stop offset="55%" stop-color="#7A6878"/><stop offset="72%" stop-color="#C88868"/><stop offset="85%" stop-color="#E8A858"/><stop offset="100%" stop-color="#F0C878"/></linearGradient>';
+    s += '<rect width="1200" height="500" fill="url(#ny-sky)"/>';
+    // Warm horizon glow
+    s += '<ellipse cx="600" cy="340" rx="500" ry="80" fill="#F0C060" opacity="0.1"/>';
 
-    // === SKYLINE - skyscrapers ===
-    // Empire State Building (center)
-    s += '<g transform="translate(550, 60)">';
-    s += '<rect x="-18" y="30" width="36" height="220" fill="#A0A8B0" stroke="#808890" stroke-width="0.8"/>';
-    s += '<rect x="-14" y="40" width="28" height="208" fill="#B0B8C0"/>';
-    // Setbacks
-    s += '<rect x="-22" y="120" width="44" height="4" fill="#C0C8D0"/>';
-    s += '<rect x="-16" y="80" width="32" height="4" fill="#C0C8D0"/>';
-    // Spire
-    s += '<rect x="-2" y="0" width="4" height="35" fill="#C0C8D0"/>';
-    s += '<polygon points="-6,30 0,15 6,30" fill="#B0B8C0"/>';
-    // Windows grid
-    s += '<g fill="#6A8AAA" opacity="0.7">';
-    for (var wy = 45; wy < 245; wy += 8) {
-      for (var wx = -12; wx < 12; wx += 6) {
-        s += '<rect x="'+wx+'" y="'+wy+'" width="4" height="5"/>';
-      }
+    // Clouds (sunset-tinted)
+    s += '<g opacity="0.25">';
+    s += '<ellipse cx="200" cy="60" rx="100" ry="18" fill="#8878A8"/>';
+    s += '<ellipse cx="230" cy="55" rx="60" ry="14" fill="#9888B0"/>';
+    s += '<ellipse cx="700" cy="50" rx="120" ry="20" fill="#8070A0"/>';
+    s += '<ellipse cx="740" cy="45" rx="70" ry="15" fill="#9080A8"/>';
+    s += '<ellipse cx="1000" cy="65" rx="90" ry="16" fill="#8878A8"/>';
+    s += '</g>';
+
+    // === DISTANT BROOKLYN/QUEENS SILHOUETTE ===
+    s += '<g opacity="0.1" fill="#5A5870">';
+    for (var dx = 0; dx < 1200; dx += 22) {
+      var dh = 8 + Math.sin(dx * 0.05) * 5;
+      s += '<rect x="'+dx+'" y="'+(285-dh)+'" width="18" height="'+dh+'"/>';
     }
     s += '</g>';
-    s += '</g>';
 
-    // Chrysler Building
-    s += '<g transform="translate(420, 90)">';
-    s += '<rect x="-14" y="25" width="28" height="190" fill="#C8C0B0" stroke="#A09880" stroke-width="0.8"/>';
-    // Art deco crown
-    s += '<path d="M-14,25 L-10,15 L-6,22 L-2,8 L2,22 L6,15 L10,22 L14,25" fill="#D8D0C0" stroke="#A09880" stroke-width="0.5"/>';
-    s += '<polygon points="-3,8 0,-5 3,8" fill="#E0D8C8"/>';
-    // Windows
-    s += '<g fill="#7090A8" opacity="0.6">';
-    for (var wy = 32; wy < 210; wy += 7) {
-      for (var wx = -10; wx < 10; wx += 5) {
-        s += '<rect x="'+wx+'" y="'+wy+'" width="3" height="4"/>';
-      }
-    }
-    s += '</g>';
-    s += '</g>';
-
-    // One WTC
-    s += '<g transform="translate(680, 50)">';
-    s += '<rect x="-16" y="0" width="32" height="230" fill="#A8B8C8" stroke="#8898A8" stroke-width="0.8"/>';
-    // Glass panels
-    s += '<g fill="#88A8C0" opacity="0.5">';
-    for (var wy = 5; wy < 225; wy += 6) {
-      s += '<rect x="-14" y="'+wy+'" width="13" height="4"/>';
-      s += '<rect x="1" y="'+wy+'" width="13" height="4"/>';
-    }
-    s += '</g>';
-    // Spire
-    s += '<line x1="0" y1="0" x2="0" y2="-25" stroke="#B0C0D0" stroke-width="1.5"/>';
-    s += '</g>';
-
-    // Other skyscrapers
-    var buildings = [
-      [100,140,30,140,'#8A9AA8'], [150,120,35,160,'#9AA8B8'], [200,155,28,128,'#A8B0B8'],
-      [260,130,32,150,'#98A0A8'], [310,145,26,138,'#B0B8C0'], [360,160,24,122,'#A0A8B0'],
-      [750,120,30,160,'#A0B0C0'], [800,145,28,138,'#B0B8C0'], [850,130,34,150,'#98A8B8'],
-      [910,155,26,128,'#A8B0B8'], [960,140,30,142,'#90A0B0'], [1010,125,32,155,'#A0A8B8'],
-      [1060,150,28,132,'#B0B8C8'], [1110,135,30,148,'#98A0B0']
-    ];
-    for (var i = 0; i < buildings.length; i++) {
-      var b = buildings[i];
-      s += '<rect x="'+b[0]+'" y="'+b[1]+'" width="'+b[2]+'" height="'+b[3]+'" fill="'+b[4]+'" stroke="#7A8A9A" stroke-width="0.5"/>';
-      // Windows
-      s += '<g fill="#6A88A8" opacity="0.5">';
-      for (var wy = b[1]+5; wy < b[1]+b[3]-5; wy += 7) {
-        for (var wx = b[0]+3; wx < b[0]+b[2]-3; wx += 6) {
-          s += '<rect x="'+wx+'" y="'+wy+'" width="3" height="4"/>';
+    // === MANHATTAN SKYLINE — Art Deco + Modern skyscrapers ===
+    // Helper for building with setbacks
+    function nyScraper(x, w, h, setbacks, color, highlight) {
+      var bk = '', base = 320, cx = x + w/2;
+      bk += '<rect x="'+x+'" y="'+(base-h)+'" width="'+w+'" height="'+h+'" fill="'+(color||'#4A5868')+'" stroke="#2A3848" stroke-width="0.5"/>';
+      // Highlight on left face (sunset)
+      bk += '<rect x="'+x+'" y="'+(base-h)+'" width="'+(w*0.3)+'" height="'+h+'" fill="'+(highlight||'#C89058')+'" opacity="0.12"/>';
+      // Window grid — but varied
+      var floorH = h > 100 ? 4 : 5, winW = Math.max(2, w * 0.12);
+      for (var fy = base - h + 4; fy < base - 4; fy += floorH + 1.5) {
+        for (var fx = x + 2; fx < x + w - 2; fx += winW + 1.5) {
+          // Some windows lit warm, some dark, some blue
+          var roll = Math.sin(fx * fy * 0.3);
+          var wColor = roll > 0.3 ? '#F0D060' : roll > -0.2 ? '#6A8AAA' : '#3A4858';
+          var wOpacity = roll > 0.3 ? 0.5 : 0.25;
+          bk += '<rect x="'+fx+'" y="'+fy+'" width="'+winW+'" height="'+floorH+'" fill="'+wColor+'" opacity="'+wOpacity+'"/>';
         }
       }
+      // Setbacks
+      if (setbacks) {
+        for (var si = 0; si < setbacks.length; si++) {
+          var sb = setbacks[si]; // {atH, inset}
+          var sbY = base - sb.atH;
+          var sbW = w - sb.inset * 2;
+          bk += '<rect x="'+(x+sb.inset)+'" y="'+sbY+'" width="'+sbW+'" height="3" fill="'+(color||'#4A5868')+'" stroke="#2A3848" stroke-width="0.3"/>';
+        }
+      }
+      return bk;
+    }
+
+    // Midtown buildings (left cluster)
+    s += nyScraper(80, 38, 90, null, '#505868');
+    s += nyScraper(122, 32, 70, null, '#586070');
+    s += nyScraper(158, 44, 110, [{atH:80,inset:6}], '#4A5060');
+    s += nyScraper(206, 36, 85, null, '#546070');
+
+    // === EMPIRE STATE BUILDING ===
+    s += '<g>';
+    s += nyScraper(255, 52, 170, [{atH:140,inset:8},{atH:120,inset:14}], '#6A6858', '#D0A060');
+    // Art Deco crown
+    s += '<rect x="271" y="148" width="20" height="8" fill="#7A7868" stroke="#5A5848" stroke-width="0.4"/>';
+    s += '<polygon points="276,148 281,138 286,148" fill="#8A8878"/>';
+    // Antenna
+    s += '<line x1="281" y1="138" x2="281" y2="115" stroke="#8A8878" stroke-width="1.5"/>';
+    s += '<circle cx="281" cy="114" r="1.5" fill="#F0C060" opacity="0.4"/>';
+    s += '</g>';
+
+    // More midtown
+    s += nyScraper(312, 40, 95, null, '#505868');
+    s += nyScraper(356, 34, 75, null, '#586070');
+    s += nyScraper(394, 46, 105, [{atH:85,inset:8}], '#4A5868');
+
+    // === CHRYSLER BUILDING ===
+    s += '<g>';
+    s += nyScraper(445, 42, 155, [{atH:130,inset:6},{atH:110,inset:10}], '#6A7078');
+    // Sunburst Art Deco crown — distinctive
+    s += '<g transform="translate(466, 164)">';
+    for (var ca = -40; ca <= 40; ca += 10) {
+      var rad = ca * Math.PI / 180;
+      var len = 12 + Math.abs(ca) * 0.2;
+      s += '<line x1="0" y1="0" x2="'+(Math.sin(rad)*len)+'" y2="'+(-Math.cos(rad)*len)+'" stroke="#C0B8A0" stroke-width="1.2"/>';
+    }
+    s += '<polygon points="-6,0 0,-18 6,0" fill="#B0A890" stroke="#8A8270" stroke-width="0.5"/>';
+    s += '</g>';
+    s += '</g>';
+
+    // Park Avenue / gap for Central Park hint
+    s += '<rect x="492" y="280" width="35" height="40" fill="#2A4A2A" opacity="0.3" rx="2"/>'; // Central Park green
+
+    // East side buildings
+    s += nyScraper(532, 38, 80, null, '#546070');
+    s += nyScraper(574, 50, 120, [{atH:95,inset:8}], '#4A5868');
+    s += nyScraper(628, 36, 90, null, '#586070');
+
+    // === ONE WORLD TRADE / FREEDOM TOWER ===
+    s += '<g>';
+    // Tapered form
+    s += '<path d="M685,140 L695,140 L702,320 L678,320Z" fill="#6A8098" stroke="#4A6078" stroke-width="0.5"/>';
+    // Glass curtain wall — reflective panels
+    s += '<g opacity="0.15">';
+    for (var fy = 145; fy < 315; fy += 5) {
+      var tw = 17 - (fy - 140) * 0.01;
+      s += '<line x1="'+(690-tw/2)+'" y1="'+fy+'" x2="'+(690+tw/2)+'" y2="'+fy+'" stroke="#A0C0D8" stroke-width="0.5"/>';
+    }
+    s += '</g>';
+    // Sunset reflection strip
+    s += '<rect x="678" y="140" width="6" height="180" fill="#E8A050" opacity="0.08"/>';
+    // Antenna
+    s += '<line x1="690" y1="140" x2="690" y2="108" stroke="#6A8098" stroke-width="1.8"/>';
+    s += '<circle cx="690" cy="107" r="1.5" fill="#F0D060" opacity="0.3"/>';
+    s += '</g>';
+
+    // More downtown
+    s += nyScraper(710, 34, 75, null, '#505868');
+    s += nyScraper(748, 42, 100, null, '#586070');
+    s += nyScraper(795, 38, 85, null, '#4A5868');
+    s += nyScraper(838, 50, 115, [{atH:90,inset:10}], '#505868');
+
+    // Right side / Financial district
+    s += nyScraper(895, 36, 70, null, '#546070');
+    s += nyScraper(935, 44, 95, null, '#4A5060');
+    s += nyScraper(984, 38, 80, null, '#586070');
+    s += nyScraper(1028, 48, 110, [{atH:85,inset:8}], '#505868');
+    s += nyScraper(1082, 34, 65, null, '#546070');
+    s += nyScraper(1120, 40, 85, null, '#4A5868');
+
+    // === STATUE OF LIBERTY (far left, on water) ===
+    s += '<g transform="translate(30, 265)" opacity="0.45">';
+    // Pedestal
+    s += '<rect x="-8" y="20" width="16" height="30" fill="#7A9A88" stroke="#5A7A68" stroke-width="0.5"/>';
+    s += '<rect x="-10" y="48" width="20" height="8" fill="#6A8A78" stroke="#5A7A68" stroke-width="0.4"/>';
+    // Figure
+    s += '<rect x="-4" y="-5" width="8" height="28" fill="#6A9A78" rx="1"/>';
+    // Crown
+    s += '<g stroke="#6A9A78" stroke-width="1" fill="none">';
+    for (var ra = -60; ra <= 60; ra += 20) {
+      var rr = ra * Math.PI / 180;
+      s += '<line x1="0" y1="-5" x2="'+(Math.sin(rr)*8)+'" y2="'+(-5-Math.cos(rr)*8)+'"/>';
+    }
+    s += '</g>';
+    // Torch
+    s += '<line x1="5" y1="-2" x2="12" y2="-15" stroke="#6A9A78" stroke-width="1.5"/>';
+    s += '<ellipse cx="12" cy="-17" rx="3" ry="4" fill="#F0C860" opacity="0.6"/>';
+    s += '</g>';
+
+    // === HUDSON RIVER / EAST RIVER ===
+    s += '<rect x="0" y="320" width="1200" height="55" fill="#2A3A58" opacity="0.6"/>';
+    // Water reflections of lit buildings
+    s += '<g opacity="0.06">';
+    for (var rx = 80; rx < 1160; rx += 25) {
+      var rh = 15 + Math.sin(rx * 0.08) * 8;
+      s += '<rect x="'+rx+'" y="322" width="12" height="'+rh+'" fill="#F0C060"/>';
+    }
+    s += '</g>';
+    // Water shimmer
+    s += '<g opacity="0.1" stroke="#5A7A98" stroke-width="0.5" stroke-linecap="round">';
+    for (var wx = 20; wx < 1180; wx += 18) {
+      var wy = 332 + Math.sin(wx * 0.03) * 6;
+      s += '<line x1="'+wx+'" y1="'+wy+'" x2="'+(wx+8)+'" y2="'+(wy+0.5)+'"/>';
+    }
+    s += '</g>';
+
+    // === BRIDGE (Brooklyn Bridge silhouette) ===
+    s += '<g opacity="0.25">';
+    // Towers
+    s += '<rect x="1020" y="275" width="8" height="50" fill="#4A4A48"/>';
+    s += '<rect x="1100" y="278" width="8" height="47" fill="#4A4A48"/>';
+    // Cables (catenary)
+    s += '<path d="M1024,280 Q1064,305 1104,280" fill="none" stroke="#5A5A58" stroke-width="1.5"/>';
+    s += '<path d="M1024,285 Q1064,308 1104,285" fill="none" stroke="#5A5A58" stroke-width="0.8"/>';
+    // Vertical cable hangers
+    for (var cx = 1030; cx < 1100; cx += 8) {
+      var cy = 280 + Math.sin(((cx-1024)/80)*Math.PI) * 25;
+      s += '<line x1="'+cx+'" y1="'+cy+'" x2="'+cx+'" y2="325" stroke="#5A5A58" stroke-width="0.3"/>';
+    }
+    // Road deck
+    s += '<rect x="1020" y="322" width="88" height="3" fill="#5A5A58"/>';
+    s += '</g>';
+
+    // === GROUND — urban pavement ===
+    s += '<rect x="0" y="375" width="1200" height="125" fill="#3A3A38"/>';
+    // Sidewalk
+    s += '<rect x="0" y="375" width="1200" height="14" fill="#6A6A68"/>';
+    // Road lanes
+    s += '<rect x="0" y="389" width="1200" height="28" fill="#3A3A38"/>';
+    s += '<line x1="0" y1="403" x2="1200" y2="403" stroke="#E8E860" stroke-width="1" stroke-dasharray="16,12" opacity="0.3"/>';
+
+    // Yellow cabs
+    for (var tc = 0; tc < 4; tc++) {
+      var tx = 120 + tc * 280 + Math.sin(tc*3)*30;
+      s += '<g transform="translate('+tx+', 393)">';
+      s += '<rect x="0" y="0" width="20" height="8" fill="#F0C820" rx="2" stroke="#C8A018" stroke-width="0.4"/>';
+      s += '<path d="M3,-2 Q5,-5 10,-5 Q15,-5 17,-2" fill="#F0C820" stroke="#C8A018" stroke-width="0.4"/>';
+      s += '<rect x="4" y="-4" width="5" height="3" fill="#88B8D0" rx="0.5"/>';
+      s += '<rect x="11" y="-4" width="5" height="3" fill="#88B8D0" rx="0.5"/>';
+      s += '<circle cx="4" cy="10" r="2.5" fill="#1A1A1A"/>';
+      s += '<circle cx="16" cy="10" r="2.5" fill="#1A1A1A"/>';
       s += '</g>';
     }
 
-    // === STATUE OF LIBERTY (small, in harbor) ===
-    s += '<g transform="translate(50, 250)" opacity="0.5">';
-    s += '<rect x="-3" y="5" width="6" height="20" fill="#6A9A7A"/>';
-    s += '<rect x="-8" y="25" width="16" height="8" fill="#7A8A7A"/>';
-    s += '<circle cx="0" cy="2" r="4" fill="#6A9A7A"/>';
-    s += '<line x1="3" y1="-2" x2="8" y2="-12" stroke="#6A9A7A" stroke-width="1.5"/>';
-    s += '<rect x="6" y="-15" width="4" height="5" fill="#E8D870" rx="1"/>';
-    s += '</g>';
-
-    // === HUDSON/EAST RIVER ===
-    s += '<path d="M0,310 Q300,305 600,312 Q900,318 1200,308 L1200,340 Q900,335 600,340 Q300,335 0,340Z" fill="url(#c-water)"/>';
-    // Brooklyn Bridge
-    s += '<g transform="translate(600, 280)">';
-    s += '<rect x="0" y="0" width="6" height="35" fill="#A09080"/>';
-    s += '<rect x="120" y="0" width="6" height="35" fill="#A09080"/>';
-    s += '<path d="M3,2 Q63,-15 123,2" fill="none" stroke="#8A7A6A" stroke-width="1.5"/>';
-    s += '<path d="M3,6 Q63,-8 123,6" fill="none" stroke="#8A7A6A" stroke-width="1"/>';
-    // Suspension cables
-    for (var cx = 15; cx < 120; cx += 12) {
-      var cy = 2 - Math.sin((cx/120)*Math.PI) * 15;
-      s += '<line x1="'+cx+'" y1="'+cy+'" x2="'+cx+'" y2="32" stroke="#8A7A6A" stroke-width="0.4"/>';
-    }
-    s += '</g>';
-
-    // Ground / street
-    s += '<rect x="0" y="340" width="1200" height="160" fill="#6A7A68"/>';
-    s += '<rect x="0" y="340" width="1200" height="18" fill="#5A5A58"/>';
-    // Road markings
-    s += '<g stroke="#E8E880" stroke-width="1" stroke-dasharray="12,8" opacity="0.6">';
-    s += '<line x1="0" y1="349" x2="1200" y2="349"/>';
-    s += '</g>';
-
-    // Yellow cabs
-    var cabs = [200, 450, 700, 950];
-    for (var i = 0; i < cabs.length; i++) {
-      var cx = cabs[i];
-      s += '<rect x="'+cx+'" y="342" width="18" height="8" fill="#F0C820" rx="2"/>';
-      s += '<circle cx="'+(cx+3)+'" cy="352" r="2" fill="#333"/>';
-      s += '<circle cx="'+(cx+15)+'" cy="352" r="2" fill="#333"/>';
-    }
-
-    // Central Park hint (green strip)
-    s += '<rect x="350" y="360" width="180" height="60" fill="#5A8A48" rx="5" opacity="0.4"/>';
-    s += '<g fill="#4A7A38" opacity="0.3">';
-    for (var tx = 360; tx < 520; tx += 20) {
-      s += '<ellipse cx="'+tx+'" cy="'+(375+Math.sin(tx*0.1)*5)+'" rx="8" ry="10"/>';
+    // Street lights
+    s += '<g stroke="#4A4A48" stroke-width="1.5">';
+    for (var lx = 50; lx < 1200; lx += 80) {
+      s += '<line x1="'+lx+'" y1="377" x2="'+lx+'" y2="392"/>';
+      s += '<ellipse cx="'+lx+'" cy="376" rx="3" ry="2" fill="#F0E0A0" opacity="0.35" stroke="none"/>';
     }
     s += '</g>';
 
