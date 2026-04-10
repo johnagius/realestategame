@@ -206,8 +206,10 @@ const App = {
     GameEngine.generateGoals();
     GameUI.updateHUD();
     GameUI.showScreen('map');
-    // Show random tip
-    this.showRandomTip();
+    // Start tutorial for new players
+    if (!GameEngine.state.tutorialDone) {
+      this.startTutorial();
+    }
   },
 
   showRandomTip() {
@@ -285,6 +287,7 @@ const App = {
     var result = GameEngine.buyProperty(propertyId, cityId, offerPct);
     if (result.success) {
       GameUI.toast(result.message, 'success');
+      GameAudio.purchase();
       GameUI.updateHUD();
       GameUI.showScreen('property', propertyId);
     } else {
@@ -597,6 +600,70 @@ const App = {
     } else {
       GameUI.toast(result.message, 'error');
     }
+  },
+
+  // ---- Prestige ----
+  startPrestige() {
+    GameUI.hideModal();
+    // Show family selection for prestige run
+    document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('main-nav').classList.add('hidden');
+    document.getElementById('hud-ticker').classList.add('hidden');
+    document.getElementById('hud-goals').classList.add('hidden');
+    document.getElementById('screen-splash').classList.add('active');
+    document.getElementById('splash-main-btns').style.display = 'none';
+    // Reuse family selection — prestige flag stored
+    this.startNewGame();
+  },
+
+  // ---- Tutorial System ----
+  tutorialSteps: [
+    { icon: '🏛️', text: '<strong>Welcome to Property Empire!</strong><br>You are founding a dynasty in ' + (GameData.startingYear || 1750) + '. Your goal: build the wealthiest real estate empire across centuries.' },
+    { icon: '🌍', text: '<strong>Browse Cities</strong><br>Click any city on the map or in the list to explore its property market. Different cities have different tax rates, growth, and risks.' },
+    { icon: '🏠', text: '<strong>Buy Properties</strong><br>In a city, browse the Market tab and click a property to see details. You can <strong>negotiate the price</strong> — lowball for savings or pay full price for guaranteed purchase.' },
+    { icon: '💰', text: '<strong>Earn Income</strong><br>After buying, <strong>rent out</strong> your property for monthly income. Refurbish properties to increase rent. Watch out for tenant problems and disasters!' },
+    { icon: '▶️', text: '<strong>Advance Time</strong><br>Click <strong>Next Month</strong> or use the speed controls (⏸▶▶▶▶▶▶) in the top bar. Each month brings rent income, expenses, and sometimes important decisions.' },
+    { icon: '🎯', text: '<strong>Goals & Decisions</strong><br>Follow the <strong>monthly goals</strong> in the green bar for bonus cash. Historical events and rival families will challenge you with choices. Build your dynasty across generations!' },
+  ],
+
+  tutorialStep: 0,
+
+  startTutorial() {
+    this.tutorialStep = 0;
+    this.showTutorialStep();
+    // Bind tutorial buttons
+    var self = this;
+    document.getElementById('tutorial-next').onclick = function() { self.nextTutorialStep(); };
+    document.getElementById('tutorial-skip').onclick = function() { self.endTutorial(); };
+  },
+
+  showTutorialStep() {
+    var step = this.tutorialSteps[this.tutorialStep];
+    if (!step) { this.endTutorial(); return; }
+
+    document.getElementById('tutorial-step').innerHTML =
+      '<span class="tutorial-icon">' + step.icon + '</span>' + step.text;
+    document.getElementById('tutorial-counter').textContent =
+      (this.tutorialStep + 1) + ' / ' + this.tutorialSteps.length;
+    document.getElementById('tutorial-next').textContent =
+      this.tutorialStep === this.tutorialSteps.length - 1 ? 'Start Playing! 🎮' : 'Next →';
+    document.getElementById('tutorial-overlay').classList.remove('hidden');
+  },
+
+  nextTutorialStep() {
+    this.tutorialStep++;
+    if (this.tutorialStep >= this.tutorialSteps.length) {
+      this.endTutorial();
+    } else {
+      this.showTutorialStep();
+    }
+  },
+
+  endTutorial() {
+    document.getElementById('tutorial-overlay').classList.add('hidden');
+    GameEngine.state.tutorialDone = true;
+    GameEngine.save();
   }
 };
 

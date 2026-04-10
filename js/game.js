@@ -98,6 +98,11 @@ const GameEngine = {
     this.state.milestones = [];
     this.state.monthlyGoal = null;
 
+    // Economic cycle
+    this.state.economicCycle = 'growth'; // boom, growth, stagnation, recession, depression
+    this.state.cycleMonthsLeft = 36 + Math.floor(Math.random() * 60); // 3-8 years per phase
+    this.state.consecutiveNegativeCash = 0; // for foreclosure tracking
+
     // Dynasty: family members
     this.state.familyMembers = [this.createFamilyMember(family.name.split(' ')[1] || 'Patriarch', 30, true)];
     this.state.generation = 1;
@@ -892,7 +897,75 @@ const GameEngine = {
       }
     });
 
-    // 5. Market value fluctuations (with inflation + buying/selling pressure)
+    // 4b. Property degradation (annual check in January)
+    if (this.state.monthIndex === 0) {
+      this.state.properties.forEach(p => {
+        if (!p.isRefurbishing && !p.isBuilding && p.condition !== 'derelict') {
+          // 12% chance per year of condition dropping one level
+          if (Math.random() < 0.12) {
+            var curLevel = GameData.conditions[p.condition].level;
+            if (curLevel > 0) {
+              p.condition = GameData.conditionOrder[curLevel - 1];
+              this.recalculateRent(p);
+              if (!results.degraded) results.degraded = [];
+              results.degraded.push(p);
+            }
+          }
+        }
+      });
+    }
+
+    // 4c. Economic cycle processing
+    if (!this.state.economicCycle) this.state.economicCycle = 'growth';
+    if (!this.state.cycleMonthsLeft) this.state.cycleMonthsLeft = 48;
+    this.state.cycleMonthsLeft--;
+    if (this.state.cycleMonthsLeft <= 0) {
+      // Transition to next phase
+      var transitions = {
+        boom: ['growth', 'stagnation'],
+        growth: ['boom', 'stagnation', 'growth'],
+        stagnation: ['recession', 'growth', 'stagnation'],
+        recession: ['depression', 'stagnation', 'growth'],
+        depression: ['recession', 'stagnation']
+      };
+      var options = transitions[this.state.economicCycle] || ['growth'];
+      this.state.economicCycle = options[Math.floor(Math.random() * options.length)];
+      this.state.cycleMonthsLeft = 24 + Math.floor(Math.random() * 72); // 2-8 years
+      results.cycleChange = this.state.economicCycle;
+    }
+
+    // Cycle multipliers
+    var cycleEffects = {
+      boom:       { growth: 0.003, rent: 1.1, disaster: 0.7, newProps: 1.3 },
+      growth:     { growth: 0.001, rent: 1.0, disaster: 1.0, newProps: 1.0 },
+      stagnation: { growth: 0,     rent: 0.95, disaster: 1.0, newProps: 0.8 },
+      recession:  { growth: -0.002, rent: 0.85, disaster: 1.2, newProps: 0.5 },
+      depression: { growth: -0.005, rent: 0.7, disaster: 1.5, newProps: 0.3 }
+    };
+    var cycleEffect = cycleEffects[this.state.economicCycle] || cycleEffects.growth;
+
+    // 4d. Foreclosure check — if cash negative for 3+ months
+    if (this.state.cash < 0) {
+      if (!this.state.consecutiveNegativeCash) this.state.consecutiveNegativeCash = 0;
+      this.state.consecutiveNegativeCash++;
+      if (this.state.consecutiveNegativeCash >= 3 && this.state.properties.length > 0) {
+        // Force sell worst property at 70% value
+        var worst = this.state.properties.reduce(function(w, p) {
+          return (!w || p.currentValue < w.currentValue) ? p : w;
+        }, null);
+        if (worst) {
+          var forcedAmount = Math.round(worst.currentValue * 0.7);
+          this.state.cash += forcedAmount;
+          this.state.properties = this.state.properties.filter(function(p) { return p.id !== worst.id; });
+          results.foreclosure = { property: worst, amount: forcedAmount };
+          this.state.consecutiveNegativeCash = 0;
+        }
+      }
+    } else {
+      this.state.consecutiveNegativeCash = 0;
+    }
+
+    // 5. Market value fluctuations (with inflation + buying/selling pressure + economic cycle)
     // Track buying/selling pressure per city
     if (!this.state.marketPressure) this.state.marketPressure = {};
 
@@ -924,11 +997,11 @@ const GameEngine = {
         const monthlyInflation = (city.inflationRate || 0.02) / 12;
         const pressure = this.state.marketPressure[city.id] || 0;
         const randomFactor = (Math.random() - 0.5) * 0.015;
-        // CAP: appreciation = inflation + up to 2% real growth annually (0.17%/mo) + noise
-        const maxMonthlyGrowth = 0.0017; // ~2% annual real growth cap
+        // CAP + economic cycle
+        const maxMonthlyGrowth = 0.0017;
         const realGrowth = Math.min(maxMonthlyGrowth, city.growthRate / 12);
-        const change = realGrowth + monthlyInflation + pressure + randomFactor;
-        // Allow negative months (real crashes happen)
+        const cycleGrowth = cycleEffect.growth || 0;
+        const change = realGrowth + monthlyInflation + pressure + randomFactor + cycleGrowth;
         p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + change)));
         p.appreciation = ((p.currentValue - p.purchasePrice) / p.purchasePrice) * 100;
         this.recalculateRent(p);
@@ -944,7 +1017,8 @@ const GameEngine = {
       const realGrowth = Math.min(maxMonthlyGrowth, city.growthRate / 12);
       this.state.marketProperties[cityId].forEach(p => {
         const randomFactor = (Math.random() - 0.5) * 0.015;
-        p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + realGrowth + monthlyInflation + pressure + randomFactor)));
+        var cGrowth = cycleEffect.growth || 0;
+        p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + realGrowth + monthlyInflation + pressure + randomFactor + cGrowth)));
         this.recalculateRent(p);
       });
     });
@@ -1069,8 +1143,12 @@ const GameEngine = {
     // 14c. Generate monthly decision (the "one more turn" hook)
     results.decision = this.generateDecision();
 
-    // 15. Check era transition
+    // 15. Check era transition + prestige
     results.eraChange = this.checkEraTransition();
+    if (this.state.year >= 2030 && !this.state.prestigeOffered) {
+      this.state.prestigeOffered = true;
+      results.prestige = true;
+    }
 
     // 15b. Process dynasty (aging, births, deaths, succession)
     results.dynasty = this.processDynasty();
@@ -1386,6 +1464,10 @@ const GameEngine = {
   getLoanOffers(amount) {
     const netWorth = this.getNetWorth();
     const existingDebt = (this.state.loans || []).reduce((s, l) => s + l.remainingBalance, 0);
+    const existingPayments = (this.state.loans || []).reduce((s, l) => s + l.monthlyPayment, 0);
+    const monthlyIncome = this.getMonthlyIncome();
+    // Debt-to-income cap: total loan payments can't exceed 40% of rental income
+    const paymentCapacity = Math.max(0, Math.round(monthlyIncome * 0.4) - existingPayments);
     const offers = [];
 
     GameData.banks.forEach(bank => {
@@ -1411,6 +1493,9 @@ const GameEngine = {
           (Math.pow(1 + monthlyRate, term) - 1)
         );
         const totalRepayment = monthlyPayment * term;
+
+        // Skip if monthly payment exceeds remaining capacity
+        if (monthlyPayment > paymentCapacity && paymentCapacity > 0) return;
 
         offers.push({
           bankId: bank.id,
@@ -2085,6 +2170,57 @@ const GameEngine = {
     return this.state.investments.reduce((sum, inv) => sum + (inv.currentUnitPrice * inv.units), 0);
   },
 
+  // ========== PRESTIGE / NEW GAME+ ==========
+
+  getPrestigeStats() {
+    var nw = this.getNetWorth();
+    var gen = this.state.generation || 1;
+    var props = this.state.properties.length;
+    var cities = new Set(this.state.properties.map(function(p){return p.cityId;})).size;
+    var rep = this.state.reputation || 50;
+    var rank = this.state.playerRank || 7;
+
+    // Prestige score based on achievements
+    var score = 0;
+    score += Math.floor(Math.log10(Math.max(1, nw))) * 10; // wealth magnitude
+    score += gen * 5; // generations survived
+    score += props * 2; // properties owned
+    score += cities * 8; // city diversity
+    score += Math.floor(rep / 10) * 3; // reputation
+    score += (7 - Math.min(7, rank)) * 10; // ranking bonus
+
+    // Prestige bonus for next game
+    var cashBonus = 1 + score * 0.01; // 1% per point
+    var repBonus = Math.min(30, Math.floor(score / 5));
+
+    return {
+      score: score,
+      netWorth: nw,
+      generation: gen,
+      properties: props,
+      cities: cities,
+      reputation: rep,
+      rank: rank,
+      cashBonus: cashBonus,
+      repBonus: repBonus
+    };
+  },
+
+  startPrestige(familyId) {
+    var stats = this.getPrestigeStats();
+    var prestigeLevel = (this.state.prestigeLevel || 0) + 1;
+    var family = GameData.families.find(function(f){return f.id === familyId;}) || GameData.families[1];
+
+    this.newGame(familyId);
+    this.state.prestigeLevel = prestigeLevel;
+    this.state.cash = Math.round(family.startingCash * stats.cashBonus);
+    this.state.reputation = 50 + stats.repBonus;
+    this.state.familyName = family.name + ' (Prestige ' + prestigeLevel + ')';
+
+    this.save();
+    return stats;
+  },
+
   // ========== DYNASTY SYSTEM ==========
 
   createFamilyMember(surname, age, isHead) {
@@ -2578,6 +2714,66 @@ const GameEngine = {
       });
     }
 
+    // TYPE 6: Education — send a child to university
+    if (this.state.familyMembers) {
+      var children = this.state.familyMembers.filter(function(m) { return !m.isHead && m.age >= 16 && m.age <= 25 && !m.educated; });
+      if (children.length > 0 && cash > 0) {
+        var child = children[0];
+        var eduCost = Math.round(cash * 0.08);
+        decisions.push({
+          type: 'education',
+          title: '🎓 University Education',
+          description: child.name + ' (age ' + child.age + ', ' + child.trait + ') could attend university. Cost: ' + GameData.formatMoney(eduCost) + '. Improves their abilities if they become head.',
+          choices: [
+            { label: 'Send to university (' + GameData.formatMoney(eduCost) + ')', action: 'educate', data: { memberId: child.id, cost: eduCost } },
+            { label: 'Education is overrated', action: 'pass' }
+          ]
+        });
+      }
+    }
+
+    // TYPE 7: Marriage — marry into an AI family
+    if (this.state.familyMembers && this.state.aiFamilies) {
+      var eligibleChildren = this.state.familyMembers.filter(function(m) { return !m.isHead && m.age >= 18 && m.age <= 35 && !m.married; });
+      if (eligibleChildren.length > 0 && Math.random() < 0.3) {
+        var spouse = eligibleChildren[0];
+        var aiFamily = this.state.aiFamilies[Math.floor(Math.random() * this.state.aiFamilies.length)];
+        var dowry = Math.round(aiFamily.netWorth * 0.05);
+        decisions.push({
+          type: 'marriage',
+          title: '💒 Marriage Proposal',
+          description: aiFamily.icon + ' ' + aiFamily.name + ' propose a marriage alliance with ' + spouse.name + '. Dowry: ' + GameData.formatMoney(dowry) + '. Alliance improves business relations.',
+          choices: [
+            { label: 'Accept marriage (+' + GameData.formatMoney(dowry) + ', +reputation)', action: 'marry', data: { memberId: spouse.id, aiId: aiFamily.id, dowry: dowry } },
+            { label: 'Decline the proposal', action: 'pass' }
+          ]
+        });
+      }
+    }
+
+    // TYPE 8: Scandal
+    if (this.state.familyMembers && Math.random() < 0.2) {
+      var head = this.state.familyMembers.find(function(m) { return m.isHead; });
+      if (head) {
+        var scandals = [
+          { text: head.name + ' is caught in a gambling scandal! Pay hush money or face public shame.', cost: 0.05, repLoss: 12 },
+          { text: 'A rival family publishes damaging rumors about ' + head.name + '. Counter with lawyers or ignore.', cost: 0.03, repLoss: 8 },
+          { text: head.name + '\'s business dealings questioned in the press. Bribe officials or let the story run.', cost: 0.04, repLoss: 10 },
+        ];
+        var scandal = scandals[Math.floor(Math.random() * scandals.length)];
+        var bribeCost = Math.round(cash * scandal.cost);
+        decisions.push({
+          type: 'scandal',
+          title: '⚠️ Family Scandal',
+          description: scandal.text,
+          choices: [
+            { label: 'Pay ' + GameData.formatMoney(bribeCost) + ' to suppress it', action: 'suppress_scandal', data: { cost: bribeCost } },
+            { label: 'Let it play out (reputation -' + scandal.repLoss + ')', action: 'accept_scandal', data: { repLoss: scandal.repLoss } }
+          ]
+        });
+      }
+    }
+
     // Pick one decision (not all)
     if (decisions.length === 0) return null;
     var chosen = decisions[Math.floor(Math.random() * decisions.length)];
@@ -2659,6 +2855,45 @@ const GameEngine = {
           result.message = 'Not enough cash.';
           result.success = false;
         }
+        break;
+      }
+      case 'educate': {
+        var d = choiceData || decision.choices[0].data;
+        if (this.state.cash >= d.cost) {
+          this.state.cash -= d.cost;
+          var member = (this.state.familyMembers || []).find(function(m) { return m.id === d.memberId; });
+          if (member) {
+            member.educated = true;
+            member.health = Math.min(100, member.health + 10);
+            member.lifespan += 5;
+          }
+          result.message = '🎓 ' + (member ? member.name : 'Child') + ' graduated! +10 health, +5 lifespan.';
+        } else { result.message = 'Not enough cash.'; result.success = false; }
+        break;
+      }
+      case 'marry': {
+        var d = choiceData || decision.choices[0].data;
+        this.state.cash += d.dowry;
+        var member = (this.state.familyMembers || []).find(function(m) { return m.id === d.memberId; });
+        if (member) member.married = true;
+        if (!this.state.reputation) this.state.reputation = 50;
+        this.state.reputation = Math.min(100, this.state.reputation + 5);
+        result.message = '💒 Marriage alliance formed! +'+ GameData.formatMoney(d.dowry) + ' dowry, +5 reputation.';
+        break;
+      }
+      case 'suppress_scandal': {
+        var d = choiceData || decision.choices[0].data;
+        if (this.state.cash >= d.cost) {
+          this.state.cash -= d.cost;
+          result.message = 'Scandal suppressed for ' + GameData.formatMoney(d.cost) + '. Reputation preserved.';
+        } else { result.message = 'Not enough cash!'; result.success = false; }
+        break;
+      }
+      case 'accept_scandal': {
+        var d = choiceData || decision.choices[0].data;
+        if (!this.state.reputation) this.state.reputation = 50;
+        this.state.reputation = Math.max(0, this.state.reputation - d.repLoss);
+        result.message = 'Scandal made public. Reputation -' + d.repLoss + '.';
         break;
       }
       case 'pass':
