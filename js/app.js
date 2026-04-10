@@ -422,6 +422,65 @@ const App = {
     } else {
       GameUI.toast(result.message, 'error');
     }
+  },
+
+  // ---- Mergers ----
+  showMergerOptions(acquirerBizId, cityId) {
+    var businesses = (GameEngine.state.businesses || {})[cityId] || [];
+    var acquirer = businesses.find(function(b) { return b.id === acquirerBizId; });
+    if (!acquirer) return;
+
+    var targets = businesses.filter(function(b) { return b.id !== acquirerBizId; });
+    var html = '<p style="margin-bottom:10px">Merge into <strong>' + acquirer.name + '</strong>:</p>';
+    targets.forEach(function(t) {
+      var cost = Math.round(t.totalValue * (t.availableStake / 100) * 0.85);
+      html += '<div class="finance-row" style="cursor:pointer" onclick="App.executeMerger(\'' + acquirerBizId + '\', \'' + t.id + '\', \'' + cityId + '\')">' +
+        '<span>' + (GameData.businessTypes[t.type] || {}).icon + ' ' + t.name + '</span>' +
+        '<span class="finance-row-value">' + GameData.formatMoney(cost) + '</span>' +
+      '</div>';
+    });
+    GameUI.showModal('🤝 Business Merger', html, '<button class="btn btn-secondary" onclick="GameUI.hideModal()">Cancel</button>');
+  },
+
+  executeMerger(biz1, biz2, cityId) {
+    GameUI.hideModal();
+    var result = GameEngine.mergeBusiness(biz1, biz2, cityId);
+    if (result.success) {
+      GameUI.toast(result.message, 'success');
+      GameUI.updateHUD();
+      GameUI.renderCityBusinesses();
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+  },
+
+  // ---- Player Bank ----
+  openBank() {
+    if (!GameEngine.canOpenBank()) {
+      GameUI.toast('Cannot open a bank yet. Need more capital or a later era.', 'error');
+      return;
+    }
+    var capital = Math.round(GameEngine.state.cash * 0.3);
+    var name = (GameEngine.state.familyName || 'Family') + ' Bank';
+    GameUI.showModal('🏦 Open Your Own Bank',
+      '<p>Invest capital to open a bank. It will lend money and earn interest automatically.</p>' +
+      '<div class="finance-row"><span>Bank Name</span><span><strong>' + name + '</strong></span></div>' +
+      '<div class="finance-row"><span>Capital (30% of cash)</span><span><strong>' + GameData.formatMoney(capital) + '</strong></span></div>',
+      '<button class="btn btn-secondary" onclick="GameUI.hideModal()">Cancel</button>' +
+      '<button class="btn btn-primary" onclick="App.confirmOpenBank(\'' + name + '\', ' + capital + ')">Open Bank</button>'
+    );
+  },
+
+  confirmOpenBank(name, capital) {
+    GameUI.hideModal();
+    var result = GameEngine.openBank(name, capital);
+    if (result.success) {
+      GameUI.toast(result.message, 'success');
+      GameUI.updateHUD();
+      GameUI.renderBank();
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
   }
 };
 

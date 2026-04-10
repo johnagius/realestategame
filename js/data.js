@@ -79,24 +79,24 @@ const GameData = {
 
   // ---- AI Competitor Families ----
   aiFamilies: [
-    { id: 'rockefeller', name: 'The Rockefellers', icon: '🏛️', color: '#1B4D33',
-      aggressiveness: 0.7, riskTolerance: 0.5, startingWealth: 5000000,
-      motto: 'Oil money turned property empire.' },
+    { id: 'rothschild', name: 'The Rothschilds', icon: '🏛️', color: '#1B4D33',
+      aggressiveness: 0.7, riskTolerance: 0.5, startingWealth: 20000,
+      motto: 'European banking dynasty since 1744.' },
     { id: 'wong', name: 'The Wong Dynasty', icon: '🐉', color: '#C41E3A',
-      aggressiveness: 0.8, riskTolerance: 0.6, startingWealth: 4000000,
-      motto: 'Asian real estate moguls.' },
+      aggressiveness: 0.8, riskTolerance: 0.6, startingWealth: 15000,
+      motto: 'Silk Road merchants and traders.' },
     { id: 'al_rashid', name: 'The Al-Rashids', icon: '🕌', color: '#DAA520',
-      aggressiveness: 0.6, riskTolerance: 0.4, startingWealth: 8000000,
-      motto: 'Gulf sovereign wealth.' },
+      aggressiveness: 0.6, riskTolerance: 0.4, startingWealth: 30000,
+      motto: 'Arabian trade route masters.' },
     { id: 'petrov', name: 'The Petrovs', icon: '🐻', color: '#4169E1',
-      aggressiveness: 0.9, riskTolerance: 0.8, startingWealth: 3000000,
-      motto: 'Oligarch ambitions.' },
-    { id: 'martinez', name: 'The Martinez Group', icon: '🌮', color: '#E07A5F',
-      aggressiveness: 0.5, riskTolerance: 0.3, startingWealth: 2000000,
-      motto: 'South American land barons.' },
+      aggressiveness: 0.9, riskTolerance: 0.8, startingWealth: 12000,
+      motto: 'Russian fur trade magnates.' },
+    { id: 'martinez', name: 'The Bourbon-Martinez', icon: '⚜️', color: '#E07A5F',
+      aggressiveness: 0.5, riskTolerance: 0.3, startingWealth: 8000,
+      motto: 'Colonial landowners.' },
     { id: 'okonkwo', name: 'The Okonkwos', icon: '🌍', color: '#2A9D8F',
-      aggressiveness: 0.65, riskTolerance: 0.5, startingWealth: 1500000,
-      motto: 'African development pioneers.' }
+      aggressiveness: 0.65, riskTolerance: 0.5, startingWealth: 5000,
+      motto: 'West African trade pioneers.' }
   ],
 
   // ---- City Landmarks ----
