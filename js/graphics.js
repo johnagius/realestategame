@@ -1292,5 +1292,271 @@ const GameGraphics = {
     s += '</g>';
 
     return s;
+  },
+
+  // ===== SYDNEY =====
+  _city_sydney() {
+    var s = '';
+    s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
+    s += '<g opacity="0.3"><ellipse cx="400" cy="45" rx="100" ry="20" fill="#fff"/><ellipse cx="900" cy="35" rx="80" ry="16" fill="#fff"/></g>';
+
+    // === OPERA HOUSE ===
+    s += '<g transform="translate(500, 220)">';
+    // Shells/sails
+    s += '<path d="M0,40 Q15,-15 30,40" fill="#F0EAE0" stroke="#D0C8B8" stroke-width="1"/>';
+    s += '<path d="M25,40 Q45,-25 65,40" fill="#F0EAE0" stroke="#D0C8B8" stroke-width="1"/>';
+    s += '<path d="M55,40 Q80,-20 100,40" fill="#F0EAE0" stroke="#D0C8B8" stroke-width="1"/>';
+    s += '<path d="M90,40 Q108,-10 125,40" fill="#F0EAE0" stroke="#D0C8B8" stroke-width="1"/>';
+    // Tile texture on shells
+    s += '<g stroke="#D8D0C0" stroke-width="0.3" opacity="0.5">';
+    for (var sy = 10; sy < 40; sy += 6) {
+      s += '<path d="M'+(5+sy*0.3)+','+sy+' Q'+(20)+','+(sy-8)+' '+(35-sy*0.2)+','+sy+'" fill="none"/>';
+      s += '<path d="M'+(30+sy*0.3)+','+sy+' Q'+(50)+','+(sy-12)+' '+(70-sy*0.2)+','+sy+'" fill="none"/>';
+    }
+    s += '</g>';
+    // Base platform
+    s += '<rect x="-10" y="40" width="145" height="12" fill="#D0C8B8" stroke="#B0A898" stroke-width="0.5"/>';
+    s += '</g>';
+
+    // === HARBOUR BRIDGE ===
+    s += '<g transform="translate(200, 200)">';
+    // Arch
+    s += '<path d="M0,80 Q150,0 300,80" fill="none" stroke="#6A6A6A" stroke-width="4"/>';
+    // Deck
+    s += '<line x1="0" y1="80" x2="300" y2="80" stroke="#5A5A5A" stroke-width="3"/>';
+    // Pylons
+    s += '<rect x="-5" y="60" width="10" height="30" fill="#8A8078"/>';
+    s += '<rect x="295" y="60" width="10" height="30" fill="#8A8078"/>';
+    // Hangers
+    for (var hx = 20; hx < 290; hx += 15) {
+      var hy = 80 - Math.sin((hx/300)*Math.PI) * 75;
+      s += '<line x1="'+hx+'" y1="'+hy+'" x2="'+hx+'" y2="80" stroke="#7A7A7A" stroke-width="0.5"/>';
+    }
+    s += '</g>';
+
+    // Harbour water
+    s += '<path d="M0,300 Q300,290 600,298 Q900,305 1200,295 L1200,340 Q900,335 600,338 Q300,330 0,340Z" fill="url(#c-water)"/>';
+    // Boats
+    s += '<g fill="#F8F0E0" stroke="#A0A0A0" stroke-width="0.5">';
+    s += '<polygon points="350,310 365,305 380,310 365,315"/>';
+    s += '<polygon points="800,305 815,300 830,305 815,310"/>';
+    s += '</g>';
+
+    // City buildings
+    var sBuildings = [
+      [30,160,30,120,'#C0C8D0'],[70,140,35,140,'#B8C0C8'],[120,155,28,125,'#C8D0D8'],
+      [160,135,32,145,'#B0B8C0'],[750,145,30,135,'#C0C8D0'],[790,130,35,150,'#B8C0C8'],
+      [840,155,28,125,'#C8D0D8'],[890,140,32,140,'#B0B8C0'],
+      [960,150,28,130,'#C0C8D0'],[1000,135,30,145,'#B8C0C8'],[1050,160,26,120,'#C8D0D8'],
+      [1100,145,32,135,'#B0B8C0'],[1150,155,28,125,'#C0C8D0']
+    ];
+    for (var i = 0; i < sBuildings.length; i++) {
+      var b = sBuildings[i];
+      s += '<rect x="'+b[0]+'" y="'+b[1]+'" width="'+b[2]+'" height="'+b[3]+'" fill="'+b[4]+'" stroke="#A0A8B0" stroke-width="0.5"/>';
+      s += '<g fill="#8AAAC0" opacity="0.4">';
+      for (var wy = b[1]+4; wy < b[1]+b[3]-4; wy += 6) {
+        for (var wx = b[0]+3; wx < b[0]+b[2]-3; wx += 7) {
+          s += '<rect x="'+wx+'" y="'+wy+'" width="3" height="4"/>';
+        }
+      }
+      s += '</g>';
+    }
+
+    // Ground with coastal feel
+    s += '<rect x="0" y="340" width="1200" height="160" fill="url(#c-ground)"/>';
+    // Beach strip
+    s += '<rect x="0" y="340" width="1200" height="8" fill="#E8D8B8" opacity="0.5"/>';
+
+    // Norfolk pines
+    var pines = [50,200,400,650,900,1050,1150];
+    for (var i = 0; i < pines.length; i++) {
+      var px = pines[i];
+      s += '<line x1="'+px+'" y1="348" x2="'+px+'" y2="330" stroke="#4A3828" stroke-width="2"/>';
+      s += '<g fill="#3A6A30">';
+      for (var py = 332; py > 318; py -= 5) {
+        var pw = (348 - py) * 0.5;
+        s += '<ellipse cx="'+px+'" cy="'+py+'" rx="'+pw+'" ry="3"/>';
+      }
+      s += '</g>';
+    }
+
+    return s;
+  },
+
+  // ===== ROME =====
+  _city_rome() {
+    var s = '';
+    // Warm Italian sky
+    s += '<rect width="1200" height="500" fill="#D0E0F0"/>';
+    s += '<rect width="1200" height="300" fill="#B8D0E8" opacity="0.5"/>';
+    s += '<g opacity="0.25"><ellipse cx="300" cy="50" rx="90" ry="18" fill="#fff"/><ellipse cx="800" cy="40" rx="110" ry="20" fill="#fff"/></g>';
+
+    // === COLOSSEUM ===
+    s += '<g transform="translate(450, 180)">';
+    // Outer wall - elliptical
+    s += '<ellipse cx="80" cy="50" rx="85" ry="55" fill="url(#c-stone)" stroke="#A09878" stroke-width="1.5"/>';
+    // Inner void
+    s += '<ellipse cx="80" cy="50" rx="60" ry="38" fill="#B8D0E0" opacity="0.4"/>';
+    // Arches - three tiers
+    for (var tier = 0; tier < 3; tier++) {
+      var ty = 18 + tier * 22;
+      var rx = 78 - tier * 8;
+      for (var a = -70; a <= 70; a += 14) {
+        var rad = a * Math.PI / 180;
+        var ax = 80 + Math.cos(rad) * rx;
+        var ay = ty + Math.sin(rad) * 5;
+        s += '<rect x="'+(ax-3)+'" y="'+(ay)+'" width="6" height="10" rx="3" ry="3" fill="#B0A890" stroke="#9A8A70" stroke-width="0.3"/>';
+      }
+    }
+    // Partial ruin (broken top right)
+    s += '<path d="M140,15 Q150,10 158,18 Q155,25 148,20" fill="url(#c-stone)" stroke="#A09878" stroke-width="0.5"/>';
+    s += '</g>';
+
+    // === ST PETER'S DOME (background) ===
+    s += '<g transform="translate(150, 150)" opacity="0.6">';
+    s += '<rect x="0" y="25" width="80" height="60" fill="url(#c-stone)"/>';
+    s += '<ellipse cx="40" cy="25" rx="30" ry="25" fill="#D8D0C0" stroke="#B0A890" stroke-width="1"/>';
+    s += '<rect x="38" y="-5" width="4" height="12" fill="#B0A890"/>';
+    s += '<line x1="36" y1="-3" x2="44" y2="-3" stroke="#B0A890" stroke-width="1"/>';
+    // Columns
+    for (var cx = 10; cx < 75; cx += 10) {
+      s += '<rect x="'+cx+'" y="30" width="3" height="55" fill="#E0D8C8"/>';
+    }
+    s += '</g>';
+
+    // === TREVI FOUNTAIN hint ===
+    s += '<g transform="translate(800, 250)">';
+    s += '<rect x="0" y="0" width="50" height="40" fill="url(#c-stone)" rx="2"/>';
+    s += '<path d="M5,5 Q25,-5 45,5" fill="none" stroke="#A09878" stroke-width="0.8"/>';
+    s += '<ellipse cx="25" cy="38" rx="20" ry="6" fill="#6A9AB0" opacity="0.5"/>';
+    s += '</g>';
+
+    // Terracotta buildings
+    for (var bx = 0; bx < 1200; bx += 55) {
+      if (bx > 420 && bx < 650) continue; // Skip colosseum area
+      var bh = 40 + Math.sin(bx * 0.07) * 15;
+      var by = 260 - bh;
+      s += '<rect x="'+bx+'" y="'+by+'" width="48" height="'+bh+'" fill="#D8B898" stroke="#C0A080" stroke-width="0.6"/>';
+      // Terracotta roof
+      s += '<path d="M'+(bx-2)+','+by+' L'+(bx+24)+','+(by-8)+' L'+(bx+50)+','+by+'" fill="#C07050" stroke="#A05838" stroke-width="0.5"/>';
+      // Windows with shutters
+      for (var wy = by + 10; wy < by + bh - 8; wy += 14) {
+        for (var wx = bx + 8; wx < bx + 40; wx += 14) {
+          s += '<rect x="'+wx+'" y="'+wy+'" width="7" height="9" fill="#88AAC0" stroke="#B09878" stroke-width="0.3"/>';
+          // Shutters
+          s += '<rect x="'+(wx-2)+'" y="'+wy+'" width="2" height="9" fill="#3A6A4A"/>';
+          s += '<rect x="'+(wx+7)+'" y="'+wy+'" width="2" height="9" fill="#3A6A4A"/>';
+        }
+      }
+    }
+
+    // Ground - cobblestone
+    s += '<rect x="0" y="300" width="1200" height="200" fill="#C8B8A0"/>';
+    s += '<rect x="0" y="300" width="1200" height="12" fill="#B0A088"/>';
+
+    // Cypress trees
+    var cypresses = [30,350,680,1000,1150];
+    for (var i = 0; i < cypresses.length; i++) {
+      var cx = cypresses[i];
+      s += '<rect x="'+(cx-1)+'" y="270" width="2" height="30" fill="#4A3828"/>';
+      s += '<ellipse cx="'+cx+'" cy="258" rx="5" ry="18" fill="#2A5A28"/>';
+    }
+
+    // Vespa scooter
+    s += '<g transform="translate(650, 302)">';
+    s += '<rect x="0" y="0" width="12" height="6" fill="#5AA0C0" rx="2"/>';
+    s += '<circle cx="2" cy="8" r="2.5" fill="#444"/>';
+    s += '<circle cx="10" cy="8" r="2.5" fill="#444"/>';
+    s += '</g>';
+
+    return s;
+  },
+
+  // ===== SINGAPORE =====
+  _city_singapore() {
+    var s = '';
+    // Tropical sky
+    s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
+    s += '<rect width="1200" height="500" fill="#E8F0F0" opacity="0.2"/>';
+
+    // === MARINA BAY SANDS ===
+    s += '<g transform="translate(500, 100)">';
+    // Three towers
+    s += '<rect x="0" y="40" width="20" height="170" fill="#C8C8D0" stroke="#A0A0A8" stroke-width="0.8" transform="skewX(-2)"/>';
+    s += '<rect x="50" y="30" width="20" height="180" fill="#C8C8D0" stroke="#A0A0A8" stroke-width="0.8"/>';
+    s += '<rect x="100" y="40" width="20" height="170" fill="#C8C8D0" stroke="#A0A0A8" stroke-width="0.8" transform="skewX(2)"/>';
+    // Sky park (boat-shaped top)
+    s += '<path d="M-15,38 Q60,20 135,38 L130,45 Q60,30 -10,45Z" fill="#8AB068" stroke="#6A9048" stroke-width="0.8"/>';
+    // Infinity pool hint
+    s += '<rect x="80" y="32" width="40" height="5" fill="#68A8C8" rx="1" opacity="0.6"/>';
+    // Windows
+    s += '<g fill="#8AA0B8" opacity="0.4">';
+    for (var t = 0; t < 3; t++) {
+      var tx = t * 50 + 2;
+      for (var wy = 45; wy < 205; wy += 5) {
+        s += '<rect x="'+tx+'" y="'+wy+'" width="16" height="3"/>';
+      }
+    }
+    s += '</g>';
+    s += '</g>';
+
+    // === MERLION ===
+    s += '<g transform="translate(380, 250)" opacity="0.6">';
+    s += '<rect x="0" y="10" width="12" height="20" fill="#C8C0B0"/>';
+    s += '<circle cx="6" cy="6" r="6" fill="#C8C0B0"/>';
+    // Water spout
+    s += '<path d="M12,8 Q20,5 25,12 Q22,18 18,15" fill="#68A8C8" opacity="0.5"/>';
+    s += '</g>';
+
+    // Other skyscrapers
+    var sgBuildings = [
+      [40,110,28,170,'#B0B8C0'],[80,130,24,150,'#C0C8D0'],[120,100,30,180,'#A8B0B8'],
+      [160,120,26,160,'#B8C0C8'],[200,135,22,148,'#C0C8D0'],
+      [700,105,30,175,'#B0B8C0'],[740,125,26,155,'#C0C8D0'],[780,95,34,185,'#A8B0B8'],
+      [830,115,28,165,'#B8C0C8'],[880,130,24,150,'#C0C8D0'],
+      [940,110,30,170,'#B0B8C0'],[990,125,26,155,'#C0C8D0'],[1040,100,32,180,'#A8B0B8'],
+      [1090,120,28,160,'#B8C0C8'],[1140,135,24,145,'#C0C8D0']
+    ];
+    for (var i = 0; i < sgBuildings.length; i++) {
+      var b = sgBuildings[i];
+      s += '<rect x="'+b[0]+'" y="'+b[1]+'" width="'+b[2]+'" height="'+b[3]+'" fill="'+b[4]+'" stroke="#98A0A8" stroke-width="0.5"/>';
+      s += '<g fill="#88A8C0" opacity="0.3">';
+      for (var wy = b[1]+3; wy < b[1]+b[3]-3; wy += 5) {
+        s += '<rect x="'+(b[0]+2)+'" y="'+wy+'" width="'+(b[2]-4)+'" height="3"/>';
+      }
+      s += '</g>';
+    }
+
+    // Marina Bay water
+    s += '<path d="M300,290 Q500,280 700,288 Q900,295 1100,285 L1100,320 Q900,315 700,318 Q500,310 300,320Z" fill="url(#c-water)"/>';
+
+    // Ground
+    s += '<rect x="0" y="320" width="1200" height="180" fill="url(#c-ground)"/>';
+
+    // Tropical trees
+    var tropicals = [50,180,280,420,750,900,1050,1150];
+    for (var i = 0; i < tropicals.length; i++) {
+      var px = tropicals[i];
+      s += '<path d="M'+px+',340 Q'+(px+3)+',320 '+(px+1)+',300" fill="none" stroke="#6A5A3A" stroke-width="2.5"/>';
+      s += '<g fill="#3A8A40" opacity="0.8">';
+      for (var f = 0; f < 5; f++) {
+        var angle = -50 + f * 25;
+        var fx = px + 1 + Math.cos(angle * 0.0175) * 20;
+        var fy = 300 + Math.sin(angle * 0.0175) * 12;
+        s += '<ellipse cx="'+fx+'" cy="'+(fy-5)+'" rx="12" ry="4" transform="rotate('+angle+','+fx+','+(fy-5)+')"/>';
+      }
+      s += '</g>';
+    }
+
+    // Supertree Grove hint
+    s += '<g transform="translate(300, 300)" opacity="0.4">';
+    for (var st = 0; st < 3; st++) {
+      var sx = st * 25;
+      s += '<line x1="'+sx+'" y1="40" x2="'+sx+'" y2="0" stroke="#6A5A8A" stroke-width="2"/>';
+      s += '<ellipse cx="'+sx+'" cy="-2" rx="10" ry="5" fill="#4A8A5A"/>';
+    }
+    s += '</g>';
+
+    return s;
   }
 };
