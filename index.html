@@ -22,11 +22,16 @@
       <div class="splash-icon">🏛️</div>
       <h1 class="splash-title">Property Empire</h1>
       <p class="splash-subtitle">Build your real estate fortune across the world's greatest cities</p>
-      <div class="splash-buttons">
+      <div id="splash-main-btns" class="splash-buttons">
         <button id="btn-new-game" class="btn btn-primary btn-large">New Game</button>
         <button id="btn-continue-game" class="btn btn-secondary btn-large" style="display:none">Continue Game</button>
       </div>
-      <p class="splash-version">v1.0</p>
+      <!-- Family Selection (shown after clicking New Game) -->
+      <div id="family-select" class="family-select" style="display:none">
+        <h3 style="color:#FFF;margin-bottom:12px;font-family:var(--font-heading)">Choose Your Dynasty</h3>
+        <div id="family-cards"></div>
+      </div>
+      <p class="splash-version">v3.0</p>
     </div>
   </div>
 

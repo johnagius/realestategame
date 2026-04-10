@@ -232,6 +232,106 @@ h4 { font-size: 1rem; }
   margin-top: 40px;
 }
 
+/* Family selection */
+.family-select {
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.family-card {
+  background: rgba(255,255,255,0.1);
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  backdrop-filter: blur(4px);
+}
+
+.family-card:hover {
+  background: rgba(255,255,255,0.2);
+  border-color: rgba(255,255,255,0.5);
+  transform: translateX(4px);
+}
+
+.family-card-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.family-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.family-card-name {
+  color: #FFF;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.family-card-desc {
+  color: rgba(255,255,255,0.7);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.family-card-motto {
+  color: rgba(255,255,255,0.5);
+  font-size: 0.65rem;
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.family-card-meta {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.family-card-cash {
+  color: var(--gold-light);
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.family-card-diff {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 4px;
+  display: inline-block;
+}
+
+.diff-hard { background: rgba(230,57,70,0.3); color: #F88; }
+.diff-normal { background: rgba(42,157,143,0.3); color: #8FD; }
+.diff-easy { background: rgba(69,123,157,0.3); color: #8BF; }
+.diff-sandbox { background: rgba(212,168,75,0.3); color: #FD8; }
+
+/* Rank badge in HUD */
+.hud-rank {
+  font-size: 0.6rem;
+  font-weight: 800;
+  background: rgba(255,255,255,0.15);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+  display: inline-block;
+}
+
+/* Milestone toast */
+.toast.milestone {
+  background: linear-gradient(135deg, #D4A84B, #F0D68A);
+  color: #1B4D33;
+}
+
 /* ---------- Buttons ---------- */
 .btn {
   display: inline-flex;

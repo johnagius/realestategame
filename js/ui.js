@@ -41,7 +41,8 @@ const GameUI = {
     const s = GameEngine.state;
     if (!s) return;
     document.getElementById('hud-cash').textContent = GameData.formatMoney(s.cash);
-    document.getElementById('hud-date').textContent = GameEngine.getDateString();
+    var dateEl = document.getElementById('hud-date');
+    dateEl.textContent = GameEngine.getDateString();
     document.getElementById('hud-networth').textContent = GameData.formatMoney(GameEngine.getNetWorth());
     // Speed controls in HUD
     document.getElementById('hud-speed').innerHTML = this.renderSpeedControls();
@@ -76,9 +77,10 @@ const GameUI = {
     cities.forEach(function(city, i) {
       var summary = GameEngine.getCitySummary(city.id);
       var inflRate = city.inflationRate !== undefined ? city.inflationRate : 0.02;
+      var lm = GameData.cityLandmarks[city.id] || {};
       html += '<div class="city-card" data-tier="' + city.tier + '" data-city="' + city.id + '" style="animation-delay:' + (i * 0.05) + 's">' +
         '<div class="city-card-header">' +
-          '<span class="city-flag">' + city.flag + '</span>' +
+          '<span class="city-flag">' + (lm.landmark || city.flag) + '</span>' +
           '<div>' +
             '<div class="city-card-name">' + city.name + '</div>' +
             '<div class="city-card-country">' + city.country + '</div>' +
@@ -449,6 +451,67 @@ const GameUI = {
             }).join('') +
           '</div>' +
         '</div>' : '');
+
+    // Wealth Leaderboard
+    if (s.aiFamilies) {
+      var playerNW = GameEngine.getNetWorth();
+      var allFamilies = [
+        { name: (s.familyIcon || '👤') + ' ' + (s.familyName || 'You'), netWorth: playerNW, color: s.familyColor || '#2C6E49', isPlayer: true }
+      ];
+      s.aiFamilies.forEach(function(ai) {
+        allFamilies.push({ name: ai.icon + ' ' + ai.name, netWorth: ai.netWorth, color: ai.color, isPlayer: false });
+      });
+      allFamilies.sort(function(a, b) { return b.netWorth - a.netWorth; });
+      var maxNW = allFamilies[0].netWorth || 1;
+
+      content.innerHTML += '<div class="finance-section">' +
+        '<div class="finance-section-title">🏆 Wealth Leaderboard</div>' +
+        '<div class="finance-card">' +
+          allFamilies.map(function(f, i) {
+            var barPct = Math.max(5, (f.netWorth / maxNW) * 100);
+            var rank = i + 1;
+            var medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '#' + rank;
+            return '<div style="margin-bottom:8px' + (f.isPlayer ? ';padding:6px;background:rgba(44,110,73,0.06);border-radius:8px;border:1.5px solid var(--primary-light)' : '') + '">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">' +
+                '<span style="font-size:0.8rem;font-weight:700' + (f.isPlayer ? ';color:var(--primary)' : '') + '">' + medal + ' ' + f.name + '</span>' +
+                '<span style="font-size:0.8rem;font-weight:800">' + GameData.formatMoneyShort(f.netWorth) + '</span>' +
+              '</div>' +
+              '<div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">' +
+                '<div style="height:100%;width:' + barPct + '%;background:' + f.color + ';border-radius:4px;transition:width 0.5s"></div>' +
+              '</div>' +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+
+      // Wealth over time chart (player vs top AI)
+      var playerHist = s.networthHistory;
+      var topAI = s.aiFamilies.reduce(function(best, ai) { return ai.netWorth > best.netWorth ? ai : best; }, s.aiFamilies[0]);
+      if (topAI && topAI.history && playerHist.length > 1) {
+        var allVals = playerHist.concat(topAI.history);
+        var chartMax = Math.max.apply(null, allVals) || 1;
+
+        content.innerHTML += '<div class="finance-section">' +
+          '<div class="finance-section-title">📈 Wealth Over Time</div>' +
+          '<div class="finance-card">' +
+            '<div style="display:flex;gap:12px;margin-bottom:8px;font-size:0.7rem;font-weight:700">' +
+              '<span style="color:' + (s.familyColor || '#2C6E49') + '">● ' + (s.familyName || 'You') + '</span>' +
+              '<span style="color:' + topAI.color + '">● ' + topAI.name + '</span>' +
+            '</div>' +
+            '<div style="position:relative;height:120px;display:flex;align-items:flex-end;gap:1px">' +
+              playerHist.map(function(v, i) {
+                var pPct = Math.max(2, (v / chartMax) * 100);
+                var aiVal = topAI.history[i] || 0;
+                var aPct = Math.max(2, (aiVal / chartMax) * 100);
+                return '<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:1px">' +
+                  '<div style="height:' + pPct + '%;background:' + (s.familyColor || '#2C6E49') + ';border-radius:2px 2px 0 0;min-height:2px;opacity:0.7"></div>' +
+                '</div>';
+              }).join('') +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }
+    }
   },
 
   // ---- Render Settings ----
@@ -513,13 +576,18 @@ const GameUI = {
       GameUI.toast('💼 Dividends received: +' + GameData.formatMoney(results.dividends), 'success');
     }
 
+    // Milestones
+    if (results.milestones) {
+      results.milestones.forEach(function(m) {
+        GameUI.toast(m.icon + ' Milestone: ' + m.name + '!', 'milestone');
+      });
+    }
+
     // Basic summary toast
-    if (!hasDisasters && !hasEvents) {
+    if (!hasDisasters && !hasEvents && !(results.milestones && results.milestones.length)) {
       var net = results.rentIncome - results.expenses;
       if (results.rentIncome > 0) {
         GameUI.toast('Month complete: +' + GameData.formatMoney(results.rentIncome) + ' rent, -' + GameData.formatMoney(results.expenses) + ' costs', net >= 0 ? 'success' : 'warning');
-      } else {
-        GameUI.toast('Month complete', 'info');
       }
     }
   },
