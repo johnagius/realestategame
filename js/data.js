@@ -748,7 +748,12 @@ const GameData = {
     if (Math.abs(amount) >= 1000000) {
       return '€' + (amount / 1000000).toFixed(2) + 'M';
     }
-    return '€' + amount.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    if (Math.abs(amount) >= 1000) {
+      return '€' + amount.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    }
+    // Small amounts (early era) — show with decimals if needed
+    if (Math.abs(amount) < 1) return '€' + amount.toFixed(2);
+    return '€' + amount.toLocaleString('en-US', { maximumFractionDigits: amount < 100 ? 1 : 0 });
   },
 
   // Format short money

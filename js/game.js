@@ -108,6 +108,16 @@ const GameEngine = {
       const saved = localStorage.getItem('propertyEmpire_save');
       if (saved) {
         this.state = JSON.parse(saved);
+        // Migrate: add missing fields from newer versions
+        if (!this.state.goals) this.state.goals = { monthly: null, decade: null, completed: [] };
+        if (!this.state.reputation) this.state.reputation = 50;
+        if (!this.state.aiFamilies) this.state.aiFamilies = [];
+        if (!this.state.currentEra) this.state.currentEra = 'pre_industrial';
+        if (!this.state.pendingDecision) this.state.pendingDecision = null;
+        if (!this.state.playerBanks) this.state.playerBanks = [];
+        if (!this.state.mergerHistory) this.state.mergerHistory = [];
+        if (!this.state.investments) this.state.investments = [];
+        if (this.state.savingsBalance === undefined) this.state.savingsBalance = 0;
         return this.state;
       }
     } catch (e) {
@@ -1819,95 +1829,96 @@ const GameEngine = {
     const baseRate = this.state.bankRateModifier || 0;
     const year = this.state.year;
     const era = this.getCurrentEra();
-    const eraM = era.propertyMultiplier || 1;
+    // Investment prices scale differently — use square root of era multiplier for gentler scaling
+    const eraScale = Math.max(0.1, Math.sqrt(era.propertyMultiplier || 1));
     const all = [];
 
     // Commodities - historically accurate availability
     // Gold & Silver: always available
     all.push({ id: 'gold', type: 'commodity', name: 'Gold', icon: '🥇',
-      unitPrice: Math.round(50 * eraM), annualYield: 0.03, risk: 0.12, minYear: 0,
+      unitPrice: Math.round(50 * eraScale), annualYield: 0.03, risk: 0.12, minYear: 0,
       description: 'The eternal store of value.' });
     all.push({ id: 'silver', type: 'commodity', name: 'Silver', icon: '🥈',
-      unitPrice: Math.round(10 * eraM), annualYield: 0.025, risk: 0.15, minYear: 0,
+      unitPrice: Math.round(10 * eraScale), annualYield: 0.025, risk: 0.15, minYear: 0,
       description: 'Precious metal. Monetary and industrial use.' });
     // Cotton: 1750+
     all.push({ id: 'cotton', type: 'commodity', name: 'Cotton', icon: '☁️',
-      unitPrice: Math.round(5 * eraM), annualYield: 0.06, risk: 0.20, minYear: 1750,
+      unitPrice: Math.round(5 * eraScale), annualYield: 0.06, risk: 0.20, minYear: 1750,
       description: 'King Cotton. Drives the textile trade.' });
     // Tea & Spices: 1750+
     all.push({ id: 'tea_spices', type: 'commodity', name: 'Tea & Spices', icon: '🍵',
-      unitPrice: Math.round(8 * eraM), annualYield: 0.07, risk: 0.18, minYear: 1750,
+      unitPrice: Math.round(8 * eraScale), annualYield: 0.07, risk: 0.18, minYear: 1750,
       description: 'Colonial trade goods. High demand.' });
     // Coal: 1780+
     if (year >= 1780) all.push({ id: 'coal', type: 'commodity', name: 'Coal', icon: '⛏️',
-      unitPrice: Math.round(15 * eraM), annualYield: 0.05, risk: 0.10, minYear: 1780,
+      unitPrice: Math.round(15 * eraScale), annualYield: 0.05, risk: 0.10, minYear: 1780,
       description: 'Fuel of the Industrial Revolution.' });
     // Iron/Steel: 1800+
     if (year >= 1800) all.push({ id: 'iron_steel', type: 'commodity', name: 'Iron & Steel', icon: '⚒️',
-      unitPrice: Math.round(30 * eraM), annualYield: 0.06, risk: 0.12, minYear: 1800,
+      unitPrice: Math.round(30 * eraScale), annualYield: 0.06, risk: 0.12, minYear: 1800,
       description: 'Building material of empires.' });
     // Oil: 1859+ (first well drilled)
     if (year >= 1859) all.push({ id: 'oil', type: 'commodity', name: 'Crude Oil', icon: '🛢️',
-      unitPrice: Math.round(100 * eraM), annualYield: 0.08, risk: 0.25, minYear: 1859,
+      unitPrice: Math.round(100 * eraScale), annualYield: 0.08, risk: 0.25, minYear: 1859,
       description: 'Black gold. Discovered 1859.' });
     // Rubber: 1880+
     if (year >= 1880) all.push({ id: 'rubber', type: 'commodity', name: 'Rubber', icon: '🌳',
-      unitPrice: Math.round(25 * eraM), annualYield: 0.06, risk: 0.18, minYear: 1880,
+      unitPrice: Math.round(25 * eraScale), annualYield: 0.06, risk: 0.18, minYear: 1880,
       description: 'Essential for the automobile age.' });
     // Copper/Aluminum: 1900+
     if (year >= 1900) all.push({ id: 'copper', type: 'commodity', name: 'Copper & Aluminium', icon: '🔶',
-      unitPrice: Math.round(40 * eraM), annualYield: 0.05, risk: 0.15, minYear: 1900,
+      unitPrice: Math.round(40 * eraScale), annualYield: 0.05, risk: 0.15, minYear: 1900,
       description: 'Industrial metals. Wiring the world.' });
     // Uranium: 1945+
     if (year >= 1945) all.push({ id: 'uranium', type: 'commodity', name: 'Uranium', icon: '☢️',
-      unitPrice: Math.round(500 * eraM), annualYield: 0.07, risk: 0.35, minYear: 1945,
+      unitPrice: Math.round(500 * eraScale), annualYield: 0.07, risk: 0.35, minYear: 1945,
       description: 'Nuclear age. Power and peril.' });
     // Lithium: 1990+
     if (year >= 1990) all.push({ id: 'lithium', type: 'commodity', name: 'Lithium', icon: '🔋',
-      unitPrice: Math.round(200 * eraM), annualYield: 0.12, risk: 0.30, minYear: 1990,
+      unitPrice: Math.round(200 * eraScale), annualYield: 0.12, risk: 0.30, minYear: 1990,
       description: 'Battery revolution. The new oil.' });
     // Rare Earths: 2000+
     if (year >= 2000) all.push({ id: 'rare_earth', type: 'commodity', name: 'Rare Earth Minerals', icon: '💎',
-      unitPrice: Math.round(300 * eraM), annualYield: 0.10, risk: 0.28, minYear: 2000,
+      unitPrice: Math.round(300 * eraScale), annualYield: 0.10, risk: 0.28, minYear: 2000,
       description: 'Critical for tech. Geopolitical power.' });
 
     // Bonds - available from 1800+ (when stock exchanges emerge)
     if (year >= 1800) {
       all.push({ id: 'gov_bond', type: 'bond', name: 'Government Bond', icon: '🏛️',
-        unitPrice: Math.round(100 * eraM), annualYield: 0.04 + baseRate, risk: 0.03,
+        unitPrice: Math.round(100 * eraScale), annualYield: 0.04 + baseRate, risk: 0.03,
         description: 'Safe, government-backed.' });
     }
     if (year >= 1870) {
       all.push({ id: 'corp_bond', type: 'bond', name: 'Corporate Bond', icon: '🏢',
-        unitPrice: Math.round(500 * eraM), annualYield: 0.06 + baseRate, risk: 0.08,
+        unitPrice: Math.round(500 * eraScale), annualYield: 0.06 + baseRate, risk: 0.08,
         description: 'Higher yield, some default risk.' });
       all.push({ id: 'railway_bond', type: 'bond', name: 'Railway Bond', icon: '🚂',
-        unitPrice: Math.round(200 * eraM), annualYield: 0.07 + baseRate, risk: 0.12,
+        unitPrice: Math.round(200 * eraScale), annualYield: 0.07 + baseRate, risk: 0.12,
         description: 'Finance the iron roads.' });
     }
 
     // Stocks - available from 1870+
     if (year >= 1870) {
       all.push({ id: 'blue_chip', type: 'stock', name: 'Blue Chip Stocks', icon: '📊',
-        unitPrice: Math.round(300 * eraM), annualYield: 0.06, risk: 0.12,
+        unitPrice: Math.round(300 * eraScale), annualYield: 0.06, risk: 0.12,
         description: 'Large established companies.' });
     }
     if (year >= 1930) {
       all.push({ id: 'index_fund', type: 'stock', name: 'Index Fund', icon: '🌍',
-        unitPrice: Math.round(500 * eraM), annualYield: 0.08, risk: 0.15,
+        unitPrice: Math.round(500 * eraScale), annualYield: 0.08, risk: 0.15,
         description: 'Diversified equities.' });
     }
     if (year >= 1980) {
       all.push({ id: 'tech_stocks', type: 'stock', name: 'Tech Stocks', icon: '💻',
-        unitPrice: Math.round(1000 * eraM), annualYield: 0.14, risk: 0.30,
+        unitPrice: Math.round(1000 * eraScale), annualYield: 0.14, risk: 0.30,
         description: 'Technology sector. High growth.' });
       all.push({ id: 'reit', type: 'stock', name: 'Real Estate REIT', icon: '🏠',
-        unitPrice: Math.round(2000 * eraM), annualYield: 0.07, risk: 0.12,
+        unitPrice: Math.round(2000 * eraScale), annualYield: 0.07, risk: 0.12,
         description: 'Real estate investment trust.' });
     }
     if (year >= 2000) {
       all.push({ id: 'emerging_mkts', type: 'stock', name: 'Emerging Markets', icon: '🚀',
-        unitPrice: Math.round(500 * eraM), annualYield: 0.14, risk: 0.35,
+        unitPrice: Math.round(500 * eraScale), annualYield: 0.14, risk: 0.35,
         description: 'High-growth developing economies.' });
     }
 
