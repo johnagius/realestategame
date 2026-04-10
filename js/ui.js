@@ -547,8 +547,8 @@ const GameUI = {
       '</div>' +
 
       '<div class="finance-section">' +
-        '<div class="finance-section-title">Lifetime Stats</div>' +
-        '<div class="finance-card">' +
+        '<div class="finance-section-title" style="cursor:pointer" onclick="var el=document.getElementById(\'lifetime-stats\');el.style.display=el.style.display===\'none\'?\'block\':\'none\'">Lifetime Stats ▾</div>' +
+        '<div class="finance-card" id="lifetime-stats" style="display:none">' +
           '<div class="finance-row"><span class="finance-row-label">Properties Bought</span><span class="finance-row-value">' + s.totalPropertiesBought + '</span></div>' +
           '<div class="finance-row"><span class="finance-row-label">Properties Sold</span><span class="finance-row-value">' + s.totalPropertiesSold + '</span></div>' +
           '<div class="finance-row"><span class="finance-row-label">Total Rent Earned</span><span class="finance-row-value positive">+' + GameData.formatMoney(s.totalRentEarned) + '</span></div>' +
@@ -1056,19 +1056,24 @@ const GameUI = {
     }
 
     // Available investments to buy
-    html += '<div class="finance-card mt-8"><div style="margin-bottom:8px"><strong>Buy Investments</strong></div>';
+    // Collapsible investment list — only show 4 at a time
+    html += '<div class="finance-card mt-8">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;cursor:pointer" onclick="var el=document.getElementById(\'inv-list\');el.style.display=el.style.display===\'none\'?\'block\':\'none\'">' +
+        '<strong>Buy Investments ▾</strong>' +
+        '<span style="font-size:0.7rem;color:var(--text-muted)">' + GameEngine.getAvailableInvestments().length + ' available</span>' +
+      '</div>' +
+      '<div id="inv-list" style="display:none;max-height:250px;overflow-y:auto">';
     var available = GameEngine.getAvailableInvestments();
     available.forEach(function(inv) {
-      var typeBadge = inv.type === 'bond' ? '🔵 Bond' : '🟢 Stock';
-      html += '<div class="finance-row" style="flex-wrap:wrap;gap:6px">' +
-        '<div style="flex:1;min-width:150px">' +
-          '<div style="font-weight:700;font-size:0.85rem">' + inv.icon + ' ' + inv.name + '</div>' +
-          '<div style="font-size:0.7rem;color:var(--text-muted)">' + typeBadge + ' · ' + GameData.formatMoney(inv.unitPrice) + '/unit · Yield: ' + (inv.annualYield * 100).toFixed(1) + '% · Risk: ' + (inv.risk * 100).toFixed(0) + '%</div>' +
+      var typeColor = inv.type === 'bond' ? '#3D5A80' : inv.type === 'commodity' ? '#D4A84B' : '#2C6E49';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.04);font-size:0.78rem">' +
+        '<div style="flex:1;min-width:0">' +
+          '<span style="font-weight:700">' + inv.icon + ' ' + inv.name + '</span>' +
+          '<div style="font-size:0.65rem;color:var(--text-muted)">' + GameData.formatMoney(inv.unitPrice) + ' · ' + (inv.annualYield * 100).toFixed(1) + '% yield · ' + (inv.risk * 100).toFixed(0) + '% risk</div>' +
         '</div>' +
-        '<div style="display:flex;gap:4px">' +
-          '<button class="btn btn-small btn-secondary" onclick="App.buyInvestment(\'' + inv.id + '\', 1)">1x</button>' +
-          '<button class="btn btn-small btn-primary" onclick="App.buyInvestment(\'' + inv.id + '\', 5)">5x</button>' +
-          '<button class="btn btn-small btn-accent" onclick="App.buyInvestment(\'' + inv.id + '\', 10)">10x</button>' +
+        '<div style="display:flex;gap:3px;flex-shrink:0">' +
+          '<button class="btn btn-small btn-secondary" style="padding:3px 8px;font-size:0.7rem" onclick="App.buyInvestment(\'' + inv.id + '\', 1)">1</button>' +
+          '<button class="btn btn-small btn-primary" style="padding:3px 8px;font-size:0.7rem" onclick="App.buyInvestment(\'' + inv.id + '\', 5)">5</button>' +
         '</div>' +
       '</div>';
     });
