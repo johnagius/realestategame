@@ -449,27 +449,28 @@ const GameData = {
 
   // ---- City Map Coordinates (% x, % y on world map) ----
   // Coords as % of 1200x600 SVG viewBox
+  // Coords as % of 1600x800 viewBox — matched to new atlas continents
   cityCoords: {
-    new_york:    { x: 24, y: 28 },
-    london:      { x: 41, y: 13 },
-    paris:       { x: 43, y: 16 },
-    tokyo:       { x: 80, y: 20 },
-    dubai:       { x: 56, y: 32 },
-    singapore:   { x: 72, y: 50 },
-    hong_kong:   { x: 74, y: 28 },
-    sydney:      { x: 82, y: 72 },
-    los_angeles: { x: 13, y: 28 },
-    miami:       { x: 22, y: 38 },
-    barcelona:   { x: 44, y: 20 },
-    rome:        { x: 47, y: 19 },
-    berlin:      { x: 46, y: 13 },
-    amsterdam:   { x: 42, y: 12 },
-    toronto:     { x: 21, y: 22 },
-    monaco:      { x: 45, y: 18 },
-    shanghai:    { x: 73, y: 22 },
-    mumbai:      { x: 60, y: 38 },
-    sao_paulo:   { x: 27, y: 64 },
-    cape_town:   { x: 47, y: 70 }
+    new_york:    { x: 22, y: 25 },
+    london:      { x: 39, y: 12 },
+    paris:       { x: 41, y: 15 },
+    tokyo:       { x: 76, y: 22 },
+    dubai:       { x: 53, y: 30 },
+    singapore:   { x: 69, y: 48 },
+    hong_kong:   { x: 71, y: 28 },
+    sydney:      { x: 80, y: 70 },
+    los_angeles: { x: 11, y: 25 },
+    miami:       { x: 20, y: 42 },
+    barcelona:   { x: 40, y: 21 },
+    rome:        { x: 44, y: 22 },
+    berlin:      { x: 44, y: 12 },
+    amsterdam:   { x: 40, y: 11 },
+    toronto:     { x: 19, y: 20 },
+    monaco:      { x: 42, y: 20 },
+    shanghai:    { x: 70, y: 24 },
+    mumbai:      { x: 58, y: 38 },
+    sao_paulo:   { x: 24, y: 60 },
+    cape_town:   { x: 45, y: 68 }
   },
 
   // ---- Random Events ----

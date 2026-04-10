@@ -697,18 +697,16 @@ const GameUI = {
     }
     }
 
-    // Render city pins with landmarks
+    // Render city pins — elegant atlas markers, not emoji
     var pinsHTML = '';
     GameData.cities.forEach(function(city) {
       var coords = GameData.cityCoords[city.id];
       if (!coords) return;
       var summary = GameEngine.getCitySummary(city.id);
       var hasOwned = summary.owned > 0;
-      var lm = GameData.cityLandmarks[city.id] || {};
-      var pinIcon = lm.landmark || '📍';
 
       pinsHTML += '<div class="map-pin" data-city="' + city.id + '" style="left:' + coords.x + '%;top:' + coords.y + '%">' +
-        '<div class="map-pin-icon">' + pinIcon + '</div>' +
+        '<div class="map-pin-dot' + (hasOwned ? ' owned' : '') + '"></div>' +
         '<div class="map-pin-label' + (hasOwned ? ' map-pin-owned' : '') + '">' + city.name + (hasOwned ? ' (' + summary.owned + ')' : '') + '</div>' +
       '</div>';
     });
