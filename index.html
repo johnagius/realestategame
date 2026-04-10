@@ -19,9 +19,25 @@
   <div id="screen-splash" class="screen active">
     <div class="splash-bg"></div>
     <div class="splash-content">
-      <div class="splash-icon">🏛️</div>
+      <!-- Ornamental frame -->
+      <svg class="splash-ornament" viewBox="0 0 400 60" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="gold-grad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#8B6914" stop-opacity="0"/>
+            <stop offset="30%" stop-color="#D4A84B"/>
+            <stop offset="50%" stop-color="#F0D68A"/>
+            <stop offset="70%" stop-color="#D4A84B"/>
+            <stop offset="100%" stop-color="#8B6914" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <line x1="20" y1="30" x2="380" y2="30" stroke="url(#gold-grad)" stroke-width="1"/>
+        <path d="M170,30 Q185,10 200,30 Q215,50 230,30" fill="none" stroke="#D4A84B" stroke-width="1.5"/>
+        <circle cx="200" cy="30" r="4" fill="#D4A84B"/>
+        <path d="M140,30 Q150,20 160,30" fill="none" stroke="#D4A84B" stroke-width="1" opacity="0.6"/>
+        <path d="M240,30 Q250,40 260,30" fill="none" stroke="#D4A84B" stroke-width="1" opacity="0.6"/>
+      </svg>
       <h1 class="splash-title">Property Empire</h1>
-      <p class="splash-subtitle">Build your real estate fortune across the world's greatest cities</p>
+      <p class="splash-subtitle">Build a dynasty from 1750 to the modern age</p>
       <div id="splash-main-btns" class="splash-buttons">
         <button id="btn-new-game" class="btn btn-primary btn-large">New Game</button>
         <button id="btn-continue-game" class="btn btn-secondary btn-large" style="display:none">Continue Game</button>
