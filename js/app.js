@@ -285,17 +285,17 @@ const App = {
       if (ai.type === 'buyout_offer') {
         aiDecision.choices = [
           { label: 'Accept offer — sell for ' + GameData.formatMoney(ai.data.amount), action: 'accept_buyout', data: ai.data },
-          { label: 'Decline — not for sale', action: 'decline', data: {} }
+          { label: 'Decline — not for sale', action: 'reject_buyout', data: ai.data }
         ];
       } else if (ai.type === 'threat') {
         aiDecision.choices = [
           { label: 'Stand your ground — "We\'re staying"', action: 'reject_threat', data: ai.data },
-          { label: 'Ignore the threat', action: 'decline', data: {} }
+          { label: 'Back down — sell a property', action: 'decline', data: ai.data }
         ];
       } else if (ai.type === 'alliance') {
         aiDecision.choices = [
           { label: 'Join alliance — invest ' + GameData.formatMoney(ai.data.amount), action: 'accept_alliance', data: ai.data },
-          { label: 'Decline — we work alone', action: 'decline', data: {} }
+          { label: 'Decline — we work alone', action: 'decline', data: ai.data }
         ];
       }
       aiDecision._isAI = true;

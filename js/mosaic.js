@@ -1,509 +1,298 @@
 /* ========================================
-   PROPERTY EMPIRE — World Map Renderer
-   Real country shapes + terrain + 3D shading
-   Uses COUNTRY_PATHS from countryPaths.js
+   PROPERTY EMPIRE — D3 World Map Renderer
+   Natural Earth projection with terrain
+   Requires: d3.js + topojson.js from CDN
    ======================================== */
 
 const Mosaic = {
 
-  // Map dimensions — match reference SVG viewBox
-  MAP_W: 1100,
-  MAP_H: 550, // padded from 520 to maintain ~2:1 ratio for the game container
-  SRC_H: 520, // original path data height
-  PAD_TOP: 15, // vertical padding to center 520 in 550
+  MAP_W: 1400,
+  MAP_H: 680,
+  _rendered: false,
 
-  // ========== PERLIN NOISE ENGINE ==========
-  _seed: 42,
-  _perm: null,
-
-  initNoise: function() {
-    this._perm = new Uint8Array(512);
-    var p = new Uint8Array(256);
-    for (var i = 0; i < 256; i++) p[i] = i;
-    var s = this._seed;
-    for (var i = 255; i > 0; i--) {
-      s = (s * 16807 + 0) % 2147483647;
-      var j = s % (i + 1);
-      var t = p[i]; p[i] = p[j]; p[j] = t;
-    }
-    for (var i = 0; i < 512; i++) this._perm[i] = p[i & 255];
+  // Game country styling (ISO numeric → colors)
+  GAME_COUNTRIES: {
+    840:{n:'United States',  c:'#38784a',h:'#52a864',gl:'#60e880'},
+    826:{n:'United Kingdom', c:'#304898',h:'#4868c0',gl:'#6090f0'},
+    250:{n:'France',         c:'#883050',h:'#b04870',gl:'#e06090'},
+    392:{n:'Japan',          c:'#a82030',h:'#cc3848',gl:'#f05870'},
+    784:{n:'UAE',            c:'#c09030',h:'#e0b048',gl:'#ffd060'},
+    702:{n:'Singapore',      c:'#188068',h:'#28a888',gl:'#40d8b0'},
+    156:{n:'China',          c:'#1e7850',h:'#2a9866',gl:'#40c888'},
+     36:{n:'Australia',      c:'#a85820',h:'#cc7030',gl:'#f09050'},
+    724:{n:'Spain',          c:'#a84028',h:'#c85840',gl:'#f07860'},
+    380:{n:'Italy',          c:'#788020',h:'#98a030',gl:'#c0cc50'},
+    276:{n:'Germany',        c:'#307868',h:'#409888',gl:'#60c8b0'},
+    528:{n:'Netherlands',    c:'#b86820',h:'#d88830',gl:'#ffb040'},
+    124:{n:'Canada',         c:'#2c6070',h:'#3c8890',gl:'#58b8c0'},
+    492:{n:'Monaco',         c:'#583888',h:'#7050a8',gl:'#9878e0'},
+    356:{n:'India',          c:'#a86820',h:'#c88838',gl:'#f0b050'},
+     76:{n:'Brazil',         c:'#389830',h:'#50b840',gl:'#70e858'},
+    710:{n:'South Africa',   c:'#887020',h:'#a89030',gl:'#d0b840'},
   },
 
-  noise2D: function(x, y) {
-    if (!this._perm) this.initNoise();
-    var X = Math.floor(x) & 255, Y = Math.floor(y) & 255;
-    var xf = x - Math.floor(x), yf = y - Math.floor(y);
-    var u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
-    var p = this._perm;
-    var aa = p[p[X] + Y], ab = p[p[X] + Y + 1];
-    var ba = p[p[X + 1] + Y], bb = p[p[X + 1] + Y + 1];
-    var x1 = aa / 255 * (1 - u) + ba / 255 * u;
-    var x2 = ab / 255 * (1 - u) + bb / 255 * u;
-    return x1 * (1 - v) + x2 * v;
-  },
+  PALETTE: ['#6e6448','#766c50','#706648','#786e52','#6a6244','#726a4e','#7a7054','#6e6446','#746c50','#7c7258','#686040','#706848','#746a50','#7c7258','#6c6446'],
 
-  fbm: function(x, y, octaves) {
-    var val = 0, amp = 1, freq = 1, max = 0;
-    for (var i = 0; i < (octaves || 4); i++) {
-      val += this.noise2D(x * freq, y * freq) * amp;
-      max += amp;
-      amp *= 0.5;
-      freq *= 2;
-    }
-    return val / max;
-  },
-
-  // ========== PATH2D COUNTRY SHAPES ==========
-  _paths: null,
-
-  initPaths: function() {
-    if (this._paths) return;
-    if (typeof COUNTRY_PATHS === 'undefined') {
-      console.warn('COUNTRY_PATHS not loaded');
-      this._paths = [];
-      return;
-    }
-    this._paths = [];
-    for (var i = 0; i < COUNTRY_PATHS.length; i++) {
-      var c = COUNTRY_PATHS[i];
-      try {
-        this._paths.push({
-          iso: c.iso,
-          name: c.name,
-          path: new Path2D(c.d)
-        });
-      } catch(e) {
-        // Skip invalid paths
-      }
-    }
-    console.log('Mosaic: initialized ' + this._paths.length + ' country Path2D objects');
-  },
-
-  // ========== LAND MASK ==========
-  // Draw all countries white on transparent canvas, read back pixel data
-  _landMask: null,
-
-  buildLandMask: function(w, h) {
-    this.initPaths();
-    var canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    var ctx = canvas.getContext('2d');
-
-    // Offset paths to account for vertical padding
-    ctx.save();
-    ctx.translate(0, this.PAD_TOP);
-
-    // Fill all country paths in white
-    ctx.fillStyle = '#ffffff';
-    for (var i = 0; i < this._paths.length; i++) {
-      ctx.fill(this._paths[i].path);
-    }
-    ctx.restore();
-
-    // Read back as pixel data — we only need the alpha channel
-    var imgData = ctx.getImageData(0, 0, w, h);
-    var data = imgData.data;
-
-    // Build compact land mask (1 byte per pixel: 0=ocean, 255=land)
-    var mask = new Uint8Array(w * h);
-    for (var i = 0; i < w * h; i++) {
-      mask[i] = data[i * 4 + 3]; // alpha channel
-    }
-
-    this._landMask = mask;
-    return mask;
-  },
-
-  // ========== ELEVATION ==========
-  // Simplified noise-based elevation with regional mountain boosts
-  getElevation: function(nx, ny) {
-    // Base land elevation from noise
-    var elev = 0.38 + this.fbm(nx * 6, ny * 6, 5) * 0.25;
-
-    // Mountain ranges — boost elevation near known ridges
-    // Each ridge: [x1, y1, x2, y2, width, boost]
-    var ridges = this._ridges;
-    for (var i = 0; i < ridges.length; i++) {
-      var r = ridges[i];
-      var dist = this._distToSegment(nx, ny, r[0], r[1], r[2], r[3]);
-      if (dist < r[4]) {
-        var t = 1 - dist / r[4];
-        elev += r[5] * t * t; // quadratic falloff
-      }
-    }
-
-    // Fine detail
-    elev += this.fbm(nx * 20, ny * 20, 3) * 0.06;
-
-    return Math.max(0, Math.min(1, elev));
-  },
-
-  // Mountain ridge definitions: [x1, y1, x2, y2, width, boost]
-  // Coordinates calibrated to the 1100x550 country-path viewBox (normalized 0-1)
-  _ridges: [
-    // Rocky Mountains (western US/Canada, ~x:170-200 in 1100px)
-    [0.17, 0.16, 0.18, 0.25, 0.02, 0.25],
-    [0.16, 0.25, 0.17, 0.35, 0.018, 0.22],
-    // Andes (western South America)
-    [0.28, 0.50, 0.27, 0.58, 0.015, 0.28],
-    [0.27, 0.58, 0.24, 0.68, 0.012, 0.25],
-    [0.24, 0.68, 0.22, 0.78, 0.01, 0.2],
-    // Alps (Switzerland/Austria, ~x:520-550)
-    [0.48, 0.25, 0.52, 0.25, 0.01, 0.18],
-    // Carpathians (Romania, ~x:560-580)
-    [0.52, 0.25, 0.56, 0.26, 0.008, 0.12],
-    // Himalayas (Nepal/Pakistan, ~x:720-760)
-    [0.67, 0.32, 0.72, 0.34, 0.012, 0.32],
-    [0.72, 0.34, 0.75, 0.35, 0.01, 0.28],
-    // Tibetan Plateau (north of Himalayas)
-    [0.70, 0.28, 0.78, 0.32, 0.03, 0.15],
-    // Urals (Russia, ~x:550, runs N-S)
-    [0.53, 0.10, 0.54, 0.20, 0.006, 0.12],
-    // Atlas Mountains (Morocco, ~x:460-500)
-    [0.46, 0.33, 0.50, 0.35, 0.008, 0.12],
-    // East African Rift (Ethiopia/Kenya, ~x:600-630)
-    [0.60, 0.44, 0.61, 0.52, 0.008, 0.14],
-    // Appalachians (eastern US, ~x:305-330)
-    [0.29, 0.22, 0.28, 0.32, 0.01, 0.1],
-    // Scandinavian Mountains (Norway, ~x:480-550)
-    [0.48, 0.09, 0.51, 0.15, 0.008, 0.12],
-    // Great Dividing Range (E. Australia, ~x:950-970)
-    [0.91, 0.60, 0.90, 0.70, 0.007, 0.1],
-    // Caucasus (Georgia, ~x:615-630)
-    [0.62, 0.27, 0.63, 0.28, 0.006, 0.14],
-    // Japanese Alps (~x:940-960)
-    [0.86, 0.29, 0.87, 0.33, 0.005, 0.14],
-    // Hindu Kush / Karakoram (Afghanistan/Pakistan)
-    [0.67, 0.30, 0.70, 0.32, 0.01, 0.22],
-    // Drakensberg (South Africa)
-    [0.60, 0.70, 0.60, 0.74, 0.006, 0.08],
+  RIVERS: [
+    {w:1.3,c:[[-73,-4],[-69,-4],[-64,-2.5],[-58,-2],[-52,-1],[-49.5,-0.5]]},
+    {w:1.0,c:[[33,0],[33,5],[32,10],[34,15],[33,20],[32,26],[31.5,30],[32,31.3]]},
+    {w:1.0,c:[[27,-5],[23,-4],[18,-3],[15,-4],[13,-4.5],[12,-6]]},
+    {w:0.8,c:[[-93,47],[-92,43],[-91,38],[-90,34],[-89.5,30]]},
+    {w:0.9,c:[[91,32],[98,31],[104,29],[110,29],[115,30],[118,31],[121.5,31.5]]},
+    {w:0.8,c:[[79,31],[82,28],[86,26],[89,24],[90,22.5]]},
+    {w:0.7,c:[[76,33],[72,30],[70,27],[68,25],[67,24]]},
+    {w:0.6,c:[[9.5,47.5],[8,48],[7.5,50],[6.5,51.5],[4.8,52]]},
+    {w:0.7,c:[[35,57],[43,53],[50,48],[50.5,46]]},
+    {w:0.7,c:[[84,51],[78,55],[72,60],[68,65],[67,67]]},
+    {w:0.8,c:[[-13,12],[-5,15],[2,15],[4,14],[5,10],[6,5]]},
+    {w:0.7,c:[[22,-13],[26,-15],[30,-17],[34,-18],[36,-20]]},
+    {w:0.7,c:[[147,-37],[143,-36],[140,-35.5],[139,-35.7]]},
+    {w:0.7,c:[[-117,59],[-122,62],[-127,65],[-133,68]]},
+    {w:0.7,c:[[94,22],[100,22],[102,20],[104,18],[105,15],[105,11],[106,10]]},
+    {w:0.6,c:[[13,48],[16,48],[19,47],[22,46],[26,44],[29,45.5],[30,45]]},
+    {w:0.6,c:[[-65,10],[-64,8],[-63,8],[-62,7.5],[-61,8]]},
+    {w:0.7,c:[[37,-3],[38,-5],[40,-8],[42,-10],[44,-11]]},
   ],
 
-  // Distance from point to line segment
-  _distToSegment: function(px, py, x1, y1, x2, y2) {
-    var dx = x2 - x1, dy = y2 - y1;
-    var len2 = dx * dx + dy * dy;
-    if (len2 === 0) return Math.sqrt((px-x1)*(px-x1) + (py-y1)*(py-y1));
-    var t = Math.max(0, Math.min(1, ((px-x1)*dx + (py-y1)*dy) / len2));
-    var projX = x1 + t * dx, projY = y1 + t * dy;
-    return Math.sqrt((px-projX)*(px-projX) + (py-projY)*(py-projY));
+  MOUNTAINS: [
+    [10.5,46.5,1.2,1],[8,46.8,1.0,1],[12.5,47.2,.9,1],[7,45.9,.85,1],
+    [0,42.5,.9,1],[2.5,42.6,.8,0],[13.5,43.5,.65,0],[14,41,.6,0],
+    [14,63,.8,1],[16,68,.7,1],[15,70,.6,1],
+    [24,49,.8,0],[23,47,.7,0],[25,47,.65,0],
+    [44,42.5,1.0,1],[41,43,.9,1],[46,43,.85,1],
+    [60,57,.8,0],[59,62,.7,0],[49,33,.9,0],[47,30,.8,0],
+    [80,29,1.4,1],[84,28,1.5,1],[88,27.5,1.3,1],[92,27,1.2,1],[96,26.5,1.0,1],
+    [90,32,1.0,1],[85,31,1.0,1],[95,30,.95,1],
+    [72,36,1.2,1],[75,35,1.1,1],[71,37,.9,1],[74,38,1.0,1],
+    [88,50,.9,1],[86,52,.8,1],
+    [-4,33,.9,0],[2,31,.8,0],[5,33,.75,0],
+    [38,9,.8,0],[36,11,.7,0],[29,-30,.8,0],[37,-3,.75,1],
+    [-110,43,1.1,1],[-113,48,1.0,1],[-107,38,.9,0],[-120,49,.85,1],
+    [-119,37,.9,1],[-121,45,.8,1],[-122,48,.8,1],
+    [-81,38,.7,0],[-79,35,.7,0],[-77,40,.65,0],
+    [-104,24,.8,0],[-103,20,.7,0],
+    [-70,-15,1.2,1],[-68,-20,1.1,1],[-66,-28,1.0,0],[-72,-40,1.0,1],[-75,-10,1.1,1],
+    [-153,67,.8,1],[-148,65,.75,1],[148,-32,.7,0],[147,-36,.7,0],
+  ],
+
+  // Projection + path generator (created once)
+  _proj: null,
+  _path: null,
+
+  getProjection: function() {
+    if (!this._proj) {
+      this._proj = d3.geoNaturalEarth1().scale(220).translate([this.MAP_W / 2, this.MAP_H / 2 + 18]);
+      this._path = d3.geoPath().projection(this._proj);
+    }
+    return this._proj;
   },
 
-  // ========== BIOME CLASSIFICATION ==========
-  getBiome: function(nx, ny) {
-    // ny: 0 = top (north pole), 1 = bottom (south pole)
-    // Map to latitude: 0 at equator, 1 at poles
-    var lat = Math.abs(ny - 0.5) * 2;
-    var n = this.fbm(nx * 10, ny * 10, 3); // moisture/vegetation noise
-
-    // Specific desert regions (calibrated to 1100x550 country-path projection)
-    // Sahara (Libya, Algeria, Egypt region)
-    if (nx > 0.47 && nx < 0.61 && ny > 0.30 && ny < 0.42) return 'desert';
-    // Arabian (Saudi Arabia, Iraq)
-    if (nx > 0.59 && nx < 0.66 && ny > 0.30 && ny < 0.42) return 'desert';
-    // Australian outback (central Australia)
-    if (nx > 0.84 && nx < 0.93 && ny > 0.60 && ny < 0.72) return 'desert';
-    // Gobi (Mongolia)
-    if (nx > 0.75 && nx < 0.83 && ny > 0.23 && ny < 0.29) return 'desert';
-    // Kalahari / Namib (Namibia, Botswana)
-    if (nx > 0.53 && nx < 0.58 && ny > 0.59 && ny < 0.65) return 'desert';
-    // SW USA / Mexican desert
-    if (nx > 0.15 && nx < 0.21 && ny > 0.30 && ny < 0.40) return 'desert';
-    // Patagonia steppe
-    if (nx > 0.30 && nx < 0.35 && ny > 0.72 && ny < 0.80) return 'desert';
-    // Central Asia steppe (Kazakhstan)
-    if (nx > 0.63 && nx < 0.74 && ny > 0.21 && ny < 0.29) return 'desert';
-
-    // Arctic / Antarctic / Greenland
-    if (lat > 0.82) return 'ice';
-    if (ny < 0.08 || ny > 0.92) return 'ice';
-    // Greenland
-    if (nx > 0.30 && nx < 0.47 && ny > 0.06 && ny < 0.19) return 'ice';
-
-    // Tundra
-    if (lat > 0.72) return 'tundra';
-
-    // Boreal forest (taiga)
-    if (lat > 0.55 && n > 0.35) return 'boreal';
-
-    // Tropical rainforest
-    if (lat < 0.18 && n > 0.4) return 'tropical';
-    // Amazon specifically (Brazil interior)
-    if (nx > 0.30 && nx < 0.40 && ny > 0.48 && ny < 0.60 && n > 0.3) return 'tropical';
-    // Congo basin
-    if (nx > 0.53 && nx < 0.59 && ny > 0.47 && ny < 0.57 && n > 0.3) return 'tropical';
-    // SE Asia (Myanmar, Thailand, Vietnam)
-    if (nx > 0.75 && nx < 0.82 && ny > 0.37 && ny < 0.48 && n > 0.35) return 'tropical';
-
-    // Savanna / grassland
-    if (lat < 0.30 && lat > 0.12) return 'savanna';
-    if (lat > 0.30 && lat < 0.55 && n < 0.4) return 'grassland';
-
-    // Temperate forest
-    if (lat > 0.25 && lat < 0.55 && n > 0.4) return 'temperate';
-
-    // Default — temperate grassland
-    return 'grassland';
+  // Convert lon/lat to percentage position for the game's pin overlay
+  lonLatToPercent: function(lon, lat) {
+    var proj = this.getProjection();
+    var p = proj([lon, lat]);
+    if (!p) return null;
+    return { x: Math.round(p[0] / this.MAP_W * 100), y: Math.round(p[1] / this.MAP_H * 100) };
   },
 
-  // ========== TERRAIN COLOR ==========
-  getTerrainColor: function(elev, biome, nx, ny) {
-    var n = this.fbm(nx * 16, ny * 16, 3); // fine color noise
-
-    // High mountains — override biome
-    if (elev > 0.78) {
-      var snow = this.fbm(nx * 20, ny * 20, 2);
-      if (snow > 0.5) return [235 + n*15|0, 238 + n*12|0, 242 + n*10|0]; // snow
-      return [145 + n*35|0, 135 + n*30|0, 118 + n*25|0]; // rock
-    }
-    if (elev > 0.68) {
-      return [120 + n*45|0, 112 + n*40|0, 90 + n*35|0]; // mountain brown
-    }
-    if (elev > 0.58) {
-      // Highland — blend mountain/biome
-      var mt = 0.4;
-      var r = (105 + n*40) * mt + this._biomeR(biome, n) * (1-mt);
-      var g = (100 + n*35) * mt + this._biomeG(biome, n) * (1-mt);
-      var b = (82 + n*30) * mt + this._biomeB(biome, n) * (1-mt);
-      return [r|0, g|0, b|0];
-    }
-
-    // Biome-based coloring
-    return [this._biomeR(biome, n)|0, this._biomeG(biome, n)|0, this._biomeB(biome, n)|0];
-  },
-
-  _biomeR: function(b, n) {
-    switch(b) {
-      case 'tropical':  return 22 + n*45;
-      case 'temperate':  return 50 + n*50;
-      case 'boreal':     return 35 + n*40;
-      case 'savanna':    return 135 + n*45;
-      case 'grassland':  return 95 + n*50;
-      case 'desert':     return 190 + n*35;
-      case 'tundra':     return 120 + n*40;
-      case 'ice':        return 225 + n*25;
-      default:           return 80 + n*50;
-    }
-  },
-  _biomeG: function(b, n) {
-    switch(b) {
-      case 'tropical':   return 68 + n*48;
-      case 'temperate':  return 88 + n*50;
-      case 'boreal':     return 62 + n*42;
-      case 'savanna':    return 150 + n*35;
-      case 'grassland':  return 130 + n*45;
-      case 'desert':     return 170 + n*30;
-      case 'tundra':     return 130 + n*35;
-      case 'ice':        return 232 + n*20;
-      default:           return 110 + n*45;
-    }
-  },
-  _biomeB: function(b, n) {
-    switch(b) {
-      case 'tropical':   return 18 + n*28;
-      case 'temperate':  return 32 + n*35;
-      case 'boreal':     return 25 + n*30;
-      case 'savanna':    return 55 + n*30;
-      case 'grassland':  return 42 + n*35;
-      case 'desert':     return 115 + n*30;
-      case 'tundra':     return 75 + n*30;
-      case 'ice':        return 238 + n*17;
-      default:           return 45 + n*35;
-    }
-  },
-
-  // ========== 3D HILLSHADING ==========
-  // Pre-compute elevation grid for fast normal calculation
-  _elevGrid: null,
-  _elevW: 0,
-  _elevH: 0,
-
-  buildElevGrid: function(w, h, landMask) {
-    var grid = new Float32Array(w * h);
-    for (var y = 0; y < h; y++) {
-      var ny = y / h;
-      for (var x = 0; x < w; x++) {
-        if (landMask[y * w + x] > 128) {
-          grid[y * w + x] = this.getElevation(x / w, ny);
-        }
-      }
-    }
-    this._elevGrid = grid;
-    this._elevW = w;
-    this._elevH = h;
-    return grid;
-  },
-
-  getShading: function(x, y) {
-    var w = this._elevW, h = this._elevH, g = this._elevGrid;
-    if (x < 1 || x >= w-1 || y < 1 || y >= h-1) return 1.0;
-
-    var idx = y * w + x;
-    var dzdx = (g[idx + 1] - g[idx - 1]) * 0.5;
-    var dzdy = (g[idx + w] - g[idx - w]) * 0.5;
-
-    // Light from northwest (upper-left)
-    var lightX = -0.7, lightY = -0.7;
-    var shade = dzdx * lightX + dzdy * lightY;
-
-    var factor = 1.0 + shade * 5.0;
-    return Math.max(0.55, Math.min(1.45, factor));
-  },
-
-  // ========== COASTAL GLOW (shallow water near land) ==========
-  // Uses fast multi-pass distance approximation instead of per-pixel radius search
-  buildCoastalMask: function(w, h, landMask) {
-    var radius = 8;
-    // Initialize distance field: 0 for land, large for ocean
-    var dist = new Float32Array(w * h);
-    for (var i = 0; i < w * h; i++) {
-      dist[i] = landMask[i] > 128 ? 0 : 9999;
-    }
-    // Forward pass
-    for (var y = 1; y < h; y++) {
-      for (var x = 1; x < w - 1; x++) {
-        var idx = y * w + x;
-        dist[idx] = Math.min(dist[idx],
-          dist[(y-1)*w + (x-1)] + 1.41,
-          dist[(y-1)*w + x] + 1,
-          dist[(y-1)*w + (x+1)] + 1.41,
-          dist[y*w + (x-1)] + 1
-        );
-      }
-    }
-    // Backward pass
-    for (var y = h - 2; y >= 0; y--) {
-      for (var x = w - 2; x >= 1; x--) {
-        var idx = y * w + x;
-        dist[idx] = Math.min(dist[idx],
-          dist[(y+1)*w + (x+1)] + 1.41,
-          dist[(y+1)*w + x] + 1,
-          dist[(y+1)*w + (x-1)] + 1.41,
-          dist[y*w + (x+1)] + 1
-        );
-      }
-    }
-    // Convert distance to coastal intensity
-    var coastal = new Uint8Array(w * h);
-    for (var i = 0; i < w * h; i++) {
-      if (landMask[i] > 128) continue; // skip land
-      if (dist[i] <= radius) {
-        coastal[i] = Math.round((1 - dist[i] / radius) * 255);
-      }
-    }
-    return coastal;
+  // Draw a mountain at a projected position
+  _drawMtn: function(g, proj, lon, lat, s, snow) {
+    var p = proj([lon, lat]);
+    if (!p) return;
+    var x = p[0], y = p[1];
+    g.append('path').attr('d', 'M'+(x+2*s)+','+(y+.5*s)+'L'+(x+8*s)+','+(y-8*s)+'L'+(x+14*s)+','+(y+.5*s)+'Z')
+      .attr('fill','#4a4438').attr('stroke','#2a2418').attr('stroke-width',.3).attr('opacity',.65);
+    g.append('path').attr('d', 'M'+(x-6*s)+','+y+'L'+x+','+(y-12*s)+'L'+(x+6*s)+','+y+'Z')
+      .attr('fill','#5e5548').attr('stroke','#2a2418').attr('stroke-width',.4).attr('opacity',.75);
+    g.append('line').attr('x1',x).attr('y1',y-12*s).attr('x2',x+8*s).attr('y2',y-8*s)
+      .attr('stroke','rgba(20,16,10,.35)').attr('stroke-width',.5);
+    if (snow) g.append('path').attr('d', 'M'+(x-2.2*s)+','+(y-8*s)+'L'+x+','+(y-12*s)+'L'+(x+2.2*s)+','+(y-8*s)+'Z')
+      .attr('fill','rgba(235,242,255,.9)');
   },
 
   // ========== MAIN RENDER ==========
   renderWorldMap: function(svgEl) {
+    if (this._rendered) return; // Only render once
+    if (typeof d3 === 'undefined' || typeof topojson === 'undefined') {
+      console.warn('D3/TopoJSON not loaded, skipping world map render');
+      return;
+    }
+
     var W = this.MAP_W, H = this.MAP_H;
+    var self = this;
+    var GAME = this.GAME_COUNTRIES;
+    var PAL = this.PALETTE;
+    var GID = new Set(Object.keys(GAME).map(Number));
+
     svgEl.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
 
-    var t0 = performance.now();
+    var svg = d3.select(svgEl);
+    svg.selectAll('*').remove(); // Clear any existing content
 
-    // Initialize noise
-    this.initNoise();
+    var proj = this.getProjection();
+    var pg = this._path;
 
-    // Step 1: Build land mask from country paths
-    var landMask = this.buildLandMask(W, H);
+    // ── DEFS ──
+    var defs = svg.append('defs');
 
-    // Step 2: Build elevation grid (only for land pixels)
-    var elevGrid = this.buildElevGrid(W, H, landMask);
+    // Ocean gradient
+    var og = defs.append('linearGradient').attr('id','og').attr('x1','0%').attr('y1','0%').attr('x2','0%').attr('y2','100%');
+    og.append('stop').attr('offset','0%').attr('stop-color','#14263e');
+    og.append('stop').attr('offset','50%').attr('stop-color','#0c1a2e');
+    og.append('stop').attr('offset','100%').attr('stop-color','#060c1a');
+    var rc = defs.append('radialGradient').attr('id','rc').attr('cx','50%').attr('cy','43%').attr('r','58%');
+    rc.append('stop').attr('offset','0%').attr('stop-color','#1e3a5a').attr('stop-opacity',.45);
+    rc.append('stop').attr('offset','100%').attr('stop-color','#04080e').attr('stop-opacity',0);
 
-    // Step 3: Build coastal glow mask
-    var coastalMask = this.buildCoastalMask(W, H, landMask);
+    // Vignette
+    var vig = defs.append('radialGradient').attr('id','vig').attr('cx','50%').attr('cy','50%').attr('r','72%');
+    vig.append('stop').attr('offset','48%').attr('stop-color','transparent');
+    vig.append('stop').attr('offset','100%').attr('stop-color','rgba(0,0,0,.72)');
 
-    // Step 4: Render terrain to canvas
-    var canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
-    var ctx = canvas.getContext('2d');
-    var imgData = ctx.createImageData(W, H);
-    var data = imgData.data;
+    // Filters
+    function mkS(id,dx,dy,std,op) {
+      var f = defs.append('filter').attr('id',id).attr('x','-15%').attr('y','-15%').attr('width','130%').attr('height','140%');
+      f.append('feDropShadow').attr('dx',dx).attr('dy',dy).attr('stdDeviation',std).attr('flood-color','rgba(0,0,0,'+op+')');
+    }
+    mkS('s0',1,2,2,.55); mkS('s1',2,5,4,.75); mkS('sg',1,3,2.5,.6); mkS('sg1',3,7,7,.85);
 
-    for (var y = 0; y < H; y++) {
-      var ny = y / H;
-      for (var x = 0; x < W; x++) {
-        var nx = x / W;
-        var idx = (y * W + x) * 4;
-        var maskIdx = y * W + x;
+    var cf = defs.append('filter').attr('id','coast').attr('x','-8%').attr('y','-8%').attr('width','116%').attr('height','116%');
+    cf.append('feGaussianBlur').attr('in','SourceGraphic').attr('stdDeviation','5');
 
-        if (landMask[maskIdx] > 128) {
-          // LAND pixel
-          var elev = elevGrid[maskIdx];
-          var biome = this.getBiome(nx, ny);
-          var rgb = this.getTerrainColor(elev, biome, nx, ny);
+    var gbF = defs.append('filter').attr('id','gbg').attr('x','-20%').attr('y','-20%').attr('width','140%').attr('height','140%');
+    gbF.append('feGaussianBlur').attr('in','SourceGraphic').attr('stdDeviation','4').attr('result','blur');
+    var gbM = gbF.append('feMerge');
+    gbM.append('feMergeNode').attr('in','blur'); gbM.append('feMergeNode').attr('in','SourceGraphic');
 
-          // Apply hillshading
-          var shade = this.getShading(x, y);
-          data[idx]     = Math.min(255, Math.max(0, (rgb[0] * shade)|0));
-          data[idx + 1] = Math.min(255, Math.max(0, (rgb[1] * shade)|0));
-          data[idx + 2] = Math.min(255, Math.max(0, (rgb[2] * shade)|0));
-          data[idx + 3] = 255;
-        } else {
-          // OCEAN pixel — transparent (ocean rendered by SVG background)
-          // But add coastal glow if near land
-          var coast = coastalMask[maskIdx];
-          if (coast > 0) {
-            var t = coast / 255;
-            // Shallow water color — lighter blue-green
-            data[idx]     = (60 + t * 40)|0;
-            data[idx + 1] = (120 + t * 50)|0;
-            data[idx + 2] = (160 + t * 30)|0;
-            data[idx + 3] = (t * 180)|0; // semi-transparent
-          }
-          // else: fully transparent (alpha=0), ocean shows through
-        }
-      }
+    var rvF = defs.append('filter').attr('id','rvf').attr('x','-5%').attr('y','-5%').attr('width','110%').attr('height','110%');
+    rvF.append('feGaussianBlur').attr('in','SourceGraphic').attr('stdDeviation','.7');
+
+    // ── OCEAN ──
+    svg.append('rect').attr('width',W).attr('height',H).attr('fill','url(#og)');
+    svg.append('rect').attr('width',W).attr('height',H).attr('fill','url(#rc)');
+
+    // Ocean scan lines
+    for (var y = 6; y < H; y += 9)
+      svg.append('line').attr('x1',0).attr('y1',y).attr('x2',W).attr('y2',y)
+        .attr('stroke','rgba(80,160,255,1)').attr('stroke-width',.55).attr('class','ow');
+
+    // Ocean particles
+    var seed = 12345;
+    function srand() { seed = ((seed*1664525)+1013904223)&0xffffffff; return (seed>>>0)/0xffffffff; }
+    for (var i = 0; i < 220; i++) {
+      var ox = srand()*W, oy = srand()*H, os = srand();
+      svg.append('circle').attr('cx',ox).attr('cy',oy).attr('r',.7+os*.5)
+        .attr('fill','rgba(140,200,255,'+(0.025+os*0.055)+')');
     }
 
-    ctx.putImageData(imgData, 0, 0);
+    // Graticule + sphere
+    svg.append('path').datum(d3.geoGraticule()()).attr('d',pg)
+      .attr('fill','none').attr('stroke','rgba(80,140,200,.065)').attr('stroke-width',.4);
+    svg.append('path').datum({type:'Sphere'}).attr('d',pg)
+      .attr('fill','none').attr('stroke','rgba(80,140,200,.2)').attr('stroke-width',1);
 
-    // Step 5: Draw country borders onto the canvas
-    ctx.save();
-    ctx.translate(0, this.PAD_TOP);
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
-    ctx.lineWidth = 0.5;
-    for (var i = 0; i < this._paths.length; i++) {
-      ctx.stroke(this._paths[i].path);
-    }
-    ctx.restore();
+    // ── LOAD TOPOJSON ──
+    console.log('Mosaic: Loading world map data...');
+    d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(function(world) {
+      console.log('Mosaic: World data loaded, rendering...');
+      var t0 = performance.now();
 
-    var t1 = performance.now();
+      var features = topojson.feature(world, world.objects.countries).features;
 
-    // Step 6: Convert to data URL
-    var dataUrl = canvas.toDataURL('image/png');
+      // Coastal glow
+      var land = topojson.merge(world, world.objects.countries.geometries);
+      svg.append('path').datum(land).attr('d',pg)
+        .attr('fill','none').attr('stroke','rgba(40,120,220,.55)').attr('stroke-width',7)
+        .attr('filter','url(#coast)').attr('pointer-events','none');
 
-    // Step 7: Assemble SVG
-    var svg = '';
+      // Country fills
+      var cg = svg.append('g');
+      cg.selectAll('path').data(features).join('path')
+        .attr('class','country').attr('d',pg)
+        .attr('fill', function(d) { var id = +d.id; return GAME[id] ? GAME[id].c : PAL[id % PAL.length]; })
+        .attr('stroke','rgba(0,0,0,.5)').attr('stroke-width',.4)
+        .attr('filter', function(d) { return GID.has(+d.id) ? 'url(#sg)' : 'url(#s0)'; })
+        .on('mouseover', function(ev, d) {
+          var id = +d.id, g = GAME[id]; if (!g) return;
+          d3.select(this).raise().attr('fill', g.h).attr('filter','url(#sg1)').attr('transform','translate(0,-2)');
+        })
+        .on('mouseout', function(ev, d) {
+          var id = +d.id, g = GAME[id]; if (!g) return;
+          d3.select(this).attr('fill', g.c).attr('filter','url(#sg)').attr('transform',null);
+        });
 
-    // Ocean gradient background (from reference)
-    svg += '<defs>';
-    svg += '<linearGradient id="mOceanGrad" x1="0" y1="0" x2="0" y2="1">';
-    svg += '<stop offset="0%" stop-color="#5BA8D8"/>';
-    svg += '<stop offset="40%" stop-color="#2C78C0"/>';
-    svg += '<stop offset="100%" stop-color="#1A4F8C"/>';
-    svg += '</linearGradient>';
-    svg += '<radialGradient id="mOceanGlow" cx="42%" cy="28%" r="75%">';
-    svg += '<stop offset="0%" stop-color="rgba(255,255,255,0.18)"/>';
-    svg += '<stop offset="100%" stop-color="rgba(255,255,255,0.0)"/>';
-    svg += '</radialGradient>';
-    svg += '</defs>';
+      // Fog of war on non-game countries
+      svg.append('g').selectAll('path')
+        .data(features.filter(function(d) { return !GID.has(+d.id); })).join('path')
+        .attr('d',pg).attr('fill','rgba(0,0,0,.28)').attr('pointer-events','none');
 
-    // Ocean base
-    svg += '<rect width="' + W + '" height="' + H + '" fill="url(#mOceanGrad)"/>';
-    svg += '<rect width="' + W + '" height="' + H + '" fill="url(#mOceanGlow)" opacity="0.8"/>';
+      // Borders
+      svg.append('path')
+        .datum(topojson.mesh(world, world.objects.countries, function(a,b) { return a !== b; }))
+        .attr('d',pg).attr('fill','none')
+        .attr('stroke','rgba(0,0,0,.6)').attr('stroke-width',.55).attr('pointer-events','none');
 
-    // Terrain image (transparent where ocean)
-    svg += '<image href="' + dataUrl + '" width="' + W + '" height="' + H + '"/>';
+      // Rivers
+      var rvg = svg.append('g').attr('pointer-events','none');
+      self.RIVERS.forEach(function(r) {
+        rvg.append('path')
+          .datum({type:'Feature',geometry:{type:'LineString',coordinates:r.c}})
+          .attr('d',pg).attr('fill','none')
+          .attr('stroke','rgba(55,115,210,'+(0.28+r.w*0.12)+')')
+          .attr('stroke-width', r.w * 0.8)
+          .attr('filter','url(#rvf)');
+      });
 
-    svgEl.innerHTML = svg;
+      // Animated glow borders on game countries
+      svg.append('g').selectAll('path')
+        .data(features.filter(function(d) { return GID.has(+d.id); })).join('path')
+        .attr('d',pg).attr('fill','none')
+        .attr('stroke', function(d) { return GAME[+d.id].gl; }).attr('stroke-width',1.7)
+        .attr('class','gborder').attr('filter','url(#gbg)').attr('pointer-events','none');
 
-    var t2 = performance.now();
-    console.log('Mosaic world map: ' + W + 'x' + H + ' rendered in ' +
-      Math.round(t1 - t0) + 'ms (terrain) + ' +
-      Math.round(t2 - t1) + 'ms (SVG assembly) = ' +
-      Math.round(t2 - t0) + 'ms total');
+      // Mountains
+      var mg = svg.append('g').attr('pointer-events','none');
+      self.MOUNTAINS.forEach(function(m) { self._drawMtn(mg, proj, m[0], m[1], m[2], m[3]); });
+
+      // Vignette
+      svg.append('rect').attr('width',W).attr('height',H)
+        .attr('fill','url(#vig)').attr('pointer-events','none');
+
+      // Compass rose
+      var cr = svg.append('g').attr('transform','translate('+(W-66)+','+(H-66)+')');
+      [0,90,180,270].forEach(function(a) {
+        var r = a * Math.PI / 180;
+        cr.append('line').attr('x1',0).attr('y1',0)
+          .attr('x2',Math.sin(r)*26).attr('y2',-Math.cos(r)*26)
+          .attr('stroke','rgba(200,158,48,.7)').attr('stroke-width',1.5);
+      });
+      ['N','E','S','W'].forEach(function(l,i) {
+        var a = i * 90 * Math.PI / 180, o = 37;
+        cr.append('text').attr('x',Math.sin(a)*o).attr('y',-Math.cos(a)*o+4)
+          .attr('text-anchor','middle').attr('font-size','11px')
+          .attr('fill','#c8a030').attr('font-family','Palatino Linotype,serif').text(l);
+      });
+      cr.append('circle').attr('r',4).attr('fill','#c8a030').attr('stroke','#5a3c08').attr('stroke-width',1);
+
+      // Corner ornaments
+      [[14,14,0],[W-14,14,90],[W-14,H-14,180],[14,H-14,270]].forEach(function(o) {
+        var cc = svg.append('g').attr('transform','translate('+o[0]+','+o[1]+') rotate('+o[2]+')');
+        cc.append('line').attr('x1',0).attr('y1',0).attr('x2',36).attr('y2',0)
+          .attr('stroke','rgba(200,155,45,.5)').attr('stroke-width',1.2);
+        cc.append('line').attr('x1',0).attr('y1',0).attr('x2',0).attr('y2',36)
+          .attr('stroke','rgba(200,155,45,.5)').attr('stroke-width',1.2);
+        cc.append('circle').attr('r',2.5).attr('fill','rgba(200,155,45,.6)');
+      });
+
+      self._rendered = true;
+      console.log('Mosaic: World map rendered in ' + Math.round(performance.now() - t0) + 'ms');
+
+    }).catch(function(err) {
+      console.error('Mosaic: Failed to load world map data:', err);
+      // Fallback: show a simple message
+      svg.append('text').attr('x', W/2).attr('y', H/2).attr('text-anchor','middle')
+        .attr('fill','#c8a030').attr('font-size','16px').attr('font-family','Palatino Linotype,serif')
+        .text('World map requires internet connection');
+    });
   }
 };
