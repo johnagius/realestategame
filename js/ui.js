@@ -741,6 +741,8 @@ const GameUI = {
         '</div>' +
       '</div>' +
 
+      this.renderCashflowForecast(s, stats) +
+
       '<div class="finance-section">' +
         '<div class="finance-section-title" style="cursor:pointer" onclick="var el=document.getElementById(\'lifetime-stats\');el.style.display=el.style.display===\'none\'?\'block\':\'none\'">Lifetime Stats ▾</div>' +
         '<div class="finance-card" id="lifetime-stats" style="display:none">' +
@@ -826,6 +828,55 @@ const GameUI = {
         '</div>';
       }
     }
+  },
+
+  // ---- 12-Month Cashflow Forecast ----
+  renderCashflowForecast: function(state, stats) {
+    if (!state.properties || state.properties.length === 0) return '';
+
+    // Calculate monthly projections
+    var monthlyRent = stats.monthlyIncome || 0;
+    var monthlyExpenses = stats.monthlyExpenses || 0;
+    var monthlyLoanPayments = 0;
+    if (state.loans) {
+      state.loans.forEach(function(loan) {
+        monthlyLoanPayments += loan.monthlyPayment || 0;
+      });
+    }
+    var savingsInterest = (state.savings || 0) * 0.02 / 12;
+    var monthlyNet = monthlyRent - monthlyExpenses - monthlyLoanPayments + savingsInterest;
+
+    // Project forward 12 months
+    var projectedCash = state.cash;
+    var rows = '';
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var currentMonth = state.month || 0;
+
+    for (var i = 1; i <= 12; i++) {
+      projectedCash += monthlyNet;
+      var mIdx = (currentMonth + i - 1) % 12;
+      var cls = projectedCash >= 0 ? '' : ' negative';
+      rows += '<div class="forecast-row">' +
+        '<span class="forecast-month">' + months[mIdx] + '</span>' +
+        '<span class="forecast-income positive">+' + GameData.formatMoney(Math.round(monthlyRent)) + '</span>' +
+        '<span class="forecast-expense negative">-' + GameData.formatMoney(Math.round(monthlyExpenses + monthlyLoanPayments)) + '</span>' +
+        '<span class="forecast-balance' + cls + '">' + GameData.formatMoney(Math.round(projectedCash)) + '</span>' +
+      '</div>';
+    }
+
+    return '<div class="finance-section">' +
+      '<div class="finance-section-title" style="cursor:pointer" onclick="var el=document.getElementById(\'cashflow-forecast\');el.style.display=el.style.display===\'none\'?\'block\':\'none\'">12-Month Forecast ▾</div>' +
+      '<div class="finance-card" id="cashflow-forecast" style="display:none">' +
+        '<div class="forecast-header">' +
+          '<span>Month</span><span>Income</span><span>Costs</span><span>Balance</span>' +
+        '</div>' +
+        rows +
+        '<div class="finance-row finance-total" style="margin-top:6px">' +
+          '<span class="finance-row-label">Monthly Net</span>' +
+          '<span class="finance-row-value ' + (monthlyNet >= 0 ? 'positive' : 'negative') + '">' + GameData.formatMoney(Math.round(monthlyNet)) + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
   },
 
   // ---- Render Settings ----

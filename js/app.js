@@ -420,17 +420,27 @@ const App = {
       return;
     }
 
-    var html = '<p style="margin-bottom:12px">Loan offers for <strong>' + GameData.formatMoney(amount) + '</strong>:</p>';
-    offers.forEach(function(o) {
-      html += '<div class="loan-option" onclick="App.takeLoan(\'' + o.bankId + '\', ' + o.amount + ', ' + o.termMonths + ')">' +
-        '<div class="loan-term">' + o.bankIcon + ' ' + o.termMonths + ' months</div>' +
-        '<div class="loan-rate">' + (o.interestRate * 100).toFixed(1) + '% APR</div>' +
-        '<div class="loan-payment">' + GameData.formatMoney(o.monthlyPayment) + '/mo</div>' +
-        '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">Total: ' + GameData.formatMoney(o.totalRepayment) + '</div>' +
-      '</div>';
-    });
+    // Sort by total cost (cheapest first)
+    offers.sort(function(a, b) { return a.totalRepayment - b.totalRepayment; });
 
-    GameUI.showModal('Loan Offers', '<div class="loan-options">' + html + '</div>', '');
+    var html = '<p style="margin-bottom:8px">Loan offers for <strong>' + GameData.formatMoney(amount) + '</strong>:</p>';
+    html += '<table class="compare-table" style="margin-bottom:8px"><thead><tr><th>Bank</th><th>Term</th><th>APR</th><th>Monthly</th><th>Total Cost</th><th></th></tr></thead><tbody>';
+    offers.forEach(function(o, i) {
+      var interestCost = o.totalRepayment - amount;
+      var cheapest = i === 0 ? ' style="background:rgba(44,110,73,0.06)"' : '';
+      html += '<tr' + cheapest + '>' +
+        '<td style="font-weight:700;white-space:nowrap">' + o.bankIcon + ' ' + (o.bankName || '') + '</td>' +
+        '<td>' + o.termMonths + 'mo</td>' +
+        '<td>' + (o.interestRate * 100).toFixed(1) + '%</td>' +
+        '<td>' + GameData.formatMoney(o.monthlyPayment) + '</td>' +
+        '<td>' + GameData.formatMoney(o.totalRepayment) + '<div style="font-size:0.6rem;color:#E63946">+' + GameData.formatMoney(interestCost) + ' interest</div></td>' +
+        '<td><button class="btn btn-primary btn-small" style="padding:4px 10px;font-size:0.7rem" onclick="App.takeLoan(\'' + o.bankId + '\', ' + o.amount + ', ' + o.termMonths + ')">Accept</button></td>' +
+      '</tr>';
+    });
+    html += '</tbody></table>';
+    html += '<p style="font-size:0.65rem;color:var(--text-muted);margin:0">Sorted by total cost. Top row is cheapest.</p>';
+
+    GameUI.showModal('Loan Comparison', '<div class="loan-options">' + html + '</div>', '');
   },
 
   takeLoan(bankId, amount, termMonths) {

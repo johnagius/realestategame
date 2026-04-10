@@ -1248,6 +1248,29 @@ h4 { font-size: 1rem; }
   white-space: nowrap;
 }
 
+/* ---- Cashflow Forecast ---- */
+.forecast-header,
+.forecast-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 1fr 1fr;
+  gap: 4px;
+  font-size: 0.72rem;
+  padding: 3px 0;
+  align-items: center;
+}
+.forecast-header {
+  font-weight: 700;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 5px;
+  margin-bottom: 3px;
+}
+.forecast-month { font-weight: 700; }
+.forecast-income { text-align: right; }
+.forecast-expense { text-align: right; }
+.forecast-balance { text-align: right; font-weight: 700; }
+.forecast-balance.negative { color: #E63946; }
+
 .filter-btn {
   padding: 6px 14px;
   border: 1.5px solid var(--border);
