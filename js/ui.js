@@ -8,6 +8,8 @@ const GameUI = {
   currentCity: null,
   currentProperty: null,
   cityMapView: false,
+  cityPage: 0,
+  PAGE_SIZE: 4,
   currentCityTab: 'market',
   currentPortfolioFilter: 'all',
   mapView: true,
@@ -76,42 +78,60 @@ const GameUI = {
       });
     }
 
-    var html = '';
-    cities.forEach(function(city, i) {
-      var summary = GameEngine.getCitySummary(city.id);
+    // Only rebuild DOM on first render or search change — otherwise just update values
+    var existing = grid.querySelectorAll('.city-card');
+    var needsRebuild = existing.length !== cities.length || this._lastSearch !== search;
+    this._lastSearch = search;
+
+    if (needsRebuild) {
+      var html = '';
+      cities.forEach(function(city, i) {
+        var lm = GameData.cityLandmarks[city.id] || {};
+        html += '<div class="city-card" data-tier="' + city.tier + '" data-city="' + city.id + '">' +
+          '<div class="city-card-header">' +
+            '<span class="city-flag">' + (lm.landmark || city.flag) + '</span>' +
+            '<div>' +
+              '<div class="city-card-name">' + city.name + '</div>' +
+              '<div class="city-card-country">' + city.country + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="city-card-stats">' +
+            '<div class="city-stat"><span class="city-stat-value" data-stat="available"></span><span class="city-stat-label">For Sale</span></div>' +
+            '<div class="city-stat"><span class="city-stat-value" data-stat="owned"></span><span class="city-stat-label">Owned</span></div>' +
+            '<div class="city-stat"><span class="city-stat-value" data-stat="avgPrice"></span><span class="city-stat-label">Avg Price</span></div>' +
+          '</div>' +
+          '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">' +
+            '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px" data-stat="tax"></span>' +
+            '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px" data-stat="growth"></span>' +
+            '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px" data-stat="yield"></span>' +
+            '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px" data-stat="inflation"></span>' +
+          '</div>' +
+        '</div>';
+      });
+      grid.innerHTML = html;
+    }
+
+    // Update just the dynamic values (no DOM rebuild flicker)
+    var cards = grid.querySelectorAll('.city-card');
+    cards.forEach(function(card) {
+      var cityId = card.getAttribute('data-city');
+      var city = GameData.cities.find(function(c) { return c.id === cityId; });
+      if (!city) return;
+      var summary = GameEngine.getCitySummary(cityId);
       var inflRate = city.inflationRate !== undefined ? city.inflationRate : 0.02;
-      var lm = GameData.cityLandmarks[city.id] || {};
-      html += '<div class="city-card" data-tier="' + city.tier + '" data-city="' + city.id + '" style="animation-delay:' + (i * 0.05) + 's">' +
-        '<div class="city-card-header">' +
-          '<span class="city-flag">' + (lm.landmark || city.flag) + '</span>' +
-          '<div>' +
-            '<div class="city-card-name">' + city.name + '</div>' +
-            '<div class="city-card-country">' + city.country + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="city-card-stats">' +
-          '<div class="city-stat">' +
-            '<span class="city-stat-value">' + summary.available + '</span>' +
-            '<span class="city-stat-label">For Sale</span>' +
-          '</div>' +
-          '<div class="city-stat">' +
-            '<span class="city-stat-value">' + summary.owned + '</span>' +
-            '<span class="city-stat-label">Owned</span>' +
-          '</div>' +
-          '<div class="city-stat">' +
-            '<span class="city-stat-value">' + GameData.formatMoneyShort(summary.avgPrice) + '</span>' +
-            '<span class="city-stat-label">Avg Price</span>' +
-          '</div>' +
-        '</div>' +
-        '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">' +
-          '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px">📊 Tax ' + Math.round(city.taxRate * 100) + '%</span>' +
-          '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px">📈 ' + (city.growthRate * 100).toFixed(1) + '%</span>' +
-          '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px">🏠 ' + (city.rentYield * 100).toFixed(1) + '%</span>' +
-          '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px">💹 ' + (inflRate * 100).toFixed(1) + '%</span>' +
-        '</div>' +
-      '</div>';
+
+      var els = card.querySelectorAll('[data-stat]');
+      els.forEach(function(el) {
+        var stat = el.getAttribute('data-stat');
+        if (stat === 'available') el.textContent = summary.available;
+        else if (stat === 'owned') el.textContent = summary.owned;
+        else if (stat === 'avgPrice') el.textContent = GameData.formatMoneyShort(summary.avgPrice);
+        else if (stat === 'tax') el.textContent = '📊 Tax ' + Math.round(city.taxRate * 100) + '%';
+        else if (stat === 'growth') el.textContent = '📈 ' + (city.growthRate * 100).toFixed(1) + '%';
+        else if (stat === 'yield') el.textContent = '🏠 ' + (city.rentYield * 100).toFixed(1) + '%';
+        else if (stat === 'inflation') el.textContent = '💹 ' + (inflRate * 100).toFixed(1) + '%';
+      });
     });
-    grid.innerHTML = html;
   },
 
   // ---- Render City ----
@@ -121,6 +141,7 @@ const GameUI = {
     if (!city) return;
 
     document.getElementById('city-title').textContent = city.flag + ' ' + city.name;
+    this.cityPage = 0; // reset pagination
 
     // City info chips
     var info = document.getElementById('city-info');
@@ -163,7 +184,27 @@ const GameUI = {
     }
 
     empty.style.display = 'none';
-    grid.innerHTML = props.map(function(p, i) { return GameUI.renderPropertyCard(p, i); }).join('');
+
+    // Paginate
+    var total = props.length;
+    var ps = this.PAGE_SIZE;
+    var maxPage = Math.max(0, Math.ceil(total / ps) - 1);
+    if (this.cityPage > maxPage) this.cityPage = maxPage;
+    var start = this.cityPage * ps;
+    var pageProps = props.slice(start, start + ps);
+
+    var html = pageProps.map(function(p, i) { return GameUI.renderPropertyCard(p, start + i); }).join('');
+
+    // Pagination controls
+    if (total > ps) {
+      html += '<div style="grid-column:1/-1;display:flex;justify-content:center;gap:8px;padding:8px 0;align-items:center">';
+      html += '<button class="btn btn-ghost btn-small" onclick="GameUI.cityPage=Math.max(0,GameUI.cityPage-1);GameUI.renderCityProperties()" ' + (this.cityPage <= 0 ? 'disabled' : '') + '>← Prev</button>';
+      html += '<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted)">' + (this.cityPage + 1) + ' / ' + (maxPage + 1) + ' (' + total + ' total)</span>';
+      html += '<button class="btn btn-ghost btn-small" onclick="GameUI.cityPage=Math.min('+ maxPage+',GameUI.cityPage+1);GameUI.renderCityProperties()" ' + (this.cityPage >= maxPage ? 'disabled' : '') + '>Next →</button>';
+      html += '</div>';
+    }
+
+    grid.innerHTML = html;
   },
 
   // ---- Render a property card ----
@@ -691,12 +732,19 @@ const GameUI = {
   renderWorldMap() {
     var svg = document.getElementById('world-map-svg');
     var pins = document.getElementById('world-map-pins');
+    var mapContainer = document.getElementById('world-map');
 
     if (!this._mapLoaded) {
-    if (!this._mapLoaded) {
-      GameGraphics.renderWorldMap(svg);
+      // Try image background first, fall back to SVG
+      var era = GameEngine.getCurrentEra();
+      var mapKey = 'map_' + era.years[0];
+      var loaded = ImageLoader.applyBackground(mapContainer, mapKey, function() {
+        GameGraphics.renderWorldMap(svg);
+      });
+      if (!loaded && !ImageLoader.has(mapKey)) {
+        GameGraphics.renderWorldMap(svg);
+      }
       this._mapLoaded = true;
-    }
     }
 
     // Render city pins — elegant atlas markers, not emoji
@@ -1014,19 +1062,27 @@ const GameUI = {
 
   // ---- Auto-advance controls ----
   setAutoAdvance(speed) {
+    // Clear existing timer
     if (this.autoTimer) {
       clearInterval(this.autoTimer);
       this.autoTimer = null;
     }
 
+    if (!GameEngine.state) return;
     GameEngine.state.autoAdvanceSpeed = speed;
-    var intervals = { 0: 0, 1: 5000, 2: 2500, 3: 1200 };
+    var intervals = { 0: 0, 1: 4000, 2: 2000, 3: 800 };
     var ms = intervals[speed] || 0;
 
     if (ms > 0) {
-      this.autoTimer = setInterval(function() { App.advanceMonth(); }, ms);
+      var self = this;
+      this.autoTimer = setInterval(function() {
+        if (GameEngine.state) App.advanceMonth();
+      }, ms);
     }
     GameEngine.save();
+    // Re-render speed buttons to show active state
+    var el = document.getElementById('hud-speed');
+    if (el) el.innerHTML = this.renderSpeedControls();
   },
 
   renderSpeedControls() {
