@@ -51,6 +51,14 @@ const GameUI = {
     document.getElementById('hud-networth').textContent = GameData.formatMoney(GameEngine.getNetWorth());
     // Speed controls in HUD
     document.getElementById('hud-speed').innerHTML = this.renderSpeedControls();
+    // Goal tracker
+    var goalEl = document.getElementById('hud-goal-text');
+    if (goalEl && s.goals && s.goals.monthly) {
+      var g = s.goals.monthly;
+      goalEl.innerHTML = g.done
+        ? '<span class="goal-done">✅ ' + g.text + '</span> +' + GameData.formatMoney(g.reward)
+        : '🎯 ' + g.text + ' (reward: ' + GameData.formatMoney(g.reward) + ')';
+    }
   },
 
   // ---- Toast notification ----
@@ -629,6 +637,25 @@ const GameUI = {
       GameUI.toast('💼 Dividends received: +' + GameData.formatMoney(results.dividends), 'success');
     }
 
+    // Goals achieved
+    if (results.goalsAchieved) {
+      results.goalsAchieved.forEach(function(g) {
+        GameUI.toast('🎯 Goal complete: ' + g.text + ' +' + GameData.formatMoney(g.reward), 'milestone');
+      });
+    }
+
+    // Tenant problems — show in ticker
+    if (results.tenantProblems && results.tenantProblems.length > 0) {
+      var tp = results.tenantProblems[0];
+      var tpMsg = { late: '⏰ Late rent', vacancy: '🚪 Tenant left', damage: '🔨 Tenant damage', dispute: '⚖️ Tenant dispute' };
+      GameUI.setTicker((tpMsg[tp.type] || '⚠️ Tenant issue') + ' at ' + tp.property + ' — lost ' + GameData.formatMoney(tp.loss));
+    }
+
+    // Property tax in ticker
+    if (results.propertyTax > 0 && !isAutoPlaying) {
+      GameUI.toast('🏛️ Property tax: -' + GameData.formatMoney(results.propertyTax), 'warning');
+    }
+
     // Milestones
     if (results.milestones) {
       results.milestones.forEach(function(m) {
@@ -669,6 +696,42 @@ const GameUI = {
   setTip(text) {
     var el = document.getElementById('hud-tips-text');
     if (el) el.textContent = '💡 ' + text;
+  },
+
+  // ---- Decision Card ----
+  showDecision(decision) {
+    if (!decision) {
+      document.getElementById('decision-panel').classList.add('hidden');
+      return;
+    }
+
+    var html = '<div class="decision-title">' + decision.title + '</div>' +
+      '<div class="decision-desc">' + decision.description + '</div>' +
+      '<div class="decision-choices">';
+
+    for (var i = 0; i < decision.choices.length; i++) {
+      var c = decision.choices[i];
+      html += '<button class="decision-choice" onclick="App.resolveDecision(\'' + c.action + '\', ' + (c.data ? JSON.stringify(c.data).replace(/"/g, '&quot;') : 'null') + ')">' + c.label + '</button>';
+    }
+    html += '</div>';
+
+    document.getElementById('decision-card').innerHTML = html;
+    document.getElementById('decision-panel').classList.remove('hidden');
+
+    // Auto-play pauses during decisions
+    if (GameEngine.state.autoAdvanceSpeed > 0) {
+      this._savedSpeed = GameEngine.state.autoAdvanceSpeed;
+      this.setAutoAdvance(0);
+    }
+  },
+
+  hideDecision() {
+    document.getElementById('decision-panel').classList.add('hidden');
+    // Resume auto-play if it was running
+    if (this._savedSpeed && this._savedSpeed > 0) {
+      this.setAutoAdvance(this._savedSpeed);
+      this._savedSpeed = 0;
+    }
   },
 
   // ---- Show modal ----

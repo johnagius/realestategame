@@ -2000,6 +2000,70 @@ h4 { font-size: 1rem; }
   margin-left: 6px;
 }
 
+/* ---------- Decision Card ---------- */
+.decision-panel {
+  position: fixed;
+  bottom: calc(var(--nav-height) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 850;
+  width: 92%;
+  max-width: 420px;
+}
+
+.decision-card {
+  background: linear-gradient(135deg, #FFF8EE, #FFF);
+  border: 2px solid #8B7355;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 8px 32px rgba(30,18,8,0.25), 0 2px 8px rgba(0,0,0,0.1);
+  animation: slideUp 0.3s ease;
+}
+
+.decision-title {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  color: #2B1810;
+  margin-bottom: 6px;
+}
+
+.decision-desc {
+  font-size: 0.82rem;
+  color: #6A5A42;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.decision-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.decision-choice {
+  padding: 10px 14px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-card);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: left;
+}
+
+.decision-choice:first-child {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  background: rgba(44,110,73,0.04);
+}
+
+.decision-choice:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+  border-color: var(--primary);
+}
+
 /* ---------- Event Ticker ---------- */
 .hud-ticker {
   position: fixed;
@@ -2019,26 +2083,31 @@ h4 { font-size: 1rem; }
   border-bottom: 1px solid #5A4A38;
 }
 
-.hud-tips {
+.hud-goals {
   position: fixed;
   top: calc(var(--hud-height) + 22px);
   left: 0;
   right: 0;
-  height: 20px;
-  background: rgba(250,243,224,0.95);
-  color: #6A5A42;
-  font-size: 0.6rem;
-  font-weight: 600;
+  height: 22px;
+  background: linear-gradient(90deg, rgba(44,110,73,0.08), rgba(250,243,224,0.95), rgba(44,110,73,0.08));
+  color: #2C6E49;
+  font-size: 0.65rem;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 889;
-  border-bottom: 1px solid #DDD3C0;
+  border-bottom: 1px solid #B8D0B0;
+}
+
+.hud-goals .goal-done {
+  color: #D4A84B;
+  text-decoration: line-through;
 }
 
 /* ---------- Fix scrolling: lock screens to viewport ---------- */
 .game-screen {
-  padding-top: calc(var(--hud-height) + 44px);
+  padding-top: calc(var(--hud-height) + 46px);
   overflow-y: auto;
   overflow-x: hidden;
 }

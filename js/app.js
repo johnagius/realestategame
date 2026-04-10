@@ -201,7 +201,9 @@ const App = {
     document.getElementById('hud').classList.remove('hidden');
     document.getElementById('main-nav').classList.remove('hidden');
     document.getElementById('hud-ticker').classList.remove('hidden');
-    document.getElementById('hud-tips').classList.remove('hidden');
+    document.getElementById('hud-goals').classList.remove('hidden');
+    // Generate initial goals
+    GameEngine.generateGoals();
     GameUI.updateHUD();
     GameUI.showScreen('map');
     // Show random tip
@@ -236,6 +238,11 @@ const App = {
       GameUI.renderFloatingLeaderboard();
     }
     GameUI.showMonthResults(results);
+
+    // Show decision card if one was generated
+    if (results.decision) {
+      GameUI.showDecision(results.decision);
+    }
 
     // Rotate tips every few months
     if (GameEngine.state.month % 3 === 0) this.showRandomTip();
@@ -430,6 +437,18 @@ const App = {
     GameEngine.removeAutoSellRule(propertyId);
     GameUI.toast('Auto-sell rule removed.', 'info');
     GameUI.renderProperty(propertyId);
+  },
+
+  // ---- Decision Resolution ----
+  resolveDecision(action, data) {
+    var result = GameEngine.resolveDecision(action, data);
+    GameUI.hideDecision();
+    if (result.success) {
+      GameUI.toast(result.message, action === 'pass' ? 'info' : 'success');
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+    GameUI.updateHUD();
   },
 
   // ---- Bank Savings ----

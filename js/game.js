@@ -703,13 +703,55 @@ const GameEngine = {
     results.month = this.state.monthIndex;
     results.year = this.state.year;
 
-    // 1. Collect rent
+    // 0. Initialize results extras
+    results.tenantProblems = [];
+    results.propertyTax = 0;
+    results.decisions = [];
+
+    // 1. Collect rent (with tenant problems and diminishing returns)
+    var rentedCount = this.state.properties.filter(p => p.isRented).length;
     this.state.properties.forEach(p => {
       if (p.isRented && !p.isRefurbishing && !p.isBuilding) {
-        this.state.cash += p.monthlyRent;
-        p.totalRentCollected += p.monthlyRent;
-        results.rentIncome += p.monthlyRent;
-        this.state.totalRentEarned += p.monthlyRent;
+        // Diminishing returns: after 5 rented properties, each additional yields 5% less
+        var diminishFactor = 1;
+        if (rentedCount > 5) {
+          var excessProps = Math.min(rentedCount - 5, 30);
+          diminishFactor = Math.max(0.3, 1 - (excessProps * 0.04));
+        }
+
+        // Tenant problems: 8% chance per property per month
+        if (Math.random() < 0.08) {
+          var problemRoll = Math.random();
+          if (problemRoll < 0.35) {
+            // Late payment — get only 50% rent this month
+            var reducedRent = Math.round(p.monthlyRent * 0.5 * diminishFactor);
+            this.state.cash += reducedRent;
+            p.totalRentCollected += reducedRent;
+            results.rentIncome += reducedRent;
+            results.tenantProblems.push({ property: p.name, type: 'late', loss: p.monthlyRent - reducedRent });
+          } else if (problemRoll < 0.65) {
+            // Vacancy — tenant leaves, no rent, property becomes unrented
+            p.isRented = false;
+            results.tenantProblems.push({ property: p.name, type: 'vacancy', loss: p.monthlyRent });
+          } else if (problemRoll < 0.85) {
+            // Damage — pay repair cost equal to 1 month rent
+            var damageCost = Math.round(p.monthlyRent * 0.8);
+            this.state.cash -= damageCost;
+            results.tenantProblems.push({ property: p.name, type: 'damage', loss: damageCost });
+          } else {
+            // Dispute — no rent collected, legal fees
+            var legalFee = Math.round(p.monthlyRent * 0.3);
+            this.state.cash -= legalFee;
+            results.tenantProblems.push({ property: p.name, type: 'dispute', loss: legalFee + p.monthlyRent });
+          }
+        } else {
+          // Normal rent collection with diminishing returns
+          var actualRent = Math.round(p.monthlyRent * diminishFactor);
+          this.state.cash += actualRent;
+          p.totalRentCollected += actualRent;
+          results.rentIncome += actualRent;
+          this.state.totalRentEarned += actualRent;
+        }
       }
     });
 
@@ -732,6 +774,17 @@ const GameEngine = {
         }
       }
     });
+
+    // 2b. Property tax (scales with portfolio size — wealth tax)
+    if (this.state.properties.length > 0) {
+      var portfolioValue = this.state.properties.reduce((s, p) => s + p.currentValue, 0);
+      // Base rate: 0.5% annual. Increases 0.1% for every 10 properties owned (up to 2.5%)
+      var taxRate = Math.min(0.025, 0.005 + Math.floor(this.state.properties.length / 10) * 0.001);
+      var monthlyTax = Math.round(portfolioValue * taxRate / 12);
+      this.state.cash -= monthlyTax;
+      results.propertyTax = monthlyTax;
+      results.expenses += monthlyTax;
+    }
 
     // 3. Process refurbishments
     this.state.properties.forEach(p => {
@@ -808,12 +861,15 @@ const GameEngine = {
     this.state.properties.forEach(p => {
       if (!p.isBuilding) {
         const city = GameData.cities.find(c => c.id === p.cityId);
-        const monthlyGrowth = city.growthRate / 12;
         const monthlyInflation = (city.inflationRate || 0.02) / 12;
         const pressure = this.state.marketPressure[city.id] || 0;
-        const randomFactor = (Math.random() - 0.5) * 0.02;
-        const change = monthlyGrowth + monthlyInflation + pressure + randomFactor;
-        p.currentValue = Math.round(p.currentValue * (1 + change));
+        const randomFactor = (Math.random() - 0.5) * 0.015;
+        // CAP: appreciation = inflation + up to 2% real growth annually (0.17%/mo) + noise
+        const maxMonthlyGrowth = 0.0017; // ~2% annual real growth cap
+        const realGrowth = Math.min(maxMonthlyGrowth, city.growthRate / 12);
+        const change = realGrowth + monthlyInflation + pressure + randomFactor;
+        // Allow negative months (real crashes happen)
+        p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + change)));
         p.appreciation = ((p.currentValue - p.purchasePrice) / p.purchasePrice) * 100;
         this.recalculateRent(p);
       }
@@ -822,12 +878,13 @@ const GameEngine = {
     // Also fluctuate market properties
     Object.keys(this.state.marketProperties).forEach(cityId => {
       const city = GameData.cities.find(c => c.id === cityId);
-      const monthlyGrowth = city.growthRate / 12;
       const monthlyInflation = (city.inflationRate || 0.02) / 12;
       const pressure = this.state.marketPressure[cityId] || 0;
+      const maxMonthlyGrowth = 0.0017;
+      const realGrowth = Math.min(maxMonthlyGrowth, city.growthRate / 12);
       this.state.marketProperties[cityId].forEach(p => {
-        const randomFactor = (Math.random() - 0.5) * 0.02;
-        p.currentValue = Math.round(p.currentValue * (1 + monthlyGrowth + monthlyInflation + pressure + randomFactor));
+        const randomFactor = (Math.random() - 0.5) * 0.015;
+        p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + realGrowth + monthlyInflation + pressure + randomFactor)));
         this.recalculateRent(p);
       });
     });
@@ -927,6 +984,13 @@ const GameEngine = {
     this.state.bankRateModifier += (Math.random() - 0.5) * 0.002;
     this.state.bankRateModifier = Math.max(-0.02, Math.min(0.02, this.state.bankRateModifier));
 
+    // 14b. Check and generate goals
+    results.goalsAchieved = this.checkGoals();
+    this.generateGoals();
+
+    // 14c. Generate monthly decision (the "one more turn" hook)
+    results.decision = this.generateDecision();
+
     // 15. Check era transition
     results.eraChange = this.checkEraTransition();
 
@@ -952,25 +1016,62 @@ const GameEngine = {
   // ---- Simulate AI families ----
   simulateAIFamilies() {
     if (!this.state.aiFamilies) return;
+    var state = this.state;
+
     this.state.aiFamilies.forEach(ai => {
       // Monthly income from their properties
       const income = ai.monthlyIncome * (0.9 + Math.random() * 0.2);
       ai.netWorth += income;
 
-      // Occasionally buy/sell (simulated)
-      if (Math.random() < ai.aggressiveness * 0.15) {
-        const investAmount = ai.netWorth * (0.02 + Math.random() * 0.05) * ai.riskTolerance;
-        ai.netWorth += investAmount * (Math.random() - 0.4); // Could gain or lose
-        ai.propertyCount += Math.random() > 0.4 ? 1 : 0;
+      // AI ACTUALLY BUYS from the market (removes properties you could buy)
+      if (Math.random() < ai.aggressiveness * 0.12) {
+        var cities = Object.keys(state.marketProperties);
+        if (cities.length > 0) {
+          var cityId = cities[Math.floor(Math.random() * cities.length)];
+          var market = state.marketProperties[cityId];
+          if (market && market.length > 2) { // Leave at least 2 for player
+            // AI picks cheapest property it can afford
+            var affordable = market.filter(p => p.currentValue < ai.netWorth * 0.3);
+            if (affordable.length > 0) {
+              var target = affordable[Math.floor(Math.random() * affordable.length)];
+              // Remove from market
+              state.marketProperties[cityId] = market.filter(p => p.id !== target.id);
+              ai.netWorth -= target.currentValue;
+              ai.propertyCount++;
+              ai.monthlyIncome += Math.round(target.monthlyRent * 0.7); // AI manages less efficiently
+            }
+          }
+        }
       }
 
-      // Market effects hit AI too
-      const marketShift = (Math.random() - 0.48) * 0.03;
-      ai.netWorth *= (1 + marketShift);
-      ai.netWorth = Math.max(100000, Math.round(ai.netWorth));
+      // AI sells occasionally (adds properties back to market)
+      if (Math.random() < 0.03 && ai.propertyCount > 2) {
+        // Generate a "sold" property back to a random market
+        var cities = Object.keys(state.marketProperties);
+        if (cities.length > 0) {
+          var cityId = cities[Math.floor(Math.random() * cities.length)];
+          var era = this.getCurrentEra();
+          var types = era.businessTypes ? ['apartment', 'house', 'commercial'] : ['farm', 'house'];
+          var type = types[Math.floor(Math.random() * types.length)];
+          if (GameData.propertyTypes[type]) {
+            var newProp = GameData.generateProperty(cityId, type);
+            if (newProp) {
+              state.marketProperties[cityId].push(newProp);
+              ai.propertyCount = Math.max(0, ai.propertyCount - 1);
+            }
+          }
+        }
+      }
 
-      // Grow income slowly
-      ai.monthlyIncome = Math.round(ai.monthlyIncome * (1 + (Math.random() - 0.45) * 0.02));
+      // Market effects hit AI too (less extreme)
+      const marketShift = (Math.random() - 0.48) * 0.02;
+      ai.netWorth *= (1 + marketShift);
+
+      // AI can also suffer crashes
+      ai.netWorth = Math.max(50, Math.round(ai.netWorth));
+
+      // Grow income based on property count
+      ai.monthlyIncome = Math.max(1, Math.round(ai.monthlyIncome * (1 + (Math.random() - 0.45) * 0.015)));
 
       // Track history
       ai.history.push(ai.netWorth);
@@ -1900,6 +2001,289 @@ const GameEngine = {
   getInvestmentValue() {
     if (!this.state.investments) return 0;
     return this.state.investments.reduce((sum, inv) => sum + (inv.currentUnitPrice * inv.units), 0);
+  },
+
+  // ========== GOAL SYSTEM ==========
+
+  generateGoals() {
+    if (!this.state.goals) this.state.goals = { monthly: null, decade: null, completed: [] };
+    var g = this.state.goals;
+    var nw = this.getNetWorth();
+    var propCount = this.state.properties.length;
+    var cityCount = new Set(this.state.properties.map(p => p.cityId)).size;
+    var year = this.state.year;
+
+    // Monthly goal — changes each month
+    var monthlyGoals = [
+      { id: 'buy_property', text: 'Buy a property this month', check: function(s, prev) { return s.properties.length > prev.propCount; } },
+      { id: 'earn_rent', text: 'Earn ' + GameData.formatMoney(Math.round(nw * 0.01)) + ' in rent', check: function(s, prev) { return s.cash > prev.cash + nw * 0.008; } },
+      { id: 'new_city', text: 'Buy in a new city', check: function(s, prev) { return new Set(s.properties.map(function(p){return p.cityId;})).size > prev.cityCount; } },
+      { id: 'refurbish', text: 'Refurbish a property', check: function(s, prev) { return s.properties.some(function(p){return p.isRefurbishing;}); } },
+      { id: 'rent_out', text: 'Rent out a vacant property', check: function(s, prev) { return s.properties.filter(function(p){return p.isRented;}).length > prev.rentedCount; } },
+    ];
+    if (!g.monthly || g.monthly.done) {
+      var pick = monthlyGoals[Math.floor(Math.random() * monthlyGoals.length)];
+      g.monthly = { id: pick.id, text: pick.text, done: false, reward: Math.max(1, Math.round(nw * 0.005)) };
+    }
+    // Snapshot for comparison next month
+    g._snapshot = { propCount: propCount, cityCount: cityCount, cash: this.state.cash, rentedCount: this.state.properties.filter(function(p){return p.isRented;}).length };
+
+    // Decade goal — changes every 10 years
+    if (!g.decade || g.decade.done || (year % 10 === 0 && this.state.monthIndex === 0)) {
+      var decadeEnd = Math.ceil(year / 10) * 10;
+      var decadeGoals = [
+        { text: 'Own properties in ' + Math.min(5, cityCount + 3) + ' cities by ' + decadeEnd, target: Math.min(5, cityCount + 3), type: 'cities' },
+        { text: 'Own ' + (propCount + 5) + ' properties by ' + decadeEnd, target: propCount + 5, type: 'properties' },
+        { text: 'Reach net worth ' + GameData.formatMoney(Math.round(nw * 3)) + ' by ' + decadeEnd, target: Math.round(nw * 3), type: 'networth' },
+        { text: 'Rank #1 among families by ' + decadeEnd, target: 1, type: 'rank' },
+      ];
+      var dpick = decadeGoals[Math.floor(Math.random() * decadeGoals.length)];
+      g.decade = { text: dpick.text, target: dpick.target, type: dpick.type, deadline: decadeEnd, done: false, reward: Math.max(5, Math.round(nw * 0.02)) };
+    }
+  },
+
+  checkGoals() {
+    if (!this.state.goals) return [];
+    var g = this.state.goals;
+    var achieved = [];
+
+    // Check monthly goal
+    if (g.monthly && !g.monthly.done && g._snapshot) {
+      var snap = g._snapshot;
+      var s = this.state;
+      var met = false;
+      if (g.monthly.id === 'buy_property') met = s.properties.length > snap.propCount;
+      else if (g.monthly.id === 'earn_rent') met = s.cash > snap.cash + this.getNetWorth() * 0.008;
+      else if (g.monthly.id === 'new_city') met = new Set(s.properties.map(function(p){return p.cityId;})).size > snap.cityCount;
+      else if (g.monthly.id === 'refurbish') met = s.properties.some(function(p){return p.isRefurbishing;});
+      else if (g.monthly.id === 'rent_out') met = s.properties.filter(function(p){return p.isRented;}).length > snap.rentedCount;
+
+      if (met) {
+        g.monthly.done = true;
+        s.cash += g.monthly.reward;
+        achieved.push({ type: 'monthly', text: g.monthly.text, reward: g.monthly.reward });
+        if (!g.completed) g.completed = [];
+        g.completed.push(g.monthly.text);
+      }
+    }
+
+    // Check decade goal
+    if (g.decade && !g.decade.done) {
+      var s = this.state;
+      var met = false;
+      if (g.decade.type === 'cities') met = new Set(s.properties.map(function(p){return p.cityId;})).size >= g.decade.target;
+      else if (g.decade.type === 'properties') met = s.properties.length >= g.decade.target;
+      else if (g.decade.type === 'networth') met = this.getNetWorth() >= g.decade.target;
+      else if (g.decade.type === 'rank') met = (s.playerRank || 99) <= g.decade.target;
+
+      if (met) {
+        g.decade.done = true;
+        s.cash += g.decade.reward;
+        if (!s.reputation) s.reputation = 50;
+        s.reputation = Math.min(100, s.reputation + 10);
+        achieved.push({ type: 'decade', text: g.decade.text, reward: g.decade.reward });
+        if (!g.completed) g.completed = [];
+        g.completed.push(g.decade.text);
+      }
+    }
+
+    return achieved;
+  },
+
+  // ========== DECISION SYSTEM ==========
+
+  generateDecision() {
+    // 40% chance of a decision each month (not every month — variable schedule)
+    if (Math.random() > 0.4) return null;
+    if (!this.state.properties) return null;
+
+    var decisions = [];
+    var nw = this.getNetWorth();
+    var era = this.getCurrentEra();
+    var year = this.state.year;
+    var cash = this.state.cash;
+
+    // TYPE 1: Rival bidding on property — outbid or lose it
+    if (this.state.aiFamilies && this.state.aiFamilies.length > 0) {
+      var rival = this.state.aiFamilies[Math.floor(Math.random() * this.state.aiFamilies.length)];
+      var cities = Object.keys(this.state.marketProperties);
+      var cityId = cities[Math.floor(Math.random() * cities.length)];
+      var cityMarket = this.state.marketProperties[cityId] || [];
+      if (cityMarket.length > 0) {
+        var prop = cityMarket[Math.floor(Math.random() * cityMarket.length)];
+        var premium = 1.1 + Math.random() * 0.2; // 10-30% above asking
+        decisions.push({
+          type: 'rival_bid',
+          title: rival.icon + ' ' + rival.name + ' Bidding War',
+          description: rival.name + ' want to buy ' + prop.name + '. Outbid them?',
+          choices: [
+            { label: 'Outbid (' + GameData.formatMoney(Math.round(prop.currentValue * premium)) + ')', action: 'outbid', data: { propId: prop.id, cityId: cityId, cost: Math.round(prop.currentValue * premium) } },
+            { label: 'Let them have it', action: 'pass' }
+          ]
+        });
+      }
+    }
+
+    // TYPE 2: Investment opportunity (limited time)
+    if (cash > 0) {
+      var returnPct = 5 + Math.floor(Math.random() * 15);
+      var riskPct = Math.floor(Math.random() * 40) + 10;
+      var investAmt = Math.round(cash * (0.1 + Math.random() * 0.3));
+      var ventures = ['a spice shipment', 'a cotton plantation', 'a railway expansion', 'a mining venture',
+        'a new factory', 'a shipping company', 'a land development', 'a trading expedition'];
+      if (year > 1900) ventures = ['a tech startup', 'an oil field', 'a shopping mall', 'a hotel chain',
+        'a film studio', 'a telecom company', 'a pharmaceutical lab', 'a real estate fund'];
+      var venture = ventures[Math.floor(Math.random() * ventures.length)];
+      decisions.push({
+        type: 'investment_opportunity',
+        title: '💰 Investment Opportunity',
+        description: 'A contact offers you a stake in ' + venture + '. Potential ' + returnPct + '% return, but ' + riskPct + '% chance of total loss.',
+        choices: [
+          { label: 'Invest ' + GameData.formatMoney(investAmt), action: 'invest', data: { amount: investAmt, returnPct: returnPct, riskPct: riskPct } },
+          { label: 'Too risky, pass', action: 'pass' }
+        ]
+      });
+    }
+
+    // TYPE 3: Sell offer on owned property (AI makes you an offer)
+    if (this.state.properties.length > 0) {
+      var ownedProp = this.state.properties[Math.floor(Math.random() * this.state.properties.length)];
+      if (!ownedProp.isBuilding && !ownedProp.isRefurbishing) {
+        var offerMultiplier = 1.2 + Math.random() * 0.5; // 120-170% of current value
+        var offerAmount = Math.round(ownedProp.currentValue * offerMultiplier);
+        var buyer = this.state.aiFamilies ? this.state.aiFamilies[Math.floor(Math.random() * this.state.aiFamilies.length)] : { icon: '🏢', name: 'A foreign investor' };
+        decisions.push({
+          type: 'sell_offer',
+          title: buyer.icon + ' Offer to Buy',
+          description: buyer.name + ' offers ' + GameData.formatMoney(offerAmount) + ' for your ' + ownedProp.name + ' (worth ' + GameData.formatMoney(ownedProp.currentValue) + ').',
+          choices: [
+            { label: 'Accept offer (sell)', action: 'accept_sell', data: { propId: ownedProp.id, amount: offerAmount } },
+            { label: 'Decline — not for sale', action: 'pass' }
+          ]
+        });
+      }
+    }
+
+    // TYPE 4: Political/tax event choice
+    if (Math.random() < 0.5) {
+      var taxChange = Math.random() < 0.5;
+      if (taxChange) {
+        decisions.push({
+          type: 'political',
+          title: '📜 Government Policy Change',
+          description: 'New legislation proposed: lower property tax but higher transaction fees, or keep current rates?',
+          choices: [
+            { label: 'Lobby for lower tax (-0.2% property tax, +2% transaction fee)', action: 'lobby_low_tax' },
+            { label: 'Support current system', action: 'pass' }
+          ]
+        });
+      }
+    }
+
+    // TYPE 5: Philanthropy / reputation
+    if (nw > 1000 && Math.random() < 0.3) {
+      var donationAmt = Math.round(nw * 0.02);
+      decisions.push({
+        type: 'philanthropy',
+        title: '🎗️ Philanthropic Opportunity',
+        description: 'A charity requests ' + GameData.formatMoney(donationAmt) + ' to build a hospital. Your reputation would grow significantly.',
+        choices: [
+          { label: 'Donate ' + GameData.formatMoney(donationAmt), action: 'donate', data: { amount: donationAmt } },
+          { label: 'Decline politely', action: 'pass' }
+        ]
+      });
+    }
+
+    // Pick one decision (not all)
+    if (decisions.length === 0) return null;
+    var chosen = decisions[Math.floor(Math.random() * decisions.length)];
+
+    // Store pending decision
+    this.state.pendingDecision = chosen;
+    return chosen;
+  },
+
+  resolveDecision(choiceAction, choiceData) {
+    var decision = this.state.pendingDecision;
+    if (!decision) return { success: false, message: 'No pending decision.' };
+
+    this.state.pendingDecision = null;
+    var result = { success: true, message: '' };
+
+    switch (choiceAction) {
+      case 'outbid': {
+        var d = choiceData || decision.choices[0].data;
+        if (this.state.cash < d.cost) {
+          result.message = 'Not enough cash to outbid!';
+          result.success = false;
+        } else {
+          // Force-buy at premium price
+          var buyResult = this.buyProperty(d.propId, d.cityId);
+          if (buyResult.success) {
+            result.message = 'You outbid the rival! ' + buyResult.message;
+          } else {
+            result.message = 'Bid failed: ' + buyResult.message;
+            result.success = false;
+          }
+        }
+        break;
+      }
+      case 'invest': {
+        var d = choiceData || decision.choices[0].data;
+        if (this.state.cash < d.amount) {
+          result.message = 'Not enough cash!';
+          result.success = false;
+        } else {
+          this.state.cash -= d.amount;
+          // Resolve: risk% chance of losing it all, otherwise get return%
+          if (Math.random() * 100 < d.riskPct) {
+            result.message = '💸 The venture failed! You lost ' + GameData.formatMoney(d.amount) + '.';
+          } else {
+            var profit = Math.round(d.amount * d.returnPct / 100);
+            this.state.cash += d.amount + profit;
+            result.message = '📈 The venture succeeded! Profit: ' + GameData.formatMoney(profit) + '.';
+          }
+        }
+        break;
+      }
+      case 'accept_sell': {
+        var d = choiceData || decision.choices[0].data;
+        var propIdx = this.state.properties.findIndex(p => p.id === d.propId);
+        if (propIdx >= 0) {
+          this.state.properties.splice(propIdx, 1);
+          this.state.cash += d.amount;
+          this.state.totalSaleRevenue += d.amount;
+          this.state.totalPropertiesSold++;
+          result.message = 'Property sold for ' + GameData.formatMoney(d.amount) + '!';
+        }
+        break;
+      }
+      case 'lobby_low_tax': {
+        // Reduce property tax rate slightly, increase transaction costs
+        GameData.cities.forEach(c => { c.taxRate = Math.min(0.15, c.taxRate + 0.02); });
+        result.message = 'Property tax reduced, but transaction fees are now higher.';
+        break;
+      }
+      case 'donate': {
+        var d = choiceData || decision.choices[0].data;
+        if (this.state.cash >= d.amount) {
+          this.state.cash -= d.amount;
+          if (!this.state.reputation) this.state.reputation = 50;
+          this.state.reputation = Math.min(100, this.state.reputation + 8);
+          result.message = '🎗️ Donated ' + GameData.formatMoney(d.amount) + '. Reputation increased!';
+        } else {
+          result.message = 'Not enough cash.';
+          result.success = false;
+        }
+        break;
+      }
+      case 'pass':
+        result.message = 'You passed on this opportunity.';
+        break;
+    }
+
+    this.save();
+    return result;
   },
 
   // ========== UPDATED NET WORTH ==========
