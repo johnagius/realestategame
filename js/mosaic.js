@@ -6,10 +6,10 @@
 
 const Mosaic = {
 
-  // Grid dimensions for world map
-  MAP_COLS: 640,
-  MAP_ROWS: 320,
-  CELL_SIZE: 2.5, // px per cell — at 640 cols = 1600px wide
+  // Grid dimensions for world map — 1px cells for seamless resolution
+  MAP_COLS: 1600,
+  MAP_ROWS: 800,
+  CELL_SIZE: 1, // 1px per cell = 1,280,000 cells total
 
   // Color palettes
   colors: {
@@ -304,60 +304,72 @@ const Mosaic = {
     return 'lowland';
   },
 
-  // ========== RENDER THE WORLD MAP ==========
+  // ========== RENDER THE WORLD MAP (Canvas → SVG image) ==========
+  // For 1M+ pixels we use Canvas for rendering then embed as image in SVG
+  // This gives us seamless resolution without SVG element count issues
   renderWorldMap: function(svgEl) {
     var cols = this.MAP_COLS;
     var rows = this.MAP_ROWS;
-    var cs = this.CELL_SIZE;
-    var w = cols * cs;
-    var h = rows * cs;
+    var w = cols;
+    var h = rows;
+    var self = this;
 
     svgEl.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
 
-    // Ocean background gradient (rendered as one rect, not per-cell)
-    var svg = '<defs><linearGradient id="m-ocean" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0%" stop-color="#1E4868"/>' +
-      '<stop offset="30%" stop-color="#2A5878"/>' +
-      '<stop offset="60%" stop-color="#326080"/>' +
-      '<stop offset="100%" stop-color="#2A5474"/>' +
-    '</linearGradient></defs>' +
-    '<rect width="' + w + '" height="' + h + '" fill="url(#m-ocean)"/>';
+    // Create offscreen canvas
+    var canvas = document.createElement('canvas');
+    canvas.width = cols;
+    canvas.height = rows;
+    var ctx = canvas.getContext('2d');
+    var imgData = ctx.createImageData(cols, rows);
+    var data = imgData.data;
 
-    // Only render non-deep-ocean cells (land, coast, rivers, beaches)
-    // This cuts rendering from 200K cells to ~40K cells
-    var colorGroups = {};
-    var self = this;
+    // Pre-compute: build land mask using polygon tests
+    // Scale continent coords from original 640x320 → 1600x800
+    var scaleX = cols / 640;
+    var scaleY = rows / 320;
 
+    // Helper: parse hex color to RGB
+    function hexToRGB(hex) {
+      var r = parseInt(hex.substr(1,2), 16);
+      var g = parseInt(hex.substr(3,2), 16);
+      var b = parseInt(hex.substr(5,2), 16);
+      return [r, g, b];
+    }
+
+    // Pre-compute palette RGB arrays for speed
+    var paletteRGB = {};
+    var colorKeys = Object.keys(self.colors);
+    for (var k = 0; k < colorKeys.length; k++) {
+      paletteRGB[colorKeys[k]] = self.colors[colorKeys[k]].map(hexToRGB);
+    }
+
+    // Render each pixel
     for (var row = 0; row < rows; row++) {
       for (var col = 0; col < cols; col++) {
-        var terrain = self.getTerrainAt(col, row);
+        // Map back to 640x320 coordinate space for terrain lookup
+        var gx = col / scaleX;
+        var gy = row / scaleY;
 
-        // Skip deep/mid ocean — already covered by background
-        if (terrain === 'deepOcean' || terrain === 'midOcean') continue;
+        var terrain = self.getTerrainAt(gx, gy);
+        var palKey = terrain;
+        var pal = paletteRGB[palKey] || paletteRGB.midOcean;
+        var rgb = pal[Math.floor(Math.random() * pal.length)];
 
-        var palette = self.colors[terrain] || self.colors.shallowOcn;
-        var color = self.pickColor(palette);
-
-        if (!colorGroups[color]) colorGroups[color] = [];
-        colorGroups[color].push((col * cs) + ',' + (row * cs));
+        var idx = (row * cols + col) * 4;
+        data[idx]   = rgb[0];
+        data[idx+1] = rgb[1];
+        data[idx+2] = rgb[2];
+        data[idx+3] = 255;
       }
     }
 
-    // Build grouped SVG — one <g> per unique color
-    var colorKeys = Object.keys(colorGroups);
-    for (var c = 0; c < colorKeys.length; c++) {
-      var clr = colorKeys[c];
-      var cells = colorGroups[clr];
-      svg += '<g fill="' + clr + '">';
-      for (var i = 0; i < cells.length; i++) {
-        var p = cells[i].split(',');
-        svg += '<rect x="' + p[0] + '" y="' + p[1] + '" width="' + cs + '" height="' + cs + '"/>';
-      }
-      svg += '</g>';
-    }
+    ctx.putImageData(imgData, 0, 0);
 
-    svgEl.innerHTML = svg;
-    console.log('Mosaic map: ' + colorKeys.length + ' colors, ~' +
-      Object.values(colorGroups).reduce(function(s,a){return s+a.length;},0) + ' cells rendered');
+    // Convert canvas to data URL and embed in SVG as <image>
+    var dataUrl = canvas.toDataURL('image/png');
+    svgEl.innerHTML = '<image href="' + dataUrl + '" width="' + w + '" height="' + h + '" />';
+
+    console.log('Mosaic map: ' + cols + 'x' + rows + ' = ' + (cols*rows) + ' pixels rendered');
   }
 };
