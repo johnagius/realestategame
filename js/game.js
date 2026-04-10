@@ -58,7 +58,10 @@ const GameEngine = {
       // Auto-sell rules
       autoSellRules: [],    // { propertyId, type: 'pct'|'value', threshold }
       // Auto-advance
-      autoAdvanceSpeed: 0   // 0=off, 1=slow, 2=medium, 3=fast
+      autoAdvanceSpeed: 0,  // 0=off, 1=slow, 2=medium, 3=fast
+      // Achievements
+      achievements: [],     // array of unlocked achievement ids
+      achievementNotified: [] // ids already shown as toast
     };
 
     // Generate initial market for all cities
@@ -290,13 +293,50 @@ const GameEngine = {
     if (property.isBuilding) return { success: false, message: 'Still under construction.' };
 
     property.isRented = !property.isRented;
-    this.save();
 
     if (property.isRented) {
-      return { success: true, message: `Now renting for ${GameData.formatMoney(property.monthlyRent)}/month.` };
+      // Assign a tenant
+      property.tenant = GameData.assignTenant(property);
+      this.save();
+      return { success: true, message: `${property.tenant.icon} ${property.tenant.name} moved in! Renting for ${GameData.formatMoney(Math.round(property.monthlyRent * (property.rentMultiplier || 1)))}/month.` };
     } else {
-      return { success: true, message: 'Property is no longer rented.' };
+      property.tenant = null;
+      this.save();
+      return { success: true, message: 'Tenant evicted. Property is now vacant.' };
     }
+  },
+
+  // ---- Adjust Rent Level ----
+  adjustRent(propertyId, multiplier) {
+    const property = this.state.properties.find(p => p.id === propertyId);
+    if (!property) return { success: false, message: 'Property not found.' };
+    multiplier = Math.max(0.7, Math.min(1.3, multiplier));
+    property.rentMultiplier = multiplier;
+    // If currently rented, tenant may leave if rent too high
+    if (property.isRented && property.tenant) {
+      var tenantDef = GameData.tenantTypes[property.tenant.type];
+      if (tenantDef && multiplier > tenantDef.rentTolerance + 0.05) {
+        // Tenant leaves due to high rent
+        property.isRented = false;
+        property.tenant = null;
+        this.save();
+        return { success: true, message: `Rent too high — tenant left! Set to ${Math.round(multiplier * 100)}% of market rate.` };
+      }
+    }
+    this.save();
+    return { success: true, message: `Rent adjusted to ${Math.round(multiplier * 100)}% of market rate (${GameData.formatMoney(Math.round(property.monthlyRent * multiplier))}/mo).` };
+  },
+
+  // ---- Evict Tenant ----
+  evictTenant(propertyId) {
+    const property = this.state.properties.find(p => p.id === propertyId);
+    if (!property || !property.isRented) return { success: false, message: 'No tenant to evict.' };
+    var evictionCost = Math.round(property.monthlyRent * (property.rentMultiplier || 1));
+    this.state.cash -= evictionCost;
+    property.isRented = false;
+    property.tenant = null;
+    this.save();
+    return { success: true, message: `Tenant evicted. Eviction cost: ${GameData.formatMoney(evictionCost)}.` };
   },
 
   // ---- Refurbish property ----
@@ -759,11 +799,17 @@ const GameEngine = {
     results.propertyTax = 0;
     results.decisions = [];
 
-    // 1. Collect rent (with tenant problems, diminishing returns, cycle effects)
+    // 1. Collect rent (with tenant problems, diminishing returns, cycle effects, seasonality)
     var rentedCount = this.state.properties.filter(p => p.isRented).length;
     // Economic cycle rent multiplier (boom=110%, recession=85%, depression=70%)
     var cycleRentMult = { boom:1.1, growth:1.0, stagnation:0.95, recession:0.85, depression:0.7 };
     var rentCycleFactor = cycleRentMult[this.state.economicCycle] || 1.0;
+    // Seasonal rent factor (summer boost for tourism cities, winter dip for northern)
+    var monthIdx = this.state.monthIndex || 0;
+    var isSummer = monthIdx >= 5 && monthIdx <= 7; // Jun-Aug
+    var isWinter = monthIdx === 11 || monthIdx <= 1; // Dec-Feb
+    var touristCities = { barcelona:1, monaco:1, miami:1, dubai:1, rome:1, sydney:1 };
+    var northernCities = { toronto:1, amsterdam:1, berlin:1, london:1, paris:1 };
     this.state.properties.forEach(p => {
       if (p.isRented && !p.isRefurbishing && !p.isBuilding) {
         // Diminishing returns: after 5 rented properties, each additional yields 5% less
@@ -773,34 +819,48 @@ const GameEngine = {
           diminishFactor = Math.max(0.3, 1 - (excessProps * 0.04));
         }
 
-        // Tenant problems: 3% chance per property per month (was 8% — too frequent at scale)
-        if (Math.random() < 0.03) {
+        // Tenant-aware rent collection
+        var rentMult = p.rentMultiplier || 1.0;
+        var adjustedRent = Math.round(p.monthlyRent * rentMult);
+        var tenant = p.tenant;
+        var reliability = (tenant && tenant.reliability) ? tenant.reliability : 0.85;
+        var care = (tenant && tenant.care) ? tenant.care : 0.80;
+        if (tenant) tenant.monthsOccupied = (tenant.monthsOccupied || 0) + 1;
+
+        // Tenant problem chance: base 3% modified by reliability (higher = fewer problems)
+        var problemChance = 0.03 * (2 - reliability); // reliability 1.0 → 3%, reliability 0.7 → 3.9%
+        if (Math.random() < problemChance) {
           var problemRoll = Math.random();
           if (problemRoll < 0.35) {
             // Late payment — get only 50% rent this month
-            var reducedRent = Math.round(p.monthlyRent * 0.5 * diminishFactor * rentCycleFactor);
+            var reducedRent = Math.round(adjustedRent * 0.5 * diminishFactor * rentCycleFactor);
             this.state.cash += reducedRent;
             p.totalRentCollected += reducedRent;
             results.rentIncome += reducedRent;
-            results.tenantProblems.push({ property: p.name, type: 'late', loss: p.monthlyRent - reducedRent });
+            results.tenantProblems.push({ property: p.name, type: 'late', loss: adjustedRent - reducedRent, tenant: tenant ? tenant.icon : '' });
           } else if (problemRoll < 0.65) {
             // Vacancy — tenant leaves, no rent, property becomes unrented
             p.isRented = false;
-            results.tenantProblems.push({ property: p.name, type: 'vacancy', loss: p.monthlyRent });
+            p.tenant = null;
+            results.tenantProblems.push({ property: p.name, type: 'vacancy', loss: adjustedRent, tenant: tenant ? tenant.icon : '' });
           } else if (problemRoll < 0.85) {
-            // Damage — pay repair cost equal to 1 month rent
-            var damageCost = Math.round(p.monthlyRent * 0.8);
+            // Damage — cost scaled by care (lower care = more damage)
+            var damageMult = 2.0 - care; // care 1.0 → 100% of rent, care 0.6 → 140%
+            var damageCost = Math.round(adjustedRent * 0.8 * damageMult);
             this.state.cash -= damageCost;
-            results.tenantProblems.push({ property: p.name, type: 'damage', loss: damageCost });
+            results.tenantProblems.push({ property: p.name, type: 'damage', loss: damageCost, tenant: tenant ? tenant.icon : '' });
           } else {
             // Dispute — no rent collected, legal fees
-            var legalFee = Math.round(p.monthlyRent * 0.3);
+            var legalFee = Math.round(adjustedRent * 0.3);
             this.state.cash -= legalFee;
-            results.tenantProblems.push({ property: p.name, type: 'dispute', loss: legalFee + p.monthlyRent });
+            results.tenantProblems.push({ property: p.name, type: 'dispute', loss: legalFee + adjustedRent, tenant: tenant ? tenant.icon : '' });
           }
         } else {
-          // Normal rent collection with diminishing returns + cycle effect
-          var actualRent = Math.round(p.monthlyRent * diminishFactor * rentCycleFactor);
+          // Normal rent collection with diminishing returns + cycle effect + rent adjustment + seasonality
+          var seasonFactor = 1.0;
+          if (isSummer && touristCities[p.cityId]) seasonFactor = 1.12;
+          else if (isWinter && northernCities[p.cityId]) seasonFactor = 0.92;
+          var actualRent = Math.round(adjustedRent * diminishFactor * rentCycleFactor * seasonFactor);
           this.state.cash += actualRent;
           p.totalRentCollected += actualRent;
           results.rentIncome += actualRent;
@@ -967,6 +1027,9 @@ const GameEngine = {
     } else {
       this.state.consecutiveNegativeCash = 0;
     }
+
+    // 4e. Check achievements
+    results.newAchievements = this.checkAchievements();
 
     // 5. Market value fluctuations (with inflation + buying/selling pressure + economic cycle)
     // Track buying/selling pressure per city
@@ -1419,6 +1482,25 @@ const GameEngine = {
       minPrice: allPrices.length > 0 ? Math.min(...allPrices) : 0,
       monthlyIncome: owned.filter(p => p.isRented).reduce((sum, p) => sum + p.monthlyRent, 0)
     };
+  },
+
+  // ---- Check and unlock achievements ----
+  checkAchievements() {
+    if (!this.state.achievements) this.state.achievements = [];
+    if (!this.state.achievementNotified) this.state.achievementNotified = [];
+    var newlyUnlocked = [];
+    var s = this.state;
+    GameData.achievements.forEach(function(a) {
+      if (s.achievements.indexOf(a.id) >= 0) return; // already unlocked
+      try {
+        if (a.check(s)) {
+          s.achievements.push(a.id);
+          s.cash += a.reward;
+          newlyUnlocked.push(a);
+        }
+      } catch(e) { /* skip broken checks */ }
+    });
+    return newlyUnlocked;
   },
 
   // ---- Get portfolio statistics ----

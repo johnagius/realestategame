@@ -12,6 +12,11 @@ const GameUI = {
   PAGE_SIZE: 6,
   currentCityTab: 'market',
   currentPortfolioFilter: 'all',
+  citySort: 'price-asc',
+  cityTypeFilter: 'all',
+  portfolioSort: 'value-desc',
+  portfolioCityFilter: 'all',
+  compareList: [], // array of property IDs (max 3)
   mapView: true,
   autoTimer: null,
 
@@ -220,9 +225,40 @@ const GameUI = {
     this.renderCityProperties();
   },
 
+  // Sort an array of properties by the given sort key
+  sortProperties: function(props, sortKey) {
+    var sorted = props.slice(); // clone
+    var condOrder = { derelict: 0, poor: 1, fair: 2, good: 3, excellent: 4 };
+    sorted.sort(function(a, b) {
+      switch (sortKey) {
+        case 'price-asc':  return a.currentValue - b.currentValue;
+        case 'price-desc': return b.currentValue - a.currentValue;
+        case 'value-asc':  return a.currentValue - b.currentValue;
+        case 'value-desc': return b.currentValue - a.currentValue;
+        case 'rent-desc':  return (b.monthlyRent || 0) - (a.monthlyRent || 0);
+        case 'yield-desc':
+          var ya = a.currentValue > 0 ? (a.monthlyRent || 0) * 12 / a.currentValue : 0;
+          var yb = b.currentValue > 0 ? (b.monthlyRent || 0) * 12 / b.currentValue : 0;
+          return yb - ya;
+        case 'size-desc':   return (b.size || 0) - (a.size || 0);
+        case 'condition-desc': return (condOrder[b.condition] || 0) - (condOrder[a.condition] || 0);
+        case 'condition-asc':  return (condOrder[a.condition] || 0) - (condOrder[b.condition] || 0);
+        case 'appreciation-desc': return (b.appreciation || 0) - (a.appreciation || 0);
+        case 'city': return (a.cityId || '').localeCompare(b.cityId || '');
+        case 'type': return (a.type || '').localeCompare(b.type || '');
+        default: return 0;
+      }
+    });
+    return sorted;
+  },
+
   renderCityProperties() {
     var cityId = this.currentCity;
     var tab = this.currentCityTab;
+
+    // Show/hide sort bar based on tab
+    var sortBar = document.getElementById('city-sort-bar');
+    if (sortBar) sortBar.style.display = (tab === 'businesses') ? 'none' : 'flex';
 
     // Handle businesses tab separately
     if (tab === 'businesses') {
@@ -236,6 +272,15 @@ const GameUI = {
     } else {
       props = GameEngine.state.properties.filter(function(p) { return p.cityId === cityId; });
     }
+
+    // Apply type filter
+    if (this.cityTypeFilter && this.cityTypeFilter !== 'all') {
+      var tf = this.cityTypeFilter;
+      props = props.filter(function(p) { return p.type === tf; });
+    }
+
+    // Apply sort
+    props = this.sortProperties(props, this.citySort);
 
     var grid = document.getElementById('city-properties');
     var empty = document.getElementById('city-empty');
@@ -294,8 +339,11 @@ const GameUI = {
     }
     condBar += '</div>';
 
-    return '<div class="property-card" data-property="' + p.id + '" data-city="' + p.cityId + '" style="animation-delay:' + delay + 's">' +
-      badge +
+    var isCompared = this.compareList.indexOf(p.id) >= 0;
+    var compareBtn = '<button class="compare-btn' + (isCompared ? ' active' : '') + '" onclick="event.stopPropagation();GameUI.toggleCompare(\'' + p.id + '\',\'' + p.cityId + '\')" title="Compare">⚖️</button>';
+
+    return '<div class="property-card' + (isCompared ? ' compare-selected' : '') + '" data-property="' + p.id + '" data-city="' + p.cityId + '" style="animation-delay:' + delay + 's">' +
+      badge + compareBtn +
       '<div class="property-card-type">' +
         '<span class="property-thumb">' + (typeof GameGraphics !== 'undefined' ? GameGraphics.propertyThumb(p.type) : typeDef.icon) + '</span>' +
         '<span class="property-type-label">' + typeDef.name + '</span>' +
@@ -311,6 +359,129 @@ const GameUI = {
       '</div>' +
       condBar +
     '</div>';
+  },
+
+  // ---- Compare System ----
+  toggleCompare: function(propertyId, cityId) {
+    var idx = this.compareList.indexOf(propertyId);
+    if (idx >= 0) {
+      this.compareList.splice(idx, 1);
+    } else {
+      if (this.compareList.length >= 3) {
+        this.compareList.shift(); // remove oldest
+      }
+      this.compareList.push(propertyId);
+    }
+    this.updateCompareBar();
+    // Re-render current view to update card highlights
+    if (this.currentScreen === 'city') this.renderCityProperties();
+    else if (this.currentScreen === 'portfolio') this.renderPortfolio();
+  },
+
+  updateCompareBar: function() {
+    var bar = document.getElementById('compare-bar');
+    if (!bar) return;
+    if (this.compareList.length === 0) {
+      bar.style.display = 'none';
+      return;
+    }
+    bar.style.display = 'flex';
+    var count = this.compareList.length;
+    bar.innerHTML =
+      '<span>⚖️ ' + count + ' selected</span>' +
+      '<button class="btn btn-primary btn-small" onclick="GameUI.showCompareModal()"' + (count < 2 ? ' disabled' : '') + '>Compare</button>' +
+      '<button class="btn btn-ghost btn-small" onclick="GameUI.compareList=[];GameUI.updateCompareBar();GameUI.renderCityProperties()">Clear</button>';
+  },
+
+  showCompareModal: function() {
+    if (this.compareList.length < 2) return;
+    var props = [];
+    var self = this;
+    this.compareList.forEach(function(id) {
+      var p = GameEngine.state.properties.find(function(x) { return x.id === id; });
+      if (!p) {
+        for (var cid in GameEngine.state.marketProperties) {
+          var found = GameEngine.state.marketProperties[cid].find(function(x) { return x.id === id; });
+          if (found) { p = found; break; }
+        }
+      }
+      if (p) props.push(p);
+    });
+    if (props.length < 2) return;
+
+    var colWidth = Math.floor(100 / props.length);
+    var html = '<div class="compare-modal-content">';
+    html += '<div class="compare-header"><h3>Property Comparison</h3><button class="btn btn-ghost btn-small" onclick="document.getElementById(\'compare-modal\').style.display=\'none\'">Close</button></div>';
+    html += '<div class="compare-grid" style="grid-template-columns:repeat(' + props.length + ',1fr)">';
+
+    // Property names
+    props.forEach(function(p) {
+      var typeDef = GameData.propertyTypes[p.type];
+      var city = GameData.cities.find(function(c) { return c.id === p.cityId; });
+      html += '<div class="compare-cell compare-name">' + typeDef.icon + ' ' + p.name + '<br><span style="font-size:0.7rem;color:var(--text-muted)">' + (city ? city.flag + ' ' + city.name : '') + '</span></div>';
+    });
+
+    // Comparison rows
+    var rows = [
+      { label: 'Price', fn: function(p) { return GameData.formatMoney(p.currentValue); } },
+      { label: 'Type', fn: function(p) { return GameData.propertyTypes[p.type].name; } },
+      { label: 'Size', fn: function(p) { return p.size + ' m\u00B2'; } },
+      { label: 'Condition', fn: function(p) { return GameData.conditions[p.condition].name; } },
+      { label: 'Monthly Rent', fn: function(p) { return p.monthlyRent > 0 ? GameData.formatMoney(p.monthlyRent) : '—'; } },
+      { label: 'Annual Yield', fn: function(p) { return p.currentValue > 0 && p.monthlyRent > 0 ? ((p.monthlyRent * 12 / p.currentValue) * 100).toFixed(1) + '%' : '—'; } },
+      { label: 'Appreciation', fn: function(p) { return p.appreciation !== undefined ? (p.appreciation >= 0 ? '+' : '') + p.appreciation.toFixed(1) + '%' : '—'; } },
+      { label: 'Status', fn: function(p) {
+        if (p.isRented) return 'Rented';
+        if (p.isRefurbishing) return 'Refurbishing';
+        if (p.isBuilding) return 'Building';
+        if (p.isOwned) return 'Vacant';
+        return 'For Sale';
+      }},
+    ];
+
+    rows.forEach(function(row) {
+      html += '<div class="compare-cell compare-label">' + row.label + '</div>';
+      // Values — highlight best
+      var vals = props.map(row.fn);
+      for (var i = 1; i < props.length; i++) {
+        html += '<div class="compare-cell">' + vals[i - 1] + '</div>';
+      }
+      // last column needs the label column offset accounted for — actually let me redo the grid
+    });
+
+    html += '</div></div>';
+
+    // Actually, let me use a simpler table layout
+    html = '<div class="compare-modal-content">';
+    html += '<div class="compare-header"><h3>⚖️ Property Comparison</h3><button class="btn btn-ghost btn-small" onclick="document.getElementById(\'compare-modal\').style.display=\'none\'">Close</button></div>';
+    html += '<table class="compare-table"><thead><tr><th></th>';
+    props.forEach(function(p) {
+      var typeDef = GameData.propertyTypes[p.type];
+      var city = GameData.cities.find(function(c) { return c.id === p.cityId; });
+      html += '<th>' + typeDef.icon + ' ' + p.name + '<br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">' + (city ? city.flag + ' ' + city.name : '') + '</span></th>';
+    });
+    html += '</tr></thead><tbody>';
+
+    rows.forEach(function(row) {
+      html += '<tr><td class="compare-label">' + row.label + '</td>';
+      props.forEach(function(p) {
+        html += '<td>' + row.fn(p) + '</td>';
+      });
+      html += '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+
+    var modal = document.getElementById('compare-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'compare-modal';
+      modal.className = 'compare-modal-overlay';
+      modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
+      document.body.appendChild(modal);
+    }
+    modal.innerHTML = html;
+    modal.style.display = 'flex';
   },
 
   // ---- Render Property Detail ----
@@ -359,13 +530,40 @@ const GameUI = {
       } else if (p.isRefurbishing) {
         actionsHTML += '<div class="action-info">🔨 Refurbishing — ' + p.refurbMonthsLeft + ' months remaining</div>';
       } else {
-        // Rent toggle
+        // Rent toggle + tenant info + rent adjustment
         if (typeDef.canRent && p.condition !== 'derelict') {
+          var rm = p.rentMultiplier || 1.0;
+          var adjRent = Math.round(p.monthlyRent * rm);
           if (p.isRented) {
-            actionsHTML += '<button class="btn btn-secondary" onclick="App.toggleRent(\'' + p.id + '\')">Stop Renting</button>';
+            // Show current tenant
+            if (p.tenant) {
+              actionsHTML += '<div class="tenant-info">' +
+                '<div class="tenant-header">' + p.tenant.icon + ' <strong>' + p.tenant.name + '</strong> <span style="font-size:0.7rem;color:var(--text-muted)">(' + (p.tenant.monthsOccupied || 0) + ' months)</span></div>' +
+                '<div class="tenant-stats">' +
+                  '<span title="Reliability — affects late payments">🔒 ' + Math.round((p.tenant.reliability || 0.85) * 100) + '%</span>' +
+                  '<span title="Care — affects property damage">🧹 ' + Math.round((p.tenant.care || 0.80) * 100) + '%</span>' +
+                  '<span title="Satisfaction">😊 ' + Math.round((p.tenant.satisfaction || 0.85) * 100) + '%</span>' +
+                '</div>' +
+              '</div>';
+            }
+            actionsHTML += '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">';
+            actionsHTML += '<button class="btn btn-secondary btn-small" style="flex:1" onclick="App.toggleRent(\'' + p.id + '\')">Stop Renting</button>';
+            actionsHTML += '<button class="btn btn-ghost btn-small" style="flex:1" onclick="App.evictTenant(\'' + p.id + '\')">Evict (costs ' + GameData.formatMoney(adjRent) + ')</button>';
+            actionsHTML += '</div>';
           } else {
-            actionsHTML += '<button class="btn btn-primary" onclick="App.toggleRent(\'' + p.id + '\')">Rent Out — ' + GameData.formatMoney(p.monthlyRent) + '/mo</button>';
+            actionsHTML += '<button class="btn btn-primary" onclick="App.toggleRent(\'' + p.id + '\')">Rent Out — ' + GameData.formatMoney(adjRent) + '/mo</button>';
           }
+          // Rent adjustment slider
+          actionsHTML += '<div class="rent-adjust">' +
+            '<label class="settings-label" style="margin-bottom:4px">Rent Level: <strong>' + Math.round(rm * 100) + '%</strong> (' + GameData.formatMoney(adjRent) + '/mo)</label>' +
+            '<div style="display:flex;gap:4px;flex-wrap:wrap">' +
+              '<button class="btn btn-ghost btn-small' + (rm <= 0.75 ? ' active' : '') + '" onclick="App.adjustRent(\'' + p.id + '\',0.8)">80% Low</button>' +
+              '<button class="btn btn-ghost btn-small' + (rm > 0.85 && rm < 1.05 ? ' active' : '') + '" onclick="App.adjustRent(\'' + p.id + '\',1.0)">100% Market</button>' +
+              '<button class="btn btn-ghost btn-small' + (rm >= 1.05 && rm < 1.15 ? ' active' : '') + '" onclick="App.adjustRent(\'' + p.id + '\',1.1)">110% High</button>' +
+              '<button class="btn btn-ghost btn-small' + (rm >= 1.15 ? ' active' : '') + '" onclick="App.adjustRent(\'' + p.id + '\',1.2)">120% Premium</button>' +
+            '</div>' +
+            '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:3px">Higher rent = more income but pickier tenants + slower fills</div>' +
+          '</div>';
         }
 
         // Renovation tiers
@@ -449,9 +647,34 @@ const GameUI = {
             '<span class="condition-text" style="color:' + condDef.color + '">' + condDef.name + '</span>' +
           '</div>' +
           condBarHTML +
+          (p.isOwned ? this.renderDegradationInfo(p) : '') +
         '</div>' +
         actionsHTML +
       '</div>';
+  },
+
+  renderDegradationInfo: function(p) {
+    // Show condition decay estimate
+    // Base: 0.5% chance per month to degrade, doubled if rented, worse if poor/derelict
+    var baseChance = 0.005;
+    if (p.isRented) baseChance *= 2;
+    if (p.condition === 'poor') baseChance *= 1.3;
+    if (p.condition === 'derelict') baseChance *= 0.5; // can't go lower
+    if (p.condition === 'excellent') baseChance *= 1.5; // degrades faster from top
+
+    // Tenant care factor
+    if (p.tenant && p.tenant.care) {
+      baseChance *= (2.0 - p.tenant.care); // care 0.95 → ×1.05, care 0.6 → ×1.4
+    }
+
+    var monthsEstimate = Math.round(1 / baseChance);
+    if (p.condition === 'derelict') {
+      return '<div class="degradation-info">Already at lowest condition</div>';
+    }
+    var urgency = monthsEstimate < 12 ? 'degradation-warn' : monthsEstimate < 24 ? 'degradation-caution' : 'degradation-ok';
+    return '<div class="degradation-info ' + urgency + '">' +
+      (p.isRented ? '📊 Est. ~' + monthsEstimate + ' months until condition drops (rented)' : '📊 Est. ~' + monthsEstimate + ' months until condition drops') +
+    '</div>';
   },
 
   // ---- Render Mitigations ----
@@ -502,15 +725,36 @@ const GameUI = {
         '</div>' +
       '</div>';
 
+    // Populate city filter dropdown with owned cities
+    var cityFilterEl = document.getElementById('portfolio-city-filter');
+    if (cityFilterEl) {
+      var ownedCities = {};
+      GameEngine.state.properties.forEach(function(p) { ownedCities[p.cityId] = true; });
+      var opts = '<option value="all">All Cities</option>';
+      GameData.cities.forEach(function(c) {
+        if (ownedCities[c.id]) opts += '<option value="' + c.id + '"' + (GameUI.portfolioCityFilter === c.id ? ' selected' : '') + '>' + c.flag + ' ' + c.name + '</option>';
+      });
+      cityFilterEl.innerHTML = opts;
+    }
+
     // Filter properties
     if (filter === 'rented') props = props.filter(function(p) { return p.isRented; });
     else if (filter === 'vacant') props = props.filter(function(p) { return !p.isRented && !p.isRefurbishing && !p.isBuilding; });
     else if (filter === 'refurbishing') props = props.filter(function(p) { return p.isRefurbishing || p.isBuilding; });
 
+    // City filter
+    if (this.portfolioCityFilter && this.portfolioCityFilter !== 'all') {
+      var cf = this.portfolioCityFilter;
+      props = props.filter(function(p) { return p.cityId === cf; });
+    }
+
+    // Sort
+    props = this.sortProperties(props, this.portfolioSort);
+
     var list = document.getElementById('portfolio-list');
     var empty = document.getElementById('portfolio-empty');
 
-    if (props.length === 0 && filter === 'all') {
+    if (props.length === 0 && filter === 'all' && this.portfolioCityFilter === 'all') {
       list.innerHTML = '';
       empty.style.display = 'block';
       return;
@@ -548,6 +792,8 @@ const GameUI = {
           '<div class="finance-row finance-total"><span class="finance-row-label">Net Cashflow</span><span class="finance-row-value ' + (stats.monthlyCashflow >= 0 ? 'positive' : 'negative') + '">' + GameData.formatMoney(stats.monthlyCashflow) + '</span></div>' +
         '</div>' +
       '</div>' +
+
+      this.renderCashflowForecast(s, stats) +
 
       '<div class="finance-section">' +
         '<div class="finance-section-title" style="cursor:pointer" onclick="var el=document.getElementById(\'lifetime-stats\');el.style.display=el.style.display===\'none\'?\'block\':\'none\'">Lifetime Stats ▾</div>' +
@@ -636,15 +882,81 @@ const GameUI = {
     }
   },
 
+  // ---- 12-Month Cashflow Forecast ----
+  renderCashflowForecast: function(state, stats) {
+    if (!state.properties || state.properties.length === 0) return '';
+
+    // Calculate monthly projections
+    var monthlyRent = stats.monthlyIncome || 0;
+    var monthlyExpenses = stats.monthlyExpenses || 0;
+    var monthlyLoanPayments = 0;
+    if (state.loans) {
+      state.loans.forEach(function(loan) {
+        monthlyLoanPayments += loan.monthlyPayment || 0;
+      });
+    }
+    var savingsInterest = (state.savings || 0) * 0.02 / 12;
+    var monthlyNet = monthlyRent - monthlyExpenses - monthlyLoanPayments + savingsInterest;
+
+    // Project forward 12 months
+    var projectedCash = state.cash;
+    var rows = '';
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var currentMonth = state.month || 0;
+
+    for (var i = 1; i <= 12; i++) {
+      projectedCash += monthlyNet;
+      var mIdx = (currentMonth + i - 1) % 12;
+      var cls = projectedCash >= 0 ? '' : ' negative';
+      rows += '<div class="forecast-row">' +
+        '<span class="forecast-month">' + months[mIdx] + '</span>' +
+        '<span class="forecast-income positive">+' + GameData.formatMoney(Math.round(monthlyRent)) + '</span>' +
+        '<span class="forecast-expense negative">-' + GameData.formatMoney(Math.round(monthlyExpenses + monthlyLoanPayments)) + '</span>' +
+        '<span class="forecast-balance' + cls + '">' + GameData.formatMoney(Math.round(projectedCash)) + '</span>' +
+      '</div>';
+    }
+
+    return '<div class="finance-section">' +
+      '<div class="finance-section-title" style="cursor:pointer" onclick="var el=document.getElementById(\'cashflow-forecast\');el.style.display=el.style.display===\'none\'?\'block\':\'none\'">12-Month Forecast ▾</div>' +
+      '<div class="finance-card" id="cashflow-forecast" style="display:none">' +
+        '<div class="forecast-header">' +
+          '<span>Month</span><span>Income</span><span>Costs</span><span>Balance</span>' +
+        '</div>' +
+        rows +
+        '<div class="finance-row finance-total" style="margin-top:6px">' +
+          '<span class="finance-row-label">Monthly Net</span>' +
+          '<span class="finance-row-value ' + (monthlyNet >= 0 ? 'positive' : 'negative') + '">' + GameData.formatMoney(Math.round(monthlyNet)) + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  },
+
   // ---- Render Settings ----
   renderSettings() {
     var content = document.getElementById('settings-content');
+    // Build trophy case
+    var unlocked = GameEngine.state.achievements || [];
+    var total = GameData.achievements.length;
+    var trophyHTML = '<div class="trophy-case">';
+    GameData.achievements.forEach(function(a) {
+      var done = unlocked.indexOf(a.id) >= 0;
+      trophyHTML += '<div class="trophy-badge' + (done ? ' unlocked' : '') + '" title="' + a.desc + (done ? ' (Unlocked!)' : '') + '">' +
+        '<span class="trophy-icon">' + (done ? a.icon : '🔒') + '</span>' +
+        '<span class="trophy-name">' + a.name + '</span>' +
+      '</div>';
+    });
+    trophyHTML += '</div>';
+
     content.innerHTML =
       '<div class="settings-section">' +
         '<div class="settings-row"><div><div class="settings-label">Auto-Advance Time</div><div class="settings-description">Automatically advance months</div></div>' + this.renderSpeedControls() + '</div>' +
         '<div class="settings-row"><div><div class="settings-label">Sound Effects</div><div class="settings-description">' + (GameAudio.muted ? 'Muted' : 'On') + '</div></div><button class="btn btn-secondary btn-small" onclick="GameAudio.toggle();GameUI.renderSettings()">' + (GameAudio.muted ? '🔇 Unmute' : '🔊 Mute') + '</button></div>' +
         '<div class="settings-row"><div><div class="settings-label">Save Game</div><div class="settings-description">Game saves automatically each month</div></div><button class="btn btn-primary btn-small" onclick="GameEngine.save(); GameUI.toast(\'Game saved!\', \'success\')">Save Now</button></div>' +
         '<div class="settings-row"><div><div class="settings-label">New Game</div><div class="settings-description">Start fresh with €500,000</div></div><button class="btn btn-danger btn-small" onclick="App.confirmNewGame()">Reset</button></div>' +
+      '</div>' +
+      '<div class="settings-section">' +
+        '<div class="finance-section-title">🏆 Achievements (' + unlocked.length + '/' + total + ')</div>' +
+        trophyHTML +
       '</div>' +
       '<div class="settings-section">' +
         '<div class="settings-row"><div><div class="settings-label">Property Empire</div><div class="settings-description">v2.0 — Build your real estate fortune</div></div></div>' +
@@ -749,9 +1061,14 @@ const GameUI = {
       }
     }
 
-    // Foreclosure
+    // Foreclosure warning / execution
     if (results.foreclosure) {
       GameUI.toast('🏦 FORECLOSURE! ' + results.foreclosure.property.name + ' sold for ' + GameData.formatMoney(results.foreclosure.amount) + ' (70% of value)', 'error');
+      GameAudio.alarm();
+    } else if (GameEngine.state.consecutiveNegativeCash === 1) {
+      GameUI.toast('⚠️ Cash negative! Foreclosure in 2 months if not resolved.', 'error');
+    } else if (GameEngine.state.consecutiveNegativeCash === 2) {
+      GameUI.toast('🚨 DANGER! Cash still negative — foreclosure NEXT MONTH! Sell a property or take a loan.', 'error');
       GameAudio.alarm();
     }
 
@@ -760,6 +1077,14 @@ const GameUI = {
       var names = results.degraded.slice(0, 2).map(function(p){return p.name;}).join(', ');
       GameUI.setTicker('🏚️ Deteriorated: ' + names + (results.degraded.length > 2 ? ' +' + (results.degraded.length-2) + ' more' : ''));
       if (!isAutoPlaying) GameAudio.negative();
+    }
+
+    // Achievements
+    if (results.newAchievements && results.newAchievements.length > 0) {
+      results.newAchievements.forEach(function(a) {
+        GameUI.toast(a.icon + ' Achievement: ' + a.name + '! +' + GameData.formatMoney(a.reward), 'success');
+        GameAudio.fanfare();
+      });
     }
 
     // Dynasty events

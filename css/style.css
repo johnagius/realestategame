@@ -1116,6 +1116,229 @@ h4 { font-size: 1rem; }
   flex-shrink: 0;
 }
 
+.sort-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.sort-select {
+  padding: 5px 10px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-light);
+  font-family: var(--font-body);
+  outline: none;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+  max-width: 180px;
+}
+.sort-select:focus {
+  border-color: var(--primary);
+}
+
+/* ---- Compare System ---- */
+.compare-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  transition: all 0.15s;
+  z-index: 2;
+  padding: 0;
+}
+.compare-btn:hover { opacity: 1; border-color: var(--primary); }
+.compare-btn.active {
+  opacity: 1;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.property-card.compare-selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(44,110,73,0.2), 0 2px 8px var(--shadow);
+}
+
+.compare-bar {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 14px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--primary);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+  z-index: 90;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.compare-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 16px;
+}
+.compare-modal-content {
+  background: var(--bg);
+  border-radius: 14px;
+  padding: 16px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+.compare-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.compare-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.compare-table th {
+  padding: 8px 6px;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-bottom: 2px solid var(--border);
+  background: rgba(44,110,73,0.04);
+}
+.compare-table td {
+  padding: 6px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-light, rgba(0,0,0,0.06));
+}
+.compare-table .compare-label {
+  text-align: left;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+/* ---- Cashflow Forecast ---- */
+.forecast-header,
+.forecast-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 1fr 1fr;
+  gap: 4px;
+  font-size: 0.72rem;
+  padding: 3px 0;
+  align-items: center;
+}
+.forecast-header {
+  font-weight: 700;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 5px;
+  margin-bottom: 3px;
+}
+.forecast-month { font-weight: 700; }
+.forecast-income { text-align: right; }
+.forecast-expense { text-align: right; }
+.forecast-balance { text-align: right; font-weight: 700; }
+.forecast-balance.negative { color: #E63946; }
+
+/* ---- Tenant Info ---- */
+.tenant-info {
+  background: rgba(44,110,73,0.05);
+  border: 1px solid rgba(44,110,73,0.15);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.tenant-header {
+  font-size: 0.82rem;
+  margin-bottom: 4px;
+}
+.tenant-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.rent-adjust {
+  margin-top: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.rent-adjust .btn-ghost.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* ---- Degradation Info ---- */
+.degradation-info {
+  font-size: 0.7rem;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.degradation-ok { color: var(--text-muted); }
+.degradation-caution { color: #D4A84B; background: rgba(212,168,75,0.08); }
+.degradation-warn { color: #E63946; background: rgba(230,57,70,0.08); font-weight: 700; }
+
+/* ---- Trophy Case (Achievements) ---- */
+.trophy-case {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 6px;
+  padding: 8px 0;
+}
+.trophy-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.03);
+  border: 1.5px solid var(--border);
+  text-align: center;
+  opacity: 0.4;
+  transition: all 0.2s;
+}
+.trophy-badge.unlocked {
+  opacity: 1;
+  background: rgba(212,168,75,0.08);
+  border-color: rgba(212,168,75,0.3);
+}
+.trophy-icon { font-size: 1.4rem; }
+.trophy-name { font-size: 0.6rem; font-weight: 700; line-height: 1.2; }
+
 .filter-btn {
   padding: 6px 14px;
   border: 1.5px solid var(--border);
