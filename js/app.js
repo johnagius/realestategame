@@ -264,6 +264,14 @@ const App = {
     if (!document.getElementById('floating-leaderboard').classList.contains('hidden')) {
       GameUI.renderFloatingLeaderboard();
     }
+    // Re-render current screen so it reflects state changes (refurb complete, etc.)
+    var screen = GameUI.currentScreen;
+    if (screen === 'property') GameUI.renderProperty();
+    else if (screen === 'city') GameUI.renderCityProperties();
+    else if (screen === 'portfolio') GameUI.renderPortfolio();
+    else if (screen === 'finances') GameUI.renderFinances();
+    else if (screen === 'bank') GameUI.renderBank();
+
     GameUI.showMonthResults(results);
 
     // Show AI interaction or decision card
