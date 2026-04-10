@@ -42,7 +42,9 @@ const GameUI = {
     if (!s) return;
     document.getElementById('hud-cash').textContent = GameData.formatMoney(s.cash);
     var dateEl = document.getElementById('hud-date');
+    var era = GameEngine.getCurrentEra();
     dateEl.textContent = GameEngine.getDateString();
+    dateEl.title = era.name;
     document.getElementById('hud-networth').textContent = GameData.formatMoney(GameEngine.getNetWorth());
     // Speed controls in HUD
     document.getElementById('hud-speed').innerHTML = this.renderSpeedControls();
@@ -537,6 +539,13 @@ const GameUI = {
     var speed = (GameEngine.state && GameEngine.state.autoAdvanceSpeed) || 0;
     var isAutoPlaying = speed > 0;
 
+    // Era transitions
+    if (results.eraChange) {
+      var era = results.eraChange.newEra;
+      this.showEventPopup(era.icon, 'New Era: ' + era.name, era.description, '', 'positive');
+      return; // Let them read this important message
+    }
+
     // Show disasters as event popups
     if (hasDisasters) {
       var d = results.disasters[0];
@@ -750,6 +759,31 @@ const GameUI = {
     });
     html += '</div></div>';
 
+    // Player-owned banks
+    var playerBanks = s.playerBanks || [];
+    var era = GameEngine.getCurrentEra();
+
+    if (playerBanks.length > 0) {
+      html += '<div class="finance-section"><div class="finance-section-title">🏦 Your Banks</div>';
+      playerBanks.forEach(function(bank) {
+        html += '<div class="bank-card">' +
+          '<div class="bank-header"><span class="bank-icon">🏦</span><div><div class="bank-name">' + bank.name + '</div>' +
+          '<div class="bank-description">Reputation: ' + Math.round(bank.reputation) + '/100 · ' + bank.loansOut.length + ' active loans</div></div></div>' +
+          '<div class="city-info-bar">' +
+            '<div class="city-info-chip">💰 Capital: <strong>' + GameData.formatMoney(bank.capital) + '</strong></div>' +
+            '<div class="city-info-chip">🏧 Reserves: <strong>' + GameData.formatMoney(bank.reserves) + '</strong></div>' +
+            '<div class="city-info-chip">📈 Profit: <strong class="text-success">' + GameData.formatMoney(bank.monthlyProfit) + '/mo</strong></div>' +
+          '</div>' +
+        '</div>';
+      });
+      html += '</div>';
+    } else if (era.features.playerBanks && GameEngine.canOpenBank()) {
+      html += '<div class="finance-section"><div class="finance-card text-center">' +
+        '<p style="margin-bottom:10px;font-weight:700">You have enough capital to open your own bank!</p>' +
+        '<button class="btn btn-primary" onclick="App.openBank()">🏦 Open a Bank</button>' +
+      '</div></div>';
+    }
+
     // Active loans section
     if (loans.length > 0) {
       html += '<div class="finance-section"><div class="finance-section-title">Active Loans</div>';
@@ -846,12 +880,27 @@ const GameUI = {
         '</div>';
 
       if (myStake) {
-        html += '<div class="city-info-chip" style="width:100%;margin-bottom:6px">You own <strong>' + myStake.stakePct + '%</strong> · Dividends: <strong>' + GameData.formatMoney(Math.round(biz.monthlyProfit * myStake.stakePct / 100 * biz.performance)) + '/mo</strong></div>';
-        html += '<div style="display:flex;gap:6px">';
+        var control = GameEngine.getControlLevel(myStake.stakePct);
+        html += '<div class="city-info-chip" style="width:100%;margin-bottom:4px;justify-content:space-between">' +
+          '<span>You own <strong>' + myStake.stakePct + '%</strong></span>' +
+          '<span style="color:' + control.color + ';font-weight:800">' + control.label + '</span>' +
+        '</div>';
+        html += '<div class="city-info-chip" style="width:100%;margin-bottom:6px">Dividends: <strong>' + GameData.formatMoney(Math.round(biz.monthlyProfit * myStake.stakePct / 100 * biz.performance)) + '/mo</strong></div>';
+        html += '<div style="display:flex;gap:4px;flex-wrap:wrap">';
         if (biz.availableStake >= 5) {
-          html += '<button class="btn btn-primary btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 10)">Buy 10%</button>';
+          html += '<button class="btn btn-primary btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 10)">+10%</button>';
         }
-        html += '<button class="btn btn-danger btn-small" style="flex:1" onclick="App.sellStake(\'' + biz.id + '\')">Sell Stake</button>';
+        if (biz.availableStake >= 25) {
+          html += '<button class="btn btn-accent btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 25)">+25%</button>';
+        }
+        // Merger button if controlling and another biz exists
+        if (myStake.stakePct >= 51 && GameEngine.canMerge()) {
+          var otherBiz = businesses.filter(function(b) { return b.id !== biz.id; });
+          if (otherBiz.length > 0) {
+            html += '<button class="btn btn-ghost btn-small" style="flex:1" onclick="App.showMergerOptions(\'' + biz.id + '\', \'' + cityId + '\')">🤝 Merge</button>';
+          }
+        }
+        html += '<button class="btn btn-danger btn-small" style="flex:1" onclick="App.sellStake(\'' + biz.id + '\')">Sell</button>';
         html += '</div>';
       } else if (biz.availableStake >= 5) {
         html += '<div style="display:flex;gap:6px">';
@@ -879,7 +928,7 @@ const GameUI = {
     }
 
     GameEngine.state.autoAdvanceSpeed = speed;
-    var intervals = { 0: 0, 1: 3000, 2: 1500, 3: 600 };
+    var intervals = { 0: 0, 1: 5000, 2: 2500, 3: 1200 };
     var ms = intervals[speed] || 0;
 
     if (ms > 0) {

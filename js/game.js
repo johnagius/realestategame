@@ -17,8 +17,9 @@ const GameEngine = {
       familyColor: family.color,
       cash: family.startingCash,
       month: 0,       // months since start
-      year: 2024,
+      year: GameData.startingYear || 1750,
       monthIndex: 0,  // 0-11
+      currentEra: 'pre_industrial',
       properties: [], // owned properties
       marketProperties: {}, // cityId -> [properties]
       totalPropertiesBought: 0,
@@ -50,6 +51,10 @@ const GameEngine = {
       // Investments (stocks & bonds)
       investments: [],      // { id, type:'stock'|'bond', name, icon, amount, purchasePrice, currentPrice, yield, risk }
       totalInvestmentGains: 0,
+      // Player-owned banks
+      playerBanks: [],      // { id, name, capital, interestRate, loans: [], monthlyProfit }
+      // Merger history
+      mergerHistory: [],
       // Auto-sell rules
       autoSellRules: [],    // { propertyId, type: 'pct'|'value', threshold }
       // Auto-advance
@@ -61,13 +66,14 @@ const GameEngine = {
       this.state.marketProperties[city.id] = GameData.generateCityProperties(city.id);
     });
 
-    // Generate initial businesses for all cities
+    // Generate initial businesses for all cities (era-appropriate)
+    const startEra = this.getCurrentEra();
     GameData.cities.forEach(city => {
       this.state.businesses[city.id] = [];
-      const bizTypes = Object.keys(GameData.businessTypes);
+      const eraBizTypes = startEra.businessTypes || Object.keys(GameData.businessTypes);
       const count = 3 + Math.floor(Math.random() * 4);
       for (let i = 0; i < count; i++) {
-        const type = bizTypes[Math.floor(Math.random() * bizTypes.length)];
+        const type = eraBizTypes[Math.floor(Math.random() * eraBizTypes.length)];
         const biz = GameData.generateBusiness(city.id, type);
         if (biz) this.state.businesses[city.id].push(biz);
       }
@@ -890,8 +896,17 @@ const GameEngine = {
     results.savingsInterest = this.processSavingsInterest();
 
     // 13. Investment returns (bonds pay coupons, stocks fluctuate)
-    results.investmentReturns = this.processInvestments();
-    results.rentIncome += results.investmentReturns;
+    var era = this.getCurrentEra();
+    if (era.features.stocks) {
+      results.investmentReturns = this.processInvestments();
+      results.rentIncome += results.investmentReturns;
+    } else {
+      results.investmentReturns = 0;
+    }
+
+    // 13b. Player bank income
+    results.bankIncome = this.processPlayerBanks();
+    results.rentIncome += results.bankIncome;
 
     // 14. Process auto-sell rules
     results.autoSold = this.processAutoSells();
@@ -912,7 +927,10 @@ const GameEngine = {
     this.state.bankRateModifier += (Math.random() - 0.5) * 0.002;
     this.state.bankRateModifier = Math.max(-0.02, Math.min(0.02, this.state.bankRateModifier));
 
-    // 15. Simulate AI families
+    // 15. Check era transition
+    results.eraChange = this.checkEraTransition();
+
+    // 16. Simulate AI families
     this.simulateAIFamilies();
 
     // 16. Check milestones
@@ -1485,6 +1503,181 @@ const GameEngine = {
     });
 
     return sold;
+  },
+
+  // ========== ERA SYSTEM ==========
+
+  getCurrentEra() {
+    const year = this.state.year;
+    return GameData.eras.find(e => year >= e.years[0] && year <= e.years[1]) || GameData.eras[GameData.eras.length - 1];
+  },
+
+  checkEraTransition() {
+    const era = this.getCurrentEra();
+    if (era.id !== this.state.currentEra) {
+      const old = this.state.currentEra;
+      this.state.currentEra = era.id;
+      return { oldEra: old, newEra: era };
+    }
+    return null;
+  },
+
+  // ========== PLAYER-OPERATED BANKS ==========
+
+  canOpenBank() {
+    const era = this.getCurrentEra();
+    if (!era.features.playerBanks) return false;
+    const nw = this.getNetWorth();
+    // Need significant capital to open a bank
+    const threshold = era.id === 'gilded_age' ? 500000 : era.id === 'modern_era' ? 5000000 : 10000000;
+    return nw >= threshold;
+  },
+
+  openBank(name, capital) {
+    if (!this.canOpenBank()) return { success: false, message: 'Cannot open a bank in this era or not enough capital.' };
+    if (this.state.cash < capital) return { success: false, message: 'Not enough cash.' };
+    if (capital < 10000) return { success: false, message: 'Minimum bank capital required.' };
+
+    this.state.cash -= capital;
+    if (!this.state.playerBanks) this.state.playerBanks = [];
+
+    this.state.playerBanks.push({
+      id: 'pbank_' + Date.now(),
+      name: name || (this.state.familyName + ' Bank'),
+      capital: capital,
+      reserves: capital,
+      interestRate: 0.06,
+      loansOut: [],
+      totalInterestEarned: 0,
+      monthlyProfit: 0,
+      reputation: 50,
+      monthOpened: this.state.month
+    });
+
+    this.save();
+    return { success: true, message: `${name} established with ${GameData.formatMoney(capital)} in capital!` };
+  },
+
+  processPlayerBanks() {
+    if (!this.state.playerBanks) return 0;
+    let totalProfit = 0;
+
+    this.state.playerBanks.forEach(bank => {
+      // Simulate lending: bank generates loans automatically
+      if (bank.reserves > bank.capital * 0.2 && Math.random() < 0.3) {
+        const loanSize = Math.round(bank.reserves * (0.1 + Math.random() * 0.2));
+        bank.reserves -= loanSize;
+        bank.loansOut.push({
+          amount: loanSize,
+          remaining: loanSize,
+          monthsLeft: 12 + Math.floor(Math.random() * 48),
+          rate: bank.interestRate
+        });
+      }
+
+      // Collect loan payments
+      let monthlyIncome = 0;
+      bank.loansOut = bank.loansOut.filter(loan => {
+        const payment = Math.round(loan.remaining / Math.max(1, loan.monthsLeft));
+        const interest = Math.round(loan.remaining * loan.rate / 12);
+        bank.reserves += payment + interest;
+        loan.remaining -= payment;
+        loan.monthsLeft--;
+        monthlyIncome += interest;
+
+        // Some defaults (risk)
+        if (Math.random() < 0.005) {
+          bank.reserves -= Math.round(loan.remaining * 0.5);
+          bank.reputation = Math.max(0, bank.reputation - 2);
+          return false;
+        }
+        return loan.remaining > 0 && loan.monthsLeft > 0;
+      });
+
+      bank.totalInterestEarned += monthlyIncome;
+      bank.monthlyProfit = monthlyIncome;
+      totalProfit += monthlyIncome;
+
+      // Reputation grows slowly
+      bank.reputation = Math.min(100, bank.reputation + 0.1);
+    });
+
+    this.state.cash += totalProfit;
+    return totalProfit;
+  },
+
+  // ========== BUSINESS MERGERS ==========
+
+  canMerge() {
+    const era = this.getCurrentEra();
+    return era.features.mergers;
+  },
+
+  mergeBusiness(businessId1, businessId2, cityId) {
+    if (!this.canMerge()) return { success: false, message: 'Mergers not available in this era.' };
+    if (!this.state.businesses || !this.state.businesses[cityId]) return { success: false, message: 'City not found.' };
+
+    const biz1 = this.state.businesses[cityId].find(b => b.id === businessId1);
+    const biz2 = this.state.businesses[cityId].find(b => b.id === businessId2);
+    if (!biz1 || !biz2) return { success: false, message: 'Business not found.' };
+
+    // Need controlling stake (51%+) in at least one
+    const stakes = this.state.ownedStakes || [];
+    const stake1 = stakes.find(s => s.businessId === businessId1);
+    const stake2 = stakes.find(s => s.businessId === businessId2);
+
+    if ((!stake1 || stake1.stakePct < 51) && (!stake2 || stake2.stakePct < 51)) {
+      return { success: false, message: 'Need controlling interest (51%+) in at least one business to merge.' };
+    }
+
+    // Cost to acquire the other
+    const targetBiz = (stake1 && stake1.stakePct >= 51) ? biz2 : biz1;
+    const acquirerBiz = (stake1 && stake1.stakePct >= 51) ? biz1 : biz2;
+    const acquisitionCost = Math.round(targetBiz.totalValue * (targetBiz.availableStake / 100) * 0.85);
+
+    if (this.state.cash < acquisitionCost) {
+      return { success: false, message: `Need ${GameData.formatMoney(acquisitionCost)} to acquire ${targetBiz.name}.` };
+    }
+
+    // Execute merger
+    this.state.cash -= acquisitionCost;
+    acquirerBiz.totalValue += targetBiz.totalValue;
+    acquirerBiz.monthlyRevenue += targetBiz.monthlyRevenue;
+    acquirerBiz.monthlyExpenses += Math.round(targetBiz.monthlyExpenses * 0.7); // Synergies
+    acquirerBiz.monthlyProfit = acquirerBiz.monthlyRevenue - acquirerBiz.monthlyExpenses;
+    acquirerBiz.employees += targetBiz.employees;
+    acquirerBiz.name = acquirerBiz.name.split(' — ')[0] + ' Group';
+
+    // Remove target from market
+    this.state.businesses[cityId] = this.state.businesses[cityId].filter(b => b.id !== targetBiz.id);
+    // Remove target stakes
+    this.state.ownedStakes = (this.state.ownedStakes || []).filter(s => s.businessId !== targetBiz.id);
+
+    if (!this.state.mergerHistory) this.state.mergerHistory = [];
+    this.state.mergerHistory.push({
+      month: this.state.month,
+      acquirer: acquirerBiz.name,
+      target: targetBiz.name,
+      cost: acquisitionCost
+    });
+
+    this.save();
+    return {
+      success: true,
+      message: `Merged ${targetBiz.name} into ${acquirerBiz.name}! Synergies save 30% on costs.`
+    };
+  },
+
+  // Get control level label for a stake
+  getControlLevel(stakePct) {
+    const t = GameData.controlThresholds;
+    if (stakePct >= t.full) return { level: 'full', label: 'Full Owner', color: '#D4A84B' };
+    if (stakePct >= t.supermajority) return { level: 'super', label: 'Supermajority', color: '#2C6E49' };
+    if (stakePct >= t.controlling) return { level: 'controlling', label: 'Controlling', color: '#2A9D8F' };
+    if (stakePct >= t.blocking) return { level: 'blocking', label: 'Blocking Minority', color: '#3D5A80' };
+    if (stakePct >= t.significant) return { level: 'significant', label: 'Board Seat', color: '#457B9D' };
+    if (stakePct >= t.minority) return { level: 'minority', label: 'Minority Stake', color: '#7B6D4E' };
+    return { level: 'none', label: 'Observer', color: '#99A3A8' };
   },
 
   // ========== BANK SAVINGS ==========
