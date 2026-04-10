@@ -4,33 +4,74 @@
 
 const GameData = {
 
+  // ---- Historical Eras ----
+  eras: [
+    {
+      id: 'pre_industrial', name: 'Pre-Industrial Era', years: [1750, 1799],
+      icon: '🏰', color: '#8B7355',
+      description: 'Land and agriculture dominate. Cities are small trading hubs.',
+      propertyMultiplier: 0.05, rentMultiplier: 0.3, businessTypes: ['farm', 'tavern', 'market', 'workshop'],
+      features: { stocks: false, mergers: false, playerBanks: false, factories: false }
+    },
+    {
+      id: 'industrial_revolution', name: 'Industrial Revolution', years: [1800, 1869],
+      icon: '🏭', color: '#6B4423',
+      description: 'Steam power transforms cities. Factories and railways emerge.',
+      propertyMultiplier: 0.12, rentMultiplier: 0.5, businessTypes: ['farm', 'tavern', 'market', 'workshop', 'factory', 'textile_mill', 'railway'],
+      features: { stocks: true, mergers: false, playerBanks: false, factories: true }
+    },
+    {
+      id: 'gilded_age', name: 'The Gilded Age', years: [1870, 1929],
+      icon: '🎩', color: '#DAA520',
+      description: 'Robber barons and tycoons. Banks, steel, and oil reshape the world.',
+      propertyMultiplier: 0.25, rentMultiplier: 0.7, businessTypes: ['market', 'factory', 'textile_mill', 'railway', 'steel_works', 'oil_company', 'department_store', 'hotel'],
+      features: { stocks: true, mergers: true, playerBanks: true, factories: true }
+    },
+    {
+      id: 'modern_era', name: 'Modern Era', years: [1930, 1979],
+      icon: '🏙️', color: '#4682B4',
+      description: 'Suburbs, highways, and consumer culture. Real estate booms.',
+      propertyMultiplier: 0.5, rentMultiplier: 0.85, businessTypes: ['factory', 'hotel', 'department_store', 'supermarket', 'restaurant', 'oil_company', 'auto_dealer', 'airline'],
+      features: { stocks: true, mergers: true, playerBanks: true, factories: true }
+    },
+    {
+      id: 'information_age', name: 'Information Age', years: [1980, 2030],
+      icon: '💻', color: '#2C6E49',
+      description: 'Technology, globalisation, and mega-cities. The world is connected.',
+      propertyMultiplier: 1.0, rentMultiplier: 1.0, businessTypes: ['hotel', 'restaurant', 'supermarket', 'tech_startup', 'gym', 'nightclub', 'shop', 'factory'],
+      features: { stocks: true, mergers: true, playerBanks: true, factories: true }
+    }
+  ],
+
+  startingYear: 1750,
+
   // ---- Playable Families ----
   families: [
     {
       id: 'silva', name: 'The Silva Family', icon: '👨‍👩‍👧‍👦', tier: 'humble',
-      description: 'A hardworking immigrant family starting from nothing. Every euro counts.',
-      startingCash: 150000, difficulty: 'Hard',
+      description: 'Peasant farmers in 1750. Build a dynasty from the soil up.',
+      startingCash: 500, difficulty: 'Hard',
       motto: '"From nothing, we build everything."',
       color: '#7B6D4E'
     },
     {
       id: 'chen', name: 'The Chen Family', icon: '👨‍👩‍👦', tier: 'middle',
-      description: 'A middle-class family with modest savings and big ambitions.',
-      startingCash: 500000, difficulty: 'Normal',
+      description: 'Merchants with a small trading post. Ambition runs in the blood.',
+      startingCash: 2000, difficulty: 'Normal',
       motto: '"Patience and persistence pay dividends."',
       color: '#2C6E49'
     },
     {
       id: 'armstrong', name: 'The Armstrongs', icon: '👫', tier: 'wealthy',
-      description: 'Old money with connections. A head start in the property game.',
-      startingCash: 2000000, difficulty: 'Easy',
+      description: 'Minor aristocrats with land holdings. Grow the family fortune.',
+      startingCash: 10000, difficulty: 'Easy',
       motto: '"Fortune favours the bold."',
       color: '#3D5A80'
     },
     {
       id: 'vanderbilt', name: 'The Vanderbilts', icon: '🎩', tier: 'elite',
-      description: 'Ultra-wealthy dynasty. Prove you can grow the empire further.',
-      startingCash: 10000000, difficulty: 'Sandbox',
+      description: 'Wealthy colonial merchants. An empire awaits.',
+      startingCash: 50000, difficulty: 'Sandbox',
       motto: '"We don\'t play the market — we ARE the market."',
       color: '#D4A84B'
     }
@@ -806,7 +847,106 @@ const GameData = {
       baseRevenueYield: 0.12,
       riskFactor: 0.30,
       employeeRange: [5, 30]
+    },
+    // Historical business types
+    farm: {
+      id: 'farm', name: 'Farm', icon: '🌾',
+      description: 'Agricultural land. The backbone of pre-industrial wealth.',
+      basePriceRange: [100, 2000],
+      baseRevenueYield: 0.06,
+      riskFactor: 0.20,
+      employeeRange: [2, 20]
+    },
+    tavern: {
+      id: 'tavern', name: 'Tavern', icon: '🍺',
+      description: 'A drinking house. Steady custom from locals and travellers.',
+      basePriceRange: [50, 500],
+      baseRevenueYield: 0.10,
+      riskFactor: 0.15,
+      employeeRange: [2, 8]
+    },
+    market: {
+      id: 'market', name: 'Trading Post', icon: '⚖️',
+      description: 'Buy and sell goods. Profits depend on trade routes.',
+      basePriceRange: [200, 3000],
+      baseRevenueYield: 0.09,
+      riskFactor: 0.20,
+      employeeRange: [2, 12]
+    },
+    workshop: {
+      id: 'workshop', name: 'Workshop', icon: '🔨',
+      description: 'Craftsmen producing goods by hand. Skilled labour.',
+      basePriceRange: [100, 1000],
+      baseRevenueYield: 0.08,
+      riskFactor: 0.10,
+      employeeRange: [3, 15]
+    },
+    textile_mill: {
+      id: 'textile_mill', name: 'Textile Mill', icon: '🧵',
+      description: 'Mechanised cloth production. The first factories.',
+      basePriceRange: [5000, 50000],
+      baseRevenueYield: 0.09,
+      riskFactor: 0.15,
+      employeeRange: [20, 200]
+    },
+    railway: {
+      id: 'railway', name: 'Railway Company', icon: '🚂',
+      description: 'Steel rails connecting cities. Enormous capital required.',
+      basePriceRange: [50000, 500000],
+      baseRevenueYield: 0.07,
+      riskFactor: 0.25,
+      employeeRange: [50, 500]
+    },
+    steel_works: {
+      id: 'steel_works', name: 'Steel Works', icon: '⚒️',
+      description: 'Forging the industrial age. Huge scale, huge profits.',
+      basePriceRange: [100000, 2000000],
+      baseRevenueYield: 0.08,
+      riskFactor: 0.15,
+      employeeRange: [100, 1000]
+    },
+    oil_company: {
+      id: 'oil_company', name: 'Oil Company', icon: '🛢️',
+      description: 'Black gold. The most valuable commodity on earth.',
+      basePriceRange: [200000, 5000000],
+      baseRevenueYield: 0.10,
+      riskFactor: 0.25,
+      employeeRange: [50, 500]
+    },
+    department_store: {
+      id: 'department_store', name: 'Department Store', icon: '🏬',
+      description: 'Grand retail palace. A cathedral of commerce.',
+      basePriceRange: [50000, 1000000],
+      baseRevenueYield: 0.07,
+      riskFactor: 0.12,
+      employeeRange: [20, 200]
+    },
+    auto_dealer: {
+      id: 'auto_dealer', name: 'Auto Dealership', icon: '🚗',
+      description: 'Selling the American dream on four wheels.',
+      basePriceRange: [100000, 800000],
+      baseRevenueYield: 0.08,
+      riskFactor: 0.18,
+      employeeRange: [10, 50]
+    },
+    airline: {
+      id: 'airline', name: 'Airline', icon: '✈️',
+      description: 'Connecting the world by air. Capital intensive.',
+      basePriceRange: [500000, 10000000],
+      baseRevenueYield: 0.05,
+      riskFactor: 0.30,
+      employeeRange: [100, 2000]
     }
+  },
+
+  // ---- Stock control thresholds (real-world based) ----
+  controlThresholds: {
+    minority: 5,        // 5%+ = minority stake, can attend meetings
+    significant: 10,    // 10%+ = significant influence, board seat possible
+    blocking: 25,       // 25%+ = blocking minority, can veto major decisions
+    controlling: 51,    // 51%+ = controlling interest, run the business
+    supermajority: 75,  // 75%+ = supermajority, can force mergers/changes
+    full: 100           // 100% = full ownership
   },
 
   // Generate a business for a city
