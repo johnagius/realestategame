@@ -812,11 +812,14 @@ const GameEngine = {
     var northernCities = { toronto:1, amsterdam:1, berlin:1, london:1, paris:1 };
     this.state.properties.forEach(p => {
       if (p.isRented && !p.isRefurbishing && !p.isBuilding) {
-        // Diminishing returns: after 5 rented properties, each additional yields 5% less
-        var diminishFactor = 1;
+        // Portfolio synergy: more properties = bonus rent (empire reputation attracts premium tenants)
+        // 1-5 properties: no bonus. 6-10: +2% each. 11-20: +1.5% each. 21+: +1% each (soft cap ~50%)
+        var synergyFactor = 1;
         if (rentedCount > 5) {
-          var excessProps = Math.min(rentedCount - 5, 30);
-          diminishFactor = Math.max(0.3, 1 - (excessProps * 0.04));
+          var tier1 = Math.min(rentedCount - 5, 5) * 0.02;  // 6-10: up to +10%
+          var tier2 = Math.max(0, Math.min(rentedCount - 10, 10)) * 0.015; // 11-20: up to +15%
+          var tier3 = Math.max(0, rentedCount - 20) * 0.01; // 21+: +1% each
+          synergyFactor = 1 + Math.min(tier1 + tier2 + tier3, 0.60); // cap at +60%
         }
 
         // Tenant-aware rent collection
@@ -833,7 +836,7 @@ const GameEngine = {
           var problemRoll = Math.random();
           if (problemRoll < 0.35) {
             // Late payment — get only 50% rent this month
-            var reducedRent = Math.round(adjustedRent * 0.5 * diminishFactor * rentCycleFactor);
+            var reducedRent = Math.round(adjustedRent * 0.5 * synergyFactor * rentCycleFactor);
             this.state.cash += reducedRent;
             p.totalRentCollected += reducedRent;
             results.rentIncome += reducedRent;
@@ -860,7 +863,7 @@ const GameEngine = {
           var seasonFactor = 1.0;
           if (isSummer && touristCities[p.cityId]) seasonFactor = 1.12;
           else if (isWinter && northernCities[p.cityId]) seasonFactor = 0.92;
-          var actualRent = Math.round(adjustedRent * diminishFactor * rentCycleFactor * seasonFactor);
+          var actualRent = Math.round(adjustedRent * synergyFactor * rentCycleFactor * seasonFactor);
           this.state.cash += actualRent;
           p.totalRentCollected += actualRent;
           results.rentIncome += actualRent;
@@ -1249,21 +1252,31 @@ const GameEngine = {
       ai.netWorth += income;
 
       // AI ACTUALLY BUYS from the market (removes properties you could buy)
-      if (Math.random() < ai.aggressiveness * 0.12) {
+      // More aggressive AI buys more often (0.08 to 0.20 chance per month)
+      if (Math.random() < ai.aggressiveness * 0.22) {
         var cities = Object.keys(state.marketProperties);
         if (cities.length > 0) {
           var cityId = cities[Math.floor(Math.random() * cities.length)];
           var market = state.marketProperties[cityId];
-          if (market && market.length > 2) { // Leave at least 2 for player
-            // AI picks cheapest property it can afford
+          if (market && market.length > 1) {
             var affordable = market.filter(p => p.currentValue < ai.netWorth * 0.3);
             if (affordable.length > 0) {
-              var target = affordable[Math.floor(Math.random() * affordable.length)];
-              // Remove from market
+              // Aggressive AIs pick the BEST property, others pick randomly
+              var target;
+              if (ai.aggressiveness > 0.6) {
+                affordable.sort(function(a,b) { return b.currentValue - a.currentValue; });
+                target = affordable[0]; // most expensive they can afford
+              } else {
+                target = affordable[Math.floor(Math.random() * affordable.length)];
+              }
               state.marketProperties[cityId] = market.filter(p => p.id !== target.id);
               ai.netWorth -= target.currentValue;
               ai.propertyCount++;
-              ai.monthlyIncome += Math.round(target.monthlyRent * 0.7); // AI manages less efficiently
+              ai.monthlyIncome += Math.round(target.monthlyRent * 0.7);
+              // Track for notification
+              if (!results.aiBuys) results.aiBuys = [];
+              var cityName = (GameData.cities.find(function(c){return c.id===cityId;}) || {}).name || cityId;
+              results.aiBuys.push({ ai: ai, property: target, cityName: cityName });
             }
           }
         }
