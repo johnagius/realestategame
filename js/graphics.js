@@ -1549,139 +1549,218 @@ const GameGraphics = {
     return s;
   },
 
-  // ===== LONDON =====
+  // ===== LONDON — Premium illustrated =====
   _city_london() {
     var s = '';
-    // Overcast sky
-    s += '<rect width="1200" height="500" fill="#C0C8D0"/>';
-    s += '<rect width="1200" height="500" fill="url(#c-sky)" opacity="0.3"/>';
-    // Heavy clouds
-    s += '<g fill="#A8B0B8" opacity="0.6">';
-    s += '<ellipse cx="150" cy="50" rx="120" ry="30" /><ellipse cx="400" cy="40" rx="150" ry="35"/>';
-    s += '<ellipse cx="700" cy="55" rx="130" ry="28"/><ellipse cx="1000" cy="45" rx="140" ry="32"/>';
-    s += '<ellipse cx="250" cy="35" rx="80" ry="25"/><ellipse cx="850" cy="30" rx="100" ry="28"/>';
+    // Overcast London sky — layered greys with warmth
+    s += '<rect width="1200" height="500" fill="#B0B8C0"/>';
+    s += '<rect width="1200" height="300" fill="#A0AAB4" opacity="0.4"/>';
+    // Heavy cloud layers
+    s += '<g fill="#98A0A8" opacity="0.45">';
+    s += '<ellipse cx="100" cy="35" rx="130" ry="28"/>';
+    s += '<ellipse cx="150" cy="30" rx="80" ry="22" fill="#A0A8B0"/>';
+    s += '<ellipse cx="350" cy="28" rx="150" ry="32"/>';
+    s += '<ellipse cx="400" cy="22" rx="90" ry="24" fill="#A8B0B8"/>';
+    s += '<ellipse cx="650" cy="35" rx="140" ry="30"/>';
+    s += '<ellipse cx="700" cy="28" rx="80" ry="22" fill="#A0A8B0"/>';
+    s += '<ellipse cx="950" cy="30" rx="130" ry="28"/>';
+    s += '<ellipse cx="1000" cy="25" rx="85" ry="22" fill="#A8B0B8"/>';
+    s += '<ellipse cx="1150" cy="38" rx="100" ry="25"/>';
+    s += '</g>';
+    // Fog layer
+    s += '<rect x="0" y="250" width="1200" height="50" fill="#B0B8C0" opacity="0.15"/>';
+
+    // === DISTANT CITY SILHOUETTE ===
+    s += '<g opacity="0.12" fill="#7A8A98">';
+    for (var dx = 0; dx < 1200; dx += 20) {
+      var dh = 10 + Math.sin(dx*0.04)*6;
+      s += '<rect x="'+dx+'" y="'+(268-dh)+'" width="17" height="'+dh+'"/>';
+    }
+    s += '</g>';
+
+    // === LONDON EYE (background, left) ===
+    s += '<g transform="translate(160, 215)" opacity="0.35">';
+    s += '<circle cx="0" cy="0" r="50" fill="none" stroke="#7A8A98" stroke-width="2"/>';
+    s += '<circle cx="0" cy="0" r="48" fill="none" stroke="#8A9AA8" stroke-width="0.5"/>';
+    for (var a = 0; a < 360; a += 22.5) {
+      var rad = a * Math.PI / 180;
+      var ex = Math.cos(rad) * 48, ey = Math.sin(rad) * 48;
+      s += '<line x1="0" y1="0" x2="'+ex+'" y2="'+ey+'" stroke="#8A9AA8" stroke-width="0.4"/>';
+      // Capsules
+      s += '<ellipse cx="'+ex+'" cy="'+ey+'" rx="4.5" ry="3" fill="#C0C8D0" stroke="#8A9AA8" stroke-width="0.4" transform="rotate(0,'+ex+','+ey+')"/>';
+    }
+    // Support
+    s += '<line x1="0" y1="50" x2="-15" y2="85" stroke="#7A8A98" stroke-width="2.5"/>';
+    s += '<line x1="0" y1="50" x2="15" y2="85" stroke="#7A8A98" stroke-width="2.5"/>';
     s += '</g>';
 
     // === BIG BEN / ELIZABETH TOWER ===
-    s += '<g transform="translate(500, 80)">';
-    // Main tower
-    s += '<rect x="-12" y="0" width="24" height="200" fill="url(#c-stone)" stroke="#A09878" stroke-width="1"/>';
-    // Clock section
-    s += '<rect x="-16" y="20" width="32" height="35" fill="#D0C8B0" stroke="#A09878" stroke-width="0.8"/>';
+    s += '<g transform="translate(530, 72)">';
+    // Main tower body — Gothic stone
+    s += '<rect x="-14" y="25" width="28" height="205" fill="#D0C8B4" stroke="#A8A08A" stroke-width="0.8"/>';
+    // Stone course lines
+    s += '<g stroke="#B8B098" stroke-width="0.3" opacity="0.4">';
+    for (var cy = 30; cy < 228; cy += 10) { s += '<line x1="-14" y1="'+cy+'" x2="14" y2="'+cy+'"/>'; }
+    s += '</g>';
+    // Clock section — wider
+    s += '<rect x="-18" y="18" width="36" height="35" fill="#D8D0BC" stroke="#A8A08A" stroke-width="0.8"/>';
     // Clock face
-    s += '<circle cx="0" cy="37" r="12" fill="#F8F0E0" stroke="#8A7A60" stroke-width="1"/>';
-    s += '<circle cx="0" cy="37" r="1" fill="#2A2A2A"/>';
-    s += '<line x1="0" y1="37" x2="0" y2="28" stroke="#2A2A2A" stroke-width="1"/>';
-    s += '<line x1="0" y1="37" x2="6" y2="37" stroke="#2A2A2A" stroke-width="0.8"/>';
-    // Spire
-    s += '<polygon points="-8,0 0,-30 8,0" fill="url(#c-slate)"/>';
-    s += '<line x1="0" y1="-30" x2="0" y2="-40" stroke="#5A5A5A" stroke-width="1"/>';
-    // Gothic details
-    s += '<g stroke="#A09878" stroke-width="0.5" fill="none">';
-    for (var gy = 60; gy < 200; gy += 15) {
-      s += '<rect x="-8" y="'+gy+'" width="5" height="10" rx="2.5" ry="2.5"/>';
-      s += '<rect x="3" y="'+gy+'" width="5" height="10" rx="2.5" ry="2.5"/>';
+    s += '<circle cx="0" cy="35" r="13" fill="#F0EAD8" stroke="#8A826A" stroke-width="1.2"/>';
+    s += '<circle cx="0" cy="35" r="11" fill="none" stroke="#B0A888" stroke-width="0.4"/>';
+    s += '<circle cx="0" cy="35" r="1.2" fill="#2A2A28"/>';
+    // Hour markers
+    for (var h = 0; h < 12; h++) {
+      var ha = h * 30 * Math.PI / 180;
+      s += '<line x1="'+(Math.sin(ha)*9)+'" y1="'+(35-Math.cos(ha)*9)+'" x2="'+(Math.sin(ha)*11)+'" y2="'+(35-Math.cos(ha)*11)+'" stroke="#4A4238" stroke-width="0.6"/>';
+    }
+    // Hands
+    s += '<line x1="0" y1="35" x2="0" y2="26" stroke="#2A2A28" stroke-width="1.2"/>';
+    s += '<line x1="0" y1="35" x2="6" y2="33" stroke="#2A2A28" stroke-width="0.8"/>';
+    // Gothic spire
+    s += '<polygon points="-10,18 0,-5 10,18" fill="#B0A890" stroke="#8A826A" stroke-width="0.6"/>';
+    s += '<line x1="0" y1="-5" x2="0" y2="-18" stroke="#8A826A" stroke-width="1.2"/>';
+    // Pinnacle
+    s += '<polygon points="-2,-18 0,-24 2,-18" fill="#A0988A"/>';
+    // Gothic arched windows down the shaft
+    s += '<g fill="#5A6A7A" stroke="#A8A08A" stroke-width="0.3">';
+    for (var wy = 60; wy < 225; wy += 18) {
+      s += '<rect x="-7" y="'+wy+'" width="5" height="12" rx="2.5" ry="2.5"/>';
+      s += '<rect x="2" y="'+wy+'" width="5" height="12" rx="2.5" ry="2.5"/>';
     }
     s += '</g>';
     s += '</g>';
 
     // === HOUSES OF PARLIAMENT ===
-    s += '<g transform="translate(350, 210)">';
-    s += '<rect x="0" y="0" width="260" height="70" fill="url(#c-stone)" stroke="#A09878" stroke-width="1"/>';
-    // Roof
-    s += '<rect x="-2" y="-8" width="264" height="10" fill="url(#c-slate)"/>';
-    // Gothic windows
-    s += '<g fill="#6A8098" stroke="#A09878" stroke-width="0.4">';
-    for (var wx = 10; wx < 250; wx += 18) {
-      s += '<rect x="'+wx+'" y="12" width="8" height="18" rx="4" ry="4"/>';
-      s += '<rect x="'+wx+'" y="40" width="8" height="14" rx="1"/>';
+    s += '<g transform="translate(380, 210)">';
+    // Main long facade
+    s += '<rect x="0" y="8" width="280" height="70" fill="#D0C8B4" stroke="#A8A08A" stroke-width="0.8"/>';
+    // Roof line
+    s += '<rect x="-3" y="2" width="286" height="8" fill="#6A7A6A" stroke="#5A6A5A" stroke-width="0.5"/>';
+    // Gothic windows — varied
+    s += '<g fill="#5A6A7A" stroke="#A8A08A" stroke-width="0.3">';
+    for (var wx = 8; wx < 270; wx += 14) {
+      var wh = (wx % 28 < 14) ? 18 : 14;
+      s += '<rect x="'+wx+'" y="'+(20-wh+14)+'" width="6" height="'+wh+'" rx="3" ry="3"/>';
+      // Lower windows
+      s += '<rect x="'+wx+'" y="48" width="6" height="12" rx="1"/>';
     }
     s += '</g>';
-    // Towers
-    s += '<rect x="-5" y="-25" width="15" height="30" fill="url(#c-stone)" stroke="#A09878" stroke-width="0.5"/>';
-    s += '<polygon points="-5,-25 2.5,-35 10,-25" fill="url(#c-slate)"/>';
-    s += '<rect x="250" y="-25" width="15" height="30" fill="url(#c-stone)" stroke="#A09878" stroke-width="0.5"/>';
-    s += '<polygon points="250,-25 257.5,-35 265,-25" fill="url(#c-slate)"/>';
+    // Victoria Tower (left)
+    s += '<rect x="-8" y="-25" width="18" height="40" fill="#D0C8B4" stroke="#A8A08A" stroke-width="0.6"/>';
+    s += '<polygon points="-8,-25 1,-38 10,-25" fill="#6A7A6A" stroke="#5A6A5A" stroke-width="0.5"/>';
+    // Central tower
+    s += '<rect x="130" y="-15" width="14" height="28" fill="#D0C8B4" stroke="#A8A08A" stroke-width="0.5"/>';
+    s += '<polygon points="130,-15 137,-25 144,-15" fill="#6A7A6A"/>';
     s += '</g>';
 
     // === THAMES ===
-    s += '<path d="M0,320 Q300,310 600,318 Q900,325 1200,315 L1200,360 Q900,355 600,358 Q300,350 0,360Z" fill="url(#c-water)"/>';
-    // Tower Bridge
-    s += '<g transform="translate(850, 260)">';
-    s += '<rect x="0" y="10" width="12" height="55" fill="url(#c-stone)" stroke="#8A7A60" stroke-width="0.8"/>';
-    s += '<rect x="80" y="10" width="12" height="55" fill="url(#c-stone)" stroke="#8A7A60" stroke-width="0.8"/>';
-    s += '<polygon points="0,10 6,0 12,10" fill="url(#c-slate)"/>';
-    s += '<polygon points="80,10 86,0 92,10" fill="url(#c-slate)"/>';
-    s += '<line x1="6" y1="20" x2="86" y2="20" stroke="#5A7A8A" stroke-width="2"/>';
-    s += '<line x1="6" y1="0" x2="46" y2="-8" stroke="#5A7A8A" stroke-width="1.5"/>';
-    s += '<line x1="86" y1="0" x2="46" y2="-8" stroke="#5A7A8A" stroke-width="1.5"/>';
+    s += '<rect x="0" y="315" width="1200" height="6" fill="#8A8A80" stroke="#7A7A78" stroke-width="0.4"/>'; // N embankment
+    s += '<path d="M0,321 Q300,318 600,323 Q900,328 1200,319 L1200,358 Q900,355 600,360 Q300,355 0,358Z" fill="url(#c-water)"/>';
+    // Murky London water — slight green tint
+    s += '<rect x="0" y="321" width="1200" height="37" fill="#4A5A48" opacity="0.1"/>';
+    s += '<rect x="0" y="358" width="1200" height="6" fill="#8A8A80" stroke="#7A7A78" stroke-width="0.4"/>'; // S embankment
+
+    // === TOWER BRIDGE ===
+    s += '<g transform="translate(870, 268)">';
+    // Tower 1 (left)
+    s += '<rect x="0" y="12" width="14" height="55" fill="#B8B0A0" stroke="#8A8278" stroke-width="0.6"/>';
+    s += '<polygon points="0,12 7,0 14,12" fill="#6A7A6A" stroke="#5A6A5A" stroke-width="0.5"/>';
+    // Tower 2 (right)
+    s += '<rect x="95" y="12" width="14" height="55" fill="#B8B0A0" stroke="#8A8278" stroke-width="0.6"/>';
+    s += '<polygon points="95,12 102,0 109,12" fill="#6A7A6A" stroke="#5A6A5A" stroke-width="0.5"/>';
+    // Upper walkway
+    s += '<rect x="14" y="18" width="81" height="4" fill="#7A8A98" stroke="#5A6A78" stroke-width="0.4"/>';
+    // Road deck
+    s += '<rect x="14" y="45" width="81" height="5" fill="#8A8A82" stroke="#6A6A68" stroke-width="0.4"/>';
+    // Suspension cables
+    s += '<path d="M7,2 Q54,-12 102,2" fill="none" stroke="#5A7A88" stroke-width="1.5"/>';
+    s += '<path d="M7,8 Q54,-4 102,8" fill="none" stroke="#5A7A88" stroke-width="1"/>';
+    // Cable hangers
+    for (var cx = 18; cx < 95; cx += 10) {
+      var chy = 2 - Math.sin(((cx-14)/81)*Math.PI) * 14;
+      s += '<line x1="'+cx+'" y1="'+chy+'" x2="'+cx+'" y2="45" stroke="#6A7A88" stroke-width="0.4"/>';
+    }
+    // Tower windows
+    s += '<g fill="#5A6A7A" stroke="#8A8278" stroke-width="0.3">';
+    for (var wy = 20; wy < 60; wy += 12) {
+      s += '<rect x="3" y="'+wy+'" width="4" height="7" rx="2" ry="2"/>';
+      s += '<rect x="98" y="'+wy+'" width="4" height="7" rx="2" ry="2"/>';
+    }
+    s += '</g>';
     s += '</g>';
 
-    // Brick buildings (left)
-    for (var bx = 20; bx < 340; bx += 55) {
-      var bh = 55 + Math.floor(Math.sin(bx * 0.1) * 15);
-      var by = 280 - bh;
-      s += '<rect x="'+bx+'" y="'+by+'" width="48" height="'+bh+'" fill="url(#c-brick)" stroke="#8A5A40" stroke-width="0.8"/>';
-      s += '<rect x="'+(bx-1)+'" y="'+(by-4)+'" width="50" height="5" fill="url(#c-slate)"/>';
-      // Chimneys
-      s += '<rect x="'+(bx+10)+'" y="'+(by-12)+'" width="5" height="10" fill="#7A5A4A"/>';
-      s += '<rect x="'+(bx+32)+'" y="'+(by-10)+'" width="5" height="8" fill="#7A5A4A"/>';
-      // Windows
-      for (var wy = by + 8; wy < by + bh - 10; wy += 16) {
-        for (var wwx = bx + 6; wwx < bx + 42; wwx += 14) {
-          s += '<rect x="'+wwx+'" y="'+wy+'" width="8" height="10" fill="#8AAABC" stroke="#7A5A48" stroke-width="0.3"/>';
+    // === BRICK BUILDINGS (varied Victorian terraces) ===
+    s += '<g>';
+    // Left bank buildings
+    for (var bx = 10; bx < 370; bx += 42) {
+      var bh = 50 + Math.floor(Math.sin(bx * 0.12) * 15) + (bx % 84 < 42 ? 8 : 0);
+      var by = 315 - bh;
+      var brickColor = bx % 84 < 42 ? '#C07858' : '#B06848';
+      s += '<rect x="'+bx+'" y="'+by+'" width="38" height="'+bh+'" fill="'+brickColor+'" stroke="#7A4A30" stroke-width="0.6"/>';
+      // Slate roof with slight pitch
+      s += '<path d="M'+(bx-1)+','+by+' L'+(bx+19)+','+(by-6)+' L'+(bx+39)+','+by+'" fill="#5A6A6A" stroke="#4A5A5A" stroke-width="0.4"/>';
+      // Chimneys (varied positions)
+      s += '<rect x="'+(bx+8)+'" y="'+(by-14)+'" width="5" height="10" fill="#8A5A40"/>';
+      s += '<rect x="'+(bx+6)+'" y="'+(by-16)+'" width="9" height="3" fill="#9A6A50"/>';
+      if (bx % 84 < 42) {
+        s += '<rect x="'+(bx+26)+'" y="'+(by-12)+'" width="5" height="8" fill="#8A5A40"/>';
+      }
+      // Sash windows
+      for (var wy = by + 8; wy < by + bh - 8; wy += 14) {
+        for (var wx = bx + 5; wx < bx + 32; wx += 12) {
+          s += '<rect x="'+wx+'" y="'+wy+'" width="7" height="10" fill="#8AACBC" stroke="#7A4A38" stroke-width="0.3"/>';
+          // Sash bar
+          s += '<line x1="'+wx+'" y1="'+(wy+5)+'" x2="'+(wx+7)+'" y2="'+(wy+5)+'" stroke="#7A4A38" stroke-width="0.3"/>';
+        }
+      }
+      // Door
+      s += '<rect x="'+(bx+15)+'" y="'+(by+bh-16)+'" width="8" height="16" fill="#2A3A28" rx="0.5"/>';
+    }
+    s += '</g>';
+
+    // Right bank buildings (past Tower Bridge)
+    s += '<g opacity="0.85">';
+    for (var bx = 700; bx < 860; bx += 38) {
+      var bh = 45 + Math.floor(Math.cos(bx * 0.1) * 12);
+      var by = 312 - bh;
+      s += '<rect x="'+bx+'" y="'+by+'" width="34" height="'+bh+'" fill="#B86A48" stroke="#7A4A30" stroke-width="0.5"/>';
+      s += '<path d="M'+(bx-1)+','+by+' L'+(bx+17)+','+(by-5)+' L'+(bx+35)+','+by+'" fill="#5A6A6A"/>';
+      for (var wy = by + 7; wy < by + bh - 7; wy += 13) {
+        for (var wx = bx + 4; wx < bx + 28; wx += 11) {
+          s += '<rect x="'+wx+'" y="'+wy+'" width="6" height="8" fill="#8AACBC" stroke="#7A4A38" stroke-width="0.2"/>';
         }
       }
     }
-
-    // Right side buildings
-    for (var bx = 680; bx < 840; bx += 50) {
-      var bh = 50 + Math.floor(Math.cos(bx * 0.08) * 12);
-      var by = 275 - bh;
-      s += '<rect x="'+bx+'" y="'+by+'" width="44" height="'+bh+'" fill="url(#c-brick)" stroke="#8A5A40" stroke-width="0.8"/>';
-      s += '<rect x="'+(bx-1)+'" y="'+(by-4)+'" width="46" height="5" fill="url(#c-slate)"/>';
-      for (var wy = by + 8; wy < by + bh - 10; wy += 15) {
-        for (var wwx = bx + 5; wwx < bx + 38; wwx += 13) {
-          s += '<rect x="'+wwx+'" y="'+wy+'" width="7" height="9" fill="#8AAABC" stroke="#7A5A48" stroke-width="0.3"/>';
-        }
-      }
-    }
-
-    // Ground
-    s += '<rect x="0" y="360" width="1200" height="140" fill="url(#c-ground)"/>';
-    s += '<rect x="0" y="360" width="1200" height="15" fill="url(#c-road)"/>';
-
-    // London Eye (background)
-    s += '<g transform="translate(180, 240)" opacity="0.4">';
-    s += '<circle cx="0" cy="0" r="45" fill="none" stroke="#8A8A8A" stroke-width="1.5"/>';
-    for (var a = 0; a < 360; a += 24) {
-      var rad = a * Math.PI / 180;
-      var ex = Math.cos(rad) * 45, ey = Math.sin(rad) * 45;
-      s += '<line x1="0" y1="0" x2="'+ex+'" y2="'+ey+'" stroke="#8A8A8A" stroke-width="0.5"/>';
-      s += '<ellipse cx="'+ex+'" cy="'+ey+'" rx="4" ry="3" fill="#B0B8C0" stroke="#8A8A8A" stroke-width="0.3"/>';
-    }
-    s += '<line x1="0" y1="45" x2="0" y2="80" stroke="#8A8A8A" stroke-width="2"/>';
     s += '</g>';
 
-    // Red double-decker bus
-    s += '<g transform="translate(300, 362)">';
-    s += '<rect x="0" y="0" width="30" height="12" fill="#CC2222" rx="2"/>';
-    s += '<rect x="0" y="-10" width="30" height="10" fill="#CC2222" rx="2"/>';
-    s += '<circle cx="6" cy="14" r="3" fill="#333" stroke="#555" stroke-width="0.5"/>';
-    s += '<circle cx="24" cy="14" r="3" fill="#333" stroke="#555" stroke-width="0.5"/>';
-    s += '<g fill="#AADDEE" stroke="#AA3333" stroke-width="0.3">';
-    for (var bwx = 3; bwx < 28; bwx += 7) {
-      s += '<rect x="'+bwx+'" y="-8" width="5" height="6"/>';
-      s += '<rect x="'+bwx+'" y="2" width="5" height="6"/>';
+    // === GROUND ===
+    s += '<rect x="0" y="364" width="1200" height="136" fill="#5A6A58"/>';
+    s += '<rect x="0" y="364" width="1200" height="16" fill="#5A5A58"/>'; // Road
+    // Lane markings
+    s += '<line x1="0" y1="372" x2="1200" y2="372" stroke="#E8E8D0" stroke-width="0.8" stroke-dasharray="14,10" opacity="0.3"/>';
+
+    // === RED DOUBLE-DECKER BUS ===
+    s += '<g transform="translate(250, 364)">';
+    s += '<rect x="0" y="-10" width="32" height="10" fill="#CC2222" rx="1.5" stroke="#AA1818" stroke-width="0.5"/>';
+    s += '<rect x="0" y="0" width="32" height="10" fill="#CC2222" rx="1.5" stroke="#AA1818" stroke-width="0.5"/>';
+    s += '<circle cx="6" cy="12" r="3" fill="#2A2A28" stroke="#444" stroke-width="0.5"/>';
+    s += '<circle cx="26" cy="12" r="3" fill="#2A2A28" stroke="#444" stroke-width="0.5"/>';
+    s += '<g fill="#A8D8E8" stroke="#AA1818" stroke-width="0.3">';
+    for (var bwx = 3; bwx < 29; bwx += 7) {
+      s += '<rect x="'+bwx+'" y="-8" width="5" height="6" rx="0.5"/>';
+      s += '<rect x="'+bwx+'" y="2" width="5" height="5" rx="0.5"/>';
     }
     s += '</g>';
     s += '</g>';
 
-    // Black cab
-    s += '<g transform="translate(900, 365)">';
-    s += '<rect x="0" y="0" width="20" height="10" fill="#1A1A1A" rx="3"/>';
-    s += '<circle cx="4" cy="12" r="2.5" fill="#333"/>';
-    s += '<circle cx="16" cy="12" r="2.5" fill="#333"/>';
+    // === BLACK CAB ===
+    s += '<g transform="translate(800, 368)">';
+    s += '<path d="M0,0 Q2,-8 8,-8 L18,-8 Q22,-8 22,0" fill="#1A1A1A" stroke="#333" stroke-width="0.5"/>';
+    s += '<rect x="-1" y="0" width="24" height="6" fill="#1A1A1A" rx="1"/>';
+    s += '<circle cx="4" cy="8" r="2.5" fill="#2A2A28"/>';
+    s += '<circle cx="18" cy="8" r="2.5" fill="#2A2A28"/>';
+    s += '<rect x="4" y="-6" width="6" height="4" fill="#8AAAB8" rx="0.5"/>';
+    s += '<rect x="12" y="-6" width="6" height="4" fill="#8AAAB8" rx="0.5"/>';
     s += '</g>';
 
     return s;
