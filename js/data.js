@@ -1088,7 +1088,7 @@ const GameData = {
 
     const [minP, maxP] = typeDef.basePriceRange;
     const baseValue = minP + Math.random() * (maxP - minP);
-    const value = Math.max(5, Math.round(baseValue * city.priceMultiplier * eraMultiplier));
+    const value = Math.max(50, Math.round(baseValue * city.priceMultiplier * eraMultiplier));
 
     const districts = this.districts[cityId] || ['Central'];
     const district = districts[Math.floor(Math.random() * districts.length)];
@@ -1097,7 +1097,7 @@ const GameData = {
     const [minEmp, maxEmp] = typeDef.employeeRange;
     const employees = Math.round(minEmp + Math.random() * (maxEmp - minEmp));
 
-    const monthlyRevenue = Math.max(1, Math.round((value * typeDef.baseRevenueYield) / 12));
+    const monthlyRevenue = Math.max(2, Math.round((value * typeDef.baseRevenueYield) / 12));
     const monthlyExpenses = Math.round(monthlyRevenue * (0.35 + Math.random() * 0.25));
 
     return {
