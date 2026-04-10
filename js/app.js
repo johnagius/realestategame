@@ -103,6 +103,20 @@ const App = {
       });
     });
 
+    // City view toggle
+    document.getElementById('btn-city-view-toggle').addEventListener('click', function() {
+      GameUI.toggleCityView();
+    });
+
+    // City map building clicks
+    document.getElementById('city-map').addEventListener('click', function(e) {
+      var bldg = e.target.closest('.city-building');
+      if (bldg) {
+        var propId = bldg.getAttribute('data-property');
+        GameUI.showScreen('property', propId);
+      }
+    });
+
     // Back buttons
     document.getElementById('btn-back-city').addEventListener('click', function() {
       GameUI.showScreen('map');

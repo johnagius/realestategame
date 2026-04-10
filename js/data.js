@@ -636,9 +636,16 @@ const GameData = {
     const typeDef = this.propertyTypes[type];
     if (!city || !typeDef) return null;
 
+    // Apply era multiplier to scale prices to the current time period
+    const currentEra = this.eras.find(e => {
+      const year = (typeof GameEngine !== 'undefined' && GameEngine.state) ? GameEngine.state.year : (this.startingYear || 1750);
+      return year >= e.years[0] && year <= e.years[1];
+    }) || this.eras[0];
+    const eraMultiplier = currentEra.propertyMultiplier || 1;
+
     const [minPrice, maxPrice] = typeDef.basePriceRange;
     const basePrice = minPrice + Math.random() * (maxPrice - minPrice);
-    const price = Math.round(basePrice * city.priceMultiplier / 1000) * 1000;
+    const price = Math.max(10, Math.round(basePrice * city.priceMultiplier * eraMultiplier / 100) * 100);
 
     const [minSize, maxSize] = typeDef.sizeRange;
     const size = Math.round(minSize + Math.random() * (maxSize - minSize));
@@ -956,9 +963,15 @@ const GameData = {
     const typeDef = this.businessTypes[type];
     if (!city || !typeDef) return null;
 
+    const currentEra = this.eras.find(e => {
+      const year = (typeof GameEngine !== 'undefined' && GameEngine.state) ? GameEngine.state.year : (this.startingYear || 1750);
+      return year >= e.years[0] && year <= e.years[1];
+    }) || this.eras[0];
+    const eraMultiplier = currentEra.propertyMultiplier || 1;
+
     const [minP, maxP] = typeDef.basePriceRange;
     const baseValue = minP + Math.random() * (maxP - minP);
-    const value = Math.round(baseValue * city.priceMultiplier / 1000) * 1000;
+    const value = Math.max(5, Math.round(baseValue * city.priceMultiplier * eraMultiplier));
 
     const districts = this.districts[cityId] || ['Central'];
     const district = districts[Math.floor(Math.random() * districts.length)];

@@ -83,17 +83,25 @@
     <div class="screen-header">
       <button id="btn-back-city" class="btn btn-ghost btn-back">← Back</button>
       <h2 id="city-title">City</h2>
+      <button id="btn-city-view-toggle" class="btn btn-ghost btn-small">🏙️ City View</button>
     </div>
     <div id="city-info" class="city-info-bar"></div>
-    <div class="tab-bar">
-      <button class="tab-btn active" data-tab="market">🏪 Market</button>
-      <button class="tab-btn" data-tab="owned">🔑 My Properties</button>
-      <button class="tab-btn" data-tab="businesses">💼 Businesses</button>
+    <!-- City Map View (visual) -->
+    <div id="city-map-view" class="city-map-view" style="display:none">
+      <div id="city-map" class="city-map"></div>
     </div>
-    <div id="city-properties" class="card-grid"></div>
-    <div id="city-empty" class="empty-state" style="display:none">
-      <span class="empty-icon">🏗️</span>
-      <p>No properties available</p>
+    <!-- List View -->
+    <div id="city-list-view">
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="market">🏪 Market</button>
+        <button class="tab-btn" data-tab="owned">🔑 My Properties</button>
+        <button class="tab-btn" data-tab="businesses">💼 Businesses</button>
+      </div>
+      <div id="city-properties" class="card-grid"></div>
+      <div id="city-empty" class="empty-state" style="display:none">
+        <span class="empty-icon">🏗️</span>
+        <p>No properties available</p>
+      </div>
     </div>
   </div>
 

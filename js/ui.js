@@ -7,6 +7,7 @@ const GameUI = {
   currentScreen: 'splash',
   currentCity: null,
   currentProperty: null,
+  cityMapView: false,
   currentCityTab: 'market',
   currentPortfolioFilter: 'all',
   mapView: true,
@@ -968,6 +969,74 @@ const GameUI = {
     });
 
     grid.innerHTML = html;
+  },
+
+  // ---- Toggle city view ----
+  toggleCityView() {
+    this.cityMapView = !this.cityMapView;
+    document.getElementById('city-map-view').style.display = this.cityMapView ? 'block' : 'none';
+    document.getElementById('city-list-view').style.display = this.cityMapView ? 'none' : '';
+    document.getElementById('btn-city-view-toggle').textContent = this.cityMapView ? '📋 List View' : '🏙️ City View';
+    if (this.cityMapView) this.renderCityMap();
+  },
+
+  // ---- Render City Map ----
+  renderCityMap() {
+    var cityId = this.currentCity;
+    var city = GameData.cities.find(function(c) { return c.id === cityId; });
+    if (!city) return;
+
+    var market = GameEngine.state.marketProperties[cityId] || [];
+    var owned = GameEngine.state.properties.filter(function(p) { return p.cityId === cityId; });
+    var allProps = market.concat(owned);
+    var lm = GameData.cityLandmarks[cityId] || {};
+
+    var container = document.getElementById('city-map');
+    var html = '';
+
+    // Roads
+    html += '<div class="city-map-road horizontal" style="top:35%"></div>';
+    html += '<div class="city-map-road horizontal" style="top:65%"></div>';
+    html += '<div class="city-map-road vertical" style="left:30%"></div>';
+    html += '<div class="city-map-road vertical" style="left:65%"></div>';
+
+    // River
+    html += '<div class="city-map-river" style="width:80%;height:8px;top:50%;left:10%;transform:rotate(-5deg)"></div>';
+
+    // Landmark
+    if (lm.landmark) {
+      html += '<div class="city-landmark" style="left:45%;top:40%">' + lm.landmark + '</div>';
+    }
+
+    // District label
+    var districts = GameData.districts[cityId] || [];
+    if (districts.length > 0) {
+      html += '<div class="city-map-label" style="left:5%;top:8%">' + districts[0] + '</div>';
+      if (districts[1]) html += '<div class="city-map-label" style="right:5%;top:8%">' + districts[1] + '</div>';
+      if (districts[2]) html += '<div class="city-map-label" style="left:5%;bottom:8%">' + districts[2] + '</div>';
+      if (districts[3]) html += '<div class="city-map-label" style="right:5%;bottom:8%">' + districts[3] + '</div>';
+    }
+
+    // Place buildings on the map
+    allProps.forEach(function(p, i) {
+      var typeDef = GameData.propertyTypes[p.type] || {};
+      var isOwned = p.isOwned;
+
+      // Distribute buildings in a grid-like pattern with some randomness
+      var cols = Math.ceil(Math.sqrt(allProps.length + 2));
+      var row = Math.floor(i / cols);
+      var col = i % cols;
+      var xPct = 8 + (col / cols) * 80 + (Math.sin(i * 3.7) * 4);
+      var yPct = 10 + (row / Math.ceil(allProps.length / cols)) * 75 + (Math.cos(i * 2.3) * 4);
+
+      html += '<div class="city-building ' + (isOwned ? 'owned' : '') + '" data-property="' + p.id + '" data-city="' + p.cityId + '" style="left:' + xPct + '%;top:' + yPct + '%">' +
+        '<span class="city-building-icon">' + (typeDef.icon || '🏠') + '</span>' +
+        '<span class="city-building-name">' + (p.district || '') + '</span><br>' +
+        '<span class="city-building-price">' + GameData.formatMoneyShort(p.currentValue) + '</span>' +
+      '</div>';
+    });
+
+    container.innerHTML = html;
   },
 
   // ---- Auto-advance controls ----
