@@ -9,7 +9,7 @@ const GameUI = {
   currentProperty: null,
   cityMapView: false,
   cityPage: 0,
-  PAGE_SIZE: 4,
+  PAGE_SIZE: 6,
   currentCityTab: 'market',
   currentPortfolioFilter: 'all',
   mapView: true,
@@ -281,6 +281,7 @@ const GameUI = {
     if (p.isOwned && p.isRented) badge = '<span class="property-badge badge-rented">Rented</span>';
     else if (p.isOwned && p.isRefurbishing) badge = '<span class="property-badge badge-refurbishing">🔨 ' + p.refurbMonthsLeft + 'mo</span>';
     else if (p.isOwned && p.isBuilding) badge = '<span class="property-badge badge-refurbishing">🏗️ ' + p.buildMonthsLeft + 'mo</span>';
+    else if (p.isOwned && (p.condition === 'poor' || p.condition === 'derelict')) badge = '<span class="property-badge" style="background:#E63946;color:#FFF">⚠️ ' + GameData.conditions[p.condition].name + '</span>';
     else if (p.isOwned) badge = '<span class="property-badge badge-owned">Owned</span>';
     else if (p.isNew) badge = '<span class="property-badge badge-new">New</span>';
 
@@ -752,8 +753,10 @@ const GameUI = {
     }
 
     // Property degradation
-    if (results.degraded && results.degraded.length > 0 && !isAutoPlaying) {
-      GameUI.toast('🏚️ ' + results.degraded.length + ' propert' + (results.degraded.length > 1 ? 'ies' : 'y') + ' deteriorated. Consider renovating.', 'warning');
+    if (results.degraded && results.degraded.length > 0) {
+      var names = results.degraded.slice(0, 2).map(function(p){return p.name;}).join(', ');
+      GameUI.setTicker('🏚️ Deteriorated: ' + names + (results.degraded.length > 2 ? ' +' + (results.degraded.length-2) + ' more' : ''));
+      if (!isAutoPlaying) GameAudio.negative();
     }
 
     // Dynasty events

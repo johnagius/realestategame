@@ -65,7 +65,10 @@
     <div class="hud-item hud-right">
       <span class="hud-label">Net Worth</span>
       <span id="hud-networth" class="hud-value">€500,000</span>
-      <button id="btn-leaderboard" class="hud-lb-btn" title="Leaderboard">🏆</button>
+      <div style="display:flex;gap:3px;margin-top:2px">
+        <button id="btn-hud-advance" class="hud-advance-btn" title="Next Month">▶ Next</button>
+        <button id="btn-leaderboard" class="hud-lb-btn" title="Leaderboard">🏆</button>
+      </div>
     </div>
   </div>
 
@@ -95,9 +98,6 @@
       <h2>🌍 World Cities</h2>
       <div style="display:flex;gap:6px;align-items:center">
         <button id="btn-map-toggle" class="btn btn-ghost btn-small">📋 List</button>
-        <button id="btn-advance-month" class="btn btn-accent btn-advance">
-          Next Month ▶
-        </button>
       </div>
     </div>
     <!-- World Map View -->
@@ -156,7 +156,6 @@
   <div id="screen-portfolio" class="screen game-screen">
     <div class="screen-header">
       <h2>📋 My Portfolio</h2>
-      <button class="btn btn-accent btn-advance btn-advance-alt">Next Month ▶</button>
     </div>
     <div id="portfolio-summary"></div>
     <div id="portfolio-filters" class="filter-bar">
@@ -177,7 +176,6 @@
   <div id="screen-finances" class="screen game-screen">
     <div class="screen-header">
       <h2>💰 Finances</h2>
-      <button class="btn btn-accent btn-advance btn-advance-alt">Next Month ▶</button>
     </div>
     <div id="finances-content"></div>
   </div>
@@ -186,7 +184,6 @@
   <div id="screen-bank" class="screen game-screen">
     <div class="screen-header">
       <h2>🏦 Bank</h2>
-      <button class="btn btn-accent btn-advance btn-advance-alt">Next Month ▶</button>
     </div>
     <div id="bank-content"></div>
   </div>
