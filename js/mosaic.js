@@ -51,154 +51,264 @@ const Mosaic = {
     return val / max; // 0-1
   },
 
-  // ========== REAL WORLD ELEVATION DATA (simplified) ==========
-  // Returns elevation 0-1 for a normalized world coordinate
-  // 0 = deep ocean, 0.3 = sea level, 0.5 = lowland, 0.7 = highland, 0.9 = mountain, 1.0 = peak
-  getElevation: function(nx, ny) {
-    // nx: 0-1 across map width (longitude), ny: 0-1 across height (latitude)
-    // Start with noise-based base elevation
-    var base = this.fbm(nx * 8, ny * 8, 5);
+  // ========== ELEVATION BUMPS ==========
+  // Each bump: [x, y, radius, height] in normalized 0-1 coords
+  // Hundreds of bumps sculpt the terrain like clay
+  _bumps: null,
 
-    // Add continent masks — raise elevation where continents are
-    var continentBoost = 0;
-
-    // North America
-    if (nx > 0.03 && nx < 0.28 && ny > 0.08 && ny < 0.52) {
-      var cx = (nx - 0.03) / 0.25, cy = (ny - 0.08) / 0.44;
-      // Rough shape mask
-      var shape = 1 - Math.sqrt(Math.pow(cx-0.5,2)*2.5 + Math.pow(cy-0.4,2)*1.5);
-      if (shape > 0) continentBoost = Math.max(continentBoost, shape * 0.45);
-      // Rocky Mountains ridge
-      if (cx > 0.15 && cx < 0.3 && cy > 0.2 && cy < 0.8) continentBoost += 0.15;
+  buildBumps: function() {
+    var b = [];
+    // Helper: add a row of bumps along a line (for coastlines, ridges)
+    function line(x1,y1,x2,y2,r,h,n) {
+      for (var i = 0; i <= n; i++) {
+        var t = i / n;
+        b.push([x1+(x2-x1)*t, y1+(y2-y1)*t, r, h]);
+      }
+    }
+    // Helper: fill an area with bumps
+    function fill(x1,y1,x2,y2,r,h,density) {
+      var cols = Math.ceil((x2-x1) / (r * density));
+      var rows = Math.ceil((y2-y1) / (r * density));
+      for (var iy = 0; iy <= rows; iy++) {
+        for (var ix = 0; ix <= cols; ix++) {
+          b.push([x1+(x2-x1)*ix/cols, y1+(y2-y1)*iy/rows, r, h]);
+        }
+      }
     }
 
-    // South America
-    if (nx > 0.14 && nx < 0.28 && ny > 0.48 && ny < 0.88) {
-      var cx = (nx - 0.14) / 0.14, cy = (ny - 0.48) / 0.4;
-      var shape = 1 - Math.sqrt(Math.pow(cx-0.4,2)*3 + Math.pow(cy-0.5,2)*1.2);
-      if (shape > 0) continentBoost = Math.max(continentBoost, shape * 0.4);
-      // Andes
-      if (cx < 0.25 && cy > 0.1 && cy < 0.9) continentBoost += 0.18;
-    }
+    // ===== NORTH AMERICA =====
+    // Main body — dense coverage from Alaska to Mexico
+    fill(0.05, 0.10, 0.22, 0.38, 0.04, 0.42, 0.7); // Northern core (Canada)
+    fill(0.08, 0.22, 0.20, 0.42, 0.035, 0.40, 0.7); // Central US
+    fill(0.06, 0.12, 0.15, 0.22, 0.04, 0.38, 0.8); // Western Canada
+    fill(0.14, 0.10, 0.24, 0.20, 0.035, 0.38, 0.8); // Eastern Canada
+    // Alaska
+    fill(0.02, 0.10, 0.07, 0.16, 0.025, 0.36, 0.8);
+    // Florida peninsula
+    line(0.17, 0.38, 0.19, 0.44, 0.018, 0.35, 8);
+    // Baja California
+    line(0.07, 0.34, 0.08, 0.42, 0.012, 0.32, 6);
+    // Gulf coast curve
+    line(0.10, 0.38, 0.14, 0.40, 0.02, 0.36, 6);
+    line(0.14, 0.40, 0.17, 0.38, 0.02, 0.36, 5);
+    // Eastern seaboard detail
+    line(0.20, 0.20, 0.21, 0.26, 0.018, 0.36, 5);
+    line(0.20, 0.26, 0.19, 0.32, 0.018, 0.36, 5);
+    line(0.19, 0.32, 0.18, 0.36, 0.018, 0.36, 4);
+    // Labrador
+    fill(0.20, 0.12, 0.26, 0.18, 0.03, 0.36, 0.8);
+    // Hudson Bay depression (negative bump to carve out)
+    b.push([0.15, 0.16, 0.04, -0.35]);
+    b.push([0.16, 0.17, 0.035, -0.3]);
+    // Great Lakes depressions
+    b.push([0.165, 0.25, 0.015, -0.25]);
+    b.push([0.155, 0.245, 0.012, -0.22]);
+    b.push([0.175, 0.248, 0.01, -0.2]);
+    b.push([0.145, 0.255, 0.008, -0.2]);
+    b.push([0.18, 0.24, 0.01, -0.2]);
+    // Rocky Mountains ridge
+    line(0.08, 0.15, 0.09, 0.22, 0.015, 0.22, 8);
+    line(0.09, 0.22, 0.10, 0.30, 0.015, 0.2, 8);
+    line(0.10, 0.30, 0.10, 0.36, 0.012, 0.18, 6);
+    // Appalachians
+    line(0.18, 0.24, 0.17, 0.34, 0.012, 0.12, 8);
 
-    // Europe
-    if (nx > 0.34 && nx < 0.48 && ny > 0.06 && ny < 0.32) {
-      var cx = (nx - 0.34) / 0.14, cy = (ny - 0.06) / 0.26;
-      var shape = 1 - Math.sqrt(Math.pow(cx-0.5,2)*2 + Math.pow(cy-0.5,2)*2);
-      if (shape > 0) continentBoost = Math.max(continentBoost, shape * 0.38);
-      // Alps
-      if (cx > 0.35 && cx < 0.55 && cy > 0.5 && cy < 0.7) continentBoost += 0.12;
-    }
-
-    // Scandinavia
-    if (nx > 0.38 && nx < 0.47 && ny > 0.02 && ny < 0.14) {
-      continentBoost = Math.max(continentBoost, 0.3);
-    }
-
-    // UK + Ireland
-    if (nx > 0.33 && nx < 0.38 && ny > 0.1 && ny < 0.2) {
-      continentBoost = Math.max(continentBoost, 0.32);
-    }
-
-    // Africa
-    if (nx > 0.35 && nx < 0.52 && ny > 0.28 && ny < 0.72) {
-      var cx = (nx - 0.35) / 0.17, cy = (ny - 0.28) / 0.44;
-      var shape = 1 - Math.sqrt(Math.pow(cx-0.45,2)*2 + Math.pow(cy-0.45,2)*1.3);
-      if (shape > 0) continentBoost = Math.max(continentBoost, shape * 0.42);
-      // Atlas Mountains
-      if (cy < 0.15 && cx > 0.2 && cx < 0.6) continentBoost += 0.1;
-      // East African Rift highlands
-      if (cx > 0.55 && cy > 0.3 && cy < 0.6) continentBoost += 0.08;
-    }
-
-    // Middle East / Arabia
-    if (nx > 0.45 && nx < 0.55 && ny > 0.24 && ny < 0.4) {
-      var cx = (nx - 0.45) / 0.1, cy = (ny - 0.24) / 0.16;
-      var shape = 1 - Math.sqrt(Math.pow(cx-0.5,2)*2.5 + Math.pow(cy-0.5,2)*2);
-      if (shape > 0) continentBoost = Math.max(continentBoost, shape * 0.35);
-    }
-
-    // Russia / Northern Asia
-    if (nx > 0.42 && nx < 0.85 && ny > 0.02 && ny < 0.22) {
-      var cx = (nx - 0.42) / 0.43, cy = (ny - 0.02) / 0.2;
-      var shape = 1 - Math.pow(cy, 1.5) * 0.8;
-      if (shape > 0.2) continentBoost = Math.max(continentBoost, shape * 0.35);
-      // Urals
-      if (cx > 0.18 && cx < 0.22) continentBoost += 0.1;
-    }
-
-    // India
-    if (nx > 0.53 && nx < 0.62 && ny > 0.28 && ny < 0.48) {
-      var cx = (nx - 0.53) / 0.09, cy = (ny - 0.28) / 0.2;
-      var shape = 1 - Math.sqrt(Math.pow(cx-0.5,2)*3 + Math.pow(cy-0.4,2)*1.5);
-      if (shape > 0) continentBoost = Math.max(continentBoost, shape * 0.38);
-    }
-
-    // Himalayas
-    if (nx > 0.54 && nx < 0.64 && ny > 0.22 && ny < 0.28) {
-      continentBoost += 0.25;
-    }
-
-    // China / East Asia
-    if (nx > 0.6 && nx < 0.78 && ny > 0.18 && ny < 0.42) {
-      var cx = (nx - 0.6) / 0.18, cy = (ny - 0.18) / 0.24;
-      var shape = 1 - Math.sqrt(Math.pow(cx-0.5,2)*2 + Math.pow(cy-0.5,2)*2);
-      if (shape > 0) continentBoost = Math.max(continentBoost, shape * 0.38);
-    }
-
-    // Southeast Asia
-    if (nx > 0.63 && nx < 0.72 && ny > 0.4 && ny < 0.52) {
-      continentBoost = Math.max(continentBoost, 0.28);
-    }
-
-    // Japan
-    if (nx > 0.71 && nx < 0.75 && ny > 0.14 && ny < 0.26) {
-      continentBoost = Math.max(continentBoost, 0.32);
-    }
-
-    // Indonesia archipelago
-    if (nx > 0.64 && nx < 0.76 && ny > 0.49 && ny < 0.55) {
-      var islands = this.fbm(nx * 30, ny * 30, 3);
-      if (islands > 0.5) continentBoost = Math.max(continentBoost, 0.3);
-    }
-
-    // Australia
-    if (nx > 0.68 && nx < 0.82 && ny > 0.58 && ny < 0.78) {
-      var cx = (nx - 0.68) / 0.14, cy = (ny - 0.58) / 0.2;
-      var shape = 1 - Math.sqrt(Math.pow(cx-0.5,2)*2.2 + Math.pow(cy-0.45,2)*2);
-      if (shape > 0) continentBoost = Math.max(continentBoost, shape * 0.36);
-    }
+    // Central America
+    line(0.13, 0.42, 0.14, 0.46, 0.015, 0.34, 5);
+    line(0.14, 0.46, 0.15, 0.50, 0.012, 0.32, 5);
+    // Caribbean islands
+    b.push([0.18, 0.44, 0.012, 0.32]); // Cuba
+    b.push([0.19, 0.45, 0.008, 0.30]); // Hispaniola
+    b.push([0.20, 0.46, 0.006, 0.28]); // Puerto Rico
+    b.push([0.21, 0.47, 0.005, 0.28]); // Lesser Antilles
 
     // Greenland
-    if (nx > 0.22 && nx < 0.3 && ny > 0.02 && ny < 0.14) {
-      var cx = (nx - 0.22) / 0.08, cy = (ny - 0.02) / 0.12;
-      var shape = 1 - Math.sqrt(Math.pow(cx-0.5,2)*2.5 + Math.pow(cy-0.5,2)*2);
-      if (shape > 0) continentBoost = Math.max(continentBoost, shape * 0.4);
-    }
+    fill(0.22, 0.02, 0.28, 0.12, 0.025, 0.45, 0.7);
 
+    // ===== SOUTH AMERICA =====
+    fill(0.16, 0.52, 0.26, 0.68, 0.035, 0.40, 0.7); // Northern half (Brazil)
+    fill(0.15, 0.56, 0.22, 0.72, 0.03, 0.38, 0.7); // Southern half
+    fill(0.18, 0.50, 0.24, 0.56, 0.03, 0.38, 0.8); // Venezuela/Guianas
+    // Patagonia taper
+    line(0.17, 0.72, 0.18, 0.80, 0.018, 0.34, 6);
+    line(0.18, 0.80, 0.185, 0.86, 0.012, 0.30, 4);
+    // Andes
+    line(0.155, 0.52, 0.15, 0.60, 0.012, 0.25, 8);
+    line(0.15, 0.60, 0.155, 0.68, 0.012, 0.22, 8);
+    line(0.16, 0.68, 0.17, 0.76, 0.01, 0.2, 8);
+    line(0.17, 0.76, 0.175, 0.84, 0.008, 0.18, 6);
+
+    // ===== EUROPE =====
+    fill(0.35, 0.12, 0.44, 0.24, 0.025, 0.38, 0.7); // Western Europe
+    fill(0.38, 0.08, 0.46, 0.16, 0.025, 0.36, 0.8); // Northern Europe
+    fill(0.42, 0.16, 0.48, 0.26, 0.025, 0.36, 0.7); // Eastern Europe
+    // Iberian Peninsula
+    fill(0.35, 0.24, 0.39, 0.30, 0.022, 0.37, 0.8);
+    // Italian Peninsula
+    line(0.41, 0.24, 0.42, 0.28, 0.014, 0.35, 5);
+    line(0.42, 0.28, 0.43, 0.32, 0.012, 0.34, 5);
+    b.push([0.43, 0.33, 0.01, 0.32]); // Sicily
+    b.push([0.42, 0.31, 0.008, 0.30]); // Sardinia
+    // Scandinavia
+    line(0.39, 0.06, 0.41, 0.10, 0.018, 0.36, 5);
+    line(0.41, 0.04, 0.43, 0.08, 0.016, 0.35, 5);
+    line(0.43, 0.02, 0.45, 0.06, 0.014, 0.34, 4);
+    // UK
+    b.push([0.36, 0.14, 0.018, 0.36]); // England
+    b.push([0.355, 0.12, 0.014, 0.35]); // Scotland
+    b.push([0.35, 0.15, 0.012, 0.34]); // Wales
+    // Ireland
+    b.push([0.34, 0.15, 0.014, 0.34]);
     // Iceland
-    if (nx > 0.31 && nx < 0.34 && ny > 0.06 && ny < 0.1) {
-      continentBoost = Math.max(continentBoost, 0.3);
-    }
+    b.push([0.32, 0.07, 0.012, 0.34]);
+    // Greece/Balkans
+    line(0.44, 0.24, 0.45, 0.28, 0.015, 0.35, 4);
+    b.push([0.45, 0.28, 0.01, 0.32]); // Peloponnese
+    b.push([0.46, 0.27, 0.008, 0.30]); // Crete
+    // Alps
+    line(0.39, 0.22, 0.43, 0.22, 0.008, 0.2, 8);
+    // Carpathians
+    line(0.44, 0.20, 0.46, 0.22, 0.006, 0.14, 5);
 
+    // ===== AFRICA =====
+    fill(0.37, 0.32, 0.50, 0.50, 0.04, 0.42, 0.6); // Northern Africa
+    fill(0.38, 0.46, 0.50, 0.62, 0.04, 0.40, 0.6); // Central Africa
+    fill(0.40, 0.56, 0.50, 0.70, 0.035, 0.38, 0.7); // Southern Africa
+    // Horn of Africa
+    line(0.50, 0.38, 0.53, 0.40, 0.015, 0.36, 4);
     // Madagascar
-    if (nx > 0.49 && nx < 0.52 && ny > 0.56 && ny < 0.66) {
-      continentBoost = Math.max(continentBoost, 0.3);
-    }
+    fill(0.50, 0.56, 0.52, 0.64, 0.012, 0.34, 0.8);
+    // Atlas Mountains
+    line(0.37, 0.30, 0.40, 0.32, 0.008, 0.16, 6);
+    // East African Rift highlands
+    line(0.48, 0.44, 0.49, 0.52, 0.01, 0.14, 6);
+    // Kilimanjaro
+    b.push([0.485, 0.48, 0.008, 0.22]);
 
+    // ===== MIDDLE EAST =====
+    fill(0.48, 0.26, 0.55, 0.36, 0.025, 0.37, 0.7); // Arabian Peninsula
+    fill(0.46, 0.24, 0.50, 0.30, 0.02, 0.36, 0.8); // Turkey/Levant
+    b.push([0.50, 0.28, 0.015, 0.35]); // Iran core
+    b.push([0.52, 0.28, 0.015, 0.35]); // Iran east
+    // Zagros mountains
+    line(0.50, 0.26, 0.52, 0.30, 0.007, 0.16, 5);
+
+    // ===== RUSSIA / NORTHERN ASIA =====
+    fill(0.44, 0.04, 0.65, 0.14, 0.04, 0.36, 0.5); // Western Siberia
+    fill(0.60, 0.04, 0.78, 0.14, 0.04, 0.34, 0.5); // Eastern Siberia
+    fill(0.74, 0.06, 0.82, 0.16, 0.035, 0.33, 0.6); // Far East
+    fill(0.46, 0.14, 0.56, 0.22, 0.03, 0.36, 0.6); // Central Asia
+    // Ural Mountains
+    line(0.47, 0.06, 0.47, 0.18, 0.008, 0.16, 10);
+    // Kamchatka
+    line(0.80, 0.08, 0.82, 0.14, 0.01, 0.34, 4);
+
+    // ===== INDIA =====
+    fill(0.54, 0.30, 0.60, 0.42, 0.025, 0.38, 0.7); // Main subcontinent
+    line(0.57, 0.42, 0.58, 0.46, 0.018, 0.35, 3); // Southern tip
+    b.push([0.59, 0.46, 0.008, 0.30]); // Sri Lanka
+    // Himalayas
+    line(0.54, 0.26, 0.60, 0.26, 0.008, 0.3, 10);
+    line(0.56, 0.25, 0.62, 0.25, 0.007, 0.28, 8);
+    // Tibetan Plateau
+    fill(0.58, 0.22, 0.64, 0.28, 0.02, 0.2, 0.8);
+
+    // ===== CHINA / EAST ASIA =====
+    fill(0.62, 0.20, 0.74, 0.34, 0.035, 0.38, 0.6); // China mainland
+    fill(0.60, 0.16, 0.68, 0.24, 0.03, 0.36, 0.7); // Northern China
+    // Korean Peninsula
+    line(0.73, 0.22, 0.74, 0.26, 0.012, 0.34, 3);
+
+    // ===== JAPAN =====
+    line(0.75, 0.18, 0.76, 0.22, 0.008, 0.34, 4); // Honshu
+    line(0.76, 0.22, 0.77, 0.26, 0.007, 0.33, 3);
+    b.push([0.76, 0.16, 0.01, 0.33]); // Hokkaido
+
+    // ===== SOUTHEAST ASIA =====
+    line(0.66, 0.34, 0.68, 0.40, 0.016, 0.35, 4); // Indochina
+    line(0.68, 0.36, 0.70, 0.42, 0.014, 0.34, 4);
+    // Malay Peninsula
+    line(0.68, 0.42, 0.69, 0.48, 0.01, 0.32, 5);
+    // Philippines
+    b.push([0.74, 0.36, 0.01, 0.32]);
+    b.push([0.74, 0.38, 0.008, 0.30]);
+    // Borneo
+    b.push([0.71, 0.46, 0.018, 0.34]);
+    // Sumatra
+    line(0.66, 0.46, 0.68, 0.50, 0.012, 0.32, 4);
+    // Java
+    line(0.68, 0.52, 0.72, 0.52, 0.008, 0.30, 5);
+    // Sulawesi
+    b.push([0.73, 0.48, 0.01, 0.30]);
+    // Papua/New Guinea
+    fill(0.76, 0.48, 0.80, 0.52, 0.015, 0.34, 0.8);
+
+    // ===== AUSTRALIA =====
+    fill(0.70, 0.60, 0.80, 0.72, 0.04, 0.38, 0.6);
+    fill(0.72, 0.58, 0.78, 0.64, 0.035, 0.36, 0.7);
+    // Great Dividing Range
+    line(0.78, 0.62, 0.77, 0.68, 0.008, 0.12, 6);
+    // Tasmania
+    b.push([0.76, 0.74, 0.01, 0.32]);
     // New Zealand
-    if (nx > 0.82 && nx < 0.85 && ny > 0.7 && ny < 0.82) {
-      continentBoost = Math.max(continentBoost, 0.3);
+    b.push([0.84, 0.72, 0.008, 0.34]);
+    b.push([0.84, 0.74, 0.007, 0.33]);
+    b.push([0.84, 0.76, 0.006, 0.32]);
+
+    // ===== NEGATIVE BUMPS (carve out seas/bays) =====
+    // Mediterranean Sea
+    b.push([0.41, 0.26, 0.02, -0.3]);
+    b.push([0.43, 0.27, 0.018, -0.28]);
+    b.push([0.45, 0.26, 0.015, -0.25]);
+    // Black Sea
+    b.push([0.46, 0.22, 0.012, -0.25]);
+    // Caspian Sea
+    b.push([0.50, 0.22, 0.01, -0.22]);
+    // Persian Gulf
+    b.push([0.51, 0.30, 0.01, -0.2]);
+    // Red Sea
+    b.push([0.47, 0.34, 0.006, -0.22]);
+    b.push([0.47, 0.38, 0.006, -0.22]);
+    // Gulf of Mexico
+    b.push([0.13, 0.40, 0.025, -0.3]);
+    // Caribbean Sea
+    b.push([0.16, 0.44, 0.02, -0.25]);
+    // Bay of Bengal
+    b.push([0.60, 0.36, 0.02, -0.25]);
+    // South China Sea
+    b.push([0.70, 0.38, 0.02, -0.22]);
+    // Sea of Japan
+    b.push([0.74, 0.20, 0.012, -0.2]);
+
+    this._bumps = b;
+    return b;
+  },
+
+  getElevation: function(nx, ny) {
+    if (!this._bumps) this.buildBumps();
+    var bumps = this._bumps;
+
+    // Base: subtle noise floor
+    var elev = this.fbm(nx * 6, ny * 6, 4) * 0.12;
+
+    // Apply all bumps — each is a gaussian-like influence
+    for (var i = 0; i < bumps.length; i++) {
+      var bx = bumps[i][0], by = bumps[i][1], br = bumps[i][2], bh = bumps[i][3];
+      var dx = nx - bx, dy = ny - by;
+      var dist2 = dx * dx + dy * dy;
+      var r2 = br * br;
+      if (dist2 < r2 * 4) { // Only compute if within 2x radius
+        var influence = Math.exp(-dist2 / (2 * r2 * 0.4)); // Gaussian falloff
+        elev += bh * influence;
+      }
     }
 
-    // Combine base noise with continent mask
-    var elev = base * 0.35 + continentBoost;
-
-    // Add fine detail noise
-    elev += this.fbm(nx * 25, ny * 25, 3) * 0.08;
+    // Add fine terrain detail noise
+    elev += this.fbm(nx * 20, ny * 20, 3) * 0.06;
 
     return Math.max(0, Math.min(1, elev));
   },
+
 
   // ========== TERRAIN COLOR FROM ELEVATION + LATITUDE ==========
   getTerrainColor: function(elev, nx, ny) {
