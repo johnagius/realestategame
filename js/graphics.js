@@ -1769,15 +1769,66 @@ const GameGraphics = {
   // ===== GENERIC CITY (fallback) =====
   _city_generic() {
     var s = '';
-    s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
-    s += '<g fill="#D0C8B8" opacity="0.5">';
-    for (var x = 20; x < 1180; x += 40) {
-      var h = 30 + Math.sin(x * 0.05) * 20 + Math.random() * 15;
-      s += '<rect x="'+x+'" y="'+(300-h)+'" width="35" height="'+h+'" rx="1"/>';
+    // Atmospheric sky with gradient
+    s += '<linearGradient id="gen-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6A9AC0"/><stop offset="60%" stop-color="#A0C0D8"/><stop offset="100%" stop-color="#D0D8E0"/></linearGradient>';
+    s += '<rect width="1200" height="500" fill="url(#gen-sky)"/>';
+
+    // Clouds
+    s += '<g opacity="0.3">';
+    s += '<ellipse cx="200" cy="40" rx="90" ry="18" fill="#FFF"/>';
+    s += '<ellipse cx="230" cy="36" rx="55" ry="14" fill="#F8F8FF"/>';
+    s += '<ellipse cx="700" cy="50" rx="110" ry="20" fill="#FFF"/>';
+    s += '<ellipse cx="1050" cy="38" rx="80" ry="16" fill="#FFF"/>';
+    s += '</g>';
+
+    // Distant background buildings (faded, atmospheric)
+    s += '<g opacity="0.12" fill="#7A8A9A">';
+    for (var dx = 0; dx < 1200; dx += 22) {
+      var dh = 8 + Math.sin(dx * 0.04) * 6;
+      s += '<rect x="'+dx+'" y="'+(278-dh)+'" width="18" height="'+dh+'"/>';
     }
     s += '</g>';
-    s += '<rect x="0" y="300" width="1200" height="200" fill="url(#c-ground)"/>';
-    s += '<rect x="0" y="300" width="1200" height="15" fill="url(#c-road)"/>';
+
+    // Main skyline — varied building heights, colors, and widths
+    s += '<g>';
+    var buildingColors = ['#8898A8','#7888A0','#98A8B8','#6878A0','#A0A8B0','#7080A0'];
+    for (var x = 10; x < 1190; x += 0) {
+      var w = 25 + Math.floor(Math.sin(x * 0.07) * 12) + Math.floor(Math.cos(x * 0.13) * 8);
+      var h = 40 + Math.floor(Math.sin(x * 0.05) * 25) + Math.floor(Math.cos(x * 0.11) * 15);
+      var color = buildingColors[Math.floor(Math.abs(Math.sin(x * 0.2)) * buildingColors.length)];
+      var by = 310 - h;
+      s += '<rect x="'+x+'" y="'+by+'" width="'+w+'" height="'+h+'" fill="'+color+'" stroke="#5A6A78" stroke-width="0.4"/>';
+      // Windows — some lit
+      for (var wy = by + 4; wy < 306; wy += 5) {
+        for (var wx = x + 3; wx < x + w - 3; wx += 5) {
+          var lit = Math.sin(wx * wy * 0.3) > 0.2;
+          s += '<rect x="'+wx+'" y="'+wy+'" width="3" height="3" fill="'+(lit ? '#F0D870' : '#4A5A68')+'" opacity="'+(lit ? '0.35' : '0.2')+'"/>';
+        }
+      }
+      x += w + 3;
+    }
+    s += '</g>';
+
+    // Road and sidewalk
+    s += '<rect x="0" y="310" width="1200" height="6" fill="#7A7A78"/>';
+    s += '<rect x="0" y="316" width="1200" height="24" fill="#4A4A48"/>';
+    s += '<line x1="0" y1="328" x2="1200" y2="328" stroke="#E8E860" stroke-width="0.8" stroke-dasharray="14,10" opacity="0.3"/>';
+    s += '<rect x="0" y="340" width="1200" height="160" fill="#5A7A58"/>';
+
+    // Trees along the road
+    for (var tx = 30; tx < 1180; tx += 65) {
+      s += '<rect x="'+(tx-1)+'" y="308" width="2.5" height="12" fill="#3A2818" rx="0.5"/>';
+      s += '<path d="M'+(tx-8)+',302 Q'+(tx-4)+',288 '+tx+',286 Q'+(tx+5)+',288 '+(tx+9)+',302 Q'+(tx+2)+',305 '+(tx-6)+',304Z" fill="#2A5830" opacity="0.8"/>';
+    }
+
+    // Vehicles
+    for (var vx = 100; vx < 1100; vx += 180) {
+      var vc = Math.sin(vx) > 0 ? '#A02020' : '#2050A0';
+      s += '<rect x="'+vx+'" y="322" width="16" height="6" fill="'+vc+'" rx="1.5"/>';
+      s += '<circle cx="'+(vx+3)+'" cy="330" r="2" fill="#1A1A1A"/>';
+      s += '<circle cx="'+(vx+13)+'" cy="330" r="2" fill="#1A1A1A"/>';
+    }
+
     return s;
   },
 
