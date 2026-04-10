@@ -256,8 +256,8 @@ const App = {
     else if (GameUI.currentScreen === 'settings') GameUI.renderSettings();
   },
 
-  buyProperty(propertyId, cityId) {
-    var result = GameEngine.buyProperty(propertyId, cityId);
+  buyProperty(propertyId, cityId, offerPct) {
+    var result = GameEngine.buyProperty(propertyId, cityId, offerPct);
     if (result.success) {
       GameUI.toast(result.message, 'success');
       GameUI.updateHUD();

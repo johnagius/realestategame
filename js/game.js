@@ -168,7 +168,7 @@ const GameEngine = {
   },
 
   // ---- Buy property ----
-  buyProperty(propertyId, cityId) {
+  buyProperty(propertyId, cityId, offerPct) {
     const cityMarket = this.state.marketProperties[cityId];
     if (!cityMarket) return { success: false, message: 'City not found.' };
 
@@ -177,8 +177,27 @@ const GameEngine = {
 
     const property = cityMarket[propIdx];
     const city = GameData.cities.find(c => c.id === cityId);
-    const purchaseTax = Math.round(property.currentValue * city.taxRate);
-    const totalCost = property.currentValue + purchaseTax;
+
+    // Negotiation: offerPct is 0.8-1.2 of asking price
+    var offerMultiplier = offerPct || 1.0;
+    var offerValue = Math.round(property.currentValue * offerMultiplier);
+
+    // Acceptance probability: below asking = risky, above = guaranteed
+    if (offerMultiplier < 1.0) {
+      // Lower offers have lower acceptance chance
+      // At 80%: ~30% acceptance. At 90%: ~60%. At 95%: ~80%
+      var acceptChance = Math.pow(offerMultiplier, 6); // 0.8^6=0.26, 0.9^6=0.53, 0.95^6=0.74
+      // Reputation helps
+      var repBonus = (this.state.reputation || 50) / 500; // 0-0.2 bonus
+      acceptChance = Math.min(0.95, acceptChance + repBonus);
+
+      if (Math.random() > acceptChance) {
+        return { success: false, message: 'Offer of ' + GameData.formatMoney(offerValue) + ' rejected! The seller wants closer to asking price.' };
+      }
+    }
+
+    const purchaseTax = Math.round(offerValue * city.taxRate);
+    const totalCost = offerValue + purchaseTax;
 
     if (this.state.cash < totalCost) {
       return { success: false, message: `Not enough cash. Need ${GameData.formatMoney(totalCost)} (incl. ${GameData.formatMoney(purchaseTax)} tax).` };
@@ -190,11 +209,12 @@ const GameEngine = {
       return { success: false, message: `Maximum ${city.maxProperties} properties in ${city.name}.` };
     }
 
-    // Execute purchase
+    // Execute purchase at negotiated price
     this.state.cash -= totalCost;
     property.isOwned = true;
     property.isNew = false;
-    property.purchasePrice = property.currentValue;
+    property.purchasePrice = offerValue;
+    property.currentValue = offerValue; // Update to purchase price
     property.monthPurchased = this.state.month;
     property.totalRentCollected = 0;
     property.totalExpensesPaid = purchaseTax;
