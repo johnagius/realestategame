@@ -1,375 +1,499 @@
 /* ========================================
-   PROPERTY EMPIRE — Pixel Mosaic Renderer
-   Eikon-style dense block rendering
-   Thousands of tiny colored blocks forming seamless images
+   PROPERTY EMPIRE — Pixel Mosaic World Map
+   1.28M pixel canvas with realistic terrain
    ======================================== */
 
 const Mosaic = {
 
-  // Grid dimensions for world map — 1px cells for seamless resolution
-  MAP_COLS: 1600,
-  MAP_ROWS: 800,
-  CELL_SIZE: 1, // 1px per cell = 1,280,000 cells total
+  MAP_W: 1600,
+  MAP_H: 800,
 
-  // Color palettes
-  colors: {
-    deepOcean:  ['#1E4868','#224C6C','#265070','#1A4464','#204A6A'],
-    midOcean:   ['#2A5878','#2E5C7C','#326080','#285674','#306080'],
-    shallowOcn: ['#3A6888','#3E6C8C','#427090','#386484','#3C688A'],
-    coastShelf: ['#4A7898','#4E7C9C','#5280A0','#487494','#4C789A'],
-    lowland:    ['#5A8A48','#5E8E4C','#628E50','#568644','#5C8C4A'],
-    grassland:  ['#6A9A58','#6E9E5C','#72A260','#689854','#6C9C5A'],
-    forest:     ['#2A5A28','#2E5E2C','#326230','#285824','#2C5C2A'],
-    denseForest:['#1A4A1C','#1E4E20','#225224','#184818','#1C4C1E'],
-    desert:     ['#C8B088','#CCB48C','#D0B890','#C4AC84','#C8B28A'],
-    hotDesert:  ['#D4BC90','#D8C094','#DCC498','#D0B88C','#D4BE92'],
-    mountain:   ['#7A7060','#7E7464','#827868','#786E5C','#7C7262'],
-    highMtn:    ['#9A9088','#9E948C','#A29890','#988E84','#9C928A'],
-    snow:       ['#E0E8F0','#E4ECF4','#E8F0F8','#DCE4EC','#E0E8F2'],
-    ice:        ['#D0DCE8','#D4E0EC','#D8E4F0','#CCD8E4','#D0DCEA'],
-    tundra:     ['#7A8A6A','#7E8E6E','#829272','#788866','#7C8C6C'],
-    river:      ['#3070A0','#3474A4','#3878A8','#2C6C9C','#3272A2'],
-    beach:      ['#E0D0A8','#E4D4AC','#E8D8B0','#DCCCA4','#E0D2AA'],
+  // Simple Perlin-like noise for natural terrain variation
+  _seed: 42,
+  _perm: null,
+
+  initNoise: function() {
+    this._perm = new Uint8Array(512);
+    var p = new Uint8Array(256);
+    for (var i = 0; i < 256; i++) p[i] = i;
+    // Shuffle with seed
+    var s = this._seed;
+    for (var i = 255; i > 0; i--) {
+      s = (s * 16807 + 0) % 2147483647;
+      var j = s % (i + 1);
+      var t = p[i]; p[i] = p[j]; p[j] = t;
+    }
+    for (var i = 0; i < 512; i++) this._perm[i] = p[i & 255];
   },
 
-  // Get random color from palette with variation
-  pickColor: function(palette) {
-    return palette[Math.floor(Math.random() * palette.length)];
+  noise2D: function(x, y) {
+    if (!this._perm) this.initNoise();
+    var X = Math.floor(x) & 255, Y = Math.floor(y) & 255;
+    var xf = x - Math.floor(x), yf = y - Math.floor(y);
+    var u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+    var p = this._perm;
+    var aa = p[p[X] + Y], ab = p[p[X] + Y + 1];
+    var ba = p[p[X + 1] + Y], bb = p[p[X + 1] + Y + 1];
+    var x1 = aa / 255 * (1 - u) + ba / 255 * u;
+    var x2 = ab / 255 * (1 - u) + bb / 255 * u;
+    return x1 * (1 - v) + x2 * v; // 0-1
   },
 
-  // Simplified continent outlines as polygon coordinate arrays
-  // Coordinates in grid space (0-640 x, 0-320 y)
-  // Equirectangular projection: x = longitude mapped to 0-640, y = latitude mapped to 0-320
-  continents: {
-    northAmerica: [
-      [28,38],[35,35],[48,34],[60,32],[72,30],[85,30],[98,32],[110,35],[120,40],
-      [128,48],[132,56],[134,64],[132,72],[130,78],[128,84],[132,88],[136,92],
-      [140,98],[142,104],[140,110],[136,116],[130,120],[124,124],[118,126],[112,128],
-      [106,132],[100,136],[95,138],[90,136],[85,138],[80,142],[74,144],[68,140],
-      [62,136],[56,130],[52,124],[48,118],[44,112],[42,106],[40,100],[38,94],
-      [36,88],[34,82],[32,76],[30,70],[28,64],[26,58],[26,52],[27,46],[28,42]
-    ],
-    florida: [
-      [112,128],[116,132],[120,138],[122,142],[120,146],[116,144],[112,140],[110,136],[110,132]
-    ],
-    centralAm: [
-      [95,138],[98,140],[100,144],[102,148],[104,152],[102,156],[98,158],[94,156],[92,152],[92,148],[93,144]
-    ],
-    greenland: [
-      [142,16],[150,12],[160,14],[168,18],[172,26],[168,34],[160,36],[152,34],[146,28],[142,22]
-    ],
-    southAmerica: [
-      [118,158],[128,154],[138,156],[148,162],[154,170],[158,180],[160,192],[160,204],
-      [158,216],[154,228],[148,238],[142,248],[136,256],[130,262],[124,268],[120,272],
-      [118,268],[114,260],[110,250],[108,240],[106,230],[104,218],[102,206],[102,194],
-      [104,182],[108,172],[112,164]
-    ],
-    europe: [
-      [230,34],[236,30],[244,28],[252,30],[258,32],[264,28],[270,30],[276,32],
-      [282,36],[286,40],[290,44],[292,50],[290,56],[288,60],[284,64],[280,68],
-      [276,72],[272,76],[268,74],[264,76],[260,74],[256,72],[252,76],[248,74],
-      [244,70],[240,66],[236,62],[234,56],[232,50],[230,44],[230,38]
-    ],
-    iberia: [
-      [236,66],[240,68],[244,72],[248,76],[246,80],[240,82],[236,80],[232,76],
-      [230,72],[232,68]
-    ],
-    italy: [
-      [264,66],[268,70],[272,76],[274,82],[276,86],[274,90],[270,88],[268,84],
-      [266,78],[264,72]
-    ],
-    scandinavia: [
-      [258,14],[264,12],[270,16],[274,22],[272,30],[268,28],[264,26],[260,22],[258,18]
-    ],
-    uk: [
-      [226,36],[230,34],[234,36],[236,42],[234,48],[230,50],[226,48],[224,44],[224,40]
-    ],
-    ireland: [
-      [220,40],[224,38],[226,42],[224,46],[220,46],[218,44]
-    ],
-    iceland: [
-      [210,20],[216,18],[220,20],[220,24],[216,26],[212,24]
-    ],
-    africa: [
-      [244,88],[254,86],[264,88],[274,92],[282,98],[288,106],[294,116],[298,128],
-      [300,140],[302,152],[302,164],[300,176],[296,188],[290,198],[284,206],[276,212],
-      [268,218],[260,220],[252,216],[246,210],[240,202],[236,194],[234,186],[232,178],
-      [230,168],[228,158],[228,148],[230,138],[232,128],[234,118],[238,108],[242,98],
-      [244,92]
-    ],
-    hornAfrica: [
-      [294,116],[298,114],[304,116],[308,120],[306,124],[302,122],[298,118]
-    ],
-    madagascar: [
-      [312,180],[316,174],[318,180],[318,190],[316,196],[312,194],[310,188]
-    ],
-    middleEast: [
-      [290,78],[298,76],[306,78],[314,82],[318,88],[318,96],[314,104],[308,108],
-      [302,106],[296,100],[292,94],[290,86]
-    ],
-    russia: [
-      [276,20],[300,12],[330,10],[360,12],[390,14],[420,18],[450,20],[470,16],
-      [488,20],[498,28],[496,40],[490,48],[484,52],[476,54],[468,56],[458,58],
-      [448,56],[438,58],[428,56],[418,60],[408,58],[398,62],[388,60],[378,64],
-      [368,62],[358,66],[348,64],[338,68],[328,66],[318,70],[310,68],[304,64],
-      [298,58],[294,50],[290,42],[284,36],[280,30]
-    ],
-    india: [
-      [340,92],[350,88],[360,92],[368,100],[372,110],[370,122],[366,132],[360,140],
-      [352,144],[344,142],[338,136],[334,128],[332,118],[332,108],[334,100]
-    ],
-    sriLanka: [[362,146],[366,144],[366,150],[362,152]],
-    china: [
-      [382,62],[396,58],[410,60],[422,66],[430,74],[434,82],[436,92],[434,102],
-      [430,110],[424,116],[416,120],[408,122],[400,118],[392,112],[386,104],[382,96],
-      [380,86],[378,78],[380,70]
-    ],
-    seAsia: [
-      [402,122],[412,118],[422,122],[430,128],[432,138],[428,146],[420,150],[412,148],
-      [406,142],[402,134]
-    ],
-    japan: [
-      [460,48],[466,42],[470,46],[472,52],[470,60],[468,68],[464,72],[460,70],
-      [458,64],[456,58],[458,52]
-    ],
-    japan2: [[464,40],[468,38],[470,42],[468,46],[464,44]],
-    indonesia: [
-      [412,158],[420,156],[430,158],[438,160],[440,164],[436,166],[428,166],[420,164],[414,162]
-    ],
-    indonesia2: [[442,158],[448,156],[452,158],[452,162],[448,164],[444,162]],
-    indonesia3: [[456,158],[460,156],[464,160],[462,164],[458,162]],
-    australia: [
-      [432,186],[446,182],[460,184],[472,190],[480,198],[484,208],[482,218],
-      [478,226],[470,232],[460,234],[450,232],[440,228],[434,222],[430,214],
-      [428,206],[428,196],[430,190]
-    ],
-    tasmania: [[474,238],[478,236],[480,240],[478,244],[474,242]],
-    newZealand: [[520,228],[524,224],[526,230],[524,238],[520,236]],
-    newZealand2: [[522,240],[526,242],[524,248],[520,246]],
+  // Fractal Brownian Motion — layered noise for natural terrain
+  fbm: function(x, y, octaves) {
+    var val = 0, amp = 1, freq = 1, max = 0;
+    for (var i = 0; i < (octaves || 4); i++) {
+      val += this.noise2D(x * freq, y * freq) * amp;
+      max += amp;
+      amp *= 0.5;
+      freq *= 2;
+    }
+    return val / max; // 0-1
   },
 
-  // Terrain zones — rectangular regions with terrain type
-  // Format: [x1, y1, x2, y2, terrainType]
-  terrainZones: [
-    // Sahara
-    [244,90, 294,108, 'desert'],
-    // Arabian desert
-    [290,80, 318,100, 'hotDesert'],
-    // Australian outback
-    [440,195, 475,225, 'desert'],
-    // Gobi
-    [390,58, 420,72, 'desert'],
-    // Amazon rainforest
-    [112,168, 148,200, 'denseForest'],
-    // Congo
-    [258,148, 284,170, 'forest'],
-    // Siberian taiga
-    [330,16, 490,38, 'forest'],
-    // Canadian forest
-    [40,34, 100,54, 'forest'],
-    // Scandinavian forest
-    [258,14, 274,30, 'forest'],
-    // Rocky Mountains
-    [46,56, 56,100, 'mountain'],
+  // ========== ELEVATION BUMPS ==========
+  // Each bump: [x, y, radius, height] in normalized 0-1 coords
+  // Hundreds of bumps sculpt the terrain like clay
+  _bumps: null,
+
+  buildBumps: function() {
+    var b = [];
+    // Helper: add a row of bumps along a line (for coastlines, ridges)
+    function line(x1,y1,x2,y2,r,h,n) {
+      for (var i = 0; i <= n; i++) {
+        var t = i / n;
+        b.push([x1+(x2-x1)*t, y1+(y2-y1)*t, r, h]);
+      }
+    }
+    // Helper: fill an area with bumps
+    function fill(x1,y1,x2,y2,r,h,density) {
+      var cols = Math.ceil((x2-x1) / (r * density));
+      var rows = Math.ceil((y2-y1) / (r * density));
+      for (var iy = 0; iy <= rows; iy++) {
+        for (var ix = 0; ix <= cols; ix++) {
+          b.push([x1+(x2-x1)*ix/cols, y1+(y2-y1)*iy/rows, r, h]);
+        }
+      }
+    }
+
+    // ===== NORTH AMERICA =====
+    // Main body — dense coverage from Alaska to Mexico
+    fill(0.05, 0.10, 0.22, 0.38, 0.04, 0.42, 0.7); // Northern core (Canada)
+    fill(0.08, 0.22, 0.20, 0.42, 0.035, 0.40, 0.7); // Central US
+    fill(0.06, 0.12, 0.15, 0.22, 0.04, 0.38, 0.8); // Western Canada
+    fill(0.14, 0.10, 0.24, 0.20, 0.035, 0.38, 0.8); // Eastern Canada
+    // Alaska
+    fill(0.02, 0.10, 0.07, 0.16, 0.025, 0.36, 0.8);
+    // Florida peninsula
+    line(0.17, 0.38, 0.19, 0.44, 0.018, 0.35, 8);
+    // Baja California
+    line(0.07, 0.34, 0.08, 0.42, 0.012, 0.32, 6);
+    // Gulf coast curve
+    line(0.10, 0.38, 0.14, 0.40, 0.02, 0.36, 6);
+    line(0.14, 0.40, 0.17, 0.38, 0.02, 0.36, 5);
+    // Eastern seaboard detail
+    line(0.20, 0.20, 0.21, 0.26, 0.018, 0.36, 5);
+    line(0.20, 0.26, 0.19, 0.32, 0.018, 0.36, 5);
+    line(0.19, 0.32, 0.18, 0.36, 0.018, 0.36, 4);
+    // Labrador
+    fill(0.20, 0.12, 0.26, 0.18, 0.03, 0.36, 0.8);
+    // Hudson Bay depression (negative bump to carve out)
+    b.push([0.15, 0.16, 0.04, -0.35]);
+    b.push([0.16, 0.17, 0.035, -0.3]);
+    // Great Lakes depressions
+    b.push([0.165, 0.25, 0.015, -0.25]);
+    b.push([0.155, 0.245, 0.012, -0.22]);
+    b.push([0.175, 0.248, 0.01, -0.2]);
+    b.push([0.145, 0.255, 0.008, -0.2]);
+    b.push([0.18, 0.24, 0.01, -0.2]);
+    // Rocky Mountains ridge
+    line(0.08, 0.15, 0.09, 0.22, 0.015, 0.22, 8);
+    line(0.09, 0.22, 0.10, 0.30, 0.015, 0.2, 8);
+    line(0.10, 0.30, 0.10, 0.36, 0.012, 0.18, 6);
+    // Appalachians
+    line(0.18, 0.24, 0.17, 0.34, 0.012, 0.12, 8);
+
+    // Central America
+    line(0.13, 0.42, 0.14, 0.46, 0.015, 0.34, 5);
+    line(0.14, 0.46, 0.15, 0.50, 0.012, 0.32, 5);
+    // Caribbean islands
+    b.push([0.18, 0.44, 0.012, 0.32]); // Cuba
+    b.push([0.19, 0.45, 0.008, 0.30]); // Hispaniola
+    b.push([0.20, 0.46, 0.006, 0.28]); // Puerto Rico
+    b.push([0.21, 0.47, 0.005, 0.28]); // Lesser Antilles
+
+    // Greenland
+    fill(0.22, 0.02, 0.28, 0.12, 0.025, 0.45, 0.7);
+
+    // ===== SOUTH AMERICA =====
+    fill(0.16, 0.52, 0.26, 0.68, 0.035, 0.40, 0.7); // Northern half (Brazil)
+    fill(0.15, 0.56, 0.22, 0.72, 0.03, 0.38, 0.7); // Southern half
+    fill(0.18, 0.50, 0.24, 0.56, 0.03, 0.38, 0.8); // Venezuela/Guianas
+    // Patagonia taper
+    line(0.17, 0.72, 0.18, 0.80, 0.018, 0.34, 6);
+    line(0.18, 0.80, 0.185, 0.86, 0.012, 0.30, 4);
     // Andes
-    [106,164, 116,260, 'mountain'],
+    line(0.155, 0.52, 0.15, 0.60, 0.012, 0.25, 8);
+    line(0.15, 0.60, 0.155, 0.68, 0.012, 0.22, 8);
+    line(0.16, 0.68, 0.17, 0.76, 0.01, 0.2, 8);
+    line(0.17, 0.76, 0.175, 0.84, 0.008, 0.18, 6);
+
+    // ===== EUROPE =====
+    fill(0.35, 0.12, 0.44, 0.24, 0.025, 0.38, 0.7); // Western Europe
+    fill(0.38, 0.08, 0.46, 0.16, 0.025, 0.36, 0.8); // Northern Europe
+    fill(0.42, 0.16, 0.48, 0.26, 0.025, 0.36, 0.7); // Eastern Europe
+    // Iberian Peninsula
+    fill(0.35, 0.24, 0.39, 0.30, 0.022, 0.37, 0.8);
+    // Italian Peninsula
+    line(0.41, 0.24, 0.42, 0.28, 0.014, 0.35, 5);
+    line(0.42, 0.28, 0.43, 0.32, 0.012, 0.34, 5);
+    b.push([0.43, 0.33, 0.01, 0.32]); // Sicily
+    b.push([0.42, 0.31, 0.008, 0.30]); // Sardinia
+    // Scandinavia
+    line(0.39, 0.06, 0.41, 0.10, 0.018, 0.36, 5);
+    line(0.41, 0.04, 0.43, 0.08, 0.016, 0.35, 5);
+    line(0.43, 0.02, 0.45, 0.06, 0.014, 0.34, 4);
+    // UK
+    b.push([0.36, 0.14, 0.018, 0.36]); // England
+    b.push([0.355, 0.12, 0.014, 0.35]); // Scotland
+    b.push([0.35, 0.15, 0.012, 0.34]); // Wales
+    // Ireland
+    b.push([0.34, 0.15, 0.014, 0.34]);
+    // Iceland
+    b.push([0.32, 0.07, 0.012, 0.34]);
+    // Greece/Balkans
+    line(0.44, 0.24, 0.45, 0.28, 0.015, 0.35, 4);
+    b.push([0.45, 0.28, 0.01, 0.32]); // Peloponnese
+    b.push([0.46, 0.27, 0.008, 0.30]); // Crete
     // Alps
-    [256,52, 272,60, 'mountain'],
+    line(0.39, 0.22, 0.43, 0.22, 0.008, 0.2, 8);
+    // Carpathians
+    line(0.44, 0.20, 0.46, 0.22, 0.006, 0.14, 5);
+
+    // ===== AFRICA =====
+    fill(0.37, 0.32, 0.50, 0.50, 0.04, 0.42, 0.6); // Northern Africa
+    fill(0.38, 0.46, 0.50, 0.62, 0.04, 0.40, 0.6); // Central Africa
+    fill(0.40, 0.56, 0.50, 0.70, 0.035, 0.38, 0.7); // Southern Africa
+    // Horn of Africa
+    line(0.50, 0.38, 0.53, 0.40, 0.015, 0.36, 4);
+    // Madagascar
+    fill(0.50, 0.56, 0.52, 0.64, 0.012, 0.34, 0.8);
+    // Atlas Mountains
+    line(0.37, 0.30, 0.40, 0.32, 0.008, 0.16, 6);
+    // East African Rift highlands
+    line(0.48, 0.44, 0.49, 0.52, 0.01, 0.14, 6);
+    // Kilimanjaro
+    b.push([0.485, 0.48, 0.008, 0.22]);
+
+    // ===== MIDDLE EAST =====
+    fill(0.48, 0.26, 0.55, 0.36, 0.025, 0.37, 0.7); // Arabian Peninsula
+    fill(0.46, 0.24, 0.50, 0.30, 0.02, 0.36, 0.8); // Turkey/Levant
+    b.push([0.50, 0.28, 0.015, 0.35]); // Iran core
+    b.push([0.52, 0.28, 0.015, 0.35]); // Iran east
+    // Zagros mountains
+    line(0.50, 0.26, 0.52, 0.30, 0.007, 0.16, 5);
+
+    // ===== RUSSIA / NORTHERN ASIA =====
+    fill(0.44, 0.04, 0.65, 0.14, 0.04, 0.36, 0.5); // Western Siberia
+    fill(0.60, 0.04, 0.78, 0.14, 0.04, 0.34, 0.5); // Eastern Siberia
+    fill(0.74, 0.06, 0.82, 0.16, 0.035, 0.33, 0.6); // Far East
+    fill(0.46, 0.14, 0.56, 0.22, 0.03, 0.36, 0.6); // Central Asia
+    // Ural Mountains
+    line(0.47, 0.06, 0.47, 0.18, 0.008, 0.16, 10);
+    // Kamchatka
+    line(0.80, 0.08, 0.82, 0.14, 0.01, 0.34, 4);
+
+    // ===== INDIA =====
+    fill(0.54, 0.30, 0.60, 0.42, 0.025, 0.38, 0.7); // Main subcontinent
+    line(0.57, 0.42, 0.58, 0.46, 0.018, 0.35, 3); // Southern tip
+    b.push([0.59, 0.46, 0.008, 0.30]); // Sri Lanka
     // Himalayas
-    [348,68, 390,78, 'highMtn'],
-    // Greenland ice
-    [142,12, 172,36, 'ice'],
-    // Tundra - northern Russia
-    [276,12, 498,22, 'tundra'],
-    // Tundra - northern Canada
-    [28,30, 120,40, 'tundra'],
-    // East African highlands
-    [280,120, 300,150, 'grassland'],
-  ],
+    line(0.54, 0.26, 0.60, 0.26, 0.008, 0.3, 10);
+    line(0.56, 0.25, 0.62, 0.25, 0.007, 0.28, 8);
+    // Tibetan Plateau
+    fill(0.58, 0.22, 0.64, 0.28, 0.02, 0.2, 0.8);
 
-  // Rivers as polyline coordinate arrays
-  rivers: [
-    // Nile
-    [[286,96],[284,108],[282,120],[280,132],[278,148],[276,160]],
-    // Amazon
-    [[108,182],[118,180],[128,182],[138,180],[148,178],[154,176]],
-    // Mississippi
-    [[96,68],[98,78],[100,90],[102,102],[104,114],[106,126],[108,132]],
-    // Yangtze
-    [[394,78],[404,76],[414,80],[424,82],[430,86]],
-    // Danube
-    [[260,50],[268,52],[276,54],[284,56]],
-    // Ganges
-    [[350,100],[358,98],[366,102],[372,106]],
-    // Congo
-    [[258,158],[266,156],[274,158],[280,162]],
-  ],
+    // ===== CHINA / EAST ASIA =====
+    fill(0.62, 0.20, 0.74, 0.34, 0.035, 0.38, 0.6); // China mainland
+    fill(0.60, 0.16, 0.68, 0.24, 0.03, 0.36, 0.7); // Northern China
+    // Korean Peninsula
+    line(0.73, 0.22, 0.74, 0.26, 0.012, 0.34, 3);
 
-  // Point-in-polygon test (ray casting)
-  pointInPoly: function(x, y, poly) {
-    var inside = false;
-    for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-      var xi = poly[i][0], yi = poly[i][1];
-      var xj = poly[j][0], yj = poly[j][1];
-      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) {
-        inside = !inside;
-      }
-    }
-    return inside;
+    // ===== JAPAN =====
+    line(0.75, 0.18, 0.76, 0.22, 0.008, 0.34, 4); // Honshu
+    line(0.76, 0.22, 0.77, 0.26, 0.007, 0.33, 3);
+    b.push([0.76, 0.16, 0.01, 0.33]); // Hokkaido
+
+    // ===== SOUTHEAST ASIA =====
+    line(0.66, 0.34, 0.68, 0.40, 0.016, 0.35, 4); // Indochina
+    line(0.68, 0.36, 0.70, 0.42, 0.014, 0.34, 4);
+    // Malay Peninsula
+    line(0.68, 0.42, 0.69, 0.48, 0.01, 0.32, 5);
+    // Philippines
+    b.push([0.74, 0.36, 0.01, 0.32]);
+    b.push([0.74, 0.38, 0.008, 0.30]);
+    // Borneo
+    b.push([0.71, 0.46, 0.018, 0.34]);
+    // Sumatra
+    line(0.66, 0.46, 0.68, 0.50, 0.012, 0.32, 4);
+    // Java
+    line(0.68, 0.52, 0.72, 0.52, 0.008, 0.30, 5);
+    // Sulawesi
+    b.push([0.73, 0.48, 0.01, 0.30]);
+    // Papua/New Guinea
+    fill(0.76, 0.48, 0.80, 0.52, 0.015, 0.34, 0.8);
+
+    // ===== AUSTRALIA =====
+    fill(0.70, 0.60, 0.80, 0.72, 0.04, 0.38, 0.6);
+    fill(0.72, 0.58, 0.78, 0.64, 0.035, 0.36, 0.7);
+    // Great Dividing Range
+    line(0.78, 0.62, 0.77, 0.68, 0.008, 0.12, 6);
+    // Tasmania
+    b.push([0.76, 0.74, 0.01, 0.32]);
+    // New Zealand
+    b.push([0.84, 0.72, 0.008, 0.34]);
+    b.push([0.84, 0.74, 0.007, 0.33]);
+    b.push([0.84, 0.76, 0.006, 0.32]);
+
+    // ===== NEGATIVE BUMPS (carve out seas/bays) =====
+    // Mediterranean Sea
+    b.push([0.41, 0.26, 0.02, -0.3]);
+    b.push([0.43, 0.27, 0.018, -0.28]);
+    b.push([0.45, 0.26, 0.015, -0.25]);
+    // Black Sea
+    b.push([0.46, 0.22, 0.012, -0.25]);
+    // Caspian Sea
+    b.push([0.50, 0.22, 0.01, -0.22]);
+    // Persian Gulf
+    b.push([0.51, 0.30, 0.01, -0.2]);
+    // Red Sea
+    b.push([0.47, 0.34, 0.006, -0.22]);
+    b.push([0.47, 0.38, 0.006, -0.22]);
+    // Gulf of Mexico
+    b.push([0.13, 0.40, 0.025, -0.3]);
+    // Caribbean Sea
+    b.push([0.16, 0.44, 0.02, -0.25]);
+    // Bay of Bengal
+    b.push([0.60, 0.36, 0.02, -0.25]);
+    // South China Sea
+    b.push([0.70, 0.38, 0.02, -0.22]);
+    // Sea of Japan
+    b.push([0.74, 0.20, 0.012, -0.2]);
+
+    this._bumps = b;
+    return b;
   },
 
-  // Check if point is near a river
-  nearRiver: function(x, y, threshold) {
-    for (var r = 0; r < this.rivers.length; r++) {
-      var river = this.rivers[r];
-      for (var i = 0; i < river.length - 1; i++) {
-        var dx = river[i+1][0] - river[i][0];
-        var dy = river[i+1][1] - river[i][1];
-        var len = Math.sqrt(dx*dx + dy*dy);
-        if (len === 0) continue;
-        var t = Math.max(0, Math.min(1, ((x-river[i][0])*dx + (y-river[i][1])*dy) / (len*len)));
-        var px = river[i][0] + t * dx;
-        var py = river[i][1] + t * dy;
-        var dist = Math.sqrt((x-px)*(x-px) + (y-py)*(y-py));
-        if (dist < threshold) return true;
+  getElevation: function(nx, ny) {
+    if (!this._bumps) this.buildBumps();
+    var bumps = this._bumps;
+
+    // Base: subtle noise floor
+    var elev = this.fbm(nx * 6, ny * 6, 4) * 0.12;
+
+    // Apply all bumps — each is a gaussian-like influence
+    for (var i = 0; i < bumps.length; i++) {
+      var bx = bumps[i][0], by = bumps[i][1], br = bumps[i][2], bh = bumps[i][3];
+      var dx = nx - bx, dy = ny - by;
+      var dist2 = dx * dx + dy * dy;
+      var r2 = br * br;
+      if (dist2 < r2 * 4) { // Only compute if within 2x radius
+        var influence = Math.exp(-dist2 / (2 * r2 * 0.4)); // Gaussian falloff
+        elev += bh * influence;
       }
     }
-    return false;
+
+    // Add fine terrain detail noise
+    elev += this.fbm(nx * 20, ny * 20, 3) * 0.06;
+
+    return Math.max(0, Math.min(1, elev));
   },
 
-  // Distance from point to nearest polygon edge (for coast detection)
-  distToCoast: function(x, y, poly) {
-    var minDist = 999;
-    for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-      var dx = poly[i][0] - poly[j][0];
-      var dy = poly[i][1] - poly[j][1];
-      var len = Math.sqrt(dx*dx + dy*dy);
-      if (len === 0) continue;
-      var t = Math.max(0, Math.min(1, ((x-poly[j][0])*dx + (y-poly[j][1])*dy) / (len*len)));
-      var px = poly[j][0] + t * dx;
-      var py = poly[j][1] + t * dy;
-      var d = Math.sqrt((x-px)*(x-px) + (y-py)*(y-py));
-      if (d < minDist) minDist = d;
+
+  // ========== TERRAIN COLOR FROM ELEVATION + LATITUDE ==========
+  getTerrainColor: function(elev, nx, ny) {
+    var lat = Math.abs(ny - 0.5) * 2; // 0 at equator, 1 at poles
+
+    // Deep ocean
+    if (elev < 0.2) {
+      var depth = elev / 0.2;
+      var r = 20 + depth * 30, g = 50 + depth * 40, b = 90 + depth * 40;
+      return [r|0, g|0, b|0];
     }
-    return minDist;
+
+    // Shallow ocean / continental shelf
+    if (elev < 0.28) {
+      var shelf = (elev - 0.2) / 0.08;
+      var r = 50 + shelf * 30, g = 90 + shelf * 30, b = 130 + shelf * 20;
+      return [r|0, g|0, b|0];
+    }
+
+    // Beach / coastline
+    if (elev < 0.32) {
+      var r = 210 + Math.random()*15, g = 195 + Math.random()*15, b = 155 + Math.random()*15;
+      return [r|0, g|0, b|0];
+    }
+
+    // Determine climate zone from latitude
+    var isArctic = lat > 0.75;
+    var isSubarctic = lat > 0.6;
+    var isTemperate = lat > 0.3 && lat < 0.6;
+    var isSubtropical = lat > 0.15 && lat < 0.35;
+    var isTropical = lat < 0.2;
+
+    // Desert zones (specific regions)
+    var isDesert = false;
+    // Sahara
+    if (nx > 0.36 && nx < 0.5 && ny > 0.3 && ny < 0.4) isDesert = true;
+    // Arabian
+    if (nx > 0.46 && nx < 0.56 && ny > 0.28 && ny < 0.38) isDesert = true;
+    // Australian outback
+    if (nx > 0.7 && nx < 0.8 && ny > 0.62 && ny < 0.74) isDesert = true;
+    // Gobi
+    if (nx > 0.62 && nx < 0.7 && ny > 0.2 && ny < 0.28) isDesert = true;
+    // SW USA
+    if (nx > 0.1 && nx < 0.16 && ny > 0.28 && ny < 0.36) isDesert = true;
+    // Patagonia
+    if (nx > 0.16 && nx < 0.22 && ny > 0.78 && ny < 0.86) isDesert = true;
+
+    if (isDesert && elev < 0.6) {
+      var n = this.fbm(nx * 20, ny * 20, 3);
+      var r = 185 + n*40, g = 165 + n*35, b = 115 + n*30;
+      return [r|0, g|0, b|0];
+    }
+
+    // Snow/ice (high latitude or high elevation)
+    if (isArctic || elev > 0.85) {
+      var n = this.fbm(nx * 15, ny * 15, 3);
+      var r = 220 + n*30, g = 228 + n*25, b = 235 + n*20;
+      return [r|0, g|0, b|0];
+    }
+
+    // Tundra
+    if (isSubarctic && elev < 0.5) {
+      var n = this.fbm(nx * 12, ny * 12, 3);
+      var r = 100 + n*40, g = 115 + n*35, b = 80 + n*30;
+      return [r|0, g|0, b|0];
+    }
+
+    // High mountains
+    if (elev > 0.75) {
+      var n = this.fbm(nx * 18, ny * 18, 3);
+      var r = 140 + n*40, g = 130 + n*35, b = 110 + n*30;
+      // Snow patches on peaks
+      if (n > 0.6) { r += 60; g += 65; b += 70; }
+      return [Math.min(255,r|0), Math.min(255,g|0), Math.min(255,b|0)];
+    }
+
+    // Mountains
+    if (elev > 0.62) {
+      var n = this.fbm(nx * 15, ny * 15, 3);
+      var r = 110 + n*50, g = 105 + n*45, b = 80 + n*35;
+      return [r|0, g|0, b|0];
+    }
+
+    // Dense forest (tropical + wet areas)
+    var forestNoise = this.fbm(nx * 10, ny * 10, 4);
+    if (isTropical && forestNoise > 0.4 && elev > 0.35) {
+      var n = forestNoise;
+      var r = 25 + n*50, g = 65 + n*50, b = 20 + n*30;
+      return [r|0, g|0, b|0];
+    }
+
+    // Temperate forest
+    if (isTemperate && forestNoise > 0.45 && elev > 0.38) {
+      var n = forestNoise;
+      var r = 40 + n*55, g = 75 + n*55, b = 30 + n*35;
+      return [r|0, g|0, b|0];
+    }
+
+    // Boreal forest (taiga)
+    if (isSubarctic && forestNoise > 0.35 && elev > 0.32) {
+      var n = forestNoise;
+      var r = 30 + n*45, g = 58 + n*45, b = 28 + n*30;
+      return [r|0, g|0, b|0];
+    }
+
+    // Grassland / savanna
+    if (isSubtropical) {
+      var n = this.fbm(nx * 12, ny * 12, 3);
+      var r = 120 + n*50, g = 145 + n*40, b = 60 + n*35;
+      return [r|0, g|0, b|0];
+    }
+
+    // Default lowland (temperate green)
+    var n = this.fbm(nx * 14, ny * 14, 3);
+    var r = 70 + n*50, g = 115 + n*50, b = 45 + n*35;
+    return [r|0, g|0, b|0];
   },
 
-  // Determine what's at a grid cell
-  getTerrainAt: function(x, y) {
-    // Check all continent polygons
-    var allPolys = Object.keys(this.continents);
-    var isLand = false;
-    var landPoly = null;
+  // ========== 3D ELEVATION SHADING ==========
+  applyShading: function(rgb, elev, nx, ny) {
+    // Compute normal from elevation differences (fake 3D)
+    var dx = this.getElevation(nx + 0.002, ny) - this.getElevation(nx - 0.002, ny);
+    var dy = this.getElevation(nx, ny + 0.002) - this.getElevation(nx, ny - 0.002);
 
-    for (var p = 0; p < allPolys.length; p++) {
-      var poly = this.continents[allPolys[p]];
-      if (this.pointInPoly(x, y, poly)) {
-        isLand = true;
-        landPoly = poly;
-        break;
-      }
-    }
+    // Light from upper-left (northwest)
+    var lightX = -0.7, lightY = -0.7;
+    var shade = dx * lightX + dy * lightY;
 
-    if (!isLand) {
-      // Ocean — check distance to any coast for shelf coloring
-      var minCoastDist = 999;
-      for (var p = 0; p < allPolys.length; p++) {
-        var d = this.distToCoast(x, y, this.continents[allPolys[p]]);
-        if (d < minCoastDist) minCoastDist = d;
-      }
-      if (minCoastDist < 3) return 'coastShelf';
-      if (minCoastDist < 6) return 'shallowOcn';
-      if (minCoastDist < 15) return 'midOcean';
-      return 'deepOcean';
-    }
+    // Apply shading — brighten sunlit faces, darken shadow faces
+    var factor = 1.0 + shade * 4.0;
+    factor = Math.max(0.6, Math.min(1.4, factor));
 
-    // Check rivers
-    if (this.nearRiver(x, y, 1.2)) return 'river';
-
-    // Check terrain zones
-    for (var z = 0; z < this.terrainZones.length; z++) {
-      var zone = this.terrainZones[z];
-      if (x >= zone[0] && x <= zone[2] && y >= zone[1] && y <= zone[3]) {
-        return zone[4];
-      }
-    }
-
-    // Check coast proximity for beach
-    if (landPoly) {
-      var coastDist = this.distToCoast(x, y, landPoly);
-      if (coastDist < 2) return 'beach';
-    }
-
-    // Default land
-    return 'lowland';
+    return [
+      Math.min(255, Math.max(0, (rgb[0] * factor) | 0)),
+      Math.min(255, Math.max(0, (rgb[1] * factor) | 0)),
+      Math.min(255, Math.max(0, (rgb[2] * factor) | 0))
+    ];
   },
 
-  // ========== RENDER THE WORLD MAP (Canvas → SVG image) ==========
-  // For 1M+ pixels we use Canvas for rendering then embed as image in SVG
-  // This gives us seamless resolution without SVG element count issues
+  // ========== RENDER ==========
   renderWorldMap: function(svgEl) {
-    var cols = this.MAP_COLS;
-    var rows = this.MAP_ROWS;
-    var w = cols;
-    var h = rows;
-    var self = this;
+    var W = this.MAP_W, H = this.MAP_H;
+    svgEl.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
 
-    svgEl.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
-
-    // Create offscreen canvas
     var canvas = document.createElement('canvas');
-    canvas.width = cols;
-    canvas.height = rows;
+    canvas.width = W;
+    canvas.height = H;
     var ctx = canvas.getContext('2d');
-    var imgData = ctx.createImageData(cols, rows);
+    var imgData = ctx.createImageData(W, H);
     var data = imgData.data;
 
-    // Pre-compute: build land mask using polygon tests
-    // Scale continent coords from original 640x320 → 1600x800
-    var scaleX = cols / 640;
-    var scaleY = rows / 320;
+    this.initNoise();
 
-    // Helper: parse hex color to RGB
-    function hexToRGB(hex) {
-      var r = parseInt(hex.substr(1,2), 16);
-      var g = parseInt(hex.substr(3,2), 16);
-      var b = parseInt(hex.substr(5,2), 16);
-      return [r, g, b];
-    }
+    var t0 = performance.now();
 
-    // Pre-compute palette RGB arrays for speed
-    var paletteRGB = {};
-    var colorKeys = Object.keys(self.colors);
-    for (var k = 0; k < colorKeys.length; k++) {
-      paletteRGB[colorKeys[k]] = self.colors[colorKeys[k]].map(hexToRGB);
-    }
+    for (var y = 0; y < H; y++) {
+      var ny = y / H;
+      for (var x = 0; x < W; x++) {
+        var nx = x / W;
 
-    // Render each pixel
-    for (var row = 0; row < rows; row++) {
-      for (var col = 0; col < cols; col++) {
-        // Map back to 640x320 coordinate space for terrain lookup
-        var gx = col / scaleX;
-        var gy = row / scaleY;
+        // Get elevation
+        var elev = this.getElevation(nx, ny);
 
-        var terrain = self.getTerrainAt(gx, gy);
-        var palKey = terrain;
-        var pal = paletteRGB[palKey] || paletteRGB.midOcean;
-        var rgb = pal[Math.floor(Math.random() * pal.length)];
+        // Get terrain color
+        var rgb = this.getTerrainColor(elev, nx, ny);
 
-        var idx = (row * cols + col) * 4;
-        data[idx]   = rgb[0];
-        data[idx+1] = rgb[1];
-        data[idx+2] = rgb[2];
-        data[idx+3] = 255;
+        // Apply 3D shading (only for land — elev > 0.3)
+        if (elev > 0.3) {
+          rgb = this.applyShading(rgb, elev, nx, ny);
+        }
+
+        var idx = (y * W + x) * 4;
+        data[idx]     = rgb[0];
+        data[idx + 1] = rgb[1];
+        data[idx + 2] = rgb[2];
+        data[idx + 3] = 255;
       }
     }
 
     ctx.putImageData(imgData, 0, 0);
 
-    // Convert canvas to data URL and embed in SVG as <image>
-    var dataUrl = canvas.toDataURL('image/png');
-    svgEl.innerHTML = '<image href="' + dataUrl + '" width="' + w + '" height="' + h + '" />';
+    var t1 = performance.now();
+    console.log('Mosaic world map: ' + W + 'x' + H + ' = ' + (W*H) + ' pixels in ' + Math.round(t1-t0) + 'ms');
 
-    console.log('Mosaic map: ' + cols + 'x' + rows + ' = ' + (cols*rows) + ' pixels rendered');
+    var dataUrl = canvas.toDataURL('image/png');
+    svgEl.innerHTML = '<image href="' + dataUrl + '" width="' + W + '" height="' + H + '"/>';
   }
 };
