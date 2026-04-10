@@ -968,23 +968,15 @@ const GameUI = {
     var lm = GameData.cityLandmarks[cityId] || {};
 
     var container = document.getElementById('city-map');
-    var html = '';
 
-    // Roads
-    html += '<div class="city-map-road horizontal" style="top:35%"></div>';
-    html += '<div class="city-map-road horizontal" style="top:65%"></div>';
-    html += '<div class="city-map-road vertical" style="left:30%"></div>';
-    html += '<div class="city-map-road vertical" style="left:65%"></div>';
+    // Render SVG city scene as background
+    var sceneDivId = 'city-scene-bg';
+    var html = '<div id="'+sceneDivId+'" style="position:absolute;inset:0;pointer-events:none;opacity:0.9"></div>';
 
-    // River
-    html += '<div class="city-map-river" style="width:80%;height:8px;top:50%;left:10%;transform:rotate(-5deg)"></div>';
+    // Overlay for clickable buildings
+    html += '<div style="position:absolute;inset:0">';
 
-    // Landmark
-    if (lm.landmark) {
-      html += '<div class="city-landmark" style="left:45%;top:40%">' + lm.landmark + '</div>';
-    }
-
-    // District label
+    // District labels
     var districts = GameData.districts[cityId] || [];
     if (districts.length > 0) {
       html += '<div class="city-map-label" style="left:5%;top:8%">' + districts[0] + '</div>';
@@ -1012,7 +1004,12 @@ const GameUI = {
       '</div>';
     });
 
+    html += '</div>'; // close overlay div
     container.innerHTML = html;
+
+    // Render the SVG city scene
+    var sceneEl = document.getElementById(sceneDivId);
+    if (sceneEl) GameGraphics.renderCityScene(cityId, sceneEl);
   },
 
   // ---- Auto-advance controls ----
