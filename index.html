@@ -135,6 +135,29 @@
         <button class="tab-btn" data-tab="owned">🔑 My Properties</button>
         <button class="tab-btn" data-tab="businesses">💼 Businesses</button>
       </div>
+      <div id="city-sort-bar" class="sort-bar">
+        <select id="city-sort" class="sort-select" onchange="GameUI.citySort=this.value;GameUI.cityPage=0;GameUI.renderCityProperties()">
+          <option value="price-asc">Price ↑</option>
+          <option value="price-desc">Price ↓</option>
+          <option value="yield-desc">Yield ↓</option>
+          <option value="size-desc">Size ↓</option>
+          <option value="condition-desc">Condition ↓</option>
+          <option value="type">Type</option>
+        </select>
+        <select id="city-type-filter" class="sort-select" onchange="GameUI.cityTypeFilter=this.value;GameUI.cityPage=0;GameUI.renderCityProperties()">
+          <option value="all">All Types</option>
+          <option value="land">Land</option>
+          <option value="studio">Studio</option>
+          <option value="apartment">Apartment</option>
+          <option value="penthouse">Penthouse</option>
+          <option value="townhouse">Townhouse</option>
+          <option value="house">House</option>
+          <option value="villa">Villa</option>
+          <option value="mansion">Mansion</option>
+          <option value="commercial">Commercial</option>
+          <option value="warehouse">Warehouse</option>
+        </select>
+      </div>
       <div id="city-properties" class="card-grid"></div>
       <div id="city-empty" class="empty-state" style="display:none">
         <span class="empty-icon">🏗️</span>
@@ -163,6 +186,20 @@
       <button class="filter-btn" data-filter="rented">Rented</button>
       <button class="filter-btn" data-filter="vacant">Vacant</button>
       <button class="filter-btn" data-filter="refurbishing">Refurbishing</button>
+    </div>
+    <div class="sort-bar">
+      <select id="portfolio-sort" class="sort-select" onchange="GameUI.portfolioSort=this.value;GameUI.renderPortfolio()">
+        <option value="value-desc">Value ↓</option>
+        <option value="value-asc">Value ↑</option>
+        <option value="rent-desc">Rent ↓</option>
+        <option value="appreciation-desc">Appreciation ↓</option>
+        <option value="condition-asc">Needs Work</option>
+        <option value="city">City</option>
+        <option value="type">Type</option>
+      </select>
+      <select id="portfolio-city-filter" class="sort-select" onchange="GameUI.portfolioCityFilter=this.value;GameUI.renderPortfolio()">
+        <option value="all">All Cities</option>
+      </select>
     </div>
     <div id="portfolio-list" class="card-grid"></div>
     <div id="portfolio-empty" class="empty-state" style="display:none">

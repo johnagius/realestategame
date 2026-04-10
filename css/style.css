@@ -1116,6 +1116,33 @@ h4 { font-size: 1rem; }
   flex-shrink: 0;
 }
 
+.sort-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.sort-select {
+  padding: 5px 10px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-light);
+  font-family: var(--font-body);
+  outline: none;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+  max-width: 180px;
+}
+.sort-select:focus {
+  border-color: var(--primary);
+}
+
 .filter-btn {
   padding: 6px 14px;
   border: 1.5px solid var(--border);

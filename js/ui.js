@@ -12,6 +12,10 @@ const GameUI = {
   PAGE_SIZE: 6,
   currentCityTab: 'market',
   currentPortfolioFilter: 'all',
+  citySort: 'price-asc',
+  cityTypeFilter: 'all',
+  portfolioSort: 'value-desc',
+  portfolioCityFilter: 'all',
   mapView: true,
   autoTimer: null,
 
@@ -220,9 +224,40 @@ const GameUI = {
     this.renderCityProperties();
   },
 
+  // Sort an array of properties by the given sort key
+  sortProperties: function(props, sortKey) {
+    var sorted = props.slice(); // clone
+    var condOrder = { derelict: 0, poor: 1, fair: 2, good: 3, excellent: 4 };
+    sorted.sort(function(a, b) {
+      switch (sortKey) {
+        case 'price-asc':  return a.currentValue - b.currentValue;
+        case 'price-desc': return b.currentValue - a.currentValue;
+        case 'value-asc':  return a.currentValue - b.currentValue;
+        case 'value-desc': return b.currentValue - a.currentValue;
+        case 'rent-desc':  return (b.monthlyRent || 0) - (a.monthlyRent || 0);
+        case 'yield-desc':
+          var ya = a.currentValue > 0 ? (a.monthlyRent || 0) * 12 / a.currentValue : 0;
+          var yb = b.currentValue > 0 ? (b.monthlyRent || 0) * 12 / b.currentValue : 0;
+          return yb - ya;
+        case 'size-desc':   return (b.size || 0) - (a.size || 0);
+        case 'condition-desc': return (condOrder[b.condition] || 0) - (condOrder[a.condition] || 0);
+        case 'condition-asc':  return (condOrder[a.condition] || 0) - (condOrder[b.condition] || 0);
+        case 'appreciation-desc': return (b.appreciation || 0) - (a.appreciation || 0);
+        case 'city': return (a.cityId || '').localeCompare(b.cityId || '');
+        case 'type': return (a.type || '').localeCompare(b.type || '');
+        default: return 0;
+      }
+    });
+    return sorted;
+  },
+
   renderCityProperties() {
     var cityId = this.currentCity;
     var tab = this.currentCityTab;
+
+    // Show/hide sort bar based on tab
+    var sortBar = document.getElementById('city-sort-bar');
+    if (sortBar) sortBar.style.display = (tab === 'businesses') ? 'none' : 'flex';
 
     // Handle businesses tab separately
     if (tab === 'businesses') {
@@ -236,6 +271,15 @@ const GameUI = {
     } else {
       props = GameEngine.state.properties.filter(function(p) { return p.cityId === cityId; });
     }
+
+    // Apply type filter
+    if (this.cityTypeFilter && this.cityTypeFilter !== 'all') {
+      var tf = this.cityTypeFilter;
+      props = props.filter(function(p) { return p.type === tf; });
+    }
+
+    // Apply sort
+    props = this.sortProperties(props, this.citySort);
 
     var grid = document.getElementById('city-properties');
     var empty = document.getElementById('city-empty');
@@ -502,15 +546,36 @@ const GameUI = {
         '</div>' +
       '</div>';
 
+    // Populate city filter dropdown with owned cities
+    var cityFilterEl = document.getElementById('portfolio-city-filter');
+    if (cityFilterEl) {
+      var ownedCities = {};
+      GameEngine.state.properties.forEach(function(p) { ownedCities[p.cityId] = true; });
+      var opts = '<option value="all">All Cities</option>';
+      GameData.cities.forEach(function(c) {
+        if (ownedCities[c.id]) opts += '<option value="' + c.id + '"' + (GameUI.portfolioCityFilter === c.id ? ' selected' : '') + '>' + c.flag + ' ' + c.name + '</option>';
+      });
+      cityFilterEl.innerHTML = opts;
+    }
+
     // Filter properties
     if (filter === 'rented') props = props.filter(function(p) { return p.isRented; });
     else if (filter === 'vacant') props = props.filter(function(p) { return !p.isRented && !p.isRefurbishing && !p.isBuilding; });
     else if (filter === 'refurbishing') props = props.filter(function(p) { return p.isRefurbishing || p.isBuilding; });
 
+    // City filter
+    if (this.portfolioCityFilter && this.portfolioCityFilter !== 'all') {
+      var cf = this.portfolioCityFilter;
+      props = props.filter(function(p) { return p.cityId === cf; });
+    }
+
+    // Sort
+    props = this.sortProperties(props, this.portfolioSort);
+
     var list = document.getElementById('portfolio-list');
     var empty = document.getElementById('portfolio-empty');
 
-    if (props.length === 0 && filter === 'all') {
+    if (props.length === 0 && filter === 'all' && this.portfolioCityFilter === 'all') {
       list.innerHTML = '';
       empty.style.display = 'block';
       return;
