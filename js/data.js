@@ -4,6 +4,84 @@
 
 const GameData = {
 
+  // ---- Playable Families ----
+  families: [
+    {
+      id: 'silva', name: 'The Silva Family', icon: '👨‍👩‍👧‍👦', tier: 'humble',
+      description: 'A hardworking immigrant family starting from nothing. Every euro counts.',
+      startingCash: 150000, difficulty: 'Hard',
+      motto: '"From nothing, we build everything."',
+      color: '#7B6D4E'
+    },
+    {
+      id: 'chen', name: 'The Chen Family', icon: '👨‍👩‍👦', tier: 'middle',
+      description: 'A middle-class family with modest savings and big ambitions.',
+      startingCash: 500000, difficulty: 'Normal',
+      motto: '"Patience and persistence pay dividends."',
+      color: '#2C6E49'
+    },
+    {
+      id: 'armstrong', name: 'The Armstrongs', icon: '👫', tier: 'wealthy',
+      description: 'Old money with connections. A head start in the property game.',
+      startingCash: 2000000, difficulty: 'Easy',
+      motto: '"Fortune favours the bold."',
+      color: '#3D5A80'
+    },
+    {
+      id: 'vanderbilt', name: 'The Vanderbilts', icon: '🎩', tier: 'elite',
+      description: 'Ultra-wealthy dynasty. Prove you can grow the empire further.',
+      startingCash: 10000000, difficulty: 'Sandbox',
+      motto: '"We don\'t play the market — we ARE the market."',
+      color: '#D4A84B'
+    }
+  ],
+
+  // ---- AI Competitor Families ----
+  aiFamilies: [
+    { id: 'rockefeller', name: 'The Rockefellers', icon: '🏛️', color: '#1B4D33',
+      aggressiveness: 0.7, riskTolerance: 0.5, startingWealth: 5000000,
+      motto: 'Oil money turned property empire.' },
+    { id: 'wong', name: 'The Wong Dynasty', icon: '🐉', color: '#C41E3A',
+      aggressiveness: 0.8, riskTolerance: 0.6, startingWealth: 4000000,
+      motto: 'Asian real estate moguls.' },
+    { id: 'al_rashid', name: 'The Al-Rashids', icon: '🕌', color: '#DAA520',
+      aggressiveness: 0.6, riskTolerance: 0.4, startingWealth: 8000000,
+      motto: 'Gulf sovereign wealth.' },
+    { id: 'petrov', name: 'The Petrovs', icon: '🐻', color: '#4169E1',
+      aggressiveness: 0.9, riskTolerance: 0.8, startingWealth: 3000000,
+      motto: 'Oligarch ambitions.' },
+    { id: 'martinez', name: 'The Martinez Group', icon: '🌮', color: '#E07A5F',
+      aggressiveness: 0.5, riskTolerance: 0.3, startingWealth: 2000000,
+      motto: 'South American land barons.' },
+    { id: 'okonkwo', name: 'The Okonkwos', icon: '🌍', color: '#2A9D8F',
+      aggressiveness: 0.65, riskTolerance: 0.5, startingWealth: 1500000,
+      motto: 'African development pioneers.' }
+  ],
+
+  // ---- City Landmarks ----
+  cityLandmarks: {
+    new_york:    { landmark: '🗽', skyline: '🏙️', feature: 'Statue of Liberty' },
+    london:      { landmark: '🎡', skyline: '🏰', feature: 'Big Ben' },
+    paris:       { landmark: '🗼', skyline: '🏛️', feature: 'Eiffel Tower' },
+    tokyo:       { landmark: '⛩️', skyline: '🗼', feature: 'Tokyo Tower' },
+    dubai:       { landmark: '🏗️', skyline: '🌇', feature: 'Burj Khalifa' },
+    singapore:   { landmark: '🦁', skyline: '🏙️', feature: 'Marina Bay' },
+    hong_kong:   { landmark: '🌉', skyline: '🏙️', feature: 'Victoria Harbour' },
+    sydney:      { landmark: '🎭', skyline: '🌊', feature: 'Opera House' },
+    los_angeles: { landmark: '🎬', skyline: '🌴', feature: 'Hollywood Sign' },
+    miami:       { landmark: '🌴', skyline: '🏖️', feature: 'South Beach' },
+    barcelona:   { landmark: '⛪', skyline: '🏖️', feature: 'Sagrada Familia' },
+    rome:        { landmark: '🏛️', skyline: '⛲', feature: 'Colosseum' },
+    berlin:      { landmark: '🚪', skyline: '🏗️', feature: 'Brandenburg Gate' },
+    amsterdam:   { landmark: '🌷', skyline: '🚲', feature: 'Canal Houses' },
+    toronto:     { landmark: '🗼', skyline: '🍁', feature: 'CN Tower' },
+    monaco:      { landmark: '🎰', skyline: '🛥️', feature: 'Monte Carlo Casino' },
+    shanghai:    { landmark: '🏯', skyline: '🌃', feature: 'Oriental Pearl Tower' },
+    mumbai:      { landmark: '🕌', skyline: '🌆', feature: 'Gateway of India' },
+    sao_paulo:   { landmark: '🎨', skyline: '🌆', feature: 'Ibirapuera Park' },
+    cape_town:   { landmark: '⛰️', skyline: '🌊', feature: 'Table Mountain' }
+  },
+
   // ---- 20 World Cities ----
   cities: [
     {
