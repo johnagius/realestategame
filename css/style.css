@@ -168,6 +168,74 @@ h4 { font-size: 1rem; }
   100% { background-position: 200% 0; }
 }
 
+/* Income/expense floating numbers */
+@keyframes floatUp {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  70% { opacity: 0.8; transform: translateY(-40px) scale(1.1); }
+  100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+}
+
+@keyframes floatDown {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(20px) scale(0.8); }
+}
+
+@keyframes confettiBurst {
+  0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+  100% { opacity: 0; transform: translateY(80px) rotate(720deg) scale(0); }
+}
+
+@keyframes stampIn {
+  0% { transform: scale(2) rotate(-15deg); opacity: 0; }
+  60% { transform: scale(0.95) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.float-number {
+  position: fixed;
+  font-weight: 800;
+  font-size: 1rem;
+  pointer-events: none;
+  z-index: 950;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.float-number.income {
+  color: #2A9D8F;
+  animation: floatUp 1.5s ease-out forwards;
+}
+
+.float-number.expense {
+  color: #E63946;
+  animation: floatUp 1.2s ease-out forwards;
+  font-size: 0.85rem;
+}
+
+.confetti-piece {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+  z-index: 960;
+  border-radius: 2px;
+}
+
+.stamp-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #2C6E49;
+  background: rgba(255,255,255,0.9);
+  padding: 6px 16px;
+  border: 3px solid #2C6E49;
+  border-radius: 8px;
+  animation: stampIn 0.4s ease-out;
+  z-index: 5;
+}
+
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }

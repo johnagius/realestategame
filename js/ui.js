@@ -46,8 +46,11 @@ const GameUI = {
     document.getElementById('hud-cash').textContent = GameData.formatMoney(s.cash);
     var dateEl = document.getElementById('hud-date');
     var era = GameEngine.getCurrentEra();
-    dateEl.textContent = GameEngine.getDateString();
-    dateEl.title = era.name;
+    // Show era name + generation + social tier
+    var head = s.familyMembers ? s.familyMembers.find(function(m){return m.isHead;}) : null;
+    var tierLabel = s.socialTier || '';
+    dateEl.textContent = GameEngine.getDateString() + (tierLabel ? ' · ' + tierLabel : '');
+    dateEl.title = era.name + (head ? ' | ' + head.name + ', age ' + head.age + ' (' + head.trait + ')' : '');
     document.getElementById('hud-networth').textContent = GameData.formatMoney(GameEngine.getNetWorth());
     // Speed controls in HUD
     document.getElementById('hud-speed').innerHTML = this.renderSpeedControls();
@@ -58,6 +61,55 @@ const GameUI = {
       goalEl.innerHTML = g.done
         ? '<span class="goal-done">✅ ' + g.text + '</span> +' + GameData.formatMoney(g.reward)
         : '🎯 ' + g.text + ' (reward: ' + GameData.formatMoney(g.reward) + ')';
+    }
+  },
+
+  // ---- Visual Feedback Animations ----
+  animateIncome(amount) {
+    var el = document.createElement('div');
+    el.className = 'float-number income';
+    el.textContent = '+' + GameData.formatMoney(amount);
+    // Position near the cash display
+    var cashEl = document.getElementById('hud-cash');
+    if (cashEl) {
+      var rect = cashEl.getBoundingClientRect();
+      el.style.left = rect.left + 'px';
+      el.style.top = (rect.bottom + 4) + 'px';
+    } else {
+      el.style.left = '20px';
+      el.style.top = '60px';
+    }
+    document.body.appendChild(el);
+    setTimeout(function() { el.remove(); }, 1600);
+  },
+
+  animateExpense(amount) {
+    var el = document.createElement('div');
+    el.className = 'float-number expense';
+    el.textContent = '-' + GameData.formatMoney(amount);
+    var cashEl = document.getElementById('hud-cash');
+    if (cashEl) {
+      var rect = cashEl.getBoundingClientRect();
+      el.style.left = rect.left + 'px';
+      el.style.top = (rect.bottom + 4) + 'px';
+    }
+    document.body.appendChild(el);
+    setTimeout(function() { el.remove(); }, 1300);
+  },
+
+  animateConfetti() {
+    var colors = ['#D4A84B', '#F0D68A', '#2C6E49', '#E07A5F', '#3D5A80', '#F4A261'];
+    for (var i = 0; i < 30; i++) {
+      var piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.left = (20 + Math.random() * 60) + 'vw';
+      piece.style.top = (10 + Math.random() * 30) + 'vh';
+      piece.style.width = (4 + Math.random() * 8) + 'px';
+      piece.style.height = (4 + Math.random() * 8) + 'px';
+      piece.style.animation = 'confettiBurst ' + (1 + Math.random()) + 's ease-out ' + (Math.random() * 0.3) + 's forwards';
+      document.body.appendChild(piece);
+      setTimeout(function() { piece.remove(); }, 2500);
     }
   },
 
@@ -223,8 +275,8 @@ const GameUI = {
 
     var badge = '';
     if (p.isOwned && p.isRented) badge = '<span class="property-badge badge-rented">Rented</span>';
-    else if (p.isOwned && p.isRefurbishing) badge = '<span class="property-badge badge-refurbishing">Refurbishing</span>';
-    else if (p.isOwned && p.isBuilding) badge = '<span class="property-badge badge-refurbishing">Building</span>';
+    else if (p.isOwned && p.isRefurbishing) badge = '<span class="property-badge badge-refurbishing">🔨 ' + p.refurbMonthsLeft + 'mo</span>';
+    else if (p.isOwned && p.isBuilding) badge = '<span class="property-badge badge-refurbishing">🏗️ ' + p.buildMonthsLeft + 'mo</span>';
     else if (p.isOwned) badge = '<span class="property-badge badge-owned">Owned</span>';
     else if (p.isNew) badge = '<span class="property-badge badge-new">New</span>';
 
@@ -244,7 +296,9 @@ const GameUI = {
         '<span class="property-type-label">' + typeDef.name + '</span>' +
       '</div>' +
       '<div class="property-card-name">' + p.name + '</div>' +
-      '<div class="property-card-price">' + GameData.formatMoney(p.currentValue) + '</div>' +
+      '<div class="property-card-price">' + GameData.formatMoney(p.currentValue) +
+        (p.isOwned && p.appreciation !== undefined ? ' <span style="font-size:0.7rem;color:' + (p.appreciation >= 0 ? '#2A9D8F' : '#E63946') + '">' + (p.appreciation >= 0 ? '▲' : '▼') + Math.abs(p.appreciation).toFixed(1) + '%</span>' : '') +
+      '</div>' +
       '<div class="property-card-details">' +
         '<span>📐 ' + p.size + ' m²</span>' +
         '<span>📊 ' + condDef.name + '</span>' +
@@ -652,11 +706,41 @@ const GameUI = {
       GameUI.toast('💼 Dividends received: +' + GameData.formatMoney(results.dividends), 'success');
     }
 
-    // Goals achieved
-    if (results.goalsAchieved) {
+    // Dynasty events
+    if (results.dynasty) {
+      var dyn = results.dynasty;
+      if (dyn.births && dyn.births.length > 0) {
+        dyn.births.forEach(function(b) {
+          GameUI.toast('👶 A child is born: ' + b.name + ' (trait: ' + b.trait + ')', 'success');
+        });
+      }
+      if (dyn.deaths && dyn.deaths.length > 0) {
+        dyn.deaths.forEach(function(d) {
+          GameUI.toast('⚰️ ' + d.name + ' has passed away at age ' + d.age + '.', 'warning');
+        });
+      }
+      if (dyn.successionHeir) {
+        GameUI.setTicker('👑 Succession! ' + dyn.successionHeir.name + ' (Gen ' + GameEngine.state.generation + ') takes over. Inheritance tax: ' + GameData.formatMoney(dyn.inheritanceTax));
+      }
+      if (dyn.noHeir) {
+        GameUI.setTicker('⚠️ No heir of age! The dynasty struggles without leadership.');
+      }
+    }
+
+    // Floating income/expense numbers (only at slow speed or manual)
+    if (!isAutoPlaying || speed <= 1) {
+      if (results.rentIncome > 0) GameUI.animateIncome(results.rentIncome);
+      if (results.expenses > 0) {
+        setTimeout(function() { GameUI.animateExpense(results.expenses); }, 400);
+      }
+    }
+
+    // Goals achieved — with confetti!
+    if (results.goalsAchieved && results.goalsAchieved.length > 0) {
       results.goalsAchieved.forEach(function(g) {
         GameUI.toast('🎯 Goal complete: ' + g.text + ' +' + GameData.formatMoney(g.reward), 'milestone');
       });
+      GameUI.animateConfetti();
     }
 
     // Tenant problems — show in ticker
@@ -672,10 +756,11 @@ const GameUI = {
     }
 
     // Milestones
-    if (results.milestones) {
+    if (results.milestones && results.milestones.length > 0) {
       results.milestones.forEach(function(m) {
         GameUI.toast(m.icon + ' Milestone: ' + m.name + '!', 'milestone');
       });
+      GameUI.animateConfetti();
     }
 
     // Basic summary toast - skip during fast auto-play to reduce noise

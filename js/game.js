@@ -98,6 +98,12 @@ const GameEngine = {
     this.state.milestones = [];
     this.state.monthlyGoal = null;
 
+    // Dynasty: family members
+    this.state.familyMembers = [this.createFamilyMember(family.name.split(' ')[1] || 'Patriarch', 30, true)];
+    this.state.generation = 1;
+    this.state.reputation = 50;
+    this.state.socialTier = 'Commoner';
+
     this.save();
     return this.state;
   },
@@ -1065,6 +1071,9 @@ const GameEngine = {
 
     // 15. Check era transition
     results.eraChange = this.checkEraTransition();
+
+    // 15b. Process dynasty (aging, births, deaths, succession)
+    results.dynasty = this.processDynasty();
 
     // 16. Simulate AI families
     this.simulateAIFamilies();
@@ -2074,6 +2083,104 @@ const GameEngine = {
   getInvestmentValue() {
     if (!this.state.investments) return 0;
     return this.state.investments.reduce((sum, inv) => sum + (inv.currentUnitPrice * inv.units), 0);
+  },
+
+  // ========== DYNASTY SYSTEM ==========
+
+  createFamilyMember(surname, age, isHead) {
+    var firstNames = ['Alexander','Catherine','Edward','Elizabeth','Frederick','Isabella',
+      'James','Margaret','Nicholas','Victoria','William','Charlotte','Henry','Maria',
+      'Robert','Anne','George','Eleanor','Philip','Sophia'];
+    var traits = ['shrewd','reckless','charming','frugal','ambitious','cautious','visionary','stubborn'];
+    return {
+      id: 'fm_' + Date.now() + '_' + Math.random().toString(36).substr(2,4),
+      name: firstNames[Math.floor(Math.random() * firstNames.length)] + ' ' + surname,
+      age: age,
+      isHead: isHead || false,
+      trait: traits[Math.floor(Math.random() * traits.length)],
+      health: 60 + Math.floor(Math.random() * 40), // 60-100
+      lifespan: 55 + Math.floor(Math.random() * 35), // 55-90
+      birthYear: this.state ? this.state.year - age : 1720,
+      educated: false
+    };
+  },
+
+  getTraitBonus(trait) {
+    var bonuses = {
+      shrewd: { negotiation: 0.05, rent: 0 },      // 5% better negotiation
+      reckless: { negotiation: 0, risk: 0.1 },       // 10% higher risk tolerance
+      charming: { negotiation: 0, rent: 0.05 },      // 5% more rent (better tenants)
+      frugal: { maintenance: -0.15, rent: 0 },        // 15% less maintenance
+      ambitious: { negotiation: 0, growth: 0.01 },    // 1% more appreciation
+      cautious: { disaster: -0.3, rent: 0 },           // 30% fewer disasters
+      visionary: { negotiation: 0, growth: 0.02 },    // 2% more appreciation
+      stubborn: { negotiation: -0.05, maintenance: -0.1 } // worse deals, lower maintenance
+    };
+    return bonuses[trait] || {};
+  },
+
+  processDynasty() {
+    if (!this.state.familyMembers) return null;
+    var results = { births: [], deaths: [], succession: null };
+
+    // Age all members (1 year per 12 months)
+    if (this.state.monthIndex === 0) { // January
+      this.state.familyMembers.forEach(function(m) { m.age++; });
+
+      // Check for births (head can have children if age 20-45, max 4 children)
+      var head = this.state.familyMembers.find(function(m){return m.isHead;});
+      var children = this.state.familyMembers.filter(function(m){return !m.isHead;});
+      if (head && head.age >= 22 && head.age <= 45 && children.length < 4 && Math.random() < 0.15) {
+        var surname = head.name.split(' ').pop();
+        var child = this.createFamilyMember(surname, 0, false);
+        child.birthYear = this.state.year;
+        this.state.familyMembers.push(child);
+        results.births.push(child);
+      }
+
+      // Check for death (based on age vs lifespan)
+      var self = this;
+      this.state.familyMembers = this.state.familyMembers.filter(function(m) {
+        if (m.age >= m.lifespan || (m.age > 50 && Math.random() < (m.age - 50) / 200)) {
+          results.deaths.push(m);
+          if (m.isHead) {
+            results.succession = true;
+          }
+          return false;
+        }
+        return true;
+      });
+
+      // Succession — oldest child becomes head
+      if (results.succession) {
+        var heirs = this.state.familyMembers.filter(function(m){return m.age >= 16;});
+        heirs.sort(function(a,b){return b.age - a.age;});
+        if (heirs.length > 0) {
+          heirs[0].isHead = true;
+          this.state.generation++;
+          // Inheritance tax: 10% of cash
+          var tax = Math.round(this.state.cash * 0.1);
+          this.state.cash -= tax;
+          results.successionHeir = heirs[0];
+          results.inheritanceTax = tax;
+        } else {
+          // No heirs — game gets harder
+          results.noHeir = true;
+        }
+      }
+
+      // Update social tier based on reputation
+      var rep = this.state.reputation || 50;
+      if (rep >= 90) this.state.socialTier = 'Legend';
+      else if (rep >= 80) this.state.socialTier = 'Magnate';
+      else if (rep >= 70) this.state.socialTier = 'Tycoon';
+      else if (rep >= 60) this.state.socialTier = 'Aristocrat';
+      else if (rep >= 50) this.state.socialTier = 'Gentry';
+      else if (rep >= 35) this.state.socialTier = 'Merchant';
+      else this.state.socialTier = 'Commoner';
+    }
+
+    return results;
   },
 
   // ========== AI RIVALRY INTERACTIONS ==========
