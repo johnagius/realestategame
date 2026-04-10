@@ -103,6 +103,20 @@ const App = {
       });
     });
 
+    // City view toggle
+    document.getElementById('btn-city-view-toggle').addEventListener('click', function() {
+      GameUI.toggleCityView();
+    });
+
+    // City map building clicks
+    document.getElementById('city-map').addEventListener('click', function(e) {
+      var bldg = e.target.closest('.city-building');
+      if (bldg) {
+        var propId = bldg.getAttribute('data-property');
+        GameUI.showScreen('property', propId);
+      }
+    });
+
     // Back buttons
     document.getElementById('btn-back-city').addEventListener('click', function() {
       GameUI.showScreen('map');
@@ -125,6 +139,14 @@ const App = {
     // Event dismiss
     document.getElementById('event-dismiss').addEventListener('click', function() {
       document.getElementById('event-overlay').classList.remove('active');
+    });
+
+    // Leaderboard toggle
+    document.getElementById('btn-leaderboard').addEventListener('click', function() {
+      GameUI.toggleLeaderboard();
+    });
+    document.getElementById('btn-close-lb').addEventListener('click', function() {
+      document.getElementById('floating-leaderboard').classList.add('hidden');
     });
   },
 
@@ -156,8 +178,6 @@ const App = {
   selectFamily(familyId) {
     GameEngine.newGame(familyId);
     this.enterGame();
-    // Start on slow auto-play by default so game feels alive
-    GameUI.setAutoAdvance(1);
   },
 
   continueGame() {
@@ -184,6 +204,10 @@ const App = {
   advanceMonth() {
     var results = GameEngine.advanceMonth();
     GameUI.updateHUD();
+    // Update floating leaderboard if open
+    if (!document.getElementById('floating-leaderboard').classList.contains('hidden')) {
+      GameUI.renderFloatingLeaderboard();
+    }
     GameUI.showMonthResults(results);
 
     // Refresh current screen

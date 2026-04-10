@@ -448,27 +448,28 @@ const GameData = {
   },
 
   // ---- City Map Coordinates (% x, % y on world map) ----
+  // Coords as % of 1200x600 SVG viewBox
   cityCoords: {
-    new_york:    { x: 26, y: 33 },
-    london:      { x: 46, y: 24 },
-    paris:       { x: 47, y: 28 },
-    tokyo:       { x: 85, y: 33 },
-    dubai:       { x: 60, y: 42 },
-    singapore:   { x: 76, y: 57 },
-    hong_kong:   { x: 80, y: 41 },
-    sydney:      { x: 88, y: 76 },
-    los_angeles: { x: 15, y: 35 },
-    miami:       { x: 24, y: 42 },
-    barcelona:   { x: 47, y: 32 },
-    rome:        { x: 50, y: 31 },
-    berlin:      { x: 50, y: 24 },
-    amsterdam:   { x: 47, y: 23 },
-    toronto:     { x: 23, y: 29 },
-    monaco:      { x: 48, y: 30 },
-    shanghai:    { x: 81, y: 36 },
-    mumbai:      { x: 67, y: 44 },
-    sao_paulo:   { x: 33, y: 70 },
-    cape_town:   { x: 52, y: 78 }
+    new_york:    { x: 24, y: 28 },
+    london:      { x: 41, y: 13 },
+    paris:       { x: 43, y: 16 },
+    tokyo:       { x: 80, y: 20 },
+    dubai:       { x: 56, y: 32 },
+    singapore:   { x: 72, y: 50 },
+    hong_kong:   { x: 74, y: 28 },
+    sydney:      { x: 82, y: 72 },
+    los_angeles: { x: 13, y: 28 },
+    miami:       { x: 22, y: 38 },
+    barcelona:   { x: 44, y: 20 },
+    rome:        { x: 47, y: 19 },
+    berlin:      { x: 46, y: 13 },
+    amsterdam:   { x: 42, y: 12 },
+    toronto:     { x: 21, y: 22 },
+    monaco:      { x: 45, y: 18 },
+    shanghai:    { x: 73, y: 22 },
+    mumbai:      { x: 60, y: 38 },
+    sao_paulo:   { x: 27, y: 64 },
+    cape_town:   { x: 47, y: 70 }
   },
 
   // ---- Random Events ----
@@ -635,9 +636,16 @@ const GameData = {
     const typeDef = this.propertyTypes[type];
     if (!city || !typeDef) return null;
 
+    // Apply era multiplier to scale prices to the current time period
+    const currentEra = this.eras.find(e => {
+      const year = (typeof GameEngine !== 'undefined' && GameEngine.state) ? GameEngine.state.year : (this.startingYear || 1750);
+      return year >= e.years[0] && year <= e.years[1];
+    }) || this.eras[0];
+    const eraMultiplier = currentEra.propertyMultiplier || 1;
+
     const [minPrice, maxPrice] = typeDef.basePriceRange;
     const basePrice = minPrice + Math.random() * (maxPrice - minPrice);
-    const price = Math.round(basePrice * city.priceMultiplier / 1000) * 1000;
+    const price = Math.max(10, Math.round(basePrice * city.priceMultiplier * eraMultiplier / 100) * 100);
 
     const [minSize, maxSize] = typeDef.sizeRange;
     const size = Math.round(minSize + Math.random() * (maxSize - minSize));
@@ -955,9 +963,15 @@ const GameData = {
     const typeDef = this.businessTypes[type];
     if (!city || !typeDef) return null;
 
+    const currentEra = this.eras.find(e => {
+      const year = (typeof GameEngine !== 'undefined' && GameEngine.state) ? GameEngine.state.year : (this.startingYear || 1750);
+      return year >= e.years[0] && year <= e.years[1];
+    }) || this.eras[0];
+    const eraMultiplier = currentEra.propertyMultiplier || 1;
+
     const [minP, maxP] = typeDef.basePriceRange;
     const baseValue = minP + Math.random() * (maxP - minP);
-    const value = Math.round(baseValue * city.priceMultiplier / 1000) * 1000;
+    const value = Math.max(5, Math.round(baseValue * city.priceMultiplier * eraMultiplier));
 
     const districts = this.districts[cityId] || ['Central'];
     const district = districts[Math.floor(Math.random() * districts.length)];
