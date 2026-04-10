@@ -304,8 +304,8 @@ const App = {
     }
   },
 
-  refurbishProperty(propertyId) {
-    var result = GameEngine.refurbishProperty(propertyId);
+  refurbishProperty(propertyId, tier) {
+    var result = GameEngine.refurbishProperty(propertyId, tier);
     if (result.success) {
       GameUI.toast(result.message, 'info');
       GameUI.updateHUD();

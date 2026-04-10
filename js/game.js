@@ -289,7 +289,7 @@ const GameEngine = {
   },
 
   // ---- Refurbish property ----
-  refurbishProperty(propertyId) {
+  refurbishProperty(propertyId, tier) {
     const property = this.state.properties.find(p => p.id === propertyId);
     if (!property) return { success: false, message: 'Property not found.' };
 
@@ -300,7 +300,20 @@ const GameEngine = {
     if (property.isBuilding) return { success: false, message: 'Still under construction.' };
 
     const condDef = GameData.conditions[property.condition];
-    let cost = Math.round(property.currentValue * condDef.refurbCostPct);
+    let baseCost = Math.round(property.currentValue * condDef.refurbCostPct);
+    tier = tier || 'standard';
+
+    // Tier modifiers
+    var costMultiplier, condLevels, valueBoost, months, failChance;
+    if (tier === 'budget') {
+      costMultiplier = 0.6; condLevels = 1; valueBoost = 0; months = 2; failChance = 0.2;
+    } else if (tier === 'luxury') {
+      costMultiplier = 2.0; condLevels = 2; valueBoost = 0.25; months = 4; failChance = 0.1;
+    } else { // standard
+      costMultiplier = 1.0; condLevels = 1; valueBoost = 0.12; months = 3; failChance = 0;
+    }
+
+    let cost = Math.round(baseCost * costMultiplier);
 
     // Check for renovation grant discount
     const grantEvent = this.state.activeEvents.find(
@@ -314,18 +327,15 @@ const GameEngine = {
       return { success: false, message: `Not enough cash. Need ${GameData.formatMoney(cost)}.` };
     }
 
-    // Determine time
-    let months;
-    if (property.condition === 'derelict') months = 4;
-    else if (property.condition === 'poor') months = 3;
-    else if (property.condition === 'fair') months = 2;
-    else months = 2;
-
     // Execute
     this.state.cash -= cost;
     property.isRefurbishing = true;
     property.isRented = false;
     property.refurbMonthsLeft = months;
+    property.refurbTier = tier;
+    property.refurbCondLevels = condLevels;
+    property.refurbValueBoost = valueBoost;
+    property.refurbFailChance = failChance;
     property.totalExpensesPaid += cost;
     this.state.totalExpensesPaid += cost;
 
@@ -816,20 +826,34 @@ const GameEngine = {
       results.expenses += monthlyTax;
     }
 
-    // 3. Process refurbishments
+    // 3. Process refurbishments (with tier results)
     this.state.properties.forEach(p => {
       if (p.isRefurbishing) {
         p.refurbMonthsLeft--;
         if (p.refurbMonthsLeft <= 0) {
           p.isRefurbishing = false;
-          // Upgrade condition
+          var condLevels = p.refurbCondLevels || 1;
+          var valueBoost = p.refurbValueBoost || 0.12;
+          var failChance = p.refurbFailChance || 0;
+
+          // Budget renovation can fail
+          if (failChance > 0 && Math.random() < failChance) {
+            // Failed — no condition improvement, small value loss
+            p.currentValue = Math.round(p.currentValue * 0.95);
+            results.completedRefurbishments.push(p);
+            p.refurbTier = null;
+            return; // forEach continues
+          }
+
+          // Upgrade condition by tier levels
           const currentLevel = GameData.conditions[p.condition].level;
-          const newLevel = Math.min(4, currentLevel + 1);
+          const newLevel = Math.min(4, currentLevel + condLevels);
           p.condition = GameData.conditionOrder[newLevel];
-          // Increase value
-          p.currentValue = Math.round(p.currentValue * 1.12);
+          // Value boost
+          p.currentValue = Math.round(p.currentValue * (1 + valueBoost));
           this.recalculateRent(p);
           results.completedRefurbishments.push(p);
+          p.refurbTier = null;
         }
       }
     });
