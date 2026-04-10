@@ -46,8 +46,11 @@ const GameUI = {
     document.getElementById('hud-cash').textContent = GameData.formatMoney(s.cash);
     var dateEl = document.getElementById('hud-date');
     var era = GameEngine.getCurrentEra();
-    dateEl.textContent = GameEngine.getDateString();
-    dateEl.title = era.name;
+    // Show era name + generation + social tier
+    var head = s.familyMembers ? s.familyMembers.find(function(m){return m.isHead;}) : null;
+    var tierLabel = s.socialTier || '';
+    dateEl.textContent = GameEngine.getDateString() + (tierLabel ? ' · ' + tierLabel : '');
+    dateEl.title = era.name + (head ? ' | ' + head.name + ', age ' + head.age + ' (' + head.trait + ')' : '');
     document.getElementById('hud-networth').textContent = GameData.formatMoney(GameEngine.getNetWorth());
     // Speed controls in HUD
     document.getElementById('hud-speed').innerHTML = this.renderSpeedControls();
@@ -701,6 +704,27 @@ const GameUI = {
     // Dividends - only show when not in fast auto-play
     if (results.dividends > 0 && (!isAutoPlaying || speed <= 1)) {
       GameUI.toast('💼 Dividends received: +' + GameData.formatMoney(results.dividends), 'success');
+    }
+
+    // Dynasty events
+    if (results.dynasty) {
+      var dyn = results.dynasty;
+      if (dyn.births && dyn.births.length > 0) {
+        dyn.births.forEach(function(b) {
+          GameUI.toast('👶 A child is born: ' + b.name + ' (trait: ' + b.trait + ')', 'success');
+        });
+      }
+      if (dyn.deaths && dyn.deaths.length > 0) {
+        dyn.deaths.forEach(function(d) {
+          GameUI.toast('⚰️ ' + d.name + ' has passed away at age ' + d.age + '.', 'warning');
+        });
+      }
+      if (dyn.successionHeir) {
+        GameUI.setTicker('👑 Succession! ' + dyn.successionHeir.name + ' (Gen ' + GameEngine.state.generation + ') takes over. Inheritance tax: ' + GameData.formatMoney(dyn.inheritanceTax));
+      }
+      if (dyn.noHeir) {
+        GameUI.setTicker('⚠️ No heir of age! The dynasty struggles without leadership.');
+      }
     }
 
     // Floating income/expense numbers (only at slow speed or manual)
