@@ -1339,6 +1339,30 @@ h4 { font-size: 1rem; }
 .trophy-icon { font-size: 1.4rem; }
 .trophy-name { font-size: 0.6rem; font-weight: 700; line-height: 1.2; }
 
+/* ---- Floating Income Summary ---- */
+.float-income-summary {
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 100;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: var(--font-body);
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 5px 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  animation: floatUp 2.5s ease-out forwards;
+  pointer-events: none;
+  white-space: nowrap;
+}
+@keyframes floatUp {
+  0% { opacity: 0; transform: translateX(-50%) translateY(0); }
+  15% { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+  70% { opacity: 1; transform: translateX(-50%) translateY(-20px); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-36px); }
+}
+
 .filter-btn {
   padding: 6px 14px;
   border: 1.5px solid var(--border);

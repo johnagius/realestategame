@@ -73,6 +73,23 @@ const GameUI = {
     }
   },
 
+  // Show floating income/expense summary near HUD
+  showFloatingIncome: function(income, expenses) {
+    var net = income - expenses;
+    // Create floating element
+    var el = document.createElement('div');
+    el.className = 'float-income-summary';
+    el.innerHTML = '<span class="positive">+' + GameData.formatMoney(income) + '</span>';
+    if (expenses > 0) el.innerHTML += ' <span class="negative">-' + GameData.formatMoney(expenses) + '</span>';
+    el.innerHTML += ' = <strong class="' + (net >= 0 ? 'positive' : 'negative') + '">' + (net >= 0 ? '+' : '') + GameData.formatMoney(net) + '</strong>';
+    document.body.appendChild(el);
+    // Position at top center, below HUD
+    el.style.left = '50%';
+    el.style.top = '52px';
+    // Remove after animation
+    setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 2500);
+  },
+
   // ---- Visual Feedback Animations ----
   animateIncome(amount) {
     var el = document.createElement('div');
@@ -972,6 +989,23 @@ const GameUI = {
     var speed = (GameEngine.state && GameEngine.state.autoAdvanceSpeed) || 0;
     var isAutoPlaying = speed > 0;
 
+    // Show floating rent income (always, even during auto-play)
+    if (results.rentIncome > 0) {
+      this.showFloatingIncome(results.rentIncome, results.expenses);
+      if (!isAutoPlaying) GameAudio.coin();
+    }
+
+    // Show portfolio synergy bonus in ticker if significant
+    var rentedCount = GameEngine.state.properties.filter(function(p){return p.isRented;}).length;
+    if (rentedCount > 5 && !isAutoPlaying) {
+      var synPct = Math.min(60, Math.round(
+        Math.min(rentedCount - 5, 5) * 2 +
+        Math.max(0, Math.min(rentedCount - 10, 10)) * 1.5 +
+        Math.max(0, rentedCount - 20) * 1
+      ));
+      if (synPct > 0) this.setTicker('📈 Portfolio synergy: +' + synPct + '% rent bonus (' + rentedCount + ' rented properties)');
+    }
+
     // Prestige — end of game
     if (results.prestige) {
       var stats = GameEngine.getPrestigeStats();
@@ -1077,6 +1111,13 @@ const GameUI = {
       var names = results.degraded.slice(0, 2).map(function(p){return p.name;}).join(', ');
       GameUI.setTicker('🏚️ Deteriorated: ' + names + (results.degraded.length > 2 ? ' +' + (results.degraded.length-2) + ' more' : ''));
       if (!isAutoPlaying) GameAudio.negative();
+    }
+
+    // AI property purchases — create rivalry feeling
+    if (results.aiBuys && results.aiBuys.length > 0 && !isAutoPlaying) {
+      results.aiBuys.forEach(function(buy) {
+        GameUI.toast(buy.ai.icon + ' ' + buy.ai.name + ' just bought ' + buy.property.name + ' in ' + buy.cityName + '!', 'info');
+      });
     }
 
     // Achievements
