@@ -4,6 +4,49 @@
 
 const GameData = {
 
+  // ---- Tenant Types ----
+  tenantTypes: {
+    student:       { name: 'Student',           icon: '🎓', reliability: 0.70, care: 0.60, rentTolerance: 0.85, weight: 0.20 },
+    young_pro:     { name: 'Young Professional', icon: '💼', reliability: 0.85, care: 0.80, rentTolerance: 1.00, weight: 0.25 },
+    family:        { name: 'Family',            icon: '👨‍👩‍👧', reliability: 0.92, care: 0.90, rentTolerance: 0.95, weight: 0.20 },
+    corporate:     { name: 'Corporate Tenant',  icon: '🏢', reliability: 0.96, care: 0.85, rentTolerance: 1.15, weight: 0.15 },
+    luxury:        { name: 'Luxury Tenant',     icon: '💎', reliability: 0.90, care: 0.95, rentTolerance: 1.20, weight: 0.10 },
+    retiree:       { name: 'Retiree',           icon: '🧓', reliability: 0.95, care: 0.92, rentTolerance: 0.90, weight: 0.10 },
+  },
+
+  // Pick a random tenant based on property type and rent level
+  assignTenant: function(property) {
+    var types = Object.keys(this.tenantTypes);
+    var rentRatio = property.rentMultiplier || 1.0;
+
+    // Weight tenants: luxury tenants more likely at high rent, students at low rent
+    var weights = [];
+    var totalWeight = 0;
+    for (var i = 0; i < types.length; i++) {
+      var t = this.tenantTypes[types[i]];
+      var w = t.weight;
+      // Adjust: high rent attracts corporate/luxury, low rent attracts students
+      if (rentRatio > 1.05 && (types[i] === 'corporate' || types[i] === 'luxury')) w *= 1.8;
+      if (rentRatio < 0.95 && types[i] === 'student') w *= 1.5;
+      if (property.type === 'commercial' || property.type === 'warehouse') {
+        w = types[i] === 'corporate' ? 1 : 0; // Commercial only gets corporate tenants
+      }
+      weights.push(w);
+      totalWeight += w;
+    }
+    var roll = Math.random() * totalWeight;
+    var cumulative = 0;
+    for (var i = 0; i < types.length; i++) {
+      cumulative += weights[i];
+      if (roll <= cumulative) {
+        return { type: types[i], name: this.tenantTypes[types[i]].name, icon: this.tenantTypes[types[i]].icon,
+                 reliability: this.tenantTypes[types[i]].reliability, care: this.tenantTypes[types[i]].care,
+                 monthsOccupied: 0, satisfaction: 0.8 + Math.random() * 0.2 };
+      }
+    }
+    return { type: 'young_pro', name: 'Young Professional', icon: '💼', reliability: 0.85, care: 0.80, monthsOccupied: 0, satisfaction: 0.85 };
+  },
+
   // ---- Historical Eras ----
   eras: [
     {

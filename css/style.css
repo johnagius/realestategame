@@ -1271,6 +1271,46 @@ h4 { font-size: 1rem; }
 .forecast-balance { text-align: right; font-weight: 700; }
 .forecast-balance.negative { color: #E63946; }
 
+/* ---- Tenant Info ---- */
+.tenant-info {
+  background: rgba(44,110,73,0.05);
+  border: 1px solid rgba(44,110,73,0.15);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.tenant-header {
+  font-size: 0.82rem;
+  margin-bottom: 4px;
+}
+.tenant-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.rent-adjust {
+  margin-top: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.rent-adjust .btn-ghost.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* ---- Degradation Info ---- */
+.degradation-info {
+  font-size: 0.7rem;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.degradation-ok { color: var(--text-muted); }
+.degradation-caution { color: #D4A84B; background: rgba(212,168,75,0.08); }
+.degradation-warn { color: #E63946; background: rgba(230,57,70,0.08); font-weight: 700; }
+
 .filter-btn {
   padding: 6px 14px;
   border: 1.5px solid var(--border);

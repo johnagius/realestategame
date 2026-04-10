@@ -530,13 +530,40 @@ const GameUI = {
       } else if (p.isRefurbishing) {
         actionsHTML += '<div class="action-info">🔨 Refurbishing — ' + p.refurbMonthsLeft + ' months remaining</div>';
       } else {
-        // Rent toggle
+        // Rent toggle + tenant info + rent adjustment
         if (typeDef.canRent && p.condition !== 'derelict') {
+          var rm = p.rentMultiplier || 1.0;
+          var adjRent = Math.round(p.monthlyRent * rm);
           if (p.isRented) {
-            actionsHTML += '<button class="btn btn-secondary" onclick="App.toggleRent(\'' + p.id + '\')">Stop Renting</button>';
+            // Show current tenant
+            if (p.tenant) {
+              actionsHTML += '<div class="tenant-info">' +
+                '<div class="tenant-header">' + p.tenant.icon + ' <strong>' + p.tenant.name + '</strong> <span style="font-size:0.7rem;color:var(--text-muted)">(' + (p.tenant.monthsOccupied || 0) + ' months)</span></div>' +
+                '<div class="tenant-stats">' +
+                  '<span title="Reliability — affects late payments">🔒 ' + Math.round((p.tenant.reliability || 0.85) * 100) + '%</span>' +
+                  '<span title="Care — affects property damage">🧹 ' + Math.round((p.tenant.care || 0.80) * 100) + '%</span>' +
+                  '<span title="Satisfaction">😊 ' + Math.round((p.tenant.satisfaction || 0.85) * 100) + '%</span>' +
+                '</div>' +
+              '</div>';
+            }
+            actionsHTML += '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">';
+            actionsHTML += '<button class="btn btn-secondary btn-small" style="flex:1" onclick="App.toggleRent(\'' + p.id + '\')">Stop Renting</button>';
+            actionsHTML += '<button class="btn btn-ghost btn-small" style="flex:1" onclick="App.evictTenant(\'' + p.id + '\')">Evict (costs ' + GameData.formatMoney(adjRent) + ')</button>';
+            actionsHTML += '</div>';
           } else {
-            actionsHTML += '<button class="btn btn-primary" onclick="App.toggleRent(\'' + p.id + '\')">Rent Out — ' + GameData.formatMoney(p.monthlyRent) + '/mo</button>';
+            actionsHTML += '<button class="btn btn-primary" onclick="App.toggleRent(\'' + p.id + '\')">Rent Out — ' + GameData.formatMoney(adjRent) + '/mo</button>';
           }
+          // Rent adjustment slider
+          actionsHTML += '<div class="rent-adjust">' +
+            '<label class="settings-label" style="margin-bottom:4px">Rent Level: <strong>' + Math.round(rm * 100) + '%</strong> (' + GameData.formatMoney(adjRent) + '/mo)</label>' +
+            '<div style="display:flex;gap:4px;flex-wrap:wrap">' +
+              '<button class="btn btn-ghost btn-small' + (rm <= 0.75 ? ' active' : '') + '" onclick="App.adjustRent(\'' + p.id + '\',0.8)">80% Low</button>' +
+              '<button class="btn btn-ghost btn-small' + (rm > 0.85 && rm < 1.05 ? ' active' : '') + '" onclick="App.adjustRent(\'' + p.id + '\',1.0)">100% Market</button>' +
+              '<button class="btn btn-ghost btn-small' + (rm >= 1.05 && rm < 1.15 ? ' active' : '') + '" onclick="App.adjustRent(\'' + p.id + '\',1.1)">110% High</button>' +
+              '<button class="btn btn-ghost btn-small' + (rm >= 1.15 ? ' active' : '') + '" onclick="App.adjustRent(\'' + p.id + '\',1.2)">120% Premium</button>' +
+            '</div>' +
+            '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:3px">Higher rent = more income but pickier tenants + slower fills</div>' +
+          '</div>';
         }
 
         // Renovation tiers
@@ -620,9 +647,34 @@ const GameUI = {
             '<span class="condition-text" style="color:' + condDef.color + '">' + condDef.name + '</span>' +
           '</div>' +
           condBarHTML +
+          (p.isOwned ? this.renderDegradationInfo(p) : '') +
         '</div>' +
         actionsHTML +
       '</div>';
+  },
+
+  renderDegradationInfo: function(p) {
+    // Show condition decay estimate
+    // Base: 0.5% chance per month to degrade, doubled if rented, worse if poor/derelict
+    var baseChance = 0.005;
+    if (p.isRented) baseChance *= 2;
+    if (p.condition === 'poor') baseChance *= 1.3;
+    if (p.condition === 'derelict') baseChance *= 0.5; // can't go lower
+    if (p.condition === 'excellent') baseChance *= 1.5; // degrades faster from top
+
+    // Tenant care factor
+    if (p.tenant && p.tenant.care) {
+      baseChance *= (2.0 - p.tenant.care); // care 0.95 → ×1.05, care 0.6 → ×1.4
+    }
+
+    var monthsEstimate = Math.round(1 / baseChance);
+    if (p.condition === 'derelict') {
+      return '<div class="degradation-info">Already at lowest condition</div>';
+    }
+    var urgency = monthsEstimate < 12 ? 'degradation-warn' : monthsEstimate < 24 ? 'degradation-caution' : 'degradation-ok';
+    return '<div class="degradation-info ' + urgency + '">' +
+      (p.isRented ? '📊 Est. ~' + monthsEstimate + ' months until condition drops (rented)' : '📊 Est. ~' + monthsEstimate + ' months until condition drops') +
+    '</div>';
   },
 
   // ---- Render Mitigations ----
@@ -992,9 +1044,14 @@ const GameUI = {
       }
     }
 
-    // Foreclosure
+    // Foreclosure warning / execution
     if (results.foreclosure) {
       GameUI.toast('🏦 FORECLOSURE! ' + results.foreclosure.property.name + ' sold for ' + GameData.formatMoney(results.foreclosure.amount) + ' (70% of value)', 'error');
+      GameAudio.alarm();
+    } else if (GameEngine.state.consecutiveNegativeCash === 1) {
+      GameUI.toast('⚠️ Cash negative! Foreclosure in 2 months if not resolved.', 'error');
+    } else if (GameEngine.state.consecutiveNegativeCash === 2) {
+      GameUI.toast('🚨 DANGER! Cash still negative — foreclosure NEXT MONTH! Sell a property or take a loan.', 'error');
       GameAudio.alarm();
     }
 

@@ -357,6 +357,27 @@ const App = {
     }
   },
 
+  adjustRent(propertyId, multiplier) {
+    var result = GameEngine.adjustRent(propertyId, multiplier);
+    if (result.success) {
+      GameUI.toast(result.message, 'info');
+      GameUI.renderProperty(propertyId);
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+  },
+
+  evictTenant(propertyId) {
+    var result = GameEngine.evictTenant(propertyId);
+    if (result.success) {
+      GameUI.toast(result.message, 'info');
+      GameUI.updateHUD();
+      GameUI.renderProperty(propertyId);
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+  },
+
   refurbishProperty(propertyId, tier) {
     var result = GameEngine.refurbishProperty(propertyId, tier);
     if (result.success) {
