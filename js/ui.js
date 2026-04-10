@@ -1011,6 +1011,23 @@ const GameUI = {
     // Prestige — end of game
     if (results.prestige) {
       var stats = GameEngine.getPrestigeStats();
+      var unlocksHTML = '';
+      if (stats.unlocks.length > 0) {
+        unlocksHTML = '<div style="margin-top:10px;text-align:left"><strong>Prestige ' + stats.nextLevel + ' Unlocks:</strong>';
+        stats.unlocks.forEach(function(u) {
+          unlocksHTML += '<div style="font-size:0.75rem;padding:3px 0">✨ <strong>' + u.name + '</strong> — ' + u.desc + '</div>';
+        });
+        unlocksHTML += '</div>';
+      }
+      var historyHTML = '';
+      var history = GameEngine.state.prestigeHistory || [];
+      if (history.length > 0) {
+        historyHTML = '<div style="margin-top:10px;font-size:0.7rem;color:var(--text-muted)"><strong>Previous Runs:</strong>';
+        history.slice(-3).forEach(function(h, i) {
+          historyHTML += '<div>Run ' + (i+1) + ': ' + GameData.formatMoneyShort(h.netWorth) + ' · ' + h.properties + ' properties · ' + h.generation + ' gen</div>';
+        });
+        historyHTML += '</div>';
+      }
       this.showModal('🏆 The Year 2030 — Your Legacy',
         '<div style="text-align:center;padding:8px 0">' +
           '<div style="font-size:3rem;margin-bottom:8px">🏛️</div>' +
@@ -1019,13 +1036,18 @@ const GameUI = {
             '<div class="finance-row"><span class="finance-row-label">Final Net Worth</span><span class="finance-row-value">' + GameData.formatMoney(stats.netWorth) + '</span></div>' +
             '<div class="finance-row"><span class="finance-row-label">Properties</span><span class="finance-row-value">' + stats.properties + '</span></div>' +
             '<div class="finance-row"><span class="finance-row-label">Cities</span><span class="finance-row-value">' + stats.cities + '</span></div>' +
-            '<div class="finance-row"><span class="finance-row-label">Reputation</span><span class="finance-row-value">' + stats.reputation + '</span></div>' +
+            '<div class="finance-row"><span class="finance-row-label">Achievements</span><span class="finance-row-value">' + stats.achievementCount + '/' + GameData.achievements.length + '</span></div>' +
             '<div class="finance-row"><span class="finance-row-label">Ranking</span><span class="finance-row-value">#' + stats.rank + '</span></div>' +
             '<div class="finance-row finance-total"><span class="finance-row-label">Prestige Score</span><span class="finance-row-value text-primary fw-800">' + stats.score + ' pts</span></div>' +
+            '<div class="finance-row"><span class="finance-row-label">Legacy Points Earned</span><span class="finance-row-value" style="color:#D4A84B;font-weight:800">+' + stats.legacyPoints + ' LP</span></div>' +
           '</div>' +
-          '<div style="margin-top:12px;font-size:0.8rem;color:var(--text-muted)">Next game: +' + Math.round((stats.cashBonus-1)*100) + '% starting cash, +' + stats.repBonus + ' reputation</div>' +
+          '<div style="margin-top:8px;font-size:0.82rem;font-weight:700">' +
+            'Next run bonuses: <span class="positive">+' + Math.round((stats.cashBonus-1)*100) + '% cash</span>, <span class="positive">+' + stats.repBonus + ' reputation</span>' +
+          '</div>' +
+          unlocksHTML +
+          historyHTML +
         '</div>',
-        '<button class="btn btn-primary" onclick="App.startPrestige()">🔄 New Game+ (Prestige)</button>' +
+        '<button class="btn btn-primary" onclick="App.startPrestige()">🔄 New Game+ (Prestige ' + stats.nextLevel + ')</button>' +
         '<button class="btn btn-accent" onclick="App.sharePrestige()">📷 Share Legacy</button>' +
         '<button class="btn btn-ghost" onclick="GameUI.hideModal()">Keep Playing</button>'
       );

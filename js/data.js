@@ -864,13 +864,22 @@ const GameData = {
     const size = Math.round(minSize + Math.random() * (maxSize - minSize));
 
     // Random condition (weighted towards fair/good)
+    // Prestige 1+ bonus: minimum condition is fair
+    var prestigeLevel = (typeof GameEngine !== 'undefined' && GameEngine.state) ? (GameEngine.state.prestigeLevel || 0) : 0;
     const condRoll = Math.random();
     let condition;
-    if (condRoll < 0.08) condition = 'derelict';
-    else if (condRoll < 0.22) condition = 'poor';
-    else if (condRoll < 0.50) condition = 'fair';
-    else if (condRoll < 0.82) condition = 'good';
-    else condition = 'excellent';
+    if (prestigeLevel >= 1) {
+      // Prestige bonus: no derelict/poor properties
+      if (condRoll < 0.40) condition = 'fair';
+      else if (condRoll < 0.75) condition = 'good';
+      else condition = 'excellent';
+    } else {
+      if (condRoll < 0.08) condition = 'derelict';
+      else if (condRoll < 0.22) condition = 'poor';
+      else if (condRoll < 0.50) condition = 'fair';
+      else if (condRoll < 0.82) condition = 'good';
+      else condition = 'excellent';
+    }
 
     // Generate name
     const districts = this.districts[cityId] || ['Central'];

@@ -1070,7 +1070,8 @@ const GameEngine = {
         const maxMonthlyGrowth = 0.0017;
         const realGrowth = Math.min(maxMonthlyGrowth, city.growthRate / 12);
         const cycleGrowth = cycleEffect.growth || 0;
-        const change = realGrowth + monthlyInflation + pressure + randomFactor + cycleGrowth;
+        var prestigeBonus = this.state.prestigeAppreciationBonus || 0;
+        const change = (realGrowth + monthlyInflation + pressure + randomFactor + cycleGrowth) * (1 + prestigeBonus);
         p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + change)));
         p.appreciation = ((p.currentValue - p.purchasePrice) / p.purchasePrice) * 100;
         this.recalculateRent(p);
@@ -2282,22 +2283,39 @@ const GameEngine = {
     var cities = new Set(this.state.properties.map(function(p){return p.cityId;})).size;
     var rep = this.state.reputation || 50;
     var rank = this.state.playerRank || 7;
+    var achievementCount = (this.state.achievements || []).length;
 
     // Prestige score based on achievements
     var score = 0;
-    score += Math.floor(Math.log10(Math.max(1, nw))) * 10; // wealth magnitude
-    score += gen * 5; // generations survived
-    score += props * 2; // properties owned
-    score += cities * 8; // city diversity
-    score += Math.floor(rep / 10) * 3; // reputation
-    score += (7 - Math.min(7, rank)) * 10; // ranking bonus
+    score += Math.floor(Math.log10(Math.max(1, nw))) * 10;
+    score += gen * 5;
+    score += props * 2;
+    score += cities * 8;
+    score += Math.floor(rep / 10) * 3;
+    score += (7 - Math.min(7, rank)) * 10;
+    score += achievementCount * 3; // achievements matter
 
-    // Prestige bonus for next game
-    var cashBonus = 1 + score * 0.01; // 1% per point
-    var repBonus = Math.min(30, Math.floor(score / 5));
+    // Legacy points earned this run
+    var legacyPoints = Math.floor(score / 3);
+
+    // Prestige bonuses scale with level
+    var prestigeLevel = (this.state.prestigeLevel || 0);
+    var cashBonus = 1 + score * 0.02 + prestigeLevel * 0.15; // 2% per point + 15% per level
+    var repBonus = Math.min(50, Math.floor(score / 4) + prestigeLevel * 5);
+
+    // Prestige unlock descriptions
+    var nextLevel = prestigeLevel + 1;
+    var unlocks = [];
+    if (nextLevel >= 1) unlocks.push({ name: 'Experienced Investor', desc: 'All properties start at Fair condition' });
+    if (nextLevel >= 2) unlocks.push({ name: 'Connected', desc: 'Start with +25 reputation' });
+    if (nextLevel >= 3) unlocks.push({ name: 'Old Money', desc: 'Properties appreciate 20% faster' });
+    if (nextLevel >= 5) unlocks.push({ name: 'Dynasty Power', desc: 'Children inherit parent traits' });
+    if (nextLevel >= 7) unlocks.push({ name: 'Market Manipulator', desc: 'AI families start 30% weaker' });
+    if (nextLevel >= 10) unlocks.push({ name: 'Legend', desc: 'Start with 3 free properties' });
 
     return {
       score: score,
+      legacyPoints: legacyPoints,
       netWorth: nw,
       generation: gen,
       properties: props,
@@ -2305,7 +2323,10 @@ const GameEngine = {
       reputation: rep,
       rank: rank,
       cashBonus: cashBonus,
-      repBonus: repBonus
+      repBonus: repBonus,
+      unlocks: unlocks,
+      nextLevel: nextLevel,
+      achievementCount: achievementCount
     };
   },
 
@@ -2314,11 +2335,58 @@ const GameEngine = {
     var prestigeLevel = (this.state.prestigeLevel || 0) + 1;
     var family = GameData.families.find(function(f){return f.id === familyId;}) || GameData.families[1];
 
+    // Save legacy points across runs
+    var totalLegacyPoints = (this.state.totalLegacyPoints || 0) + stats.legacyPoints;
+    var prestigeHistory = this.state.prestigeHistory || [];
+    prestigeHistory.push({
+      level: prestigeLevel - 1,
+      score: stats.score,
+      netWorth: stats.netWorth,
+      generation: stats.generation,
+      properties: stats.properties,
+      cities: stats.cities,
+      achievements: stats.achievementCount
+    });
+
     this.newGame(familyId);
     this.state.prestigeLevel = prestigeLevel;
+    this.state.totalLegacyPoints = totalLegacyPoints;
+    this.state.prestigeHistory = prestigeHistory;
     this.state.cash = Math.round(family.startingCash * stats.cashBonus);
-    this.state.reputation = 50 + stats.repBonus;
-    this.state.familyName = family.name + ' (Prestige ' + prestigeLevel + ')';
+    this.state.reputation = Math.min(80, 50 + stats.repBonus);
+    this.state.familyName = family.name + (prestigeLevel > 0 ? ' (Prestige ' + prestigeLevel + ')' : '');
+
+    // Apply prestige unlocks
+    if (prestigeLevel >= 3) {
+      // Old Money: appreciation bonus stored as modifier
+      this.state.prestigeAppreciationBonus = 0.2;
+    }
+    if (prestigeLevel >= 7) {
+      // Market Manipulator: weaken AI
+      if (this.state.aiFamilies) {
+        this.state.aiFamilies.forEach(function(ai) {
+          ai.netWorth = Math.round(ai.netWorth * 0.7);
+          ai.monthlyIncome = Math.round(ai.monthlyIncome * 0.7);
+        });
+      }
+    }
+    if (prestigeLevel >= 10) {
+      // Legend: start with 3 free properties in a random city
+      var cityId = GameData.cities[Math.floor(Math.random() * GameData.cities.length)].id;
+      for (var i = 0; i < 3; i++) {
+        var types = ['apartment', 'house', 'commercial'];
+        var prop = GameData.generateProperty(cityId, types[i]);
+        if (prop) {
+          prop.isOwned = true;
+          prop.purchasePrice = prop.currentValue;
+          prop.monthPurchased = 0;
+          this.state.properties.push(prop);
+          // Remove from market
+          var market = this.state.marketProperties[cityId] || [];
+          if (market.length > 0) market.pop();
+        }
+      }
+    }
 
     this.save();
     return stats;
