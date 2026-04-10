@@ -1380,18 +1380,33 @@ const GameUI = {
       this._mapLoaded = true;
     }
 
-    // Render city pins — elegant atlas markers, not emoji
+    // Render city pins with leader lines to avoid overlapping labels
     var pinsHTML = '';
     GameData.cities.forEach(function(city) {
       var coords = GameData.cityCoords[city.id];
       if (!coords) return;
       var summary = GameEngine.getCitySummary(city.id);
       var hasOwned = summary.owned > 0;
+      var lx = coords.lx || 10, ly = coords.ly || 0;
+      var needsLeader = Math.abs(lx) > 15 || Math.abs(ly) > 15;
+      var labelText = city.name + (hasOwned ? ' (' + summary.owned + ')' : '');
 
-      pinsHTML += '<div class="map-pin" data-city="' + city.id + '" style="left:' + coords.x + '%;top:' + coords.y + '%">' +
+      pinsHTML += '<div class="map-pin-group" data-city="' + city.id + '">';
+      // Dot at the city position
+      pinsHTML += '<div class="map-pin-dot-wrap" data-city="' + city.id + '" style="left:' + coords.x + '%;top:' + coords.y + '%">' +
         '<div class="map-pin-dot' + (hasOwned ? ' owned' : '') + '"></div>' +
-        '<div class="map-pin-label' + (hasOwned ? ' map-pin-owned' : '') + '">' + city.name + (hasOwned ? ' (' + summary.owned + ')' : '') + '</div>' +
       '</div>';
+      // Leader line (SVG overlay positioned between dot and label)
+      if (needsLeader) {
+        pinsHTML += '<svg class="map-leader-line" style="left:' + coords.x + '%;top:' + coords.y + '%;overflow:visible;position:absolute;width:1px;height:1px;pointer-events:none">' +
+          '<line x1="0" y1="0" x2="' + (lx + (lx > 0 ? 2 : -2)) + '" y2="' + (ly + 7) + '" stroke="rgba(200,168,88,.45)" stroke-width="0.8" stroke-dasharray="3,2"/>' +
+        '</svg>';
+      }
+      // Label at offset position
+      pinsHTML += '<div class="map-pin-label-wrap" data-city="' + city.id + '" style="left:calc(' + coords.x + '% + ' + lx + 'px);top:calc(' + coords.y + '% + ' + ly + 'px)">' +
+        '<div class="map-pin-label' + (hasOwned ? ' map-pin-owned' : '') + '">' + labelText + '</div>' +
+      '</div>';
+      pinsHTML += '</div>';
     });
     pins.innerHTML = pinsHTML;
   },

@@ -551,27 +551,28 @@ const GameData = {
   // ---- City Map Coordinates (% x, % y on world map) ----
   // Coords as % of 1200x600 SVG viewBox
   // Coords as % of container — matched to D3 Natural Earth projection 1400x680
+  // lx/ly = label offset in px from pin dot (to avoid overlapping)
   cityCoords: {
-    new_york:    { x: 34, y: 30 },
-    london:      { x: 50, y: 23 },
-    paris:       { x: 50, y: 25 },
-    tokyo:       { x: 81, y: 32 },
-    dubai:       { x: 63, y: 38 },
-    singapore:   { x: 75, y: 52 },
-    hong_kong:   { x: 77, y: 40 },
-    sydney:      { x: 84, y: 72 },
-    los_angeles: { x: 23, y: 33 },
-    miami:       { x: 31, y: 38 },
-    barcelona:   { x: 50, y: 29 },
-    rome:        { x: 53, y: 29 },
-    berlin:      { x: 53, y: 23 },
-    amsterdam:   { x: 51, y: 23 },
-    toronto:     { x: 33, y: 28 },
-    monaco:      { x: 52, y: 28 },
-    shanghai:    { x: 78, y: 35 },
-    mumbai:      { x: 67, y: 42 },
-    sao_paulo:   { x: 39, y: 66 },
-    cape_town:   { x: 54, y: 72 }
+    new_york:    { x: 34, y: 30,  lx: 10,  ly: -2 },
+    london:      { x: 50, y: 23,  lx: -85, ly: -25 },
+    paris:       { x: 50, y: 25,  lx: -80, ly: 10 },
+    tokyo:       { x: 81, y: 32,  lx: 10,  ly: 2 },
+    dubai:       { x: 63, y: 38,  lx: 10,  ly: 2 },
+    singapore:   { x: 75, y: 52,  lx: 10,  ly: 2 },
+    hong_kong:   { x: 77, y: 40,  lx: 10,  ly: -8 },
+    sydney:      { x: 84, y: 72,  lx: 10,  ly: 2 },
+    los_angeles: { x: 23, y: 33,  lx: -80, ly: -6 },
+    miami:       { x: 31, y: 38,  lx: 10,  ly: 2 },
+    barcelona:   { x: 50, y: 29,  lx: -80, ly: 24 },
+    rome:        { x: 53, y: 29,  lx: 14,  ly: 24 },
+    berlin:      { x: 53, y: 23,  lx: 18,  ly: -32 },
+    amsterdam:   { x: 51, y: 23,  lx: -45, ly: -36 },
+    toronto:     { x: 33, y: 28,  lx: 10,  ly: -10 },
+    monaco:      { x: 52, y: 28,  lx: 40,  ly: 12 },
+    shanghai:    { x: 78, y: 35,  lx: 10,  ly: -10 },
+    mumbai:      { x: 67, y: 42,  lx: 10,  ly: 2 },
+    sao_paulo:   { x: 39, y: 66,  lx: 10,  ly: 2 },
+    cape_town:   { x: 54, y: 72,  lx: 10,  ly: 2 }
   },
 
   // ---- Random Events ----
