@@ -952,50 +952,111 @@ const GameGraphics = {
     }
     s += '</g>';
 
-    // ===== FOREST ZONES — clusters of tiny tree symbols =====
-    // Amazon
-    s += '<g fill="url(#wm-forest)" opacity="0.45">';
-    var amazon = [[345,478],[358,485],[370,475],[355,492],[365,498],[380,488],[350,505],[368,510],[342,495]];
+    // ===== FOREST ZONES — individual tree symbols =====
+    // Helper: draw a tiny tree symbol
+    function treeSymbol(x, y, s2, type) {
+      var sc = s2 || 1, pk = '';
+      if (type === 'conifer') {
+        // Conifer (triangle)
+        pk += '<polygon points="'+x+','+(y-8*sc)+' '+(x-3*sc)+','+y+' '+(x+3*sc)+','+y+'" fill="#2A5020" opacity="0.6"/>';
+        pk += '<polygon points="'+x+','+(y-6*sc)+' '+(x-2.5*sc)+','+(y-1*sc)+' '+(x+2.5*sc)+','+(y-1*sc)+'" fill="#3A6830" opacity="0.5"/>';
+      } else {
+        // Deciduous (round canopy)
+        pk += '<line x1="'+x+'" y1="'+y+'" x2="'+x+'" y2="'+(y-3*sc)+'" stroke="#3A2810" stroke-width="'+(0.6*sc)+'"/>';
+        pk += '<circle cx="'+x+'" cy="'+(y-5*sc)+'" r="'+(3.5*sc)+'" fill="#2A5820" opacity="0.55"/>';
+        pk += '<circle cx="'+(x-1.2*sc)+'" cy="'+(y-5.5*sc)+'" r="'+(2.5*sc)+'" fill="#3A6830" opacity="0.4"/>';
+      }
+      return pk;
+    }
+
+    // Amazon rainforest — dense deciduous
+    s += '<g>';
+    var amazon = [[340,475],[348,482],[356,473],[344,490],[352,496],[360,486],[368,478],[376,490],[350,504],[342,498],[362,502],[374,496],[366,510],[354,512],[380,484],[336,488]];
     for (var i = 0; i < amazon.length; i++) {
-      var t = amazon[i];
-      s += '<ellipse cx="'+t[0]+'" cy="'+t[1]+'" rx="8" ry="6"/>';
+      s += treeSymbol(amazon[i][0], amazon[i][1], 0.8 + Math.sin(i)*0.2, 'deciduous');
     }
     s += '</g>';
 
     // Congo basin
-    s += '<g fill="url(#wm-forest)" opacity="0.4">';
-    var congo = [[700,415],[712,420],[695,428],[708,432],[718,425]];
+    s += '<g>';
+    var congo = [[698,412],[706,418],[714,410],[700,425],[710,430],[720,422],[694,432],[708,435],[718,428]];
     for (var i = 0; i < congo.length; i++) {
-      var t = congo[i];
-      s += '<ellipse cx="'+t[0]+'" cy="'+t[1]+'" rx="7" ry="5"/>';
+      s += treeSymbol(congo[i][0], congo[i][1], 0.7 + Math.sin(i*2)*0.15, 'deciduous');
     }
     s += '</g>';
 
-    // Siberian taiga
-    s += '<g fill="url(#wm-forest)" opacity="0.3">';
-    for (var fx = 880; fx < 1200; fx += 25) {
-      var fy = 70 + Math.sin(fx * 0.04) * 12;
-      s += '<ellipse cx="'+fx+'" cy="'+fy+'" rx="10" ry="6"/>';
+    // Siberian taiga — conifers
+    s += '<g>';
+    for (var fx = 870; fx < 1210; fx += 14) {
+      var fy = 68 + Math.sin(fx * 0.05) * 10 + (Math.cos(fx * 0.08) * 5);
+      s += treeSymbol(fx, fy, 0.6 + Math.sin(fx*0.1)*0.15, 'conifer');
     }
     s += '</g>';
 
-    // European forests
-    s += '<g fill="url(#wm-forest)" opacity="0.3">';
-    s += '<ellipse cx="660" cy="100" rx="12" ry="7"/>';
-    s += '<ellipse cx="700" cy="95" rx="10" ry="6"/>';
-    s += '<ellipse cx="740" cy="88" rx="8" ry="5"/>';
+    // North American forests — mixed
+    s += '<g>';
+    var naForest = [[195,145],[205,140],[215,148],[185,152],[200,155],[210,150],[225,142],[190,160],[208,158]];
+    for (var i = 0; i < naForest.length; i++) {
+      s += treeSymbol(naForest[i][0], naForest[i][1], 0.7, i % 3 === 0 ? 'conifer' : 'deciduous');
+    }
     s += '</g>';
 
-    // ===== RIVERS =====
-    s += '<g fill="none" stroke="#4A7A98" stroke-width="1.2" opacity="0.4" stroke-linecap="round">';
-    // Nile
-    s += '<path d="M752,262 Q748,295 745,328 Q742,360 738,388"/>';
-    // Amazon
-    s += '<path d="M310,485 Q340,480 368,488 Q392,484 410,490"/>';
-    // Mississippi
-    s += '<path d="M262,180 Q268,220 272,260 Q278,300 280,335"/>';
-    // Yangtze
-    s += '<path d="M1045,205 Q1072,200 1095,210 Q1112,218 1125,228"/>';
+    // European forests — mixed deciduous
+    s += '<g>';
+    var euForest = [[655,98],[665,95],[675,100],[685,92],[645,105],[695,88],[705,96]];
+    for (var i = 0; i < euForest.length; i++) {
+      s += treeSymbol(euForest[i][0], euForest[i][1], 0.65, i % 2 === 0 ? 'deciduous' : 'conifer');
+    }
+    // Scandinavian forests
+    var scanForest = [[695,48],[702,44],[710,50],[718,46],[698,55],[708,52]];
+    for (var i = 0; i < scanForest.length; i++) {
+      s += treeSymbol(scanForest[i][0], scanForest[i][1], 0.55, 'conifer');
+    }
+    s += '</g>';
+
+    // Southeast Asian forests
+    s += '<g>';
+    var seaForest = [[1072,345],[1080,350],[1088,342],[1096,348],[1104,340],[1112,346]];
+    for (var i = 0; i < seaForest.length; i++) {
+      s += treeSymbol(seaForest[i][0], seaForest[i][1], 0.6, 'deciduous');
+    }
+    s += '</g>';
+
+    // ===== RIVERS with tributaries =====
+    s += '<g fill="none" stroke="#4A7A98" stroke-linecap="round">';
+    // Nile — main stem + Blue/White Nile tributaries
+    s += '<path d="M752,258 Q750,280 748,305 Q746,330 744,355 Q742,375 738,395" stroke-width="1.4" opacity="0.45"/>';
+    s += '<path d="M748,305 Q738,300 728,308" stroke-width="0.7" opacity="0.3"/>'; // Blue Nile
+    s += '<path d="M744,355 Q735,350 725,355" stroke-width="0.6" opacity="0.25"/>'; // White Nile hint
+    s += '<path d="M738,395 Q742,405 738,418 Q736,430 740,442" stroke-width="0.8" opacity="0.3"/>'; // Delta
+
+    // Amazon — wide main + tributaries
+    s += '<path d="M305,488 Q330,484 355,490 Q378,486 400,492 Q415,488 420,478" stroke-width="1.6" opacity="0.4"/>';
+    s += '<path d="M330,484 Q325,475 322,465" stroke-width="0.7" opacity="0.25"/>'; // tributary
+    s += '<path d="M355,490 Q358,500 362,510" stroke-width="0.6" opacity="0.2"/>';
+    s += '<path d="M378,486 Q375,478 372,468" stroke-width="0.6" opacity="0.2"/>';
+    s += '<path d="M400,492 Q405,500 402,510" stroke-width="0.5" opacity="0.18"/>';
+
+    // Mississippi — with Ohio + Missouri
+    s += '<path d="M260,178 Q264,210 268,245 Q272,280 276,315 Q280,340 282,350" stroke-width="1.3" opacity="0.4"/>';
+    s += '<path d="M268,245 Q258,240 248,238" stroke-width="0.7" opacity="0.25"/>'; // Missouri
+    s += '<path d="M272,280 Q282,275 290,272" stroke-width="0.7" opacity="0.25"/>'; // Ohio
+    s += '<path d="M282,350 Q288,355 295,352" stroke-width="0.5" opacity="0.2"/>'; // Delta
+
+    // Yangtze + Yellow River
+    s += '<path d="M1040,208 Q1065,202 1088,212 Q1108,220 1128,230" stroke-width="1.2" opacity="0.4"/>';
+    s += '<path d="M1050,188 Q1070,182 1092,190 Q1110,196 1120,200" stroke-width="1" opacity="0.35"/>'; // Yellow
+
+    // Danube
+    s += '<path d="M695,125 Q710,130 725,128 Q740,132 752,138" stroke-width="0.8" opacity="0.3"/>';
+
+    // Ganges
+    s += '<path d="M920,275 Q935,270 948,278 Q958,285 965,290" stroke-width="0.8" opacity="0.3"/>';
+    s += '<path d="M965,290 Q970,298 968,308" stroke-width="0.5" opacity="0.2"/>'; // Delta
+
+    // Congo River
+    s += '<path d="M688,430 Q700,425 712,430 Q722,432 730,428" stroke-width="0.8" opacity="0.3"/>';
+
     s += '</g>';
 
     // ===== GREAT LAKES =====
@@ -1134,6 +1195,34 @@ const GameGraphics = {
       s += '<path d="M12,4 Q18,6 25,5" fill="none" stroke="#6AA0B8" stroke-width="0.5" opacity="0.4"/>';
       s += '</g>';
     }
+    s += '</g>';
+    return s;
+    // === SEA CREATURES (1750 atlas style) ===
+    // Whale — South Pacific
+    s += '<g transform="translate(1350, 540)" opacity="0.15">';
+    s += '<path d="M-15,0 Q-5,-8 10,-6 Q20,-4 25,0 Q20,4 10,6 Q-5,8 -15,0Z" fill="#3A5A68" stroke="#2A4A58" stroke-width="0.6"/>';
+    s += '<path d="M25,0 Q30,-4 32,-2 Q30,2 25,0" fill="#3A5A68"/>'; // tail
+    s += '<circle cx="-8" cy="-2" r="1" fill="#2A4A58"/>'; // eye
+    s += '<path d="M-5,-8 Q-3,-14 -1,-10" fill="none" stroke="#5A8AA8" stroke-width="0.5"/>'; // spout
+    s += '</g>';
+
+    // Sea serpent — North Atlantic
+    s += '<g transform="translate(480, 350)" opacity="0.1">';
+    s += '<path d="M0,0 Q8,-6 16,0 Q24,6 32,0 Q40,-6 48,0 Q52,2 50,5" fill="none" stroke="#3A5A48" stroke-width="1.5" stroke-linecap="round"/>';
+    s += '<circle cx="-2" cy="0" r="2.5" fill="#3A5A48"/>'; // head
+    s += '<circle cx="-4" cy="-1" r="0.8" fill="#5A8A78"/>'; // eye
+    s += '</g>';
+
+    // Compass wind faces (decorative, two corners)
+    // NW wind
+    s += '<g transform="translate(80, 680)" opacity="0.08">';
+    s += '<circle cx="0" cy="0" r="12" fill="none" stroke="#5A7A88" stroke-width="0.8"/>';
+    s += '<path d="M-8,-2 Q-14,0 -18,-2 Q-14,-4 -8,-2" fill="#5A7A88"/>'; // blowing
+    s += '<circle cx="-3" cy="-3" r="1" fill="#5A7A88"/>'; // eye
+    s += '<circle cx="3" cy="-3" r="1" fill="#5A7A88"/>';
+    s += '<path d="M-2,2 Q0,5 2,2" fill="none" stroke="#5A7A88" stroke-width="0.5"/>'; // mouth
+    s += '</g>';
+
     s += '</g>';
     return s;
   },
