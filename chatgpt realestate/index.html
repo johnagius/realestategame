@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Property Empire - Realism Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2C6E49">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+
+  <!-- ==================== SPLASH SCREEN ==================== -->
+  <div id="screen-splash" class="screen active">
+    <div class="splash-scene" id="splash-scene"></div>
+    <div class="splash-bg"></div>
+    <div class="splash-content">
+      <!-- Ornamental frame -->
+      <svg class="splash-ornament" viewBox="0 0 400 60" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="gold-grad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#8B6914" stop-opacity="0"/>
+            <stop offset="30%" stop-color="#D4A84B"/>
+            <stop offset="50%" stop-color="#F0D68A"/>
+            <stop offset="70%" stop-color="#D4A84B"/>
+            <stop offset="100%" stop-color="#8B6914" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <line x1="20" y1="30" x2="380" y2="30" stroke="url(#gold-grad)" stroke-width="1"/>
+        <path d="M170,30 Q185,10 200,30 Q215,50 230,30" fill="none" stroke="#D4A84B" stroke-width="1.5"/>
+        <circle cx="200" cy="30" r="4" fill="#D4A84B"/>
+        <path d="M140,30 Q150,20 160,30" fill="none" stroke="#D4A84B" stroke-width="1" opacity="0.6"/>
+        <path d="M240,30 Q250,40 260,30" fill="none" stroke="#D4A84B" stroke-width="1" opacity="0.6"/>
+      </svg>
+      <h1 class="splash-title">Property Empire: Realism Edition</h1>
+      <p class="splash-subtitle">Build a dynasty from 1750 to the modern age</p>
+      <div id="splash-main-btns" class="splash-buttons">
+        <button id="btn-new-game" class="btn btn-primary btn-large">New Game</button>
+        <button id="btn-continue-game" class="btn btn-secondary btn-large" style="display:none">Continue Game</button>
+      </div>
+      <!-- Family Selection (shown after clicking New Game) -->
+      <div id="family-select" class="family-select" style="display:none">
+        <h3 style="color:#FFF;margin-bottom:12px;font-family:var(--font-heading)">Choose Your Dynasty</h3>
+        <div id="family-cards"></div>
+      </div>
+      <p class="splash-version">v4.0 Realism</p>
+    </div>
+  </div>
+
+  <!-- ==================== HUD (Top Bar) ==================== -->
+  <div id="hud" class="hidden">
+    <div class="hud-item">
+      <span class="hud-label">Cash</span>
+      <span id="hud-cash" class="hud-value">€500,000</span>
+    </div>
+    <div class="hud-item hud-center">
+      <span id="hud-speed" class="hud-speed"></span>
+      <span id="hud-date" class="hud-value" style="font-size:0.8rem">Jan 2024</span>
+      <span id="hud-feed" class="hud-feed"></span>
+    </div>
+    <div class="hud-item hud-right">
+      <span class="hud-label">Net Worth</span>
+      <span id="hud-networth" class="hud-value">€500,000</span>
+      <button id="btn-leaderboard" class="hud-lb-btn" title="Leaderboard">🏆</button>
+    </div>
+  </div>
+
+  <!-- ==================== FLOATING LEADERBOARD ==================== -->
+  <div id="floating-leaderboard" class="floating-lb hidden">
+    <div class="floating-lb-header">
+      <span>🏆 Leaderboard</span>
+      <button id="btn-close-lb" class="floating-lb-close">✕</button>
+    </div>
+    <div id="floating-lb-content"></div>
+  </div>
+
+  <!-- ==================== MAP SCREEN (Cities) ==================== -->
+  <div id="screen-map" class="screen game-screen">
+    <div class="screen-header">
+      <h2>🌍 World Cities</h2>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button id="btn-map-toggle" class="btn btn-ghost btn-small">📋 List</button>
+        <button id="btn-advance-month" class="btn btn-accent btn-advance">
+          Next Month ▶
+        </button>
+      </div>
+    </div>
+    <!-- World Map View -->
+    <div id="world-map-container" class="world-map-container">
+      <div id="world-map" class="world-map">
+        <svg id="world-map-svg" viewBox="0 0 1600 800" class="world-map-svg"></svg>
+        <div id="world-map-pins"></div>
+      </div>
+    </div>
+    <!-- Grid View -->
+    <div id="cities-list-view" style="display:none">
+      <div class="search-bar">
+        <input type="text" id="city-search" placeholder="Search cities..." class="search-input">
+      </div>
+      <div id="cities-grid" class="card-grid"></div>
+    </div>
+  </div>
+
+  <!-- ==================== CITY SCREEN ==================== -->
+  <div id="screen-city" class="screen game-screen">
+    <div class="screen-header">
+      <button id="btn-back-city" class="btn btn-ghost btn-back">← Back</button>
+      <h2 id="city-title">City</h2>
+      <button id="btn-city-view-toggle" class="btn btn-ghost btn-small">🏙️ City View</button>
+    </div>
+    <div id="city-info" class="city-info-bar"></div>
+    <!-- City Map View (visual) -->
+    <div id="city-map-view" class="city-map-view" style="display:none">
+      <div id="city-map" class="city-map"></div>
+    </div>
+    <!-- List View -->
+    <div id="city-list-view">
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="market">🏪 Market</button>
+        <button class="tab-btn" data-tab="owned">🔑 My Properties</button>
+        <button class="tab-btn" data-tab="businesses">💼 Businesses</button>
+      </div>
+      <div id="city-properties" class="card-grid"></div>
+      <div id="city-empty" class="empty-state" style="display:none">
+        <span class="empty-icon">🏗️</span>
+        <p>No properties available</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== PROPERTY DETAIL SCREEN ==================== -->
+  <div id="screen-property" class="screen game-screen">
+    <div class="screen-header">
+      <button id="btn-back-property" class="btn btn-ghost btn-back">← Back</button>
+      <h2 id="property-title">Property</h2>
+    </div>
+    <div id="property-detail"></div>
+  </div>
+
+  <!-- ==================== PORTFOLIO SCREEN ==================== -->
+  <div id="screen-portfolio" class="screen game-screen">
+    <div class="screen-header">
+      <h2>📋 My Portfolio</h2>
+      <button class="btn btn-accent btn-advance btn-advance-alt">Next Month ▶</button>
+    </div>
+    <div id="portfolio-summary"></div>
+    <div id="portfolio-filters" class="filter-bar">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="rented">Rented</button>
+      <button class="filter-btn" data-filter="vacant">Vacant</button>
+      <button class="filter-btn" data-filter="refurbishing">Refurbishing</button>
+    </div>
+    <div id="portfolio-list" class="card-grid"></div>
+    <div id="portfolio-empty" class="empty-state" style="display:none">
+      <span class="empty-icon">🏠</span>
+      <p>No properties owned yet</p>
+      <button class="btn btn-primary" onclick="GameUI.showScreen('map')">Browse Cities</button>
+    </div>
+  </div>
+
+  <!-- ==================== FINANCES SCREEN ==================== -->
+  <div id="screen-finances" class="screen game-screen">
+    <div class="screen-header">
+      <h2>💰 Finances</h2>
+      <button class="btn btn-accent btn-advance btn-advance-alt">Next Month ▶</button>
+    </div>
+    <div id="finances-content"></div>
+  </div>
+
+  <!-- ==================== BANK SCREEN ==================== -->
+  <div id="screen-bank" class="screen game-screen">
+    <div class="screen-header">
+      <h2>🏦 Bank</h2>
+      <button class="btn btn-accent btn-advance btn-advance-alt">Next Month ▶</button>
+    </div>
+    <div id="bank-content"></div>
+  </div>
+
+  <!-- ==================== SETTINGS SCREEN ==================== -->
+  <div id="screen-settings" class="screen game-screen">
+    <div class="screen-header">
+      <h2>⚙️ Settings</h2>
+    </div>
+    <div id="settings-content"></div>
+  </div>
+
+  <!-- ==================== BOTTOM NAVIGATION ==================== -->
+  <nav id="main-nav" class="hidden">
+    <button class="nav-btn active" data-screen="map">
+      <span class="nav-icon">🌍</span>
+      <span class="nav-label">Cities</span>
+    </button>
+    <button class="nav-btn" data-screen="portfolio">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Portfolio</span>
+    </button>
+    <button class="nav-btn" data-screen="bank">
+      <span class="nav-icon">🏦</span>
+      <span class="nav-label">Bank</span>
+    </button>
+    <button class="nav-btn" data-screen="finances">
+      <span class="nav-icon">💰</span>
+      <span class="nav-label">Finances</span>
+    </button>
+    <button class="nav-btn" data-screen="settings">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">More</span>
+    </button>
+  </nav>
+
+  <!-- ==================== MODAL OVERLAY ==================== -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div id="modal" class="modal">
+      <button id="modal-close" class="modal-close">✕</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <!-- ==================== TOAST NOTIFICATION ==================== -->
+  <div id="toast-container"></div>
+
+  <!-- ==================== EVENT POPUP ==================== -->
+  <div id="event-overlay" class="event-overlay">
+    <div id="event-popup" class="event-popup">
+      <div id="event-content"></div>
+      <button id="event-dismiss" class="btn btn-primary">OK</button>
+    </div>
+  </div>
+
+  <!-- ==================== SCRIPTS ==================== -->
+  <script src="js/data.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/graphics.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
