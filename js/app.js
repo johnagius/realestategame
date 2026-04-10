@@ -140,6 +140,14 @@ const App = {
     document.getElementById('event-dismiss').addEventListener('click', function() {
       document.getElementById('event-overlay').classList.remove('active');
     });
+
+    // Leaderboard toggle
+    document.getElementById('btn-leaderboard').addEventListener('click', function() {
+      GameUI.toggleLeaderboard();
+    });
+    document.getElementById('btn-close-lb').addEventListener('click', function() {
+      document.getElementById('floating-leaderboard').classList.add('hidden');
+    });
   },
 
   startNewGame() {
@@ -196,6 +204,10 @@ const App = {
   advanceMonth() {
     var results = GameEngine.advanceMonth();
     GameUI.updateHUD();
+    // Update floating leaderboard if open
+    if (!document.getElementById('floating-leaderboard').classList.contains('hidden')) {
+      GameUI.renderFloatingLeaderboard();
+    }
     GameUI.showMonthResults(results);
 
     // Refresh current screen

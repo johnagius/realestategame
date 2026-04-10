@@ -642,6 +642,41 @@ const GameUI = {
     document.getElementById('modal-overlay').classList.remove('active');
   },
 
+  // ---- Floating Leaderboard ----
+  toggleLeaderboard() {
+    var panel = document.getElementById('floating-leaderboard');
+    if (panel.classList.contains('hidden')) {
+      this.renderFloatingLeaderboard();
+      panel.classList.remove('hidden');
+    } else {
+      panel.classList.add('hidden');
+    }
+  },
+
+  renderFloatingLeaderboard() {
+    var s = GameEngine.state;
+    if (!s || !s.aiFamilies) return;
+    var playerNW = GameEngine.getNetWorth();
+    var all = [
+      { name: (s.familyIcon || '👤') + ' ' + (s.familyName || 'You'), nw: playerNW, isPlayer: true }
+    ];
+    s.aiFamilies.forEach(function(ai) {
+      all.push({ name: ai.icon + ' ' + ai.name, nw: ai.netWorth, isPlayer: false });
+    });
+    all.sort(function(a, b) { return b.nw - a.nw; });
+
+    var html = '';
+    all.forEach(function(f, i) {
+      var medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+      html += '<div class="lb-row' + (f.isPlayer ? ' lb-player' : '') + '">' +
+        '<span class="lb-rank">' + medal + '</span>' +
+        '<span class="lb-name">' + f.name + '</span>' +
+        '<span class="lb-value">' + GameData.formatMoneyShort(f.nw) + '</span>' +
+      '</div>';
+    });
+    document.getElementById('floating-lb-content').innerHTML = html;
+  },
+
   // ---- Toggle map view ----
   toggleMapView() {
     this.mapView = !this.mapView;
