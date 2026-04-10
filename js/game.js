@@ -58,7 +58,10 @@ const GameEngine = {
       // Auto-sell rules
       autoSellRules: [],    // { propertyId, type: 'pct'|'value', threshold }
       // Auto-advance
-      autoAdvanceSpeed: 0   // 0=off, 1=slow, 2=medium, 3=fast
+      autoAdvanceSpeed: 0,  // 0=off, 1=slow, 2=medium, 3=fast
+      // Achievements
+      achievements: [],     // array of unlocked achievement ids
+      achievementNotified: [] // ids already shown as toast
     };
 
     // Generate initial market for all cities
@@ -796,11 +799,17 @@ const GameEngine = {
     results.propertyTax = 0;
     results.decisions = [];
 
-    // 1. Collect rent (with tenant problems, diminishing returns, cycle effects)
+    // 1. Collect rent (with tenant problems, diminishing returns, cycle effects, seasonality)
     var rentedCount = this.state.properties.filter(p => p.isRented).length;
     // Economic cycle rent multiplier (boom=110%, recession=85%, depression=70%)
     var cycleRentMult = { boom:1.1, growth:1.0, stagnation:0.95, recession:0.85, depression:0.7 };
     var rentCycleFactor = cycleRentMult[this.state.economicCycle] || 1.0;
+    // Seasonal rent factor (summer boost for tourism cities, winter dip for northern)
+    var monthIdx = this.state.monthIndex || 0;
+    var isSummer = monthIdx >= 5 && monthIdx <= 7; // Jun-Aug
+    var isWinter = monthIdx === 11 || monthIdx <= 1; // Dec-Feb
+    var touristCities = { barcelona:1, monaco:1, miami:1, dubai:1, rome:1, sydney:1 };
+    var northernCities = { toronto:1, amsterdam:1, berlin:1, london:1, paris:1 };
     this.state.properties.forEach(p => {
       if (p.isRented && !p.isRefurbishing && !p.isBuilding) {
         // Diminishing returns: after 5 rented properties, each additional yields 5% less
@@ -847,8 +856,11 @@ const GameEngine = {
             results.tenantProblems.push({ property: p.name, type: 'dispute', loss: legalFee + adjustedRent, tenant: tenant ? tenant.icon : '' });
           }
         } else {
-          // Normal rent collection with diminishing returns + cycle effect + rent adjustment
-          var actualRent = Math.round(adjustedRent * diminishFactor * rentCycleFactor);
+          // Normal rent collection with diminishing returns + cycle effect + rent adjustment + seasonality
+          var seasonFactor = 1.0;
+          if (isSummer && touristCities[p.cityId]) seasonFactor = 1.12;
+          else if (isWinter && northernCities[p.cityId]) seasonFactor = 0.92;
+          var actualRent = Math.round(adjustedRent * diminishFactor * rentCycleFactor * seasonFactor);
           this.state.cash += actualRent;
           p.totalRentCollected += actualRent;
           results.rentIncome += actualRent;
@@ -1015,6 +1027,9 @@ const GameEngine = {
     } else {
       this.state.consecutiveNegativeCash = 0;
     }
+
+    // 4e. Check achievements
+    results.newAchievements = this.checkAchievements();
 
     // 5. Market value fluctuations (with inflation + buying/selling pressure + economic cycle)
     // Track buying/selling pressure per city
@@ -1467,6 +1482,25 @@ const GameEngine = {
       minPrice: allPrices.length > 0 ? Math.min(...allPrices) : 0,
       monthlyIncome: owned.filter(p => p.isRented).reduce((sum, p) => sum + p.monthlyRent, 0)
     };
+  },
+
+  // ---- Check and unlock achievements ----
+  checkAchievements() {
+    if (!this.state.achievements) this.state.achievements = [];
+    if (!this.state.achievementNotified) this.state.achievementNotified = [];
+    var newlyUnlocked = [];
+    var s = this.state;
+    GameData.achievements.forEach(function(a) {
+      if (s.achievements.indexOf(a.id) >= 0) return; // already unlocked
+      try {
+        if (a.check(s)) {
+          s.achievements.push(a.id);
+          s.cash += a.reward;
+          newlyUnlocked.push(a);
+        }
+      } catch(e) { /* skip broken checks */ }
+    });
+    return newlyUnlocked;
   },
 
   // ---- Get portfolio statistics ----

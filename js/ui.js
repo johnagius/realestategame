@@ -934,12 +934,29 @@ const GameUI = {
   // ---- Render Settings ----
   renderSettings() {
     var content = document.getElementById('settings-content');
+    // Build trophy case
+    var unlocked = GameEngine.state.achievements || [];
+    var total = GameData.achievements.length;
+    var trophyHTML = '<div class="trophy-case">';
+    GameData.achievements.forEach(function(a) {
+      var done = unlocked.indexOf(a.id) >= 0;
+      trophyHTML += '<div class="trophy-badge' + (done ? ' unlocked' : '') + '" title="' + a.desc + (done ? ' (Unlocked!)' : '') + '">' +
+        '<span class="trophy-icon">' + (done ? a.icon : '🔒') + '</span>' +
+        '<span class="trophy-name">' + a.name + '</span>' +
+      '</div>';
+    });
+    trophyHTML += '</div>';
+
     content.innerHTML =
       '<div class="settings-section">' +
         '<div class="settings-row"><div><div class="settings-label">Auto-Advance Time</div><div class="settings-description">Automatically advance months</div></div>' + this.renderSpeedControls() + '</div>' +
         '<div class="settings-row"><div><div class="settings-label">Sound Effects</div><div class="settings-description">' + (GameAudio.muted ? 'Muted' : 'On') + '</div></div><button class="btn btn-secondary btn-small" onclick="GameAudio.toggle();GameUI.renderSettings()">' + (GameAudio.muted ? '🔇 Unmute' : '🔊 Mute') + '</button></div>' +
         '<div class="settings-row"><div><div class="settings-label">Save Game</div><div class="settings-description">Game saves automatically each month</div></div><button class="btn btn-primary btn-small" onclick="GameEngine.save(); GameUI.toast(\'Game saved!\', \'success\')">Save Now</button></div>' +
         '<div class="settings-row"><div><div class="settings-label">New Game</div><div class="settings-description">Start fresh with €500,000</div></div><button class="btn btn-danger btn-small" onclick="App.confirmNewGame()">Reset</button></div>' +
+      '</div>' +
+      '<div class="settings-section">' +
+        '<div class="finance-section-title">🏆 Achievements (' + unlocked.length + '/' + total + ')</div>' +
+        trophyHTML +
       '</div>' +
       '<div class="settings-section">' +
         '<div class="settings-row"><div><div class="settings-label">Property Empire</div><div class="settings-description">v2.0 — Build your real estate fortune</div></div></div>' +
@@ -1060,6 +1077,14 @@ const GameUI = {
       var names = results.degraded.slice(0, 2).map(function(p){return p.name;}).join(', ');
       GameUI.setTicker('🏚️ Deteriorated: ' + names + (results.degraded.length > 2 ? ' +' + (results.degraded.length-2) + ' more' : ''));
       if (!isAutoPlaying) GameAudio.negative();
+    }
+
+    // Achievements
+    if (results.newAchievements && results.newAchievements.length > 0) {
+      results.newAchievements.forEach(function(a) {
+        GameUI.toast(a.icon + ' Achievement: ' + a.name + '! +' + GameData.formatMoney(a.reward), 'success');
+        GameAudio.fanfare();
+      });
     }
 
     // Dynasty events

@@ -1311,6 +1311,34 @@ h4 { font-size: 1rem; }
 .degradation-caution { color: #D4A84B; background: rgba(212,168,75,0.08); }
 .degradation-warn { color: #E63946; background: rgba(230,57,70,0.08); font-weight: 700; }
 
+/* ---- Trophy Case (Achievements) ---- */
+.trophy-case {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 6px;
+  padding: 8px 0;
+}
+.trophy-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.03);
+  border: 1.5px solid var(--border);
+  text-align: center;
+  opacity: 0.4;
+  transition: all 0.2s;
+}
+.trophy-badge.unlocked {
+  opacity: 1;
+  background: rgba(212,168,75,0.08);
+  border-color: rgba(212,168,75,0.3);
+}
+.trophy-icon { font-size: 1.4rem; }
+.trophy-name { font-size: 0.6rem; font-weight: 700; line-height: 1.2; }
+
 .filter-btn {
   padding: 6px 14px;
   border: 1.5px solid var(--border);

@@ -88,6 +88,64 @@ const GameData = {
 
   startingYear: 1750,
 
+  // ---- Achievements ----
+  achievements: [
+    // Property milestones
+    { id: 'first_purchase',     icon: '🏠', name: 'First Purchase',       desc: 'Buy your first property',              reward: 500, check: function(s) { return s.totalPropertiesBought >= 1; } },
+    { id: 'portfolio_5',        icon: '🏘️', name: 'Small Portfolio',       desc: 'Own 5 properties',                     reward: 2000, check: function(s) { return s.properties.length >= 5; } },
+    { id: 'portfolio_10',       icon: '🏙️', name: 'Property Mogul',        desc: 'Own 10 properties',                    reward: 5000, check: function(s) { return s.properties.length >= 10; } },
+    { id: 'portfolio_25',       icon: '🌆', name: 'Real Estate Empire',    desc: 'Own 25 properties',                    reward: 20000, check: function(s) { return s.properties.length >= 25; } },
+    { id: 'portfolio_50',       icon: '👑', name: 'Property King',         desc: 'Own 50 properties',                    reward: 100000, check: function(s) { return s.properties.length >= 50; } },
+
+    // Wealth milestones
+    { id: 'worth_100k',         icon: '💰', name: 'Six Figures',           desc: 'Reach €100K net worth',                reward: 1000, check: function(s) { return (typeof GameEngine !== 'undefined') && GameEngine.getNetWorth() >= 100000; } },
+    { id: 'worth_1m',           icon: '💎', name: 'Millionaire',           desc: 'Reach €1M net worth',                  reward: 10000, check: function(s) { return (typeof GameEngine !== 'undefined') && GameEngine.getNetWorth() >= 1000000; } },
+    { id: 'worth_10m',          icon: '🏦', name: 'Multi-Millionaire',     desc: 'Reach €10M net worth',                 reward: 50000, check: function(s) { return (typeof GameEngine !== 'undefined') && GameEngine.getNetWorth() >= 10000000; } },
+    { id: 'worth_100m',         icon: '🚀', name: 'Centimillionaire',      desc: 'Reach €100M net worth',                reward: 500000, check: function(s) { return (typeof GameEngine !== 'undefined') && GameEngine.getNetWorth() >= 100000000; } },
+    { id: 'worth_1b',           icon: '🌟', name: 'Billionaire',           desc: 'Reach €1B net worth',                  reward: 5000000, check: function(s) { return (typeof GameEngine !== 'undefined') && GameEngine.getNetWorth() >= 1000000000; } },
+
+    // City expansion
+    { id: 'cities_3',           icon: '🗺️', name: 'Continental Investor',  desc: 'Own properties in 3 cities',           reward: 3000, check: function(s) { var c={}; s.properties.forEach(function(p){c[p.cityId]=1;}); return Object.keys(c).length >= 3; } },
+    { id: 'cities_5',           icon: '✈️', name: 'Jet Setter',            desc: 'Own properties in 5 cities',           reward: 8000, check: function(s) { var c={}; s.properties.forEach(function(p){c[p.cityId]=1;}); return Object.keys(c).length >= 5; } },
+    { id: 'cities_10',          icon: '🌍', name: 'Global Tycoon',         desc: 'Own properties in 10 cities',          reward: 25000, check: function(s) { var c={}; s.properties.forEach(function(p){c[p.cityId]=1;}); return Object.keys(c).length >= 10; } },
+    { id: 'cities_20',          icon: '🌐', name: 'World Domination',      desc: 'Own properties in all 20 cities',      reward: 100000, check: function(s) { var c={}; s.properties.forEach(function(p){c[p.cityId]=1;}); return Object.keys(c).length >= 20; } },
+
+    // Income milestones
+    { id: 'rent_100k',          icon: '🤑', name: 'Landlord',              desc: 'Earn €100K total rent',                reward: 2000, check: function(s) { return s.totalRentEarned >= 100000; } },
+    { id: 'rent_1m',            icon: '💸', name: 'Rent Baron',            desc: 'Earn €1M total rent',                  reward: 15000, check: function(s) { return s.totalRentEarned >= 1000000; } },
+    { id: 'rent_10m',           icon: '🏧', name: 'Passive Income King',   desc: 'Earn €10M total rent',                 reward: 100000, check: function(s) { return s.totalRentEarned >= 10000000; } },
+
+    // Social status
+    { id: 'reputation_50',      icon: '🎩', name: 'Respected',             desc: 'Reach Gentry social tier',             reward: 5000, check: function(s) { return (s.reputation || 0) >= 50; } },
+    { id: 'reputation_80',      icon: '🏆', name: 'Elite Status',          desc: 'Reach Magnate social tier',            reward: 25000, check: function(s) { return (s.reputation || 0) >= 80; } },
+    { id: 'leaderboard_1',      icon: '🥇', name: 'Top of the World',      desc: 'Reach #1 on the wealth leaderboard',   reward: 50000, check: function(s) {
+      if (typeof GameEngine === 'undefined') return false;
+      var nw = GameEngine.getNetWorth();
+      return s.aiFamilies && s.aiFamilies.every(function(ai) { return nw > ai.netWorth; });
+    } },
+
+    // Dynasty
+    { id: 'generation_2',       icon: '👶', name: 'Next Generation',       desc: 'Reach the 2nd generation',             reward: 5000, check: function(s) { return (s.generation || 1) >= 2; } },
+    { id: 'generation_5',       icon: '🌳', name: 'Deep Roots',            desc: 'Reach the 5th generation',             reward: 50000, check: function(s) { return (s.generation || 1) >= 5; } },
+    { id: 'family_4',           icon: '👨‍👩‍👧‍👦', name: 'Full House',            desc: 'Have 4+ family members',               reward: 3000, check: function(s) { return s.familyMembers && s.familyMembers.length >= 4; } },
+
+    // Trading
+    { id: 'flipper',            icon: '🔄', name: 'Property Flipper',      desc: 'Sell 5 properties at a profit',        reward: 5000, check: function(s) { return s.totalPropertiesSold >= 5; } },
+    { id: 'big_flipper',        icon: '💫', name: 'Serial Flipper',        desc: 'Sell 20 properties',                   reward: 25000, check: function(s) { return s.totalPropertiesSold >= 20; } },
+
+    // Special
+    { id: 'first_loan',         icon: '📝', name: 'Leveraged',             desc: 'Take your first loan',                 reward: 500, check: function(s) { return s.loans && s.loans.length >= 1; } },
+    { id: 'banker',             icon: '🏛️', name: 'The Banker',            desc: 'Open your own bank',                   reward: 25000, check: function(s) { return s.playerBanks && s.playerBanks.length >= 1; } },
+    { id: 'survivor',           icon: '💪', name: 'Survivor',              desc: 'Survive a market crash without selling', reward: 10000, check: function(s) { return s.properties.length >= 5 && s.totalPropertiesSold === 0 && (typeof GameEngine !== 'undefined') && GameEngine.getNetWorth() >= 500000; } },
+    { id: 'diversified',        icon: '📊', name: 'Diversified',           desc: 'Own all property types',               reward: 15000, check: function(s) { var t={}; s.properties.forEach(function(p){t[p.type]=1;}); return Object.keys(t).length >= 8; } },
+
+    // Era achievements
+    { id: 'era_industrial',     icon: '🏭', name: 'Industrialist',         desc: 'Reach the Industrial Revolution',      reward: 5000, check: function(s) { return s.year >= 1800; } },
+    { id: 'era_gilded',         icon: '🎭', name: 'Gilded Age Mogul',      desc: 'Reach the Gilded Age',                 reward: 10000, check: function(s) { return s.year >= 1870; } },
+    { id: 'era_modern',         icon: '🏗️', name: 'Modern Developer',      desc: 'Reach the Modern Era',                 reward: 25000, check: function(s) { return s.year >= 1930; } },
+    { id: 'era_info',           icon: '💻', name: 'Tech Mogul',            desc: 'Reach the Information Age',            reward: 50000, check: function(s) { return s.year >= 1980; } },
+  ],
+
   // ---- Playable Families ----
   families: [
     {
