@@ -1781,258 +1781,376 @@ const GameGraphics = {
     return s;
   },
 
-  // ===== NEW YORK =====
+  // ===== NEW YORK — Premium illustrated =====
   _city_new_york() {
     var s = '';
-    s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
-    // Light clouds
-    s += '<g opacity="0.3"><ellipse cx="300" cy="40" rx="100" ry="18" fill="#fff"/><ellipse cx="800" cy="55" rx="120" ry="20" fill="#fff"/></g>';
+    // Dramatic sunset sky over Manhattan
+    s += '<linearGradient id="ny-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1A2848"/><stop offset="30%" stop-color="#3A4868"/><stop offset="55%" stop-color="#7A6878"/><stop offset="72%" stop-color="#C88868"/><stop offset="85%" stop-color="#E8A858"/><stop offset="100%" stop-color="#F0C878"/></linearGradient>';
+    s += '<rect width="1200" height="500" fill="url(#ny-sky)"/>';
+    // Warm horizon glow
+    s += '<ellipse cx="600" cy="340" rx="500" ry="80" fill="#F0C060" opacity="0.1"/>';
 
-    // === SKYLINE - skyscrapers ===
-    // Empire State Building (center)
-    s += '<g transform="translate(550, 60)">';
-    s += '<rect x="-18" y="30" width="36" height="220" fill="#A0A8B0" stroke="#808890" stroke-width="0.8"/>';
-    s += '<rect x="-14" y="40" width="28" height="208" fill="#B0B8C0"/>';
-    // Setbacks
-    s += '<rect x="-22" y="120" width="44" height="4" fill="#C0C8D0"/>';
-    s += '<rect x="-16" y="80" width="32" height="4" fill="#C0C8D0"/>';
-    // Spire
-    s += '<rect x="-2" y="0" width="4" height="35" fill="#C0C8D0"/>';
-    s += '<polygon points="-6,30 0,15 6,30" fill="#B0B8C0"/>';
-    // Windows grid
-    s += '<g fill="#6A8AAA" opacity="0.7">';
-    for (var wy = 45; wy < 245; wy += 8) {
-      for (var wx = -12; wx < 12; wx += 6) {
-        s += '<rect x="'+wx+'" y="'+wy+'" width="4" height="5"/>';
-      }
+    // Clouds (sunset-tinted)
+    s += '<g opacity="0.25">';
+    s += '<ellipse cx="200" cy="60" rx="100" ry="18" fill="#8878A8"/>';
+    s += '<ellipse cx="230" cy="55" rx="60" ry="14" fill="#9888B0"/>';
+    s += '<ellipse cx="700" cy="50" rx="120" ry="20" fill="#8070A0"/>';
+    s += '<ellipse cx="740" cy="45" rx="70" ry="15" fill="#9080A8"/>';
+    s += '<ellipse cx="1000" cy="65" rx="90" ry="16" fill="#8878A8"/>';
+    s += '</g>';
+
+    // === DISTANT BROOKLYN/QUEENS SILHOUETTE ===
+    s += '<g opacity="0.1" fill="#5A5870">';
+    for (var dx = 0; dx < 1200; dx += 22) {
+      var dh = 8 + Math.sin(dx * 0.05) * 5;
+      s += '<rect x="'+dx+'" y="'+(285-dh)+'" width="18" height="'+dh+'"/>';
     }
     s += '</g>';
-    s += '</g>';
 
-    // Chrysler Building
-    s += '<g transform="translate(420, 90)">';
-    s += '<rect x="-14" y="25" width="28" height="190" fill="#C8C0B0" stroke="#A09880" stroke-width="0.8"/>';
-    // Art deco crown
-    s += '<path d="M-14,25 L-10,15 L-6,22 L-2,8 L2,22 L6,15 L10,22 L14,25" fill="#D8D0C0" stroke="#A09880" stroke-width="0.5"/>';
-    s += '<polygon points="-3,8 0,-5 3,8" fill="#E0D8C8"/>';
-    // Windows
-    s += '<g fill="#7090A8" opacity="0.6">';
-    for (var wy = 32; wy < 210; wy += 7) {
-      for (var wx = -10; wx < 10; wx += 5) {
-        s += '<rect x="'+wx+'" y="'+wy+'" width="3" height="4"/>';
-      }
-    }
-    s += '</g>';
-    s += '</g>';
-
-    // One WTC
-    s += '<g transform="translate(680, 50)">';
-    s += '<rect x="-16" y="0" width="32" height="230" fill="#A8B8C8" stroke="#8898A8" stroke-width="0.8"/>';
-    // Glass panels
-    s += '<g fill="#88A8C0" opacity="0.5">';
-    for (var wy = 5; wy < 225; wy += 6) {
-      s += '<rect x="-14" y="'+wy+'" width="13" height="4"/>';
-      s += '<rect x="1" y="'+wy+'" width="13" height="4"/>';
-    }
-    s += '</g>';
-    // Spire
-    s += '<line x1="0" y1="0" x2="0" y2="-25" stroke="#B0C0D0" stroke-width="1.5"/>';
-    s += '</g>';
-
-    // Other skyscrapers
-    var buildings = [
-      [100,140,30,140,'#8A9AA8'], [150,120,35,160,'#9AA8B8'], [200,155,28,128,'#A8B0B8'],
-      [260,130,32,150,'#98A0A8'], [310,145,26,138,'#B0B8C0'], [360,160,24,122,'#A0A8B0'],
-      [750,120,30,160,'#A0B0C0'], [800,145,28,138,'#B0B8C0'], [850,130,34,150,'#98A8B8'],
-      [910,155,26,128,'#A8B0B8'], [960,140,30,142,'#90A0B0'], [1010,125,32,155,'#A0A8B8'],
-      [1060,150,28,132,'#B0B8C8'], [1110,135,30,148,'#98A0B0']
-    ];
-    for (var i = 0; i < buildings.length; i++) {
-      var b = buildings[i];
-      s += '<rect x="'+b[0]+'" y="'+b[1]+'" width="'+b[2]+'" height="'+b[3]+'" fill="'+b[4]+'" stroke="#7A8A9A" stroke-width="0.5"/>';
-      // Windows
-      s += '<g fill="#6A88A8" opacity="0.5">';
-      for (var wy = b[1]+5; wy < b[1]+b[3]-5; wy += 7) {
-        for (var wx = b[0]+3; wx < b[0]+b[2]-3; wx += 6) {
-          s += '<rect x="'+wx+'" y="'+wy+'" width="3" height="4"/>';
+    // === MANHATTAN SKYLINE — Art Deco + Modern skyscrapers ===
+    // Helper for building with setbacks
+    function nyScraper(x, w, h, setbacks, color, highlight) {
+      var bk = '', base = 320, cx = x + w/2;
+      bk += '<rect x="'+x+'" y="'+(base-h)+'" width="'+w+'" height="'+h+'" fill="'+(color||'#4A5868')+'" stroke="#2A3848" stroke-width="0.5"/>';
+      // Highlight on left face (sunset)
+      bk += '<rect x="'+x+'" y="'+(base-h)+'" width="'+(w*0.3)+'" height="'+h+'" fill="'+(highlight||'#C89058')+'" opacity="0.12"/>';
+      // Window grid — but varied
+      var floorH = h > 100 ? 4 : 5, winW = Math.max(2, w * 0.12);
+      for (var fy = base - h + 4; fy < base - 4; fy += floorH + 1.5) {
+        for (var fx = x + 2; fx < x + w - 2; fx += winW + 1.5) {
+          // Some windows lit warm, some dark, some blue
+          var roll = Math.sin(fx * fy * 0.3);
+          var wColor = roll > 0.3 ? '#F0D060' : roll > -0.2 ? '#6A8AAA' : '#3A4858';
+          var wOpacity = roll > 0.3 ? 0.5 : 0.25;
+          bk += '<rect x="'+fx+'" y="'+fy+'" width="'+winW+'" height="'+floorH+'" fill="'+wColor+'" opacity="'+wOpacity+'"/>';
         }
       }
+      // Setbacks
+      if (setbacks) {
+        for (var si = 0; si < setbacks.length; si++) {
+          var sb = setbacks[si]; // {atH, inset}
+          var sbY = base - sb.atH;
+          var sbW = w - sb.inset * 2;
+          bk += '<rect x="'+(x+sb.inset)+'" y="'+sbY+'" width="'+sbW+'" height="3" fill="'+(color||'#4A5868')+'" stroke="#2A3848" stroke-width="0.3"/>';
+        }
+      }
+      return bk;
+    }
+
+    // Midtown buildings (left cluster)
+    s += nyScraper(80, 38, 90, null, '#505868');
+    s += nyScraper(122, 32, 70, null, '#586070');
+    s += nyScraper(158, 44, 110, [{atH:80,inset:6}], '#4A5060');
+    s += nyScraper(206, 36, 85, null, '#546070');
+
+    // === EMPIRE STATE BUILDING ===
+    s += '<g>';
+    s += nyScraper(255, 52, 170, [{atH:140,inset:8},{atH:120,inset:14}], '#6A6858', '#D0A060');
+    // Art Deco crown
+    s += '<rect x="271" y="148" width="20" height="8" fill="#7A7868" stroke="#5A5848" stroke-width="0.4"/>';
+    s += '<polygon points="276,148 281,138 286,148" fill="#8A8878"/>';
+    // Antenna
+    s += '<line x1="281" y1="138" x2="281" y2="115" stroke="#8A8878" stroke-width="1.5"/>';
+    s += '<circle cx="281" cy="114" r="1.5" fill="#F0C060" opacity="0.4"/>';
+    s += '</g>';
+
+    // More midtown
+    s += nyScraper(312, 40, 95, null, '#505868');
+    s += nyScraper(356, 34, 75, null, '#586070');
+    s += nyScraper(394, 46, 105, [{atH:85,inset:8}], '#4A5868');
+
+    // === CHRYSLER BUILDING ===
+    s += '<g>';
+    s += nyScraper(445, 42, 155, [{atH:130,inset:6},{atH:110,inset:10}], '#6A7078');
+    // Sunburst Art Deco crown — distinctive
+    s += '<g transform="translate(466, 164)">';
+    for (var ca = -40; ca <= 40; ca += 10) {
+      var rad = ca * Math.PI / 180;
+      var len = 12 + Math.abs(ca) * 0.2;
+      s += '<line x1="0" y1="0" x2="'+(Math.sin(rad)*len)+'" y2="'+(-Math.cos(rad)*len)+'" stroke="#C0B8A0" stroke-width="1.2"/>';
+    }
+    s += '<polygon points="-6,0 0,-18 6,0" fill="#B0A890" stroke="#8A8270" stroke-width="0.5"/>';
+    s += '</g>';
+    s += '</g>';
+
+    // Park Avenue / gap for Central Park hint
+    s += '<rect x="492" y="280" width="35" height="40" fill="#2A4A2A" opacity="0.3" rx="2"/>'; // Central Park green
+
+    // East side buildings
+    s += nyScraper(532, 38, 80, null, '#546070');
+    s += nyScraper(574, 50, 120, [{atH:95,inset:8}], '#4A5868');
+    s += nyScraper(628, 36, 90, null, '#586070');
+
+    // === ONE WORLD TRADE / FREEDOM TOWER ===
+    s += '<g>';
+    // Tapered form
+    s += '<path d="M685,140 L695,140 L702,320 L678,320Z" fill="#6A8098" stroke="#4A6078" stroke-width="0.5"/>';
+    // Glass curtain wall — reflective panels
+    s += '<g opacity="0.15">';
+    for (var fy = 145; fy < 315; fy += 5) {
+      var tw = 17 - (fy - 140) * 0.01;
+      s += '<line x1="'+(690-tw/2)+'" y1="'+fy+'" x2="'+(690+tw/2)+'" y2="'+fy+'" stroke="#A0C0D8" stroke-width="0.5"/>';
+    }
+    s += '</g>';
+    // Sunset reflection strip
+    s += '<rect x="678" y="140" width="6" height="180" fill="#E8A050" opacity="0.08"/>';
+    // Antenna
+    s += '<line x1="690" y1="140" x2="690" y2="108" stroke="#6A8098" stroke-width="1.8"/>';
+    s += '<circle cx="690" cy="107" r="1.5" fill="#F0D060" opacity="0.3"/>';
+    s += '</g>';
+
+    // More downtown
+    s += nyScraper(710, 34, 75, null, '#505868');
+    s += nyScraper(748, 42, 100, null, '#586070');
+    s += nyScraper(795, 38, 85, null, '#4A5868');
+    s += nyScraper(838, 50, 115, [{atH:90,inset:10}], '#505868');
+
+    // Right side / Financial district
+    s += nyScraper(895, 36, 70, null, '#546070');
+    s += nyScraper(935, 44, 95, null, '#4A5060');
+    s += nyScraper(984, 38, 80, null, '#586070');
+    s += nyScraper(1028, 48, 110, [{atH:85,inset:8}], '#505868');
+    s += nyScraper(1082, 34, 65, null, '#546070');
+    s += nyScraper(1120, 40, 85, null, '#4A5868');
+
+    // === STATUE OF LIBERTY (far left, on water) ===
+    s += '<g transform="translate(30, 265)" opacity="0.45">';
+    // Pedestal
+    s += '<rect x="-8" y="20" width="16" height="30" fill="#7A9A88" stroke="#5A7A68" stroke-width="0.5"/>';
+    s += '<rect x="-10" y="48" width="20" height="8" fill="#6A8A78" stroke="#5A7A68" stroke-width="0.4"/>';
+    // Figure
+    s += '<rect x="-4" y="-5" width="8" height="28" fill="#6A9A78" rx="1"/>';
+    // Crown
+    s += '<g stroke="#6A9A78" stroke-width="1" fill="none">';
+    for (var ra = -60; ra <= 60; ra += 20) {
+      var rr = ra * Math.PI / 180;
+      s += '<line x1="0" y1="-5" x2="'+(Math.sin(rr)*8)+'" y2="'+(-5-Math.cos(rr)*8)+'"/>';
+    }
+    s += '</g>';
+    // Torch
+    s += '<line x1="5" y1="-2" x2="12" y2="-15" stroke="#6A9A78" stroke-width="1.5"/>';
+    s += '<ellipse cx="12" cy="-17" rx="3" ry="4" fill="#F0C860" opacity="0.6"/>';
+    s += '</g>';
+
+    // === HUDSON RIVER / EAST RIVER ===
+    s += '<rect x="0" y="320" width="1200" height="55" fill="#2A3A58" opacity="0.6"/>';
+    // Water reflections of lit buildings
+    s += '<g opacity="0.06">';
+    for (var rx = 80; rx < 1160; rx += 25) {
+      var rh = 15 + Math.sin(rx * 0.08) * 8;
+      s += '<rect x="'+rx+'" y="322" width="12" height="'+rh+'" fill="#F0C060"/>';
+    }
+    s += '</g>';
+    // Water shimmer
+    s += '<g opacity="0.1" stroke="#5A7A98" stroke-width="0.5" stroke-linecap="round">';
+    for (var wx = 20; wx < 1180; wx += 18) {
+      var wy = 332 + Math.sin(wx * 0.03) * 6;
+      s += '<line x1="'+wx+'" y1="'+wy+'" x2="'+(wx+8)+'" y2="'+(wy+0.5)+'"/>';
+    }
+    s += '</g>';
+
+    // === BRIDGE (Brooklyn Bridge silhouette) ===
+    s += '<g opacity="0.25">';
+    // Towers
+    s += '<rect x="1020" y="275" width="8" height="50" fill="#4A4A48"/>';
+    s += '<rect x="1100" y="278" width="8" height="47" fill="#4A4A48"/>';
+    // Cables (catenary)
+    s += '<path d="M1024,280 Q1064,305 1104,280" fill="none" stroke="#5A5A58" stroke-width="1.5"/>';
+    s += '<path d="M1024,285 Q1064,308 1104,285" fill="none" stroke="#5A5A58" stroke-width="0.8"/>';
+    // Vertical cable hangers
+    for (var cx = 1030; cx < 1100; cx += 8) {
+      var cy = 280 + Math.sin(((cx-1024)/80)*Math.PI) * 25;
+      s += '<line x1="'+cx+'" y1="'+cy+'" x2="'+cx+'" y2="325" stroke="#5A5A58" stroke-width="0.3"/>';
+    }
+    // Road deck
+    s += '<rect x="1020" y="322" width="88" height="3" fill="#5A5A58"/>';
+    s += '</g>';
+
+    // === GROUND — urban pavement ===
+    s += '<rect x="0" y="375" width="1200" height="125" fill="#3A3A38"/>';
+    // Sidewalk
+    s += '<rect x="0" y="375" width="1200" height="14" fill="#6A6A68"/>';
+    // Road lanes
+    s += '<rect x="0" y="389" width="1200" height="28" fill="#3A3A38"/>';
+    s += '<line x1="0" y1="403" x2="1200" y2="403" stroke="#E8E860" stroke-width="1" stroke-dasharray="16,12" opacity="0.3"/>';
+
+    // Yellow cabs
+    for (var tc = 0; tc < 4; tc++) {
+      var tx = 120 + tc * 280 + Math.sin(tc*3)*30;
+      s += '<g transform="translate('+tx+', 393)">';
+      s += '<rect x="0" y="0" width="20" height="8" fill="#F0C820" rx="2" stroke="#C8A018" stroke-width="0.4"/>';
+      s += '<path d="M3,-2 Q5,-5 10,-5 Q15,-5 17,-2" fill="#F0C820" stroke="#C8A018" stroke-width="0.4"/>';
+      s += '<rect x="4" y="-4" width="5" height="3" fill="#88B8D0" rx="0.5"/>';
+      s += '<rect x="11" y="-4" width="5" height="3" fill="#88B8D0" rx="0.5"/>';
+      s += '<circle cx="4" cy="10" r="2.5" fill="#1A1A1A"/>';
+      s += '<circle cx="16" cy="10" r="2.5" fill="#1A1A1A"/>';
       s += '</g>';
     }
 
-    // === STATUE OF LIBERTY (small, in harbor) ===
-    s += '<g transform="translate(50, 250)" opacity="0.5">';
-    s += '<rect x="-3" y="5" width="6" height="20" fill="#6A9A7A"/>';
-    s += '<rect x="-8" y="25" width="16" height="8" fill="#7A8A7A"/>';
-    s += '<circle cx="0" cy="2" r="4" fill="#6A9A7A"/>';
-    s += '<line x1="3" y1="-2" x2="8" y2="-12" stroke="#6A9A7A" stroke-width="1.5"/>';
-    s += '<rect x="6" y="-15" width="4" height="5" fill="#E8D870" rx="1"/>';
-    s += '</g>';
-
-    // === HUDSON/EAST RIVER ===
-    s += '<path d="M0,310 Q300,305 600,312 Q900,318 1200,308 L1200,340 Q900,335 600,340 Q300,335 0,340Z" fill="url(#c-water)"/>';
-    // Brooklyn Bridge
-    s += '<g transform="translate(600, 280)">';
-    s += '<rect x="0" y="0" width="6" height="35" fill="#A09080"/>';
-    s += '<rect x="120" y="0" width="6" height="35" fill="#A09080"/>';
-    s += '<path d="M3,2 Q63,-15 123,2" fill="none" stroke="#8A7A6A" stroke-width="1.5"/>';
-    s += '<path d="M3,6 Q63,-8 123,6" fill="none" stroke="#8A7A6A" stroke-width="1"/>';
-    // Suspension cables
-    for (var cx = 15; cx < 120; cx += 12) {
-      var cy = 2 - Math.sin((cx/120)*Math.PI) * 15;
-      s += '<line x1="'+cx+'" y1="'+cy+'" x2="'+cx+'" y2="32" stroke="#8A7A6A" stroke-width="0.4"/>';
-    }
-    s += '</g>';
-
-    // Ground / street
-    s += '<rect x="0" y="340" width="1200" height="160" fill="#6A7A68"/>';
-    s += '<rect x="0" y="340" width="1200" height="18" fill="#5A5A58"/>';
-    // Road markings
-    s += '<g stroke="#E8E880" stroke-width="1" stroke-dasharray="12,8" opacity="0.6">';
-    s += '<line x1="0" y1="349" x2="1200" y2="349"/>';
-    s += '</g>';
-
-    // Yellow cabs
-    var cabs = [200, 450, 700, 950];
-    for (var i = 0; i < cabs.length; i++) {
-      var cx = cabs[i];
-      s += '<rect x="'+cx+'" y="342" width="18" height="8" fill="#F0C820" rx="2"/>';
-      s += '<circle cx="'+(cx+3)+'" cy="352" r="2" fill="#333"/>';
-      s += '<circle cx="'+(cx+15)+'" cy="352" r="2" fill="#333"/>';
-    }
-
-    // Central Park hint (green strip)
-    s += '<rect x="350" y="360" width="180" height="60" fill="#5A8A48" rx="5" opacity="0.4"/>';
-    s += '<g fill="#4A7A38" opacity="0.3">';
-    for (var tx = 360; tx < 520; tx += 20) {
-      s += '<ellipse cx="'+tx+'" cy="'+(375+Math.sin(tx*0.1)*5)+'" rx="8" ry="10"/>';
+    // Street lights
+    s += '<g stroke="#4A4A48" stroke-width="1.5">';
+    for (var lx = 50; lx < 1200; lx += 80) {
+      s += '<line x1="'+lx+'" y1="377" x2="'+lx+'" y2="392"/>';
+      s += '<ellipse cx="'+lx+'" cy="376" rx="3" ry="2" fill="#F0E0A0" opacity="0.35" stroke="none"/>';
     }
     s += '</g>';
 
     return s;
   },
 
-  // ===== TOKYO =====
+  // ===== TOKYO — Premium illustrated =====
   _city_tokyo() {
     var s = '';
-    // Sky with slight pink tint (cherry blossom season feel)
-    s += '<rect width="1200" height="500" fill="#E0E8F0"/>';
-    s += '<rect width="1200" height="200" fill="#F0E8F0" opacity="0.5"/>';
+    // Clean pale sky — Tokyo dawn/dusk
+    s += '<linearGradient id="tk-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#C8D8E8"/><stop offset="40%" stop-color="#D8E0EC"/><stop offset="70%" stop-color="#E8E0D8"/><stop offset="90%" stop-color="#F0D8C8"/><stop offset="100%" stop-color="#F0E0D0"/></linearGradient>';
+    s += '<rect width="1200" height="500" fill="url(#tk-sky)"/>';
 
-    // Mt Fuji in background
-    s += '<g transform="translate(950, 50)" opacity="0.3">';
-    s += '<polygon points="-80,120 0,0 80,120" fill="#8888AA"/>';
-    s += '<polygon points="-30,40 0,0 30,40" fill="#E8E8F0"/>';
+    // Mount Fuji — distant, iconic
+    s += '<g opacity="0.3">';
+    s += '<polygon points="900,180 980,280 820,280" fill="#8090A8"/>';
+    s += '<polygon points="920,200 980,280 860,280" fill="#7888A0" opacity="0.5"/>'; // shadow face
+    s += '<polygon points="900,180 870,210 930,210" fill="#E8F0F8" opacity="0.6"/>'; // snow cap
+    s += '<polygon points="895,185 880,200 915,200" fill="#F0F4F8" opacity="0.4"/>'; // highlight
     s += '</g>';
 
-    // === TOKYO TOWER ===
-    s += '<g transform="translate(400, 80)">';
-    s += '<path d="M-3,0 L-30,180 L-38,180" fill="none" stroke="#E83030" stroke-width="3"/>';
-    s += '<path d="M3,0 L30,180 L38,180" fill="none" stroke="#E83030" stroke-width="3"/>';
-    // Cross beams
-    for (var ty = 20; ty < 180; ty += 20) {
-      var tw = (ty / 180) * 30;
-      s += '<line x1="'+(-tw)+'" y1="'+ty+'" x2="'+tw+'" y2="'+ty+'" stroke="#E83030" stroke-width="1.5"/>';
+    // Soft clouds
+    s += '<g opacity="0.3">';
+    s += '<ellipse cx="200" cy="55" rx="100" ry="16" fill="#FFF"/>';
+    s += '<ellipse cx="230" cy="50" rx="60" ry="12" fill="#F8F8FF"/>';
+    s += '<ellipse cx="550" cy="45" rx="120" ry="18" fill="#FFF"/>';
+    s += '<ellipse cx="580" cy="40" rx="70" ry="13" fill="#F8F8FF"/>';
+    s += '<ellipse cx="1050" cy="60" rx="90" ry="15" fill="#FFF"/>';
+    s += '</g>';
+
+    // === DISTANT SKYLINE (atmospheric) ===
+    s += '<g opacity="0.1" fill="#8A98A8">';
+    for (var dx = 0; dx < 1200; dx += 20) {
+      var dh = 8 + Math.sin(dx * 0.05) * 5;
+      s += '<rect x="'+dx+'" y="'+(270-dh)+'" width="16" height="'+dh+'"/>';
     }
-    // White bands
-    s += '<g stroke="#FFF" stroke-width="2">';
-    for (var ty = 30; ty < 170; ty += 40) {
-      var tw = (ty / 180) * 30;
+    s += '</g>';
+
+    // === TOKYO TOWER (red-orange lattice) ===
+    s += '<g transform="translate(350, 90)">';
+    // Legs
+    s += '<path d="M-2,0 L-30,210 L-40,210 Q-22,140 -18,80 Q-10,30 -2,0" fill="#C83828" opacity="0.9"/>';
+    s += '<path d="M2,0 L30,210 L40,210 Q22,140 18,80 Q10,30 2,0" fill="#B03020" opacity="0.85"/>';
+    // Cross-bracing
+    s += '<g stroke="#C83828" stroke-width="0.5" opacity="0.4">';
+    for (var ty = 10; ty < 200; ty += 10) {
+      var tw = (ty / 210) * 30;
       s += '<line x1="'+(-tw)+'" y1="'+ty+'" x2="'+tw+'" y2="'+ty+'"/>';
+      if (ty < 190) {
+        var tw2 = ((ty+10) / 210) * 30;
+        s += '<line x1="'+(-tw)+'" y1="'+ty+'" x2="'+(-tw2*0.5)+'" y2="'+(ty+10)+'"/>';
+        s += '<line x1="'+tw+'" y1="'+ty+'" x2="'+(tw2*0.5)+'" y2="'+(ty+10)+'"/>';
+      }
     }
     s += '</g>';
-    // Observation deck
-    s += '<rect x="-18" y="80" width="36" height="8" fill="#E83030" rx="1"/>';
+    // Observation platforms
+    s += '<rect x="-18" y="65" width="36" height="5" fill="#D04030" rx="1"/>';
+    s += '<rect x="-26" y="140" width="52" height="6" fill="#D04030" rx="1"/>';
+    // White bands
+    s += '<rect x="-14" y="30" width="28" height="4" fill="#F0F0F0" opacity="0.6" rx="0.5"/>';
+    s += '<rect x="-22" y="100" width="44" height="4" fill="#F0F0F0" opacity="0.6" rx="0.5"/>';
     // Antenna
-    s += '<line x1="0" y1="0" x2="0" y2="-20" stroke="#E83030" stroke-width="1.5"/>';
+    s += '<line x1="0" y1="0" x2="0" y2="-20" stroke="#D04030" stroke-width="2"/>';
+    s += '<circle cx="0" cy="-21" r="1.5" fill="#F04040" opacity="0.5"/>';
     s += '</g>';
 
-    // === SKYTREE (background) ===
-    s += '<g transform="translate(800, 40)" opacity="0.5">';
-    s += '<rect x="-4" y="0" width="8" height="230" fill="#B0B8C0"/>';
-    s += '<rect x="-10" y="100" width="20" height="10" fill="#B8C0C8" rx="2"/>';
-    s += '<polygon points="-6,0 0,-15 6,0" fill="#B0B8C0"/>';
+    // === TOKYO SKYTREE (far right, taller, more modern) ===
+    s += '<g transform="translate(1050, 60)" opacity="0.5">';
+    // Tapered shaft
+    s += '<path d="M-3,0 L-10,240 L10,240 L3,0Z" fill="#8898A8" stroke="#6878888" stroke-width="0.5"/>';
+    // Observation decks
+    s += '<ellipse cx="0" cy="165" rx="14" ry="4" fill="#98A8B8" stroke="#6878888" stroke-width="0.4"/>';
+    s += '<ellipse cx="0" cy="100" rx="10" ry="3" fill="#98A8B8" stroke="#6878888" stroke-width="0.3"/>';
+    // Antenna
+    s += '<line x1="0" y1="0" x2="0" y2="-30" stroke="#8898A8" stroke-width="1.5"/>';
     s += '</g>';
 
-    // === BUILDINGS - mix of modern and traditional ===
+    // === MAIN BUILDINGS — mixed Japanese architecture ===
     // Modern glass towers
     var towers = [
-      [80,100,35,180,'#A0B0C8'],[140,120,28,160,'#B0C0D0'],[190,90,40,190,'#98A8B8'],
-      [530,110,32,170,'#A8B8C8'],[580,95,38,185,'#B0B8C8'],[640,125,30,158,'#A0B0C0'],
-      [880,105,34,175,'#A8B8D0'],[940,120,28,162,'#B8C0D0'],[990,100,36,180,'#A0A8C0'],
-      [1050,130,30,150,'#B0B8C0'],[1100,110,32,170,'#A8B0C8']
+      {x:100,w:45,h:120,color:'#7888A0'}, {x:150,w:38,h:95,color:'#6A7A92'},
+      {x:200,w:55,h:140,color:'#8090A8'}, {x:260,w:40,h:105,color:'#7080A0'},
+      {x:420,w:48,h:110,color:'#7A8AA0'}, {x:475,w:36,h:85,color:'#6A7892'},
+      {x:520,w:52,h:130,color:'#8090A8'}, {x:580,w:42,h:100,color:'#7888A0'},
+      {x:650,w:50,h:115,color:'#7080A0'}, {x:710,w:38,h:90,color:'#6A7A92'},
+      {x:760,w:55,h:135,color:'#8090A8'}, {x:825,w:42,h:105,color:'#7888A0'},
+      {x:880,w:48,h:95,color:'#7080A0'}, {x:940,w:40,h:110,color:'#7A8AA0'},
+      {x:1000,w:36,h:80,color:'#6A7892'}, {x:1100,w:45,h:100,color:'#8090A8'},
+      {x:1150,w:38,h:85,color:'#7888A0'}
     ];
-    for (var i = 0; i < towers.length; i++) {
-      var t = towers[i];
-      s += '<rect x="'+t[0]+'" y="'+t[1]+'" width="'+t[2]+'" height="'+t[3]+'" fill="'+t[4]+'" stroke="#8898A8" stroke-width="0.5" rx="1"/>';
-      // Glass curtain wall effect
-      s += '<g fill="#88A0B8" opacity="0.4">';
-      for (var wy = t[1]+4; wy < t[1]+t[3]-4; wy += 5) {
-        s += '<rect x="'+(t[0]+2)+'" y="'+wy+'" width="'+(t[2]-4)+'" height="3"/>';
+    for (var ti = 0; ti < towers.length; ti++) {
+      var t = towers[ti];
+      var by = 300 - t.h;
+      s += '<rect x="'+t.x+'" y="'+by+'" width="'+t.w+'" height="'+t.h+'" fill="'+t.color+'" stroke="#5A6A80" stroke-width="0.4"/>';
+      // Glass curtain wall lines
+      s += '<g stroke="#6A7A90" stroke-width="0.3" opacity="0.3">';
+      for (var fy = by + 3; fy < 298; fy += 4) {
+        s += '<line x1="'+t.x+'" y1="'+fy+'" x2="'+(t.x+t.w)+'" y2="'+fy+'"/>';
+      }
+      for (var fx = t.x + 6; fx < t.x + t.w; fx += 6) {
+        s += '<line x1="'+fx+'" y1="'+by+'" x2="'+fx+'" y2="300"/>';
       }
       s += '</g>';
     }
 
-    // === SENSOJI TEMPLE (foreground right) ===
-    s += '<g transform="translate(700, 230)">';
-    // Base
-    s += '<rect x="0" y="15" width="60" height="35" fill="#C8A878" stroke="#A08858" stroke-width="0.8"/>';
-    // Roof layers (pagoda style)
-    s += '<path d="M-8,15 Q30,5 68,15" fill="#5A2A2A" stroke="#4A1A1A" stroke-width="0.8"/>';
-    s += '<path d="M-5,15 Q30,8 65,15" fill="none" stroke="#7A3A3A" stroke-width="0.5"/>';
-    s += '<path d="M2,0 Q30,-8 58,0" fill="#5A2A2A" stroke="#4A1A1A" stroke-width="0.8"/>';
-    // Roof ornament
-    s += '<line x1="30" y1="-8" x2="30" y2="-15" stroke="#8A6A4A" stroke-width="1"/>';
-    // Red gate (torii)
-    s += '<g transform="translate(30, 35)">';
-    s += '<rect x="-15" y="0" width="3" height="25" fill="#D03030"/>';
-    s += '<rect x="12" y="0" width="3" height="25" fill="#D03030"/>';
-    s += '<rect x="-18" y="-2" width="36" height="3" fill="#D03030"/>';
-    s += '<rect x="-16" y="3" width="32" height="2" fill="#D03030"/>';
-    s += '</g>';
+    // === SENSO-JI TEMPLE (foreground left) ===
+    s += '<g transform="translate(40, 260)">';
+    // Temple gate (Kaminarimon-style)
+    s += '<rect x="0" y="8" width="60" height="32" fill="#A83828" stroke="#7A2018" stroke-width="0.8"/>';
+    // Pagoda-style roof — multi-tiered with upturned eaves
+    s += '<path d="M-8,8 Q30,-5 68,8" fill="#3A2818" stroke="#2A1A0A" stroke-width="0.8"/>';
+    s += '<path d="M-4,8 Q30,-2 64,8" fill="#4A3828" stroke="#2A1A0A" stroke-width="0.5"/>'; // highlight ridge
+    // Upturned corners
+    s += '<path d="M-8,8 Q-12,6 -14,3" fill="none" stroke="#3A2818" stroke-width="1.2"/>';
+    s += '<path d="M68,8 Q72,6 74,3" fill="none" stroke="#3A2818" stroke-width="1.2"/>';
+    // Lantern
+    s += '<ellipse cx="30" cy="22" rx="7" ry="10" fill="#D02020" stroke="#A01818" stroke-width="0.5"/>';
+    s += '<line x1="30" y1="12" x2="30" y2="8" stroke="#8A6A4A" stroke-width="1"/>';
+    // Kanji hint
+    s += '<line x1="28" y1="18" x2="32" y2="18" stroke="#F0E0C0" stroke-width="0.6"/>';
+    s += '<line x1="30" y1="16" x2="30" y2="28" stroke="#F0E0C0" stroke-width="0.5"/>';
     s += '</g>';
 
-    // === CHERRY BLOSSOM TREES ===
-    var blossomTrees = [50, 270, 350, 500, 680, 850, 1000, 1130];
-    s += '<g>';
-    for (var i = 0; i < blossomTrees.length; i++) {
-      var bx = blossomTrees[i];
-      s += '<rect x="'+(bx-1.5)+'" y="268" width="3" height="18" fill="#5A4030"/>';
-      s += '<ellipse cx="'+bx+'" cy="258" rx="14" ry="16" fill="#F0A0B0" opacity="0.8"/>';
-      s += '<ellipse cx="'+(bx-6)+'" cy="262" rx="10" ry="12" fill="#F8B8C8" opacity="0.6"/>';
-      s += '<ellipse cx="'+(bx+5)+'" cy="260" rx="8" ry="10" fill="#F0A8B8" opacity="0.7"/>';
-      // Falling petals
-      s += '<g fill="#F8C0D0" opacity="0.5">';
-      for (var p = 0; p < 3; p++) {
-        var px = bx - 10 + Math.sin(bx + p * 30) * 15;
-        var py = 275 + p * 8 + Math.cos(bx + p * 20) * 5;
-        s += '<ellipse cx="'+px+'" cy="'+py+'" rx="1.5" ry="1" transform="rotate('+(p*30)+','+px+','+py+')"/>';
-      }
-      s += '</g>';
+    // === GROUND ===
+    s += '<rect x="0" y="300" width="1200" height="6" fill="#808080"/>'; // Elevated highway
+    s += '<rect x="0" y="306" width="1200" height="194" fill="#5A6A58"/>';
+    // Railway tracks
+    s += '<rect x="0" y="310" width="1200" height="12" fill="#6A6A68"/>';
+    s += '<g stroke="#8A8A88" stroke-width="0.6" opacity="0.4">';
+    for (var rx = 0; rx < 1200; rx += 8) {
+      s += '<line x1="'+rx+'" y1="312" x2="'+rx+'" y2="320"/>';
     }
     s += '</g>';
 
-    // Ground
-    s += '<rect x="0" y="285" width="1200" height="215" fill="#D0C8B8"/>';
-    // Crosswalk (Shibuya crossing style)
-    s += '<g stroke="#FFF" stroke-width="3" opacity="0.6">';
-    s += '<line x1="560" y1="290" x2="640" y2="290"/>';
-    s += '<line x1="560" y1="296" x2="640" y2="296"/>';
-    s += '<line x1="560" y1="302" x2="640" y2="302"/>';
-    s += '<line x1="560" y1="308" x2="640" y2="308"/>';
+    // Bullet train
+    s += '<g transform="translate(500, 310)">';
+    s += '<path d="M-5,2 Q0,-2 5,0 L55,0 Q60,2 60,6 L-5,6Z" fill="#F0F0F0" stroke="#C8C8C8" stroke-width="0.4"/>';
+    s += '<path d="M-5,2 Q0,-2 5,0 L5,6 L-5,6Z" fill="#E8E8E8"/>'; // nose
+    s += '<line x1="0" y1="1" x2="55" y2="1" stroke="#2828E8" stroke-width="1.2"/>'; // blue stripe
+    s += '<g fill="#88B8D0" stroke="#C8C8C8" stroke-width="0.2">';
+    for (var wx = 8; wx < 52; wx += 7) { s += '<rect x="'+wx+'" y="2" width="4" height="3" rx="0.3"/>'; }
+    s += '</g>';
     s += '</g>';
 
-    // Neon signs
-    s += '<g opacity="0.7">';
-    s += '<rect x="145" y="200" width="22" height="8" fill="#FF4488" rx="1"/>';
-    s += '<rect x="535" y="195" width="25" height="8" fill="#44AAFF" rx="1"/>';
-    s += '<rect x="890" y="205" width="20" height="8" fill="#FFAA22" rx="1"/>';
-    s += '<rect x="1060" y="200" width="28" height="8" fill="#AA44FF" rx="1"/>';
+    // Cherry blossoms (sakura) — scattered petals
+    s += '<g opacity="0.5">';
+    var sakura = [[60,285],[90,278],[130,290],[180,282],[680,288],[720,275],[800,292],[1060,280],[1120,285]];
+    for (var si = 0; si < sakura.length; si++) {
+      var sk = sakura[si];
+      s += '<rect x="'+(sk[0]-1)+'" y="'+(sk[1]+10)+'" width="2" height="15" fill="#5A3A20" rx="0.5"/>';
+      // Blossom clusters — pink
+      for (var pi = 0; pi < 5; pi++) {
+        var px = sk[0] + Math.cos(pi * 1.25) * (6 + pi * 2);
+        var py = sk[1] + Math.sin(pi * 1.8) * (4 + pi * 1.5);
+        s += '<circle cx="'+px+'" cy="'+py+'" r="'+(3.5 - pi*0.3)+'" fill="#F0A0B0" opacity="'+(0.7-pi*0.08)+'"/>';
+        s += '<circle cx="'+(px+1)+'" cy="'+(py-1)+'" r="'+(2.5-pi*0.2)+'" fill="#F8C0D0" opacity="'+(0.5-pi*0.06)+'"/>';
+      }
+    }
     s += '</g>';
-
-    // Train/monorail line
-    s += '<line x1="0" y1="200" x2="1200" y2="195" stroke="#555" stroke-width="2" opacity="0.3"/>';
-    s += '<rect x="300" y="192" width="25" height="8" fill="#338833" rx="2" opacity="0.4"/>';
 
     return s;
   },
@@ -2040,257 +2158,163 @@ const GameGraphics = {
   // ===== DUBAI =====
   _city_dubai() {
     var s = '';
-    // Hot sky
-    s += '<rect width="1200" height="500" fill="#E8D8C0"/>';
-    s += '<rect width="1200" height="250" fill="#C0D8E8" opacity="0.4"/>';
+    // Hot desert sky — blazing blue to golden sand haze
+    s += '<linearGradient id="db-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1868A8"/><stop offset="35%" stop-color="#3888C0"/><stop offset="60%" stop-color="#68A8D0"/><stop offset="78%" stop-color="#C8B898"/><stop offset="90%" stop-color="#E0C8A0"/><stop offset="100%" stop-color="#E8D0A8"/></linearGradient>';
+    s += '<rect width="1200" height="500" fill="url(#db-sky)"/>';
+    // Heat shimmer haze
+    s += '<rect x="0" y="260" width="1200" height="40" fill="#D8C8A8" opacity="0.08"/>';
 
-    // === BURJ KHALIFA ===
-    s += '<g transform="translate(600, 20)">';
-    // Main shaft with setbacks
-    s += '<rect x="-8" y="80" width="16" height="200" fill="#B0C0D0" stroke="#90A0B0" stroke-width="0.5"/>';
-    s += '<rect x="-12" y="140" width="24" height="140" fill="#A8B8C8" stroke="#90A0B0" stroke-width="0.5"/>';
-    s += '<rect x="-16" y="180" width="32" height="100" fill="#A0B0C0" stroke="#90A0B0" stroke-width="0.5"/>';
-    // Wings
-    s += '<path d="M-16,180 L-28,220 L-28,280 L-16,280" fill="#98A8B8"/>';
-    s += '<path d="M16,180 L28,220 L28,280 L16,280" fill="#98A8B8"/>';
+    // Wispy desert clouds
+    s += '<g opacity="0.2">';
+    s += '<ellipse cx="300" cy="50" rx="100" ry="12" fill="#FFF"/>';
+    s += '<ellipse cx="800" cy="40" rx="130" ry="14" fill="#FFF"/>';
+    s += '<ellipse cx="1100" cy="55" rx="80" ry="10" fill="#FFF"/>';
+    s += '</g>';
+
+    // === BURJ KHALIFA (center, dominant) ===
+    s += '<g transform="translate(580, 20)">';
+    // Main shaft — tapered Y-shaped cross section
+    s += '<path d="M-4,0 L-16,290 L16,290 L4,0Z" fill="#A0B0C0" stroke="#7888A0" stroke-width="0.6"/>';
+    // Setbacks — stepped tapering
+    s += '<path d="M-12,120 L-16,290 L-8,290 Z" fill="#8898A8" opacity="0.3"/>';
+    s += '<path d="M12,120 L16,290 L8,290 Z" fill="#90A0B0" opacity="0.2"/>';
+    // Horizontal glazing
+    s += '<g stroke="#8898A8" stroke-width="0.3" opacity="0.35">';
+    for (var by = 5; by < 285; by += 4) {
+      var tw = 4 + (by/290) * 12;
+      s += '<line x1="'+(-tw)+'" y1="'+by+'" x2="'+tw+'" y2="'+by+'"/>';
+    }
+    s += '</g>';
+    // Vertical fins
+    s += '<line x1="0" y1="0" x2="0" y2="290" stroke="#8898A8" stroke-width="0.5" opacity="0.3"/>';
+    s += '<line x1="-6" y1="40" x2="-14" y2="290" stroke="#8898A8" stroke-width="0.3" opacity="0.2"/>';
+    s += '<line x1="6" y1="40" x2="14" y2="290" stroke="#8898A8" stroke-width="0.3" opacity="0.2"/>';
     // Spire
-    s += '<line x1="0" y1="80" x2="0" y2="0" stroke="#C0D0E0" stroke-width="2"/>';
-    // Glass shimmer
-    s += '<g fill="#88AAC0" opacity="0.3">';
-    for (var by = 85; by < 275; by += 4) {
-      s += '<rect x="-6" y="'+by+'" width="12" height="2"/>';
-    }
-    s += '</g>';
+    s += '<line x1="0" y1="0" x2="0" y2="-35" stroke="#B0C0D0" stroke-width="1.8"/>';
+    s += '<circle cx="0" cy="-36" r="1.2" fill="#F0E0C0" opacity="0.5"/>';
+    // Sun reflection
+    s += '<rect x="-2" y="30" width="4" height="80" fill="#F8F0E0" opacity="0.06"/>';
     s += '</g>';
 
-    // Other Dubai towers
-    var dtowers = [
-      [150,100,24,180,'#D0C8B8'],[200,120,30,160,'#C8D0D8'],[260,90,26,190,'#D0D8E0'],
-      [320,110,28,170,'#C0C8D0'],[380,130,22,150,'#D8D0C0'],
-      [780,95,30,185,'#C8D0D8'],[840,115,26,168,'#D0D8E0'],[900,105,32,178,'#C0C8D0'],
-      [960,125,24,158,'#D8D0C0'],[1020,100,28,180,'#C8C8D0'],[1080,120,26,162,'#D0D0D8']
+    // === BURJ AL ARAB (left, sail shape) ===
+    s += '<g transform="translate(180, 195)">';
+    // Sail shape
+    s += '<path d="M0,110 L5,0 Q35,-15 55,20 L50,110Z" fill="#C8D8E0" stroke="#98A8B8" stroke-width="0.8"/>';
+    // Inner sail structure
+    s += '<path d="M10,100 L12,15 Q32,5 44,30 L42,100Z" fill="#A8C0D0" opacity="0.4"/>';
+    // Cross-bracing
+    s += '<g stroke="#B0C0D0" stroke-width="0.3" opacity="0.3">';
+    for (var sy = 10; sy < 105; sy += 8) {
+      s += '<line x1="8" y1="'+sy+'" x2="46" y2="'+sy+'"/>';
+    }
+    s += '</g>';
+    // Helipad at top
+    s += '<ellipse cx="28" cy="8" rx="8" ry="3" fill="#A8B8C0" stroke="#8898A0" stroke-width="0.5"/>';
+    // Platform/island base
+    s += '<ellipse cx="27" cy="112" rx="32" ry="6" fill="#C8C0A8" stroke="#A0988A" stroke-width="0.5"/>';
+    s += '</g>';
+
+    // === PALM JUMEIRAH (water, right side) ===
+    s += '<g transform="translate(880, 330)" opacity="0.4">';
+    // Trunk
+    s += '<rect x="-4" y="-30" width="8" height="30" fill="#C8B898"/>';
+    // Fronds
+    for (var fi = -3; fi <= 3; fi++) {
+      var angle = fi * 18;
+      s += '<line x1="0" y1="-30" x2="'+(Math.sin(angle*Math.PI/180)*35)+'" y2="'+(-30-Math.cos(angle*Math.PI/180)*25)+'" stroke="#C8B898" stroke-width="2.5" stroke-linecap="round"/>';
+    }
+    // Crescent
+    s += '<path d="M-40,-58 Q0,-70 40,-58 Q0,-64 -40,-58" fill="none" stroke="#C8B898" stroke-width="2"/>';
+    s += '</g>';
+
+    // === GLASS TOWERS (Marina skyline) ===
+    var dubaiTowers = [
+      {x:30, w:28, h:100}, {x:65, w:22, h:80}, {x:95, w:32, h:120},
+      {x:135, w:25, h:90}, {x:280, w:35, h:110}, {x:320, w:28, h:95},
+      {x:355, w:42, h:135}, {x:405, w:30, h:105}, {x:440, w:24, h:85},
+      {x:650, w:35, h:115}, {x:695, w:28, h:95}, {x:730, w:40, h:125},
+      {x:780, w:30, h:100}, {x:820, w:25, h:80},
+      {x:950, w:32, h:105}, {x:990, w:38, h:120}, {x:1035, w:26, h:90},
+      {x:1070, w:35, h:110}, {x:1115, w:28, h:85}, {x:1150, w:22, h:75}
     ];
-    for (var i = 0; i < dtowers.length; i++) {
-      var t = dtowers[i];
-      s += '<rect x="'+t[0]+'" y="'+t[1]+'" width="'+t[2]+'" height="'+t[3]+'" fill="'+t[4]+'" stroke="#A0A898" stroke-width="0.5"/>';
-      s += '<g fill="#A0B8C8" opacity="0.3">';
-      for (var wy = t[1]+3; wy < t[1]+t[3]-3; wy += 5) {
-        s += '<rect x="'+(t[0]+2)+'" y="'+wy+'" width="'+(t[2]-4)+'" height="3"/>';
+    for (var ti = 0; ti < dubaiTowers.length; ti++) {
+      var t = dubaiTowers[ti];
+      var by = 310 - t.h;
+      var tColor = ti % 3 === 0 ? '#A8B8C8' : ti % 3 === 1 ? '#98A8B8' : '#B0C0D0';
+      s += '<rect x="'+t.x+'" y="'+by+'" width="'+t.w+'" height="'+t.h+'" fill="'+tColor+'" stroke="#7888A0" stroke-width="0.4"/>';
+      // Glass reflection strips
+      s += '<rect x="'+t.x+'" y="'+by+'" width="'+(t.w*0.2)+'" height="'+t.h+'" fill="#D0E0F0" opacity="0.1"/>';
+      // Horizontal glazing
+      for (var fy = by+3; fy < 308; fy += 4) {
+        s += '<line x1="'+t.x+'" y1="'+fy+'" x2="'+(t.x+t.w)+'" y2="'+fy+'" stroke="#8898A8" stroke-width="0.2" opacity="0.2"/>';
       }
-      s += '</g>';
     }
 
-    // Burj Al Arab (sail shape)
-    s += '<g transform="translate(100, 160)">';
-    s += '<path d="M0,120 L5,0 Q40,-10 45,120Z" fill="#C8D8E8" stroke="#A0B0C0" stroke-width="1"/>';
-    s += '<path d="M10,110 L12,20 Q35,15 38,110Z" fill="#88B0D0" opacity="0.3"/>';
+    // === CAYAN TOWER (twisted, distinctive) ===
+    s += '<g transform="translate(480, 175)">';
+    for (var fl = 0; fl < 28; fl++) {
+      var fy = fl * 5;
+      var twist = fl * 2.2;
+      var fw = 18, fh = 4.5;
+      s += '<rect x="'+(-fw/2+Math.sin(twist*Math.PI/180)*3)+'" y="'+fy+'" width="'+fw+'" height="'+fh+'" fill="#90A8B8" stroke="#7088A0" stroke-width="0.2" transform="rotate('+(twist*0.3)+',0,'+(fy+fh/2)+')"/>';
+    }
     s += '</g>';
 
-    // Desert/sand ground
-    s += '<rect x="0" y="280" width="1200" height="220" fill="#D8C8A8"/>';
-    s += '<path d="M0,290 Q200,285 400,292 Q600,298 800,288 Q1000,282 1200,290" fill="#E0D0B0" opacity="0.5"/>';
-
-    // Palm trees
-    var palms = [50, 180, 350, 500, 750, 950, 1100];
-    for (var i = 0; i < palms.length; i++) {
-      var px = palms[i];
-      s += '<path d="M'+px+',310 Q'+(px+2)+',290 '+(px+1)+',270" fill="none" stroke="#7A6A4A" stroke-width="3"/>';
-      // Fronds
-      s += '<g fill="#5A8A40" opacity="0.8">';
-      for (var f = 0; f < 6; f++) {
-        var angle = -60 + f * 24;
-        s += '<path d="M'+(px+1)+',270 Q'+(px+1+Math.cos(angle*0.017)*25)+','+(270-8+Math.sin(angle*0.017)*10)+' '+(px+1+Math.cos(angle*0.017)*35)+','+(270+5)+'" fill="none" stroke="#5A8A40" stroke-width="2"/>';
-      }
-      s += '</g>';
-    }
-
-    // Heat shimmer effect
+    // === WATER — Persian Gulf ===
+    s += '<rect x="0" y="310" width="1200" height="50" fill="#2888B8" opacity="0.4"/>';
+    // Warm water reflections
     s += '<g opacity="0.05">';
-    s += '<rect x="0" y="250" width="1200" height="30" fill="#FFF"/>';
-    s += '</g>';
-
-    return s;
-  },
-
-  // ===== SYDNEY =====
-  _city_sydney() {
-    var s = '';
-    s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
-    s += '<g opacity="0.3"><ellipse cx="400" cy="45" rx="100" ry="20" fill="#fff"/><ellipse cx="900" cy="35" rx="80" ry="16" fill="#fff"/></g>';
-
-    // === OPERA HOUSE ===
-    s += '<g transform="translate(500, 220)">';
-    // Shells/sails
-    s += '<path d="M0,40 Q15,-15 30,40" fill="#F0EAE0" stroke="#D0C8B8" stroke-width="1"/>';
-    s += '<path d="M25,40 Q45,-25 65,40" fill="#F0EAE0" stroke="#D0C8B8" stroke-width="1"/>';
-    s += '<path d="M55,40 Q80,-20 100,40" fill="#F0EAE0" stroke="#D0C8B8" stroke-width="1"/>';
-    s += '<path d="M90,40 Q108,-10 125,40" fill="#F0EAE0" stroke="#D0C8B8" stroke-width="1"/>';
-    // Tile texture on shells
-    s += '<g stroke="#D8D0C0" stroke-width="0.3" opacity="0.5">';
-    for (var sy = 10; sy < 40; sy += 6) {
-      s += '<path d="M'+(5+sy*0.3)+','+sy+' Q'+(20)+','+(sy-8)+' '+(35-sy*0.2)+','+sy+'" fill="none"/>';
-      s += '<path d="M'+(30+sy*0.3)+','+sy+' Q'+(50)+','+(sy-12)+' '+(70-sy*0.2)+','+sy+'" fill="none"/>';
+    for (var rx = 30; rx < 1170; rx += 20) {
+      var rh = 10 + Math.sin(rx*0.06)*5;
+      s += '<rect x="'+rx+'" y="312" width="8" height="'+rh+'" fill="#A0C8E0"/>';
     }
     s += '</g>';
-    // Base platform
-    s += '<rect x="-10" y="40" width="145" height="12" fill="#D0C8B8" stroke="#B0A898" stroke-width="0.5"/>';
-    s += '</g>';
-
-    // === HARBOUR BRIDGE ===
-    s += '<g transform="translate(200, 200)">';
-    // Arch
-    s += '<path d="M0,80 Q150,0 300,80" fill="none" stroke="#6A6A6A" stroke-width="4"/>';
-    // Deck
-    s += '<line x1="0" y1="80" x2="300" y2="80" stroke="#5A5A5A" stroke-width="3"/>';
-    // Pylons
-    s += '<rect x="-5" y="60" width="10" height="30" fill="#8A8078"/>';
-    s += '<rect x="295" y="60" width="10" height="30" fill="#8A8078"/>';
-    // Hangers
-    for (var hx = 20; hx < 290; hx += 15) {
-      var hy = 80 - Math.sin((hx/300)*Math.PI) * 75;
-      s += '<line x1="'+hx+'" y1="'+hy+'" x2="'+hx+'" y2="80" stroke="#7A7A7A" stroke-width="0.5"/>';
+    // Shimmer
+    s += '<g opacity="0.12" stroke="#68B8D8" stroke-width="0.5">';
+    for (var sx = 10; sx < 1190; sx += 22) {
+      s += '<line x1="'+sx+'" y1="'+(320+Math.sin(sx*0.04)*4)+'" x2="'+(sx+8)+'" y2="'+(320+Math.sin(sx*0.04)*4+0.5)+'"/>';
     }
     s += '</g>';
 
-    // Harbour water
-    s += '<path d="M0,300 Q300,290 600,298 Q900,305 1200,295 L1200,340 Q900,335 600,338 Q300,330 0,340Z" fill="url(#c-water)"/>';
-    // Boats
-    s += '<g fill="#F8F0E0" stroke="#A0A0A0" stroke-width="0.5">';
-    s += '<polygon points="350,310 365,305 380,310 365,315"/>';
-    s += '<polygon points="800,305 815,300 830,305 815,310"/>';
+    // === SAND / GROUND ===
+    s += '<rect x="0" y="360" width="1200" height="140" fill="#D8C8A0"/>';
+    // Sand texture
+    s += '<g fill="#C8B890" opacity="0.15">';
+    for (var sx = 0; sx < 1200; sx += 30) {
+      s += '<circle cx="'+(sx+Math.sin(sx)*8)+'" cy="'+(380+Math.cos(sx*0.5)*10)+'" r="'+(1+Math.sin(sx*0.3))+'" />';
+    }
     s += '</g>';
+    // Road
+    s += '<rect x="0" y="370" width="1200" height="18" fill="#3A3A38"/>';
+    s += '<line x1="0" y1="379" x2="1200" y2="379" stroke="#F0E0A0" stroke-width="0.8" stroke-dasharray="14,10" opacity="0.3"/>';
 
-    // City buildings
-    var sBuildings = [
-      [30,160,30,120,'#C0C8D0'],[70,140,35,140,'#B8C0C8'],[120,155,28,125,'#C8D0D8'],
-      [160,135,32,145,'#B0B8C0'],[750,145,30,135,'#C0C8D0'],[790,130,35,150,'#B8C0C8'],
-      [840,155,28,125,'#C8D0D8'],[890,140,32,140,'#B0B8C0'],
-      [960,150,28,130,'#C0C8D0'],[1000,135,30,145,'#B8C0C8'],[1050,160,26,120,'#C8D0D8'],
-      [1100,145,32,135,'#B0B8C0'],[1150,155,28,125,'#C0C8D0']
-    ];
-    for (var i = 0; i < sBuildings.length; i++) {
-      var b = sBuildings[i];
-      s += '<rect x="'+b[0]+'" y="'+b[1]+'" width="'+b[2]+'" height="'+b[3]+'" fill="'+b[4]+'" stroke="#A0A8B0" stroke-width="0.5"/>';
-      s += '<g fill="#8AAAC0" opacity="0.4">';
-      for (var wy = b[1]+4; wy < b[1]+b[3]-4; wy += 6) {
-        for (var wx = b[0]+3; wx < b[0]+b[2]-3; wx += 7) {
-          s += '<rect x="'+wx+'" y="'+wy+'" width="3" height="4"/>';
-        }
+    // Palm trees along road
+    for (var px = 40; px < 1200; px += 90) {
+      s += '<g transform="translate('+px+', 368)">';
+      // Trunk — curved
+      s += '<path d="M0,0 Q2,-20 -1,-40 Q-3,-55 1,-65" fill="none" stroke="#7A6A48" stroke-width="3.5" stroke-linecap="round"/>';
+      // Fronds
+      for (var fi = -3; fi <= 3; fi++) {
+        var fAngle = fi * 25 - 5;
+        var fRad = fAngle * Math.PI / 180;
+        s += '<path d="M1,-65 Q'+(1+Math.sin(fRad)*20)+','+(- 65-Math.cos(fRad)*15)+' '+(1+Math.sin(fRad)*28)+','+(- 65-Math.cos(fRad)*5)+'" fill="none" stroke="#3A7A28" stroke-width="1.8" stroke-linecap="round"/>';
       }
       s += '</g>';
     }
 
-    // Ground with coastal feel
-    s += '<rect x="0" y="340" width="1200" height="160" fill="url(#c-ground)"/>';
-    // Beach strip
-    s += '<rect x="0" y="340" width="1200" height="8" fill="#E8D8B8" opacity="0.5"/>';
-
-    // Norfolk pines
-    var pines = [50,200,400,650,900,1050,1150];
-    for (var i = 0; i < pines.length; i++) {
-      var px = pines[i];
-      s += '<line x1="'+px+'" y1="348" x2="'+px+'" y2="330" stroke="#4A3828" stroke-width="2"/>';
-      s += '<g fill="#3A6A30">';
-      for (var py = 332; py > 318; py -= 5) {
-        var pw = (348 - py) * 0.5;
-        s += '<ellipse cx="'+px+'" cy="'+py+'" rx="'+pw+'" ry="3"/>';
-      }
-      s += '</g>';
-    }
-
-    return s;
-  },
-
-  // ===== ROME =====
-  _city_rome() {
-    var s = '';
-    // Warm Italian sky
-    s += '<rect width="1200" height="500" fill="#D0E0F0"/>';
-    s += '<rect width="1200" height="300" fill="#B8D0E8" opacity="0.5"/>';
-    s += '<g opacity="0.25"><ellipse cx="300" cy="50" rx="90" ry="18" fill="#fff"/><ellipse cx="800" cy="40" rx="110" ry="20" fill="#fff"/></g>';
-
-    // === COLOSSEUM ===
-    s += '<g transform="translate(450, 180)">';
-    // Outer wall - elliptical
-    s += '<ellipse cx="80" cy="50" rx="85" ry="55" fill="url(#c-stone)" stroke="#A09878" stroke-width="1.5"/>';
-    // Inner void
-    s += '<ellipse cx="80" cy="50" rx="60" ry="38" fill="#B8D0E0" opacity="0.4"/>';
-    // Arches - three tiers
-    for (var tier = 0; tier < 3; tier++) {
-      var ty = 18 + tier * 22;
-      var rx = 78 - tier * 8;
-      for (var a = -70; a <= 70; a += 14) {
-        var rad = a * Math.PI / 180;
-        var ax = 80 + Math.cos(rad) * rx;
-        var ay = ty + Math.sin(rad) * 5;
-        s += '<rect x="'+(ax-3)+'" y="'+(ay)+'" width="6" height="10" rx="3" ry="3" fill="#B0A890" stroke="#9A8A70" stroke-width="0.3"/>';
-      }
-    }
-    // Partial ruin (broken top right)
-    s += '<path d="M140,15 Q150,10 158,18 Q155,25 148,20" fill="url(#c-stone)" stroke="#A09878" stroke-width="0.5"/>';
-    s += '</g>';
-
-    // === ST PETER'S DOME (background) ===
-    s += '<g transform="translate(150, 150)" opacity="0.6">';
-    s += '<rect x="0" y="25" width="80" height="60" fill="url(#c-stone)"/>';
-    s += '<ellipse cx="40" cy="25" rx="30" ry="25" fill="#D8D0C0" stroke="#B0A890" stroke-width="1"/>';
-    s += '<rect x="38" y="-5" width="4" height="12" fill="#B0A890"/>';
-    s += '<line x1="36" y1="-3" x2="44" y2="-3" stroke="#B0A890" stroke-width="1"/>';
-    // Columns
-    for (var cx = 10; cx < 75; cx += 10) {
-      s += '<rect x="'+cx+'" y="30" width="3" height="55" fill="#E0D8C8"/>';
-    }
-    s += '</g>';
-
-    // === TREVI FOUNTAIN hint ===
-    s += '<g transform="translate(800, 250)">';
-    s += '<rect x="0" y="0" width="50" height="40" fill="url(#c-stone)" rx="2"/>';
-    s += '<path d="M5,5 Q25,-5 45,5" fill="none" stroke="#A09878" stroke-width="0.8"/>';
-    s += '<ellipse cx="25" cy="38" rx="20" ry="6" fill="#6A9AB0" opacity="0.5"/>';
-    s += '</g>';
-
-    // Terracotta buildings
-    for (var bx = 0; bx < 1200; bx += 55) {
-      if (bx > 420 && bx < 650) continue; // Skip colosseum area
-      var bh = 40 + Math.sin(bx * 0.07) * 15;
-      var by = 260 - bh;
-      s += '<rect x="'+bx+'" y="'+by+'" width="48" height="'+bh+'" fill="#D8B898" stroke="#C0A080" stroke-width="0.6"/>';
-      // Terracotta roof
-      s += '<path d="M'+(bx-2)+','+by+' L'+(bx+24)+','+(by-8)+' L'+(bx+50)+','+by+'" fill="#C07050" stroke="#A05838" stroke-width="0.5"/>';
-      // Windows with shutters
-      for (var wy = by + 10; wy < by + bh - 8; wy += 14) {
-        for (var wx = bx + 8; wx < bx + 40; wx += 14) {
-          s += '<rect x="'+wx+'" y="'+wy+'" width="7" height="9" fill="#88AAC0" stroke="#B09878" stroke-width="0.3"/>';
-          // Shutters
-          s += '<rect x="'+(wx-2)+'" y="'+wy+'" width="2" height="9" fill="#3A6A4A"/>';
-          s += '<rect x="'+(wx+7)+'" y="'+wy+'" width="2" height="9" fill="#3A6A4A"/>';
-        }
-      }
-    }
-
-    // Ground - cobblestone
-    s += '<rect x="0" y="300" width="1200" height="200" fill="#C8B8A0"/>';
-    s += '<rect x="0" y="300" width="1200" height="12" fill="#B0A088"/>';
-
-    // Cypress trees
-    var cypresses = [30,350,680,1000,1150];
-    for (var i = 0; i < cypresses.length; i++) {
-      var cx = cypresses[i];
-      s += '<rect x="'+(cx-1)+'" y="270" width="2" height="30" fill="#4A3828"/>';
-      s += '<ellipse cx="'+cx+'" cy="258" rx="5" ry="18" fill="#2A5A28"/>';
-    }
-
-    // Vespa scooter
-    s += '<g transform="translate(650, 302)">';
-    s += '<rect x="0" y="0" width="12" height="6" fill="#5AA0C0" rx="2"/>';
-    s += '<circle cx="2" cy="8" r="2.5" fill="#444"/>';
-    s += '<circle cx="10" cy="8" r="2.5" fill="#444"/>';
+    // Luxury car
+    s += '<g transform="translate(400, 372)">';
+    s += '<path d="M0,4 Q2,-2 8,-3 L28,-3 Q34,-2 36,4" fill="#F0F0F0" stroke="#C8C8C8" stroke-width="0.4"/>';
+    s += '<rect x="-1" y="4" width="38" height="6" fill="#F0F0F0" rx="2" stroke="#C8C8C8" stroke-width="0.3"/>';
+    s += '<rect x="6" y="-1" width="8" height="4" fill="#88C8E0" rx="0.5"/>';
+    s += '<rect x="20" y="-1" width="10" height="4" fill="#88C8E0" rx="0.5"/>';
+    s += '<circle cx="8" cy="12" r="3" fill="#1A1A1A"/>';
+    s += '<circle cx="28" cy="12" r="3" fill="#1A1A1A"/>';
     s += '</g>';
 
     return s;
   },
 
-  // ===== SINGAPORE =====
   _city_singapore() {
     var s = '';
     // Tropical sky
