@@ -5,6 +5,9 @@
 const App = {
 
   init() {
+    // Render splash scene
+    GameGraphics.renderSplash();
+
     // Check for saved game
     if (GameEngine.hasSavedGame()) {
       document.getElementById('btn-continue-game').style.display = '';
