@@ -981,13 +981,10 @@ const GameUI = {
     var mapContainer = document.getElementById('world-map');
 
     if (!this._mapLoaded) {
-      // Try image background first, fall back to SVG
-      var era = GameEngine.getCurrentEra();
-      var mapKey = 'map_' + era.years[0];
-      var loaded = ImageLoader.applyBackground(mapContainer, mapKey, function() {
-        GameGraphics.renderWorldMap(svg);
-      });
-      if (!loaded && !ImageLoader.has(mapKey)) {
+      // Use pixel mosaic renderer (Eikon-style dense blocks)
+      if (typeof Mosaic !== 'undefined') {
+        Mosaic.renderWorldMap(svg);
+      } else {
         GameGraphics.renderWorldMap(svg);
       }
       this._mapLoaded = true;
