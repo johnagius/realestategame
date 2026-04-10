@@ -1143,6 +1143,111 @@ h4 { font-size: 1rem; }
   border-color: var(--primary);
 }
 
+/* ---- Compare System ---- */
+.compare-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  font-size: 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  transition: all 0.15s;
+  z-index: 2;
+  padding: 0;
+}
+.compare-btn:hover { opacity: 1; border-color: var(--primary); }
+.compare-btn.active {
+  opacity: 1;
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.property-card.compare-selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(44,110,73,0.2), 0 2px 8px var(--shadow);
+}
+
+.compare-bar {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 14px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--primary);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+  z-index: 90;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.compare-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 16px;
+}
+.compare-modal-content {
+  background: var(--bg);
+  border-radius: 14px;
+  padding: 16px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+.compare-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.compare-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.compare-table th {
+  padding: 8px 6px;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-bottom: 2px solid var(--border);
+  background: rgba(44,110,73,0.04);
+}
+.compare-table td {
+  padding: 6px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-light, rgba(0,0,0,0.06));
+}
+.compare-table .compare-label {
+  text-align: left;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
 .filter-btn {
   padding: 6px 14px;
   border: 1.5px solid var(--border);

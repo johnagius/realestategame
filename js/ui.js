@@ -16,6 +16,7 @@ const GameUI = {
   cityTypeFilter: 'all',
   portfolioSort: 'value-desc',
   portfolioCityFilter: 'all',
+  compareList: [], // array of property IDs (max 3)
   mapView: true,
   autoTimer: null,
 
@@ -338,8 +339,11 @@ const GameUI = {
     }
     condBar += '</div>';
 
-    return '<div class="property-card" data-property="' + p.id + '" data-city="' + p.cityId + '" style="animation-delay:' + delay + 's">' +
-      badge +
+    var isCompared = this.compareList.indexOf(p.id) >= 0;
+    var compareBtn = '<button class="compare-btn' + (isCompared ? ' active' : '') + '" onclick="event.stopPropagation();GameUI.toggleCompare(\'' + p.id + '\',\'' + p.cityId + '\')" title="Compare">⚖️</button>';
+
+    return '<div class="property-card' + (isCompared ? ' compare-selected' : '') + '" data-property="' + p.id + '" data-city="' + p.cityId + '" style="animation-delay:' + delay + 's">' +
+      badge + compareBtn +
       '<div class="property-card-type">' +
         '<span class="property-thumb">' + (typeof GameGraphics !== 'undefined' ? GameGraphics.propertyThumb(p.type) : typeDef.icon) + '</span>' +
         '<span class="property-type-label">' + typeDef.name + '</span>' +
@@ -355,6 +359,129 @@ const GameUI = {
       '</div>' +
       condBar +
     '</div>';
+  },
+
+  // ---- Compare System ----
+  toggleCompare: function(propertyId, cityId) {
+    var idx = this.compareList.indexOf(propertyId);
+    if (idx >= 0) {
+      this.compareList.splice(idx, 1);
+    } else {
+      if (this.compareList.length >= 3) {
+        this.compareList.shift(); // remove oldest
+      }
+      this.compareList.push(propertyId);
+    }
+    this.updateCompareBar();
+    // Re-render current view to update card highlights
+    if (this.currentScreen === 'city') this.renderCityProperties();
+    else if (this.currentScreen === 'portfolio') this.renderPortfolio();
+  },
+
+  updateCompareBar: function() {
+    var bar = document.getElementById('compare-bar');
+    if (!bar) return;
+    if (this.compareList.length === 0) {
+      bar.style.display = 'none';
+      return;
+    }
+    bar.style.display = 'flex';
+    var count = this.compareList.length;
+    bar.innerHTML =
+      '<span>⚖️ ' + count + ' selected</span>' +
+      '<button class="btn btn-primary btn-small" onclick="GameUI.showCompareModal()"' + (count < 2 ? ' disabled' : '') + '>Compare</button>' +
+      '<button class="btn btn-ghost btn-small" onclick="GameUI.compareList=[];GameUI.updateCompareBar();GameUI.renderCityProperties()">Clear</button>';
+  },
+
+  showCompareModal: function() {
+    if (this.compareList.length < 2) return;
+    var props = [];
+    var self = this;
+    this.compareList.forEach(function(id) {
+      var p = GameEngine.state.properties.find(function(x) { return x.id === id; });
+      if (!p) {
+        for (var cid in GameEngine.state.marketProperties) {
+          var found = GameEngine.state.marketProperties[cid].find(function(x) { return x.id === id; });
+          if (found) { p = found; break; }
+        }
+      }
+      if (p) props.push(p);
+    });
+    if (props.length < 2) return;
+
+    var colWidth = Math.floor(100 / props.length);
+    var html = '<div class="compare-modal-content">';
+    html += '<div class="compare-header"><h3>Property Comparison</h3><button class="btn btn-ghost btn-small" onclick="document.getElementById(\'compare-modal\').style.display=\'none\'">Close</button></div>';
+    html += '<div class="compare-grid" style="grid-template-columns:repeat(' + props.length + ',1fr)">';
+
+    // Property names
+    props.forEach(function(p) {
+      var typeDef = GameData.propertyTypes[p.type];
+      var city = GameData.cities.find(function(c) { return c.id === p.cityId; });
+      html += '<div class="compare-cell compare-name">' + typeDef.icon + ' ' + p.name + '<br><span style="font-size:0.7rem;color:var(--text-muted)">' + (city ? city.flag + ' ' + city.name : '') + '</span></div>';
+    });
+
+    // Comparison rows
+    var rows = [
+      { label: 'Price', fn: function(p) { return GameData.formatMoney(p.currentValue); } },
+      { label: 'Type', fn: function(p) { return GameData.propertyTypes[p.type].name; } },
+      { label: 'Size', fn: function(p) { return p.size + ' m\u00B2'; } },
+      { label: 'Condition', fn: function(p) { return GameData.conditions[p.condition].name; } },
+      { label: 'Monthly Rent', fn: function(p) { return p.monthlyRent > 0 ? GameData.formatMoney(p.monthlyRent) : '—'; } },
+      { label: 'Annual Yield', fn: function(p) { return p.currentValue > 0 && p.monthlyRent > 0 ? ((p.monthlyRent * 12 / p.currentValue) * 100).toFixed(1) + '%' : '—'; } },
+      { label: 'Appreciation', fn: function(p) { return p.appreciation !== undefined ? (p.appreciation >= 0 ? '+' : '') + p.appreciation.toFixed(1) + '%' : '—'; } },
+      { label: 'Status', fn: function(p) {
+        if (p.isRented) return 'Rented';
+        if (p.isRefurbishing) return 'Refurbishing';
+        if (p.isBuilding) return 'Building';
+        if (p.isOwned) return 'Vacant';
+        return 'For Sale';
+      }},
+    ];
+
+    rows.forEach(function(row) {
+      html += '<div class="compare-cell compare-label">' + row.label + '</div>';
+      // Values — highlight best
+      var vals = props.map(row.fn);
+      for (var i = 1; i < props.length; i++) {
+        html += '<div class="compare-cell">' + vals[i - 1] + '</div>';
+      }
+      // last column needs the label column offset accounted for — actually let me redo the grid
+    });
+
+    html += '</div></div>';
+
+    // Actually, let me use a simpler table layout
+    html = '<div class="compare-modal-content">';
+    html += '<div class="compare-header"><h3>⚖️ Property Comparison</h3><button class="btn btn-ghost btn-small" onclick="document.getElementById(\'compare-modal\').style.display=\'none\'">Close</button></div>';
+    html += '<table class="compare-table"><thead><tr><th></th>';
+    props.forEach(function(p) {
+      var typeDef = GameData.propertyTypes[p.type];
+      var city = GameData.cities.find(function(c) { return c.id === p.cityId; });
+      html += '<th>' + typeDef.icon + ' ' + p.name + '<br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">' + (city ? city.flag + ' ' + city.name : '') + '</span></th>';
+    });
+    html += '</tr></thead><tbody>';
+
+    rows.forEach(function(row) {
+      html += '<tr><td class="compare-label">' + row.label + '</td>';
+      props.forEach(function(p) {
+        html += '<td>' + row.fn(p) + '</td>';
+      });
+      html += '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+
+    var modal = document.getElementById('compare-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'compare-modal';
+      modal.className = 'compare-modal-overlay';
+      modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
+      document.body.appendChild(modal);
+    }
+    modal.innerHTML = html;
+    modal.style.display = 'flex';
   },
 
   // ---- Render Property Detail ----
