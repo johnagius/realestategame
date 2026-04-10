@@ -1858,5 +1858,295 @@ const GameGraphics = {
     s += '</g>';
 
     return s;
+  },
+
+  // ===== LOS ANGELES =====
+  _city_los_angeles() {
+    var s = '';
+    s += '<rect width="1200" height="500" fill="#E0D8C8"/>';
+    s += '<rect width="1200" height="300" fill="#B8D0E8" opacity="0.5"/>';
+    // Hollywood hills
+    s += '<path d="M0,250 Q200,200 400,230 Q600,190 800,220 Q1000,200 1200,240 L1200,300 L0,300Z" fill="#8AA868" opacity="0.6"/>';
+    // Hollywood sign
+    s += '<g transform="translate(250, 210)" opacity="0.5"><text font-size="14" fill="#FFF" font-weight="800" font-family="sans-serif" letter-spacing="3">HOLLYWOOD</text></g>';
+    // Downtown LA skyline
+    var laBuildings = [[400,120,30,160],[440,140,25,140],[480,100,35,180],[530,130,28,150],[570,110,32,170],[620,140,26,140],[660,125,30,155],[710,145,24,135],[750,135,28,145],[800,150,22,130]];
+    for (var i = 0; i < laBuildings.length; i++) {
+      var b = laBuildings[i];
+      s += '<rect x="'+b[0]+'" y="'+b[1]+'" width="'+b[2]+'" height="'+b[3]+'" fill="#C8D0D8" stroke="#A8B0B8" stroke-width="0.5"/>';
+      s += '<g fill="#8AA8C0" opacity="0.3">';
+      for (var wy = b[1]+4; wy < b[1]+b[3]-4; wy += 6) { s += '<rect x="'+(b[0]+2)+'" y="'+wy+'" width="'+(b[2]-4)+'" height="3"/>'; }
+      s += '</g>';
+    }
+    // Ground
+    s += '<rect x="0" y="280" width="1200" height="220" fill="#C8B898"/>';
+    // Highway
+    s += '<rect x="0" y="280" width="1200" height="20" fill="#5A5A58"/>';
+    s += '<g stroke="#F0E830" stroke-width="1" stroke-dasharray="12,8" opacity="0.5"><line x1="0" y1="290" x2="1200" y2="290"/></g>';
+    // Palm trees
+    for (var px = 30; px < 1180; px += 80) {
+      s += '<path d="M'+px+',310 Q'+(px+2)+',285 '+(px+1)+',260" fill="none" stroke="#7A6A4A" stroke-width="3"/>';
+      s += '<g fill="#5A9A48" opacity="0.7">';
+      for (var f = 0; f < 5; f++) {
+        var a = -50 + f * 25;
+        s += '<path d="M'+(px+1)+',260 Q'+(px+1+Math.cos(a*0.017)*22)+','+(258+Math.sin(a*0.017)*8)+' '+(px+1+Math.cos(a*0.017)*30)+',265" fill="none" stroke="#5A9A48" stroke-width="1.8"/>';
+      }
+      s += '</g>';
+    }
+    // Beach/ocean at bottom
+    s += '<rect x="0" y="380" width="1200" height="120" fill="#5A9AB0"/>';
+    s += '<rect x="0" y="375" width="1200" height="8" fill="#E8D8B0"/>';
+    return s;
+  },
+
+  // ===== MIAMI =====
+  _city_miami() {
+    var s = '';
+    s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
+    s += '<rect width="1200" height="500" fill="#E0F0F8" opacity="0.2"/>';
+    // Art deco buildings (South Beach style)
+    var miamiColors = ['#F0A8B8','#A8D8E8','#F0E8A0','#B8E8C0','#E8B8D0','#A8C8F0','#F0C8A0'];
+    for (var bx = 30; bx < 1180; bx += 45) {
+      var bh = 50 + Math.sin(bx * 0.06) * 15;
+      var by = 250 - bh;
+      var cl = miamiColors[Math.floor(bx/45) % miamiColors.length];
+      s += '<rect x="'+bx+'" y="'+by+'" width="38" height="'+bh+'" fill="'+cl+'" stroke="#C0A8B0" stroke-width="0.6" rx="1"/>';
+      // Art deco lines
+      s += '<line x1="'+bx+'" y1="'+(by+5)+'" x2="'+(bx+38)+'" y2="'+(by+5)+'" stroke="#FFF" stroke-width="0.8" opacity="0.5"/>';
+      s += '<line x1="'+bx+'" y1="'+(by+10)+'" x2="'+(bx+38)+'" y2="'+(by+10)+'" stroke="#FFF" stroke-width="0.5" opacity="0.3"/>';
+      // Windows
+      for (var wy = by+15; wy < by+bh-8; wy += 12) {
+        for (var wx = bx+5; wx < bx+33; wx += 11) {
+          s += '<rect x="'+wx+'" y="'+wy+'" width="7" height="8" fill="#88C8E0" stroke="'+cl+'" stroke-width="0.3" rx="0.5"/>';
+        }
+      }
+    }
+    // Ocean
+    s += '<rect x="0" y="300" width="1200" height="200" fill="#48A8C8"/>';
+    s += '<rect x="0" y="295" width="1200" height="8" fill="#F0E0C0"/>';
+    // Palm trees
+    for (var px = 50; px < 1150; px += 70) {
+      s += '<path d="M'+px+',290 Q'+(px+2)+',272 '+(px+1)+',255" fill="none" stroke="#7A6A4A" stroke-width="2.5"/>';
+      for (var f = 0; f < 5; f++) {
+        var a = -50+f*25;
+        s += '<path d="M'+(px+1)+',255 Q'+(px+1+Math.cos(a*0.017)*20)+','+(253+Math.sin(a*0.017)*8)+' '+(px+1+Math.cos(a*0.017)*28)+',260" fill="none" stroke="#5A9A40" stroke-width="1.5"/>';
+      }
+    }
+    return s;
+  },
+
+  // ===== BERLIN =====
+  _city_berlin() {
+    var s = '';
+    s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
+    // Brandenburg Gate
+    s += '<g transform="translate(500, 180)">';
+    // Columns (6)
+    for (var i = 0; i < 6; i++) {
+      s += '<rect x="'+(i*20)+'" y="15" width="8" height="65" fill="#D8D0C0" stroke="#B0A890" stroke-width="0.5"/>';
+    }
+    // Entablature
+    s += '<rect x="-5" y="10" width="110" height="8" fill="#D0C8B8" stroke="#B0A890" stroke-width="0.5"/>';
+    // Quadriga
+    s += '<rect x="25" y="-10" width="50" height="22" fill="#C8C0B0" stroke="#B0A890" stroke-width="0.8"/>';
+    s += '<path d="M30,-10 Q50,-25 70,-10" fill="#C8C0B0" stroke="#B0A890" stroke-width="0.5"/>';
+    // Chariot on top
+    s += '<g transform="translate(50, -22)" opacity="0.7"><rect x="-6" y="0" width="12" height="5" fill="#8A9A68"/><circle cx="-4" cy="7" r="2" fill="#6A7A48"/><circle cx="4" cy="7" r="2" fill="#6A7A48"/></g>';
+    s += '</g>';
+    // TV Tower (Fernsehturm)
+    s += '<g transform="translate(800, 40)">';
+    s += '<line x1="0" y1="0" x2="0" y2="230" stroke="#B0B0B0" stroke-width="2"/>';
+    s += '<ellipse cx="0" cy="120" rx="12" ry="15" fill="#C0C0C8" stroke="#A0A0A8" stroke-width="0.8"/>';
+    s += '<circle cx="0" cy="120" r="4" fill="#D0D0D8"/>';
+    s += '</g>';
+    // Buildings
+    for (var bx = 20; bx < 1180; bx += 40) {
+      if (bx > 470 && bx < 640) continue;
+      var bh = 45 + Math.sin(bx*0.07)*15;
+      var by = 260 - bh;
+      s += '<rect x="'+bx+'" y="'+by+'" width="34" height="'+bh+'" fill="#D0C8C0" stroke="#A0A098" stroke-width="0.5"/>';
+      for (var wy = by+6; wy < by+bh-6; wy += 11) {
+        for (var wx = bx+4; wx < bx+30; wx += 10) {
+          s += '<rect x="'+wx+'" y="'+wy+'" width="6" height="7" fill="#88AAC0" stroke="#B0A8A0" stroke-width="0.2"/>';
+        }
+      }
+    }
+    s += '<rect x="0" y="280" width="1200" height="220" fill="url(#c-ground)"/>';
+    s += '<rect x="0" y="280" width="1200" height="14" fill="url(#c-road)"/>';
+    return s;
+  },
+
+  // ===== TORONTO =====
+  _city_toronto() {
+    var s = '';
+    s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
+    // CN Tower
+    s += '<g transform="translate(600, 30)">';
+    s += '<line x1="0" y1="0" x2="0" y2="250" stroke="#B8B8B8" stroke-width="3"/>';
+    s += '<ellipse cx="0" cy="160" rx="14" ry="18" fill="#C8C8D0" stroke="#A8A8B0" stroke-width="0.8"/>';
+    s += '<rect x="-16" y="155" width="32" height="8" fill="#D0D0D8" rx="2"/>';
+    s += '<polygon points="-2,0 0,-15 2,0" fill="#D0D0D0"/>';
+    s += '</g>';
+    // City buildings
+    for (var bx = 20; bx < 1180; bx += 35) {
+      var bh = 50+Math.sin(bx*0.06)*25;
+      var by = 280-bh;
+      s += '<rect x="'+bx+'" y="'+by+'" width="30" height="'+bh+'" fill="#B0B8C8" stroke="#9098A8" stroke-width="0.4"/>';
+      s += '<g fill="#88A0B8" opacity="0.3">';
+      for (var wy = by+3; wy < by+bh-3; wy += 5) { s += '<rect x="'+(bx+2)+'" y="'+wy+'" width="26" height="3"/>'; }
+      s += '</g>';
+    }
+    // Lake Ontario
+    s += '<rect x="0" y="310" width="1200" height="190" fill="url(#c-water)"/>';
+    s += '<rect x="0" y="305" width="1200" height="8" fill="url(#c-road)"/>';
+    // Maple trees
+    for (var tx = 40; tx < 1160; tx += 90) {
+      s += '<rect x="'+(tx-1)+'" y="290" width="2" height="15" fill="#5A3828"/>';
+      s += '<ellipse cx="'+tx+'" cy="282" rx="10" ry="12" fill="#C83828"/>';
+      s += '<ellipse cx="'+(tx-4)+'" cy="286" rx="7" ry="8" fill="#E84838" opacity="0.7"/>';
+    }
+    return s;
+  },
+
+  // ===== MONACO =====
+  _city_monaco() {
+    var s = '';
+    s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
+    // Hills/cliffs
+    s += '<path d="M0,200 Q200,150 400,180 Q600,130 800,170 Q1000,140 1200,190 L1200,300 L0,300Z" fill="#6A8A58"/>';
+    // Monte Carlo Casino
+    s += '<g transform="translate(500, 160)">';
+    s += '<rect x="0" y="20" width="80" height="50" fill="#E8D8C0" stroke="#C0B098" stroke-width="1"/>';
+    s += '<rect x="-5" y="15" width="90" height="8" fill="#D0C0A0" stroke="#B0A080" stroke-width="0.5"/>';
+    s += '<ellipse cx="40" cy="15" rx="20" ry="15" fill="#5A8A7A" stroke="#4A7A6A" stroke-width="0.8"/>';
+    s += '<rect x="33" y="45" width="14" height="25" fill="#5A3A20" rx="7" ry="7"/>';
+    for (var wx = 8; wx < 75; wx += 14) {
+      s += '<rect x="'+wx+'" y="28" width="8" height="12" fill="#8AB0C8" rx="4" ry="4" stroke="#C0B098" stroke-width="0.3"/>';
+    }
+    s += '</g>';
+    // Luxury buildings cascading down hillside
+    for (var bx = 30; bx < 1170; bx += 42) {
+      if (bx > 470 && bx < 610) continue;
+      var hillY = 200 - Math.sin((bx/1200)*Math.PI) * 50;
+      var bh = 35 + Math.random() * 20;
+      s += '<rect x="'+bx+'" y="'+(hillY-bh)+'" width="36" height="'+bh+'" fill="#F0E8D8" stroke="#D0C0A0" stroke-width="0.5"/>';
+      s += '<path d="M'+(bx-1)+','+(hillY-bh)+' L'+(bx+18)+','+(hillY-bh-5)+' L'+(bx+37)+','+(hillY-bh)+'" fill="#C87848"/>';
+    }
+    // Mediterranean
+    s += '<rect x="0" y="300" width="1200" height="200" fill="#3888B0"/>';
+    s += '<rect x="0" y="295" width="1200" height="8" fill="#D0C8B0"/>';
+    // Yachts
+    s += '<g fill="#FFF" stroke="#888" stroke-width="0.5">';
+    s += '<polygon points="200,320 220,315 240,320 235,325 205,325"/>';
+    s += '<line x1="220" y1="315" x2="220" y2="305" stroke="#888" stroke-width="0.8"/>';
+    s += '<polygon points="600,315 618,310 636,315 632,320 604,320"/>';
+    s += '<line x1="618" y1="310" x2="618" y2="300" stroke="#888" stroke-width="0.8"/>';
+    s += '</g>';
+    // F1 track hint (red barriers)
+    s += '<g stroke="#E03030" stroke-width="2" opacity="0.3"><path d="M100,295 Q300,290 500,295 Q700,298 900,293" fill="none"/></g>';
+    return s;
+  },
+
+  // ===== SHANGHAI =====
+  _city_shanghai() {
+    var s = '';
+    s += '<rect width="1200" height="500" fill="#C8D0D8"/>';
+    s += '<rect width="1200" height="200" fill="#A0B8D0" opacity="0.3"/>';
+    // Oriental Pearl Tower
+    s += '<g transform="translate(500, 50)">';
+    s += '<line x1="0" y1="0" x2="0" y2="230" stroke="#C8A8B8" stroke-width="2.5"/>';
+    s += '<circle cx="0" cy="80" r="16" fill="#D888A0" stroke="#C878A0" stroke-width="1"/>';
+    s += '<circle cx="0" cy="140" r="12" fill="#D888A0" stroke="#C878A0" stroke-width="0.8"/>';
+    s += '<circle cx="0" cy="80" r="5" fill="#E8A8B8"/>';
+    s += '<rect x="-18" y="155" width="36" height="6" fill="#C8A8B8" rx="1"/>';
+    s += '<polygon points="-3,0 0,-12 3,0" fill="#D0B0C0"/>';
+    // Support legs
+    s += '<line x1="-12" y1="155" x2="-20" y2="230" stroke="#C8A8B8" stroke-width="1.5"/>';
+    s += '<line x1="12" y1="155" x2="20" y2="230" stroke="#C8A8B8" stroke-width="1.5"/>';
+    s += '</g>';
+    // Shanghai Tower, SWFC, Jin Mao
+    s += '<rect x="600" y="40" width="20" height="240" fill="#A8B8C8" stroke="#8898A8" stroke-width="0.5" rx="3"/>';
+    s += '<rect x="650" y="60" width="22" height="220" fill="#B0C0D0" stroke="#90A0B0" stroke-width="0.5"/>';
+    s += '<rect x="648" y="100" width="26" height="8" fill="#C0D0E0"/>';
+    s += '<rect x="700" y="70" width="18" height="210" fill="#C8C0A8" stroke="#A8A088" stroke-width="0.5"/>';
+    // Pudong buildings
+    for (var bx = 350; bx < 900; bx += 28) {
+      if (bx > 480 && bx < 730) continue;
+      var bh = 50+Math.sin(bx*0.06)*30;
+      s += '<rect x="'+bx+'" y="'+(280-bh)+'" width="24" height="'+bh+'" fill="#B8C0C8" stroke="#98A0A8" stroke-width="0.4"/>';
+    }
+    // Puxi side (older buildings)
+    for (var bx = 20; bx < 340; bx += 35) {
+      var bh = 35+Math.sin(bx*0.08)*10;
+      s += '<rect x="'+bx+'" y="'+(270-bh)+'" width="30" height="'+bh+'" fill="#D0C8B8" stroke="#B0A898" stroke-width="0.4"/>';
+    }
+    for (var bx = 920; bx < 1180; bx += 35) {
+      var bh = 35+Math.cos(bx*0.08)*10;
+      s += '<rect x="'+bx+'" y="'+(270-bh)+'" width="30" height="'+bh+'" fill="#D0C8B8" stroke="#B0A898" stroke-width="0.4"/>';
+    }
+    // Huangpu River
+    s += '<path d="M0,290 Q300,285 600,292 Q900,298 1200,288 L1200,320 L0,320Z" fill="url(#c-water)"/>';
+    s += '<rect x="0" y="320" width="1200" height="180" fill="url(#c-ground)"/>';
+    return s;
+  },
+
+  // ===== SAO PAULO =====
+  _city_sao_paulo() {
+    var s = '';
+    s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
+    // Dense concrete jungle
+    for (var bx = 10; bx < 1190; bx += 25) {
+      var bh = 40+Math.sin(bx*0.05)*25+Math.random()*15;
+      var by = 280-bh;
+      var shade = 170+Math.floor(Math.sin(bx*0.1)*20);
+      s += '<rect x="'+bx+'" y="'+by+'" width="22" height="'+bh+'" fill="rgb('+shade+','+shade+','+(shade-10)+')" stroke="rgb('+(shade-20)+','+(shade-20)+','+(shade-30)+')" stroke-width="0.3"/>';
+      s += '<g fill="#88A0B0" opacity="0.3">';
+      for (var wy = by+3; wy < by+bh-3; wy += 5) { s += '<rect x="'+(bx+1)+'" y="'+wy+'" width="20" height="3"/>'; }
+      s += '</g>';
+    }
+    s += '<rect x="0" y="280" width="1200" height="220" fill="url(#c-ground)"/>';
+    s += '<rect x="0" y="280" width="1200" height="14" fill="url(#c-road)"/>';
+    // Ibirapuera Park
+    s += '<ellipse cx="600" cy="340" rx="80" ry="30" fill="#4A8A40" opacity="0.4"/>';
+    for (var tx = 540; tx < 660; tx += 18) {
+      s += '<ellipse cx="'+tx+'" cy="'+(335+Math.sin(tx*0.1)*4)+'" rx="8" ry="10" fill="#3A7A30"/>';
+    }
+    return s;
+  },
+
+  // ===== CAPE TOWN =====
+  _city_cape_town() {
+    var s = '';
+    s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
+    // Table Mountain
+    s += '<path d="M200,220 L300,120 L400,120 L500,120 L600,120 L700,120 L800,120 L900,120 L1000,220" fill="#6A7A5A" stroke="#5A6A4A" stroke-width="1.5"/>';
+    // Flat top characteristic
+    s += '<rect x="300" y="120" width="600" height="3" fill="#5A6A4A"/>';
+    // Rock texture
+    s += '<g stroke="#5A6A4A" stroke-width="0.5" opacity="0.3">';
+    for (var ry = 130; ry < 220; ry += 10) {
+      s += '<path d="M'+(250+Math.sin(ry)*20)+','+ry+' Q600,'+(ry-3)+' '+(950-Math.sin(ry)*20)+','+ry+'" fill="none"/>';
+    }
+    s += '</g>';
+    // Tablecloth (cloud on mountain)
+    s += '<g fill="#FFF" opacity="0.3"><ellipse cx="500" cy="118" rx="150" ry="10"/><ellipse cx="600" cy="115" rx="120" ry="8"/></g>';
+    // Buildings
+    for (var bx = 50; bx < 1150; bx += 40) {
+      var bh = 30+Math.sin(bx*0.07)*12;
+      var by = 260-bh;
+      s += '<rect x="'+bx+'" y="'+by+'" width="34" height="'+bh+'" fill="#E0D8C8" stroke="#C0B8A8" stroke-width="0.4"/>';
+      s += '<path d="M'+(bx-1)+','+by+' L'+(bx+17)+','+(by-5)+' L'+(bx+35)+','+by+'" fill="#A06838"/>';
+      for (var wy = by+6; wy < by+bh-5; wy += 10) {
+        for (var wx = bx+5; wx < bx+30; wx += 10) {
+          s += '<rect x="'+wx+'" y="'+wy+'" width="6" height="6" fill="#88AAC0" stroke="#C0B098" stroke-width="0.2"/>';
+        }
+      }
+    }
+    // Ocean
+    s += '<rect x="0" y="290" width="1200" height="210" fill="#3888B0"/>';
+    s += '<rect x="0" y="285" width="1200" height="8" fill="#E0D0B0"/>';
+    // V&A Waterfront hint
+    s += '<rect x="400" y="275" width="120" height="15" fill="#C0B8A8" stroke="#A0A098" stroke-width="0.5"/>';
+    return s;
   }
 };
