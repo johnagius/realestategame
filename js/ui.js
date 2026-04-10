@@ -629,6 +629,18 @@ const GameUI = {
       GameUI.toast('💼 Dividends received: +' + GameData.formatMoney(results.dividends), 'success');
     }
 
+    // Tenant problems — show in ticker
+    if (results.tenantProblems && results.tenantProblems.length > 0) {
+      var tp = results.tenantProblems[0];
+      var tpMsg = { late: '⏰ Late rent', vacancy: '🚪 Tenant left', damage: '🔨 Tenant damage', dispute: '⚖️ Tenant dispute' };
+      GameUI.setTicker((tpMsg[tp.type] || '⚠️ Tenant issue') + ' at ' + tp.property + ' — lost ' + GameData.formatMoney(tp.loss));
+    }
+
+    // Property tax in ticker
+    if (results.propertyTax > 0 && !isAutoPlaying) {
+      GameUI.toast('🏛️ Property tax: -' + GameData.formatMoney(results.propertyTax), 'warning');
+    }
+
     // Milestones
     if (results.milestones) {
       results.milestones.forEach(function(m) {

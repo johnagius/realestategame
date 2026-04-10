@@ -703,13 +703,55 @@ const GameEngine = {
     results.month = this.state.monthIndex;
     results.year = this.state.year;
 
-    // 1. Collect rent
+    // 0. Initialize results extras
+    results.tenantProblems = [];
+    results.propertyTax = 0;
+    results.decisions = [];
+
+    // 1. Collect rent (with tenant problems and diminishing returns)
+    var rentedCount = this.state.properties.filter(p => p.isRented).length;
     this.state.properties.forEach(p => {
       if (p.isRented && !p.isRefurbishing && !p.isBuilding) {
-        this.state.cash += p.monthlyRent;
-        p.totalRentCollected += p.monthlyRent;
-        results.rentIncome += p.monthlyRent;
-        this.state.totalRentEarned += p.monthlyRent;
+        // Diminishing returns: after 5 rented properties, each additional yields 5% less
+        var diminishFactor = 1;
+        if (rentedCount > 5) {
+          var excessProps = Math.min(rentedCount - 5, 30);
+          diminishFactor = Math.max(0.3, 1 - (excessProps * 0.04));
+        }
+
+        // Tenant problems: 8% chance per property per month
+        if (Math.random() < 0.08) {
+          var problemRoll = Math.random();
+          if (problemRoll < 0.35) {
+            // Late payment — get only 50% rent this month
+            var reducedRent = Math.round(p.monthlyRent * 0.5 * diminishFactor);
+            this.state.cash += reducedRent;
+            p.totalRentCollected += reducedRent;
+            results.rentIncome += reducedRent;
+            results.tenantProblems.push({ property: p.name, type: 'late', loss: p.monthlyRent - reducedRent });
+          } else if (problemRoll < 0.65) {
+            // Vacancy — tenant leaves, no rent, property becomes unrented
+            p.isRented = false;
+            results.tenantProblems.push({ property: p.name, type: 'vacancy', loss: p.monthlyRent });
+          } else if (problemRoll < 0.85) {
+            // Damage — pay repair cost equal to 1 month rent
+            var damageCost = Math.round(p.monthlyRent * 0.8);
+            this.state.cash -= damageCost;
+            results.tenantProblems.push({ property: p.name, type: 'damage', loss: damageCost });
+          } else {
+            // Dispute — no rent collected, legal fees
+            var legalFee = Math.round(p.monthlyRent * 0.3);
+            this.state.cash -= legalFee;
+            results.tenantProblems.push({ property: p.name, type: 'dispute', loss: legalFee + p.monthlyRent });
+          }
+        } else {
+          // Normal rent collection with diminishing returns
+          var actualRent = Math.round(p.monthlyRent * diminishFactor);
+          this.state.cash += actualRent;
+          p.totalRentCollected += actualRent;
+          results.rentIncome += actualRent;
+          this.state.totalRentEarned += actualRent;
+        }
       }
     });
 
@@ -732,6 +774,17 @@ const GameEngine = {
         }
       }
     });
+
+    // 2b. Property tax (scales with portfolio size — wealth tax)
+    if (this.state.properties.length > 0) {
+      var portfolioValue = this.state.properties.reduce((s, p) => s + p.currentValue, 0);
+      // Base rate: 0.5% annual. Increases 0.1% for every 10 properties owned (up to 2.5%)
+      var taxRate = Math.min(0.025, 0.005 + Math.floor(this.state.properties.length / 10) * 0.001);
+      var monthlyTax = Math.round(portfolioValue * taxRate / 12);
+      this.state.cash -= monthlyTax;
+      results.propertyTax = monthlyTax;
+      results.expenses += monthlyTax;
+    }
 
     // 3. Process refurbishments
     this.state.properties.forEach(p => {
@@ -808,12 +861,15 @@ const GameEngine = {
     this.state.properties.forEach(p => {
       if (!p.isBuilding) {
         const city = GameData.cities.find(c => c.id === p.cityId);
-        const monthlyGrowth = city.growthRate / 12;
         const monthlyInflation = (city.inflationRate || 0.02) / 12;
         const pressure = this.state.marketPressure[city.id] || 0;
-        const randomFactor = (Math.random() - 0.5) * 0.02;
-        const change = monthlyGrowth + monthlyInflation + pressure + randomFactor;
-        p.currentValue = Math.round(p.currentValue * (1 + change));
+        const randomFactor = (Math.random() - 0.5) * 0.015;
+        // CAP: appreciation = inflation + up to 2% real growth annually (0.17%/mo) + noise
+        const maxMonthlyGrowth = 0.0017; // ~2% annual real growth cap
+        const realGrowth = Math.min(maxMonthlyGrowth, city.growthRate / 12);
+        const change = realGrowth + monthlyInflation + pressure + randomFactor;
+        // Allow negative months (real crashes happen)
+        p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + change)));
         p.appreciation = ((p.currentValue - p.purchasePrice) / p.purchasePrice) * 100;
         this.recalculateRent(p);
       }
@@ -822,12 +878,13 @@ const GameEngine = {
     // Also fluctuate market properties
     Object.keys(this.state.marketProperties).forEach(cityId => {
       const city = GameData.cities.find(c => c.id === cityId);
-      const monthlyGrowth = city.growthRate / 12;
       const monthlyInflation = (city.inflationRate || 0.02) / 12;
       const pressure = this.state.marketPressure[cityId] || 0;
+      const maxMonthlyGrowth = 0.0017;
+      const realGrowth = Math.min(maxMonthlyGrowth, city.growthRate / 12);
       this.state.marketProperties[cityId].forEach(p => {
-        const randomFactor = (Math.random() - 0.5) * 0.02;
-        p.currentValue = Math.round(p.currentValue * (1 + monthlyGrowth + monthlyInflation + pressure + randomFactor));
+        const randomFactor = (Math.random() - 0.5) * 0.015;
+        p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + realGrowth + monthlyInflation + pressure + randomFactor)));
         this.recalculateRent(p);
       });
     });
