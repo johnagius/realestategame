@@ -2000,6 +2000,55 @@ h4 { font-size: 1rem; }
   margin-left: 6px;
 }
 
+/* ---------- Event Ticker ---------- */
+.hud-ticker {
+  position: fixed;
+  top: var(--hud-height);
+  left: 0;
+  right: 0;
+  height: 22px;
+  background: linear-gradient(90deg, #2B1810, #3A2818, #2B1810);
+  color: #F0D890;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 890;
+  overflow: hidden;
+  border-bottom: 1px solid #5A4A38;
+}
+
+.hud-tips {
+  position: fixed;
+  top: calc(var(--hud-height) + 22px);
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: rgba(250,243,224,0.95);
+  color: #6A5A42;
+  font-size: 0.6rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 889;
+  border-bottom: 1px solid #DDD3C0;
+}
+
+/* ---------- Fix scrolling: lock screens to viewport ---------- */
+.game-screen {
+  padding-top: calc(var(--hud-height) + 44px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+html, body {
+  overflow: hidden;
+  height: 100%;
+  height: 100dvh;
+}
+
 /* ---------- Print Hidden ---------- */
 @media print {
   #hud, #main-nav { display: none; }

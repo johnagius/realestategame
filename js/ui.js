@@ -608,24 +608,26 @@ const GameUI = {
 
   // ---- Event popup ----
   showEventPopup(icon, title, description, effectText, effectClass) {
-    var overlay = document.getElementById('event-overlay');
-    var content = document.getElementById('event-content');
-    content.innerHTML =
-      '<div class="event-icon">' + icon + '</div>' +
-      '<div class="event-title">' + title + '</div>' +
-      '<div class="event-description">' + description + '</div>' +
-      (effectText ? '<div class="event-effect ' + (effectClass || 'positive') + '">' + effectText + '</div>' : '');
-    overlay.classList.add('active');
+    // Show in HUD ticker instead of blocking popup
+    var msg = icon + ' ' + title;
+    if (description) msg += ' — ' + description;
+    if (effectText) msg += ' | ' + effectText;
+    this.setTicker(msg);
+  },
 
-    // Auto-dismiss if auto-advance is running
-    var speed = (GameEngine.state && GameEngine.state.autoAdvanceSpeed) || 0;
-    if (speed > 0) {
-      var dismissMs = speed >= 3 ? 800 : speed >= 2 ? 1500 : 2500;
-      if (this._eventDismissTimer) clearTimeout(this._eventDismissTimer);
-      this._eventDismissTimer = setTimeout(function() {
-        overlay.classList.remove('active');
-      }, dismissMs);
-    }
+  setTicker(text) {
+    var el = document.getElementById('hud-ticker-text');
+    if (el) el.textContent = text;
+    // Auto-clear after 8 seconds
+    if (this._tickerTimer) clearTimeout(this._tickerTimer);
+    this._tickerTimer = setTimeout(function() {
+      if (el) el.textContent = '';
+    }, 8000);
+  },
+
+  setTip(text) {
+    var el = document.getElementById('hud-tips-text');
+    if (el) el.textContent = '💡 ' + text;
   },
 
   // ---- Show modal ----

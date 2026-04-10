@@ -509,7 +509,7 @@ const GameEngine = {
       description: 'Heavy rains cause flooding damage to your property.',
       baseDamageValuePct: 0.08,
       conditionDrop: 1,
-      baseProbability: 0.015
+      baseProbability: 0.003
     },
     earthquake: {
       name: 'Earthquake',
@@ -517,7 +517,7 @@ const GameEngine = {
       description: 'Seismic activity causes structural damage.',
       baseDamageValuePct: 0.12,
       conditionDrop: 2,
-      baseProbability: 0.008
+      baseProbability: 0.002
     },
     fire: {
       name: 'Fire',
@@ -525,7 +525,7 @@ const GameEngine = {
       description: 'A fire breaks out, causing significant damage.',
       baseDamageValuePct: 0.15,
       conditionDrop: 2,
-      baseProbability: 0.01
+      baseProbability: 0.002
     },
     storm: {
       name: 'Severe Storm',
@@ -533,7 +533,7 @@ const GameEngine = {
       description: 'High winds and heavy rain damage the property.',
       baseDamageValuePct: 0.06,
       conditionDrop: 1,
-      baseProbability: 0.02
+      baseProbability: 0.004
     },
     theft: {
       name: 'Burglary',
@@ -541,7 +541,7 @@ const GameEngine = {
       description: 'Break-in reported. Property contents stolen and damaged.',
       baseDamageValuePct: 0.03,
       conditionDrop: 0,
-      baseProbability: 0.02
+      baseProbability: 0.004
     },
     vandalism: {
       name: 'Vandalism',
@@ -549,7 +549,7 @@ const GameEngine = {
       description: 'Property vandalised, requiring repairs.',
       baseDamageValuePct: 0.02,
       conditionDrop: 1,
-      baseProbability: 0.015
+      baseProbability: 0.003
     },
     drought: {
       name: 'Water Crisis',
@@ -557,7 +557,7 @@ const GameEngine = {
       description: 'Severe drought causes water restrictions, reducing property appeal.',
       baseDamageValuePct: 0.02,
       conditionDrop: 0,
-      baseProbability: 0.01
+      baseProbability: 0.002
     },
     sandstorm: {
       name: 'Sandstorm',
@@ -565,7 +565,7 @@ const GameEngine = {
       description: 'Severe sandstorm damages exterior surfaces.',
       baseDamageValuePct: 0.04,
       conditionDrop: 1,
-      baseProbability: 0.015
+      baseProbability: 0.003
     }
   },
 

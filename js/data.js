@@ -10,28 +10,28 @@ const GameData = {
       id: 'pre_industrial', name: 'Pre-Industrial Era', years: [1750, 1799],
       icon: '🏰', color: '#8B7355',
       description: 'Land and agriculture dominate. Cities are small trading hubs.',
-      propertyMultiplier: 0.05, rentMultiplier: 0.3, businessTypes: ['farm', 'tavern', 'market', 'workshop'],
+      propertyMultiplier: 0.05, rentMultiplier: 1.0, businessTypes: ['farm', 'tavern', 'market', 'workshop'],
       features: { stocks: false, mergers: false, playerBanks: false, factories: false }
     },
     {
       id: 'industrial_revolution', name: 'Industrial Revolution', years: [1800, 1869],
       icon: '🏭', color: '#6B4423',
       description: 'Steam power transforms cities. Factories and railways emerge.',
-      propertyMultiplier: 0.12, rentMultiplier: 0.5, businessTypes: ['farm', 'tavern', 'market', 'workshop', 'factory', 'textile_mill', 'railway'],
+      propertyMultiplier: 0.12, rentMultiplier: 1.0, businessTypes: ['farm', 'tavern', 'market', 'workshop', 'factory', 'textile_mill', 'railway'],
       features: { stocks: true, mergers: false, playerBanks: false, factories: true }
     },
     {
       id: 'gilded_age', name: 'The Gilded Age', years: [1870, 1929],
       icon: '🎩', color: '#DAA520',
       description: 'Robber barons and tycoons. Banks, steel, and oil reshape the world.',
-      propertyMultiplier: 0.25, rentMultiplier: 0.7, businessTypes: ['market', 'factory', 'textile_mill', 'railway', 'steel_works', 'oil_company', 'department_store', 'hotel'],
+      propertyMultiplier: 0.25, rentMultiplier: 1.0, businessTypes: ['market', 'factory', 'textile_mill', 'railway', 'steel_works', 'oil_company', 'department_store', 'hotel'],
       features: { stocks: true, mergers: true, playerBanks: true, factories: true }
     },
     {
       id: 'modern_era', name: 'Modern Era', years: [1930, 1979],
       icon: '🏙️', color: '#4682B4',
       description: 'Suburbs, highways, and consumer culture. Real estate booms.',
-      propertyMultiplier: 0.5, rentMultiplier: 0.85, businessTypes: ['factory', 'hotel', 'department_store', 'supermarket', 'restaurant', 'oil_company', 'auto_dealer', 'airline'],
+      propertyMultiplier: 0.5, rentMultiplier: 1.0, businessTypes: ['factory', 'hotel', 'department_store', 'supermarket', 'restaurant', 'oil_company', 'auto_dealer', 'airline'],
       features: { stocks: true, mergers: true, playerBanks: true, factories: true }
     },
     {
@@ -128,121 +128,121 @@ const GameData = {
     {
       id: 'new_york', name: 'New York', country: 'United States', flag: '🇺🇸',
       description: 'The city that never sleeps. Premium real estate with sky-high demand.',
-      priceMultiplier: 2.2, rentYield: 0.04, taxRate: 0.08, growthRate: 0.03,
+      priceMultiplier: 2.2, rentYield: 0.08, taxRate: 0.08, growthRate: 0.03,
       inflationRate: 0.025, tier: 1, maxProperties: 15
     },
     {
       id: 'london', name: 'London', country: 'United Kingdom', flag: '🇬🇧',
       description: 'Historic and prestigious. A global hub for luxury property.',
-      priceMultiplier: 2.0, rentYield: 0.038, taxRate: 0.07, growthRate: 0.025,
+      priceMultiplier: 2.0, rentYield: 0.075, taxRate: 0.07, growthRate: 0.025,
       inflationRate: 0.022, tier: 1, maxProperties: 15
     },
     {
       id: 'paris', name: 'Paris', country: 'France', flag: '🇫🇷',
       description: 'The City of Light. Elegant apartments and charming townhouses.',
-      priceMultiplier: 1.7, rentYield: 0.035, taxRate: 0.08, growthRate: 0.02,
+      priceMultiplier: 1.7, rentYield: 0.07, taxRate: 0.08, growthRate: 0.02,
       inflationRate: 0.020, tier: 1, maxProperties: 14
     },
     {
       id: 'tokyo', name: 'Tokyo', country: 'Japan', flag: '🇯🇵',
       description: 'Ultra-modern metropolis. High density, high returns.',
-      priceMultiplier: 1.8, rentYield: 0.042, taxRate: 0.06, growthRate: 0.02,
+      priceMultiplier: 1.8, rentYield: 0.08, taxRate: 0.06, growthRate: 0.02,
       inflationRate: 0.015, tier: 1, maxProperties: 14
     },
     {
       id: 'dubai', name: 'Dubai', country: 'UAE', flag: '🇦🇪',
       description: 'Luxury paradise with zero income tax. Bold architecture.',
-      priceMultiplier: 1.5, rentYield: 0.055, taxRate: 0.04, growthRate: 0.04,
+      priceMultiplier: 1.5, rentYield: 0.10, taxRate: 0.04, growthRate: 0.04,
       inflationRate: 0.030, tier: 1, maxProperties: 14
     },
     {
       id: 'singapore', name: 'Singapore', country: 'Singapore', flag: '🇸🇬',
       description: 'Compact city-state with premium property at a premium.',
-      priceMultiplier: 1.8, rentYield: 0.036, taxRate: 0.07, growthRate: 0.025,
+      priceMultiplier: 1.8, rentYield: 0.07, taxRate: 0.07, growthRate: 0.025,
       inflationRate: 0.018, tier: 2, maxProperties: 12
     },
     {
       id: 'hong_kong', name: 'Hong Kong', country: 'China', flag: '🇭🇰',
       description: 'One of the world\'s most expensive property markets.',
-      priceMultiplier: 2.5, rentYield: 0.03, taxRate: 0.06, growthRate: 0.02,
+      priceMultiplier: 2.5, rentYield: 0.11, taxRate: 0.06, growthRate: 0.02,
       inflationRate: 0.020, tier: 1, maxProperties: 12
     },
     {
       id: 'sydney', name: 'Sydney', country: 'Australia', flag: '🇦🇺',
       description: 'Harbour city with stunning coastal properties.',
-      priceMultiplier: 1.6, rentYield: 0.04, taxRate: 0.07, growthRate: 0.03,
+      priceMultiplier: 1.6, rentYield: 0.08, taxRate: 0.07, growthRate: 0.03,
       inflationRate: 0.028, tier: 2, maxProperties: 13
     },
     {
       id: 'los_angeles', name: 'Los Angeles', country: 'United States', flag: '🇺🇸',
       description: 'Hollywood glamour meets beachfront living.',
-      priceMultiplier: 1.5, rentYield: 0.042, taxRate: 0.07, growthRate: 0.03,
+      priceMultiplier: 1.5, rentYield: 0.08, taxRate: 0.07, growthRate: 0.03,
       inflationRate: 0.026, tier: 2, maxProperties: 14
     },
     {
       id: 'miami', name: 'Miami', country: 'United States', flag: '🇺🇸',
       description: 'Tropical vibes with booming luxury condo market.',
-      priceMultiplier: 1.3, rentYield: 0.05, taxRate: 0.06, growthRate: 0.035,
+      priceMultiplier: 1.3, rentYield: 0.09, taxRate: 0.06, growthRate: 0.035,
       inflationRate: 0.028, tier: 2, maxProperties: 14
     },
     {
       id: 'barcelona', name: 'Barcelona', country: 'Spain', flag: '🇪🇸',
       description: 'Mediterranean charm with strong tourism demand.',
-      priceMultiplier: 1.2, rentYield: 0.048, taxRate: 0.08, growthRate: 0.025,
+      priceMultiplier: 1.2, rentYield: 0.09, taxRate: 0.08, growthRate: 0.025,
       inflationRate: 0.024, tier: 2, maxProperties: 13
     },
     {
       id: 'rome', name: 'Rome', country: 'Italy', flag: '🇮🇹',
       description: 'The Eternal City. Historic properties with timeless appeal.',
-      priceMultiplier: 1.0, rentYield: 0.045, taxRate: 0.09, growthRate: 0.015,
+      priceMultiplier: 1.0, rentYield: 0.085, taxRate: 0.09, growthRate: 0.015,
       inflationRate: 0.022, tier: 2, maxProperties: 13
     },
     {
       id: 'berlin', name: 'Berlin', country: 'Germany', flag: '🇩🇪',
       description: 'Affordable and hip. Rapid gentrification creates opportunity.',
-      priceMultiplier: 1.0, rentYield: 0.05, taxRate: 0.07, growthRate: 0.035,
+      priceMultiplier: 1.0, rentYield: 0.09, taxRate: 0.07, growthRate: 0.035,
       inflationRate: 0.020, tier: 3, maxProperties: 14
     },
     {
       id: 'amsterdam', name: 'Amsterdam', country: 'Netherlands', flag: '🇳🇱',
       description: 'Canal houses and modern living. Tight supply, high demand.',
-      priceMultiplier: 1.3, rentYield: 0.04, taxRate: 0.08, growthRate: 0.02,
+      priceMultiplier: 1.3, rentYield: 0.08, taxRate: 0.08, growthRate: 0.02,
       inflationRate: 0.019, tier: 2, maxProperties: 12
     },
     {
       id: 'toronto', name: 'Toronto', country: 'Canada', flag: '🇨🇦',
       description: 'North America\'s fastest growing city. Condo boom.',
-      priceMultiplier: 1.3, rentYield: 0.045, taxRate: 0.06, growthRate: 0.03,
+      priceMultiplier: 1.3, rentYield: 0.085, taxRate: 0.06, growthRate: 0.03,
       inflationRate: 0.025, tier: 2, maxProperties: 14
     },
     {
       id: 'monaco', name: 'Monaco', country: 'Monaco', flag: '🇲🇨',
       description: 'The world\'s most exclusive address. Ultra-luxury only.',
-      priceMultiplier: 3.0, rentYield: 0.025, taxRate: 0.03, growthRate: 0.02,
+      priceMultiplier: 3.0, rentYield: 0.05, taxRate: 0.03, growthRate: 0.02,
       inflationRate: 0.012, tier: 1, maxProperties: 8
     },
     {
       id: 'shanghai', name: 'Shanghai', country: 'China', flag: '🇨🇳',
       description: 'Financial powerhouse with explosive growth potential.',
-      priceMultiplier: 1.2, rentYield: 0.04, taxRate: 0.06, growthRate: 0.04,
+      priceMultiplier: 1.2, rentYield: 0.08, taxRate: 0.06, growthRate: 0.04,
       inflationRate: 0.025, tier: 2, maxProperties: 15
     },
     {
       id: 'mumbai', name: 'Mumbai', country: 'India', flag: '🇮🇳',
       description: 'Bollywood capital. Extreme density, extreme opportunity.',
-      priceMultiplier: 0.7, rentYield: 0.055, taxRate: 0.07, growthRate: 0.05,
+      priceMultiplier: 0.7, rentYield: 0.10, taxRate: 0.07, growthRate: 0.05,
       inflationRate: 0.055, tier: 3, maxProperties: 15
     },
     {
       id: 'sao_paulo', name: 'São Paulo', country: 'Brazil', flag: '🇧🇷',
       description: 'South America\'s financial hub. Affordable entry, high growth.',
-      priceMultiplier: 0.6, rentYield: 0.06, taxRate: 0.06, growthRate: 0.045,
+      priceMultiplier: 0.6, rentYield: 0.11, taxRate: 0.06, growthRate: 0.045,
       inflationRate: 0.050, tier: 3, maxProperties: 15
     },
     {
       id: 'cape_town', name: 'Cape Town', country: 'South Africa', flag: '🇿🇦',
       description: 'Stunning scenery with bargain properties. High growth potential.',
-      priceMultiplier: 0.5, rentYield: 0.065, taxRate: 0.05, growthRate: 0.05,
+      priceMultiplier: 0.5, rentYield: 0.12, taxRate: 0.05, growthRate: 0.05,
       inflationRate: 0.048, tier: 3, maxProperties: 14
     }
   ],
@@ -679,8 +679,8 @@ const GameData = {
     const annualMaintenance = price * typeDef.maintenanceRate;
     const monthlyMaintenance = Math.round(annualMaintenance / 12);
 
-    // Licensing fee
-    const annualLicense = this.licensingFees[type] || 500;
+    // Licensing fee — scale with property value (1% annually), not fixed
+    const annualLicense = Math.round(price * 0.01);
     const monthlyLicense = Math.round(annualLicense / 12);
 
     return {
@@ -981,8 +981,8 @@ const GameData = {
     const [minEmp, maxEmp] = typeDef.employeeRange;
     const employees = Math.round(minEmp + Math.random() * (maxEmp - minEmp));
 
-    const monthlyRevenue = Math.round((value * typeDef.baseRevenueYield * city.rentYield * 10) / 12);
-    const monthlyExpenses = Math.round(monthlyRevenue * (0.5 + Math.random() * 0.25));
+    const monthlyRevenue = Math.max(1, Math.round((value * typeDef.baseRevenueYield) / 12));
+    const monthlyExpenses = Math.round(monthlyRevenue * (0.35 + Math.random() * 0.25));
 
     return {
       id: 'biz_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),

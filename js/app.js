@@ -200,8 +200,32 @@ const App = {
     document.getElementById('screen-splash').classList.remove('active');
     document.getElementById('hud').classList.remove('hidden');
     document.getElementById('main-nav').classList.remove('hidden');
+    document.getElementById('hud-ticker').classList.remove('hidden');
+    document.getElementById('hud-tips').classList.remove('hidden');
     GameUI.updateHUD();
     GameUI.showScreen('map');
+    // Show random tip
+    this.showRandomTip();
+  },
+
+  showRandomTip() {
+    var tips = [
+      'Buy in cities with high yield (8%+) and low tax for best rental returns.',
+      'Refurbish poor-condition properties to increase rent by 30-50%.',
+      'Cities near the equator often have flood and storm risks. Buy insurance!',
+      'Tokyo and Los Angeles have earthquake risk. Seismic retrofits help.',
+      'Cape Town and Mumbai offer cheap entry prices with high growth potential.',
+      'Monaco has the highest property prices but lowest tax rate (3%).',
+      'Buildings in good/excellent condition rent for much more.',
+      'Land parcels can be built on — choose what to construct carefully.',
+      'Dubai has 0% income tax making it great for rental income.',
+      'London and Paris flood occasionally. Consider flood barriers.',
+      'Buy business stakes at 51%+ to gain controlling interest.',
+      'Open your own bank in the Gilded Age to earn interest income.',
+      'Commodities like gold hold value through market crashes.',
+      'Diversify across cities to reduce disaster risk.',
+    ];
+    GameUI.setTip(tips[Math.floor(Math.random() * tips.length)]);
   },
 
   advanceMonth() {
@@ -212,6 +236,9 @@ const App = {
       GameUI.renderFloatingLeaderboard();
     }
     GameUI.showMonthResults(results);
+
+    // Rotate tips every few months
+    if (GameEngine.state.month % 3 === 0) this.showRandomTip();
 
     // Refresh current screen
     if (GameUI.currentScreen === 'map') GameUI.renderMap();
