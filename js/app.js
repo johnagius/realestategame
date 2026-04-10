@@ -239,8 +239,33 @@ const App = {
     }
     GameUI.showMonthResults(results);
 
-    // Show decision card if one was generated
-    if (results.decision) {
+    // Show AI interaction or decision card
+    if (results.aiInteraction) {
+      var ai = results.aiInteraction;
+      var aiDecision = {
+        title: ai.title,
+        description: ai.description,
+        choices: []
+      };
+      if (ai.type === 'buyout_offer') {
+        aiDecision.choices = [
+          { label: 'Accept offer — sell for ' + GameData.formatMoney(ai.data.amount), action: 'accept_buyout', data: ai.data },
+          { label: 'Decline — not for sale', action: 'decline', data: {} }
+        ];
+      } else if (ai.type === 'threat') {
+        aiDecision.choices = [
+          { label: 'Stand your ground — "We\'re staying"', action: 'reject_threat', data: ai.data },
+          { label: 'Ignore the threat', action: 'decline', data: {} }
+        ];
+      } else if (ai.type === 'alliance') {
+        aiDecision.choices = [
+          { label: 'Join alliance — invest ' + GameData.formatMoney(ai.data.amount), action: 'accept_alliance', data: ai.data },
+          { label: 'Decline — we work alone', action: 'decline', data: {} }
+        ];
+      }
+      aiDecision._isAI = true;
+      GameUI.showDecision(aiDecision);
+    } else if (results.decision) {
       GameUI.showDecision(results.decision);
     }
 
@@ -441,7 +466,14 @@ const App = {
 
   // ---- Decision Resolution ----
   resolveDecision(action, data) {
-    var result = GameEngine.resolveDecision(action, data);
+    // Check if this is an AI interaction or regular decision
+    var isAI = action === 'accept_buyout' || action === 'reject_threat' || action === 'accept_alliance' || (action === 'decline' && data);
+    var result;
+    if (isAI) {
+      result = GameEngine.resolveAIInteraction(action, data || {});
+    } else {
+      result = GameEngine.resolveDecision(action, data);
+    }
     GameUI.hideDecision();
     if (result.success) {
       GameUI.toast(result.message, action === 'pass' ? 'info' : 'success');

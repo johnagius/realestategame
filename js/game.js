@@ -1053,6 +1053,9 @@ const GameEngine = {
     this.state.bankRateModifier += (Math.random() - 0.5) * 0.002;
     this.state.bankRateModifier = Math.max(-0.02, Math.min(0.02, this.state.bankRateModifier));
 
+    // 14a2. AI rivalry interactions (offers, threats)
+    results.aiInteraction = this.generateAIInteraction();
+
     // 14b. Check and generate goals
     results.goalsAchieved = this.checkGoals();
     this.generateGoals();
@@ -2071,6 +2074,111 @@ const GameEngine = {
   getInvestmentValue() {
     if (!this.state.investments) return 0;
     return this.state.investments.reduce((sum, inv) => sum + (inv.currentUnitPrice * inv.units), 0);
+  },
+
+  // ========== AI RIVALRY INTERACTIONS ==========
+
+  generateAIInteraction() {
+    if (!this.state.aiFamilies || this.state.aiFamilies.length === 0) return null;
+    if (Math.random() > 0.15) return null; // 15% chance per month
+
+    var ai = this.state.aiFamilies[Math.floor(Math.random() * this.state.aiFamilies.length)];
+    var interactions = [];
+
+    // Buyout offer: AI wants to buy one of your properties
+    if (this.state.properties.length > 0) {
+      var prop = this.state.properties[Math.floor(Math.random() * this.state.properties.length)];
+      if (!prop.isBuilding && !prop.isRefurbishing) {
+        var premium = 1.3 + Math.random() * 0.4; // 130-170%
+        interactions.push({
+          type: 'buyout_offer',
+          ai: ai,
+          title: ai.icon + ' ' + ai.name + ' — Buyout Offer',
+          description: ai.name + ' offer ' + GameData.formatMoney(Math.round(prop.currentValue * premium)) + ' for your ' + prop.name + ' (worth ' + GameData.formatMoney(prop.currentValue) + ').',
+          data: { propId: prop.id, amount: Math.round(prop.currentValue * premium) }
+        });
+      }
+    }
+
+    // Threat: AI dominates a city you're in
+    var playerCities = [...new Set(this.state.properties.map(function(p){return p.cityId;}))];
+    if (playerCities.length > 0) {
+      var cityId = playerCities[Math.floor(Math.random() * playerCities.length)];
+      var city = GameData.cities.find(function(c){return c.id === cityId;});
+      if (city) {
+        interactions.push({
+          type: 'threat',
+          ai: ai,
+          title: ai.icon + ' ' + ai.name + ' — Market Warning',
+          description: ai.name + ' are aggressively expanding in ' + city.name + '. "This city belongs to us. Sell now or face consequences."',
+          data: { cityId: cityId }
+        });
+      }
+    }
+
+    // Alliance offer
+    if (this.state.properties.length >= 3 && ai.netWorth > 100) {
+      interactions.push({
+        type: 'alliance',
+        ai: ai,
+        title: ai.icon + ' ' + ai.name + ' — Alliance Proposal',
+        description: ai.name + ' propose a business alliance. Pool resources for a joint venture with shared profits.',
+        data: { amount: Math.round(Math.min(this.state.cash * 0.2, ai.netWorth * 0.1)) }
+      });
+    }
+
+    if (interactions.length === 0) return null;
+    return interactions[Math.floor(Math.random() * interactions.length)];
+  },
+
+  resolveAIInteraction(action, data) {
+    this.state.pendingAIInteraction = null;
+    var result = { success: true, message: '' };
+
+    switch (action) {
+      case 'accept_buyout': {
+        var propIdx = this.state.properties.findIndex(function(p){return p.id === data.propId;});
+        if (propIdx >= 0) {
+          this.state.cash += data.amount;
+          this.state.properties.splice(propIdx, 1);
+          this.state.totalSaleRevenue += data.amount;
+          this.state.totalPropertiesSold++;
+          result.message = 'Sold for ' + GameData.formatMoney(data.amount) + '!';
+        }
+        break;
+      }
+      case 'reject_threat': {
+        // AI retaliates — slight market pressure on that city
+        if (data.cityId) {
+          var market = this.state.marketProperties[data.cityId] || [];
+          market.forEach(function(p) { p.currentValue = Math.round(p.currentValue * 0.95); });
+          result.message = 'You stood your ground. They retaliated — prices dipped 5% in the city.';
+        }
+        break;
+      }
+      case 'accept_alliance': {
+        if (this.state.cash >= data.amount) {
+          this.state.cash -= data.amount;
+          // Alliance has 70% chance of profit, 30% loss
+          if (Math.random() < 0.7) {
+            var profit = Math.round(data.amount * (0.3 + Math.random() * 0.5));
+            this.state.cash += data.amount + profit;
+            result.message = 'Alliance profitable! Earned ' + GameData.formatMoney(profit) + '.';
+          } else {
+            result.message = 'Alliance failed. Lost ' + GameData.formatMoney(data.amount) + '.';
+          }
+          if (!this.state.reputation) this.state.reputation = 50;
+          this.state.reputation = Math.min(100, this.state.reputation + 3);
+        }
+        break;
+      }
+      case 'decline':
+        result.message = 'You declined the offer.';
+        break;
+    }
+
+    this.save();
+    return result;
   },
 
   // ========== HISTORICAL EVENT RESOLUTION ==========
