@@ -641,38 +641,35 @@ const GameUI = {
     var svg = document.getElementById('world-map-svg');
     var pins = document.getElementById('world-map-pins');
 
-    // Draw simple continent shapes
-    svg.innerHTML =
-      '<rect width="1000" height="500" fill="#C8DFF0"/>' +
-      // North America
-      '<path d="M50,80 L180,60 L260,100 L280,180 L240,250 L200,280 L160,260 L120,300 L80,260 L40,200 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // South America
-      '<path d="M220,310 L280,290 L320,330 L340,400 L320,460 L280,480 L240,450 L220,380 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // Europe
-      '<path d="M420,60 L520,50 L560,80 L540,120 L520,150 L480,160 L440,140 L420,100 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // Africa
-      '<path d="M440,180 L520,170 L560,220 L580,300 L560,380 L520,420 L480,400 L440,340 L430,260 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // Asia
-      '<path d="M560,40 L700,30 L800,60 L860,100 L880,160 L840,200 L780,220 L700,210 L640,180 L580,150 L560,100 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // India
-      '<path d="M640,180 L680,200 L700,260 L680,300 L640,280 L620,240 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // Southeast Asia
-      '<path d="M720,220 L780,230 L800,280 L760,310 L720,290 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // Australia
-      '<path d="M800,340 L900,330 L940,370 L920,420 L860,440 L800,420 L790,380 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // Japan
-      '<path d="M850,100 L870,90 L880,120 L870,150 L855,140 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>';
+    // Load the detailed SVG map
+    if (!this._mapLoaded) {
+      fetch('assets/worldmap.svg')
+        .then(function(r) { return r.text(); })
+        .then(function(svgText) {
+          // Extract inner SVG content
+          var match = svgText.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
+          if (match) svg.innerHTML = match[1];
+          GameUI._mapLoaded = true;
+        })
+        .catch(function() {
+          // Fallback: simple colored map
+          svg.innerHTML = '<rect width="1200" height="600" fill="#B8D4E3"/>';
+        });
+    }
 
-    // Render city pins
+    // Render city pins with landmarks
     var pinsHTML = '';
     GameData.cities.forEach(function(city) {
       var coords = GameData.cityCoords[city.id];
       if (!coords) return;
       var summary = GameEngine.getCitySummary(city.id);
       var hasOwned = summary.owned > 0;
+      var lm = GameData.cityLandmarks[city.id] || {};
+      var pinIcon = lm.landmark || '📍';
+
       pinsHTML += '<div class="map-pin" data-city="' + city.id + '" style="left:' + coords.x + '%;top:' + coords.y + '%">' +
-        '<div class="map-pin-dot ' + (hasOwned ? 'owned' : '') + '"></div>' +
-        '<div class="map-pin-label">' + city.name + (hasOwned ? ' (' + summary.owned + ')' : '') + '</div>' +
+        '<div class="map-pin-icon">' + pinIcon + '</div>' +
+        '<div class="map-pin-label">' + city.name + (hasOwned ? ' <span style="color:var(--primary)">(' + summary.owned + ')</span>' : '') + '</div>' +
       '</div>';
     });
     pins.innerHTML = pinsHTML;
