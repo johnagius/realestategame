@@ -2429,47 +2429,51 @@ const GameEngine = {
     if (Math.random() > 0.15) return null; // 15% chance per month
 
     var ai = this.state.aiFamilies[Math.floor(Math.random() * this.state.aiFamilies.length)];
+    var rel = this.getRelationship(ai.name);
     var interactions = [];
 
     // Buyout offer: AI wants to buy one of your properties
     if (this.state.properties.length > 0) {
       var prop = this.state.properties[Math.floor(Math.random() * this.state.properties.length)];
       if (!prop.isBuilding && !prop.isRefurbishing) {
-        var premium = 1.3 + Math.random() * 0.4; // 130-170%
+        // Better relationship = better offers
+        var premium = 1.3 + Math.random() * 0.4 + (rel > 0 ? rel / 500 : 0); // 130-170% + relationship bonus
         interactions.push({
           type: 'buyout_offer',
           ai: ai,
           title: ai.icon + ' ' + ai.name + ' — Buyout Offer',
-          description: ai.name + ' offer ' + GameData.formatMoney(Math.round(prop.currentValue * premium)) + ' for your ' + prop.name + ' (worth ' + GameData.formatMoney(prop.currentValue) + ').',
-          data: { propId: prop.id, amount: Math.round(prop.currentValue * premium) }
+          description: ai.name + ' offer ' + GameData.formatMoney(Math.round(prop.currentValue * premium)) + ' for your ' + prop.name + ' (worth ' + GameData.formatMoney(prop.currentValue) + ').' + (rel > 20 ? ' They seem friendly.' : rel < -20 ? ' They seem hostile.' : ''),
+          data: { propId: prop.id, amount: Math.round(prop.currentValue * premium), aiId: ai.name }
         });
       }
     }
 
-    // Threat: AI dominates a city you're in
+    // Threat: more likely if relationship is bad
+    var threatChance = rel < -20 ? 0.7 : 0.3; // hostile rivals threaten more
     var playerCities = [...new Set(this.state.properties.map(function(p){return p.cityId;}))];
-    if (playerCities.length > 0) {
+    if (playerCities.length > 0 && Math.random() < threatChance) {
       var cityId = playerCities[Math.floor(Math.random() * playerCities.length)];
       var city = GameData.cities.find(function(c){return c.id === cityId;});
       if (city) {
+        var threatLevel = rel < -50 ? 'furiously' : rel < -20 ? 'aggressively' : '';
         interactions.push({
           type: 'threat',
           ai: ai,
           title: ai.icon + ' ' + ai.name + ' — Market Warning',
-          description: ai.name + ' are aggressively expanding in ' + city.name + '. "This city belongs to us. Sell now or face consequences."',
-          data: { cityId: cityId }
+          description: ai.name + ' are ' + (threatLevel || 'aggressively') + ' expanding in ' + city.name + '. "This city belongs to us. Sell now or face consequences."' + (rel < -30 ? ' (They look serious this time.)' : ''),
+          data: { cityId: cityId, aiId: ai.name }
         });
       }
     }
 
-    // Alliance offer
-    if (this.state.properties.length >= 3 && ai.netWorth > 100) {
+    // Alliance offer: only if relationship is positive
+    if (this.state.properties.length >= 3 && ai.netWorth > 100 && rel >= -10) {
       interactions.push({
         type: 'alliance',
         ai: ai,
         title: ai.icon + ' ' + ai.name + ' — Alliance Proposal',
-        description: ai.name + ' propose a business alliance. Pool resources for a joint venture with shared profits.',
-        data: { amount: Math.round(Math.min(this.state.cash * 0.2, ai.netWorth * 0.1)) }
+        description: ai.name + ' propose a business alliance. Pool resources for a joint venture with shared profits.' + (rel > 30 ? ' Your strong relationship increases success odds.' : ''),
+        data: { amount: Math.round(Math.min(this.state.cash * 0.2, ai.netWorth * 0.1)), aiId: ai.name }
       });
     }
 
@@ -2481,6 +2485,10 @@ const GameEngine = {
     this.state.pendingAIInteraction = null;
     var result = { success: true, message: '' };
 
+    // Initialize relationship tracking
+    if (!this.state.aiRelationships) this.state.aiRelationships = {};
+    var aiId = data.aiId || (data.ai && data.ai.name) || '';
+
     switch (action) {
       case 'accept_buyout': {
         var propIdx = this.state.properties.findIndex(function(p){return p.id === data.propId;});
@@ -2489,42 +2497,90 @@ const GameEngine = {
           this.state.properties.splice(propIdx, 1);
           this.state.totalSaleRevenue += data.amount;
           this.state.totalPropertiesSold++;
-          result.message = 'Sold for ' + GameData.formatMoney(data.amount) + '!';
+          // Accepting a deal improves relationship
+          this.adjustRelationship(aiId, 10);
+          result.message = 'Sold for ' + GameData.formatMoney(data.amount) + '! Relationship with ' + aiId + ' improved.';
         }
         break;
       }
+      case 'reject_buyout': {
+        // Rejecting a buyout slightly annoys them
+        this.adjustRelationship(aiId, -5);
+        result.message = 'You declined. They seem disappointed.';
+        break;
+      }
       case 'reject_threat': {
-        // AI retaliates — slight market pressure on that city
+        // Rejecting a threat triggers REAL retaliation based on relationship
+        this.adjustRelationship(aiId, -15);
+        var rel = this.getRelationship(aiId);
         if (data.cityId) {
+          // Price manipulation in that city
           var market = this.state.marketProperties[data.cityId] || [];
-          market.forEach(function(p) { p.currentValue = Math.round(p.currentValue * 0.95); });
-          result.message = 'You stood your ground. They retaliated — prices dipped 5% in the city.';
+          market.forEach(function(p) { p.currentValue = Math.round(p.currentValue * 1.08); }); // prices go UP (bad for buyer)
+
+          // If relationship is very negative, additional retaliation
+          var extraMsg = '';
+          if (rel < -30) {
+            // Poach a tenant — one of your rented properties in that city loses its tenant
+            var cityProps = this.state.properties.filter(function(p) {
+              return p.cityId === data.cityId && p.isRented;
+            });
+            if (cityProps.length > 0) {
+              var victim = cityProps[Math.floor(Math.random() * cityProps.length)];
+              victim.isRented = false;
+              victim.tenant = null;
+              extraMsg = ' They poached your tenant from ' + victim.name + '!';
+            }
+          }
+          if (rel < -50) {
+            // Reputation damage — they spread rumors
+            this.state.reputation = Math.max(0, (this.state.reputation || 50) - 3);
+            extraMsg += ' They spread rumors about you (-3 reputation).';
+          }
+          result.message = 'You stood your ground. They drove prices up 8% in the city.' + extraMsg;
         }
         break;
       }
       case 'accept_alliance': {
         if (this.state.cash >= data.amount) {
           this.state.cash -= data.amount;
-          // Alliance has 70% chance of profit, 30% loss
-          if (Math.random() < 0.7) {
+          // Alliance success improved by good relationship
+          var rel = this.getRelationship(aiId);
+          var successChance = 0.7 + (rel / 500); // -100 rel = 50% success, +100 rel = 90%
+          if (Math.random() < successChance) {
             var profit = Math.round(data.amount * (0.3 + Math.random() * 0.5));
             this.state.cash += data.amount + profit;
             result.message = 'Alliance profitable! Earned ' + GameData.formatMoney(profit) + '.';
           } else {
             result.message = 'Alliance failed. Lost ' + GameData.formatMoney(data.amount) + '.';
           }
+          this.adjustRelationship(aiId, 8);
           if (!this.state.reputation) this.state.reputation = 50;
           this.state.reputation = Math.min(100, this.state.reputation + 3);
         }
         break;
       }
       case 'decline':
+        this.adjustRelationship(aiId, -3);
         result.message = 'You declined the offer.';
         break;
     }
 
     this.save();
     return result;
+  },
+
+  // Relationship tracking helpers
+  adjustRelationship: function(aiName, delta) {
+    if (!aiName) return;
+    if (!this.state.aiRelationships) this.state.aiRelationships = {};
+    var current = this.state.aiRelationships[aiName] || 0;
+    this.state.aiRelationships[aiName] = Math.max(-100, Math.min(100, current + delta));
+  },
+
+  getRelationship: function(aiName) {
+    if (!this.state.aiRelationships) return 0;
+    return this.state.aiRelationships[aiName] || 0;
   },
 
   // ========== HISTORICAL EVENT RESOLUTION ==========

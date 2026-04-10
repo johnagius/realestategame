@@ -844,7 +844,9 @@ const GameUI = {
         { name: (s.familyIcon || '👤') + ' ' + (s.familyName || 'You'), netWorth: playerNW, color: s.familyColor || '#2C6E49', isPlayer: true }
       ];
       s.aiFamilies.forEach(function(ai) {
-        allFamilies.push({ name: ai.icon + ' ' + ai.name, netWorth: ai.netWorth, color: ai.color, isPlayer: false });
+        var rel = GameEngine.getRelationship(ai.name);
+        var relIcon = rel > 30 ? ' 🤝' : rel > 0 ? '' : rel > -30 ? '' : ' ⚔️';
+        allFamilies.push({ name: ai.icon + ' ' + ai.name + relIcon, netWorth: ai.netWorth, color: ai.color, isPlayer: false });
       });
       allFamilies.sort(function(a, b) { return b.netWorth - a.netWorth; });
       var maxNW = allFamilies[0].netWorth || 1;
