@@ -370,5 +370,231 @@ const GameGraphics = {
     s += '<rect x="3" y="-19" width="4" height="6" fill="#4a3a2a"/>';
     s += '</g>';
     return s;
+  },
+
+  // ========== WORLD MAP ==========
+  renderWorldMap(svgEl) {
+    svgEl.setAttribute('viewBox', '0 0 1600 800');
+    svgEl.innerHTML = this._worldDefs() + this._worldOcean() + this._worldContinents() + this._worldOceanDetails();
+  },
+
+  _worldDefs() {
+    return '<defs>' +
+      '<linearGradient id="w-ocean" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4A7A9B"/><stop offset="50%" stop-color="#3A6A88"/><stop offset="100%" stop-color="#2A5A78"/></linearGradient>' +
+      '<linearGradient id="w-land" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7BAA68"/><stop offset="40%" stop-color="#5A8A4E"/><stop offset="100%" stop-color="#4A7A3E"/></linearGradient>' +
+      '<linearGradient id="w-desert" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#D4C090"/><stop offset="100%" stop-color="#C0A870"/></linearGradient>' +
+      '<linearGradient id="w-ice" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E8EEF2"/><stop offset="100%" stop-color="#D0D8E0"/></linearGradient>' +
+      '<linearGradient id="w-forest" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3A6A35"/><stop offset="100%" stop-color="#2A5A28"/></linearGradient>' +
+      '<linearGradient id="w-mountain" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8A7A6A"/><stop offset="50%" stop-color="#6A6A5A"/><stop offset="100%" stop-color="#5A5A4A"/></linearGradient>' +
+      '<filter id="w-sh"><feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="#1A3A4A" flood-opacity="0.3"/></filter>' +
+      '<filter id="w-glow"><feGaussianBlur stdDeviation="4"/></filter>' +
+      '<pattern id="w-waves" width="60" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(-5)">' +
+        '<path d="M0,10 Q15,5 30,10 Q45,15 60,10" fill="none" stroke="#5A8AA8" stroke-width="0.6" opacity="0.3"/>' +
+      '</pattern>' +
+    '</defs>';
+  },
+
+  _worldOcean() {
+    var s = '<rect width="1600" height="800" fill="url(#w-ocean)"/>';
+    s += '<rect width="1600" height="800" fill="url(#w-waves)"/>';
+    // Depth shading
+    s += '<ellipse cx="300" cy="700" rx="300" ry="150" fill="#1A4A68" opacity="0.15"/>';
+    s += '<ellipse cx="1200" cy="500" rx="200" ry="250" fill="#1A4A68" opacity="0.1"/>';
+    // Latitude/longitude grid
+    s += '<g stroke="#6A9AB8" stroke-width="0.4" opacity="0.15">';
+    for (var y = 100; y < 800; y += 100) s += '<line x1="0" y1="'+y+'" x2="1600" y2="'+y+'"/>';
+    for (var x = 100; x < 1600; x += 100) s += '<line x1="'+x+'" y1="0" x2="'+x+'" y2="800"/>';
+    // Equator
+    s += '<line x1="0" y1="400" x2="1600" y2="400" stroke="#7ABADB" stroke-width="0.8" opacity="0.2" stroke-dasharray="10,5"/>';
+    s += '</g>';
+    return s;
+  },
+
+  _worldContinents() {
+    var s = '<g filter="url(#w-sh)">';
+
+    // ===== NORTH AMERICA =====
+    s += '<path d="M80,110 C100,90 140,80 180,75 C220,70 260,72 300,80 C340,88 370,100 395,115 ' +
+      'C420,130 435,150 440,170 C445,195 440,220 430,240 C420,260 410,278 420,295 ' +
+      'C430,310 425,330 410,345 C395,358 375,365 358,370 C340,375 320,378 305,385 ' +
+      'C290,392 275,398 258,395 C240,392 222,385 208,378 C192,370 178,375 162,382 ' +
+      'C145,390 128,380 115,368 C100,355 88,338 78,318 C68,298 62,275 58,252 ' +
+      'C55,228 55,205 58,182 C62,160 68,138 78,118Z" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="1.5"/>';
+    // Rockies
+    s += '<path d="M120,180 L135,160 L145,175 L155,155 L165,172 L175,150 L185,168 L190,185" fill="url(#w-mountain)" opacity="0.5" stroke="#7A7060" stroke-width="0.5"/>';
+    // Great Lakes
+    s += '<ellipse cx="280" cy="185" rx="22" ry="10" fill="#4A7A9B" opacity="0.6"/>';
+    s += '<ellipse cx="260" cy="178" rx="15" ry="8" fill="#4A7A9B" opacity="0.5"/>';
+    // Forest regions
+    s += '<g fill="url(#w-forest)" opacity="0.3">';
+    s += '<ellipse cx="200" cy="150" rx="40" ry="20"/>';
+    s += '<ellipse cx="320" cy="160" rx="30" ry="15"/>';
+    s += '</g>';
+
+    // Greenland
+    s += '<path d="M380,50 C420,35 455,42 480,58 C495,72 490,92 475,102 C458,110 435,108 418,98 C400,88 388,70 380,50Z" fill="url(#w-ice)" stroke="#B0B8C0" stroke-width="1"/>';
+    // Ice texture
+    s += '<g stroke="#C8D0D8" stroke-width="0.5" opacity="0.4"><line x1="400" y1="60" x2="440" y2="55"/><line x1="430" y1="70" x2="470" y2="68"/></g>';
+
+    // Central America
+    s += '<path d="M260,395 L278,388 L290,395 L302,405 L310,418 L305,428 L292,425 L278,418 L265,410 L258,402Z" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="1"/>';
+    // Caribbean islands
+    s += '<ellipse cx="325" cy="375" rx="8" ry="3" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="0.5" transform="rotate(-20,325,375)"/>';
+    s += '<ellipse cx="340" cy="380" rx="6" ry="2.5" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="0.5"/>';
+    s += '<ellipse cx="350" cy="388" rx="5" ry="2" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="0.5"/>';
+
+    // ===== SOUTH AMERICA =====
+    s += '<path d="M310,430 C335,415 360,418 380,428 C400,440 415,458 425,480 C435,505 440,535 438,565 ' +
+      'C435,595 425,625 410,650 C395,672 375,688 355,695 C335,700 315,692 300,678 ' +
+      'C288,665 278,645 272,622 C266,598 262,572 260,545 C258,518 262,490 272,465 ' +
+      'C282,445 295,435 310,430Z" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="1.5"/>';
+    // Andes
+    s += '<path d="M290,470 L298,455 L305,465 L312,448 L318,462 L325,445 L330,460 L335,480" fill="url(#w-mountain)" opacity="0.4" stroke="#7A7060" stroke-width="0.5"/>';
+    // Amazon (forest)
+    s += '<ellipse cx="360" cy="490" rx="35" ry="25" fill="url(#w-forest)" opacity="0.4"/>';
+    // Amazon river
+    s += '<path d="M310,490 Q340,485 370,492 Q390,488 410,495" fill="none" stroke="#4A7A9B" stroke-width="1.5" opacity="0.4"/>';
+
+    // ===== EUROPE =====
+    s += '<path d="M610,90 C645,78 680,82 710,88 C740,95 762,80 782,88 C800,96 812,112 808,132 ' +
+      'C802,150 790,165 775,175 C758,183 740,180 722,185 C705,190 688,183 672,178 ' +
+      'C655,172 640,180 625,175 C610,168 600,152 598,135 C596,118 600,102 610,90Z" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="1.5"/>';
+    // Alps
+    s += '<path d="M680,140 L690,128 L698,138 L708,125 L715,135" fill="url(#w-mountain)" opacity="0.5" stroke="#8A7A6A" stroke-width="0.5"/>';
+    // Scandinavian peninsula
+    s += '<path d="M690,45 C710,35 730,40 742,55 C750,70 745,90 735,82 C725,75 715,78 705,70 C695,62 688,52 690,45Z" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="1"/>';
+    // UK + Ireland
+    s += '<path d="M598,100 C610,90 622,95 628,108 C632,120 625,132 615,135 C606,138 598,130 595,120 C592,110 594,104 598,100Z" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="1"/>';
+    s += '<ellipse cx="585" cy="115" rx="8" ry="12" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="0.8"/>';
+    // Iceland
+    s += '<ellipse cx="560" cy="65" rx="15" ry="10" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="0.8"/>';
+    // Mediterranean islands
+    s += '<ellipse cx="690" cy="178" rx="10" ry="4" fill="url(#w-land)" transform="rotate(15,690,178)" stroke="#4A7A3E" stroke-width="0.5"/>';
+    s += '<ellipse cx="710" cy="182" rx="8" ry="5" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="0.5"/>';
+
+    // ===== AFRICA =====
+    s += '<path d="M640,245 C670,232 700,238 728,248 C755,260 778,280 795,305 ' +
+      'C810,332 820,362 822,395 C824,428 818,462 808,492 C795,520 778,545 755,562 ' +
+      'C730,578 702,585 678,575 C655,565 638,545 625,520 C615,498 608,472 605,445 ' +
+      'C602,418 605,390 610,362 C615,335 625,310 640,288 C648,275 645,260 640,245Z" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="1.5"/>';
+    // Sahara
+    s += '<path d="M650,265 Q700,255 740,268 Q760,275 770,290 L760,300 Q720,285 680,292 Q660,298 650,290Z" fill="url(#w-desert)" opacity="0.6"/>';
+    // Nile
+    s += '<path d="M750,270 Q745,300 742,330 Q740,350 735,370" fill="none" stroke="#4A7A9B" stroke-width="1.2" opacity="0.5"/>';
+    // Congo forest
+    s += '<ellipse cx="700" cy="420" rx="30" ry="20" fill="url(#w-forest)" opacity="0.4"/>';
+    // Kilimanjaro
+    s += '<path d="M760,430 L770,418 L780,430" fill="url(#w-mountain)" opacity="0.5"/>';
+    s += '<path d="M767,420 L770,414 L773,420" fill="#E8EEF2" opacity="0.6"/>';
+    // Madagascar
+    s += '<path d="M820,475 C828,465 835,470 835,485 C835,500 830,510 822,512 C815,505 812,490 820,475Z" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="0.8"/>';
+
+    // ===== MIDDLE EAST =====
+    s += '<path d="M790,218 C812,208 835,215 850,228 C862,242 868,260 862,278 ' +
+      'C855,295 840,305 822,300 C805,295 792,280 785,262 C780,245 782,228 790,218Z" fill="url(#w-desert)" stroke="#B0A070" stroke-width="1.2"/>';
+
+    // ===== RUSSIA / ASIA =====
+    s += '<path d="M765,55 C820,38 890,30 960,35 C1030,42 1095,58 1155,52 ' +
+      'C1200,48 1240,60 1260,78 C1275,95 1270,118 1255,135 C1238,152 1215,148 1192,155 ' +
+      'C1168,162 1142,155 1118,162 C1092,168 1065,162 1038,168 C1012,172 985,165 958,170 ' +
+      'C932,175 905,168 880,175 C855,180 830,172 808,180 C790,185 775,178 762,168 ' +
+      'C748,155 742,138 740,118 C738,98 745,75 765,55Z" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="1.5"/>';
+    // Siberian forests
+    s += '<g fill="url(#w-forest)" opacity="0.3">';
+    s += '<ellipse cx="1000" cy="80" rx="60" ry="20"/>';
+    s += '<ellipse cx="1120" cy="90" rx="50" ry="18"/>';
+    s += '</g>';
+    // Ural mountains
+    s += '<path d="M850,60 L855,48 L860,58 L865,45 L870,55 L875,42 L880,55" fill="url(#w-mountain)" opacity="0.4" stroke="#7A7060" stroke-width="0.5"/>';
+    // Himalaya
+    s += '<path d="M920,165 L930,148 L940,160 L950,142 L960,158 L970,140 L980,155 L990,145 L998,158" fill="url(#w-mountain)" opacity="0.5" stroke="#8A7A6A" stroke-width="0.8"/>';
+    // Snow caps
+    s += '<g fill="#E8EEF2" opacity="0.5">';
+    s += '<path d="M928,150 L930,145 L932,150"/>';
+    s += '<path d="M948,144 L950,138 L952,144"/>';
+    s += '<path d="M968,142 L970,136 L972,142"/>';
+    s += '</g>';
+
+    // ===== INDIA =====
+    s += '<path d="M910,260 C935,248 960,255 978,272 C992,290 1000,315 995,342 ' +
+      'C988,368 972,388 952,395 C930,400 912,392 898,375 C885,358 878,335 880,310 ' +
+      'C882,285 892,268 910,260Z" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="1.2"/>';
+    // Sri Lanka
+    s += '<ellipse cx="968" cy="400" rx="5" ry="8" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="0.6"/>';
+
+    // ===== CHINA / EAST ASIA =====
+    s += '<path d="M1020,175 C1050,165 1082,170 1108,182 C1130,195 1148,215 1155,238 ' +
+      'C1162,262 1158,288 1145,305 C1130,320 1110,328 1090,325 C1070,322 1052,312 1038,298 ' +
+      'C1025,285 1015,265 1010,245 C1005,225 1008,202 1020,175Z" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="1.2"/>';
+    // Yellow River
+    s += '<path d="M1050,200 Q1080,195 1100,205 Q1115,215 1120,230" fill="none" stroke="#4A7A9B" stroke-width="1" opacity="0.4"/>';
+
+    // ===== SOUTHEAST ASIA =====
+    s += '<path d="M1070,335 C1095,325 1120,332 1138,348 C1152,362 1158,382 1150,398 ' +
+      'C1142,412 1125,420 1108,418 C1090,415 1075,405 1068,388 C1060,372 1062,350 1070,335Z" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="1"/>';
+    // Islands
+    s += '<ellipse cx="1100" cy="430" rx="18" ry="6" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="0.6" transform="rotate(-10,1100,430)"/>';
+    s += '<ellipse cx="1130" cy="435" rx="12" ry="5" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="0.6"/>';
+    s += '<ellipse cx="1155" cy="440" rx="10" ry="4" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="0.5"/>';
+
+    // ===== JAPAN =====
+    s += '<path d="M1210,155 C1222,142 1238,148 1242,162 C1245,178 1240,198 1230,208 ' +
+      'C1220,218 1208,215 1202,202 C1198,188 1200,170 1210,155Z" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="1"/>';
+    // Hokkaido
+    s += '<ellipse cx="1225" cy="148" rx="10" ry="8" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="0.7"/>';
+
+    // ===== AUSTRALIA =====
+    s += '<path d="M1148,510 C1190,495 1235,502 1270,518 C1300,535 1318,560 1322,588 ' +
+      'C1325,615 1315,640 1295,655 C1272,668 1245,672 1218,665 C1195,658 1175,642 1162,620 ' +
+      'C1150,598 1145,572 1148,545 C1150,525 1148,515 1148,510Z" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="1.5"/>';
+    // Desert interior
+    s += '<ellipse cx="1230" cy="570" rx="50" ry="35" fill="url(#w-desert)" opacity="0.3"/>';
+    // Great Barrier Reef hint
+    s += '<path d="M1310,530 Q1320,550 1325,575 Q1328,600 1320,625" fill="none" stroke="#5ABADB" stroke-width="2" opacity="0.3" stroke-dasharray="4,3"/>';
+    // Tasmania
+    s += '<ellipse cx="1280" cy="675" rx="8" ry="6" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="0.6"/>';
+    // New Zealand
+    s += '<path d="M1380,620 C1385,610 1392,615 1390,628 C1388,640 1382,648 1378,642 C1374,635 1375,625 1380,620Z" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="0.8"/>';
+    s += '<ellipse cx="1385" cy="652" rx="4" ry="6" fill="url(#w-land)" stroke="#4A7A3E" stroke-width="0.6"/>';
+
+    // ===== ANTARCTICA hint =====
+    s += '<path d="M200,780 Q400,770 600,775 Q800,768 1000,775 Q1200,770 1400,778" fill="url(#w-ice)" opacity="0.3" stroke="#C0C8D0" stroke-width="1"/>';
+
+    s += '</g>';
+    return s;
+  },
+
+  _worldOceanDetails() {
+    var s = '';
+    // Compass rose
+    s += '<g transform="translate(1500,720)" opacity="0.5">';
+    s += '<circle r="25" fill="none" stroke="#8AAABB" stroke-width="0.8"/>';
+    s += '<circle r="20" fill="none" stroke="#8AAABB" stroke-width="0.5"/>';
+    s += '<polygon points="0,-22 3,-8 -3,-8" fill="#8AAABB"/>';
+    s += '<polygon points="0,22 3,8 -3,8" fill="#6A8A9B"/>';
+    s += '<polygon points="-22,0 -8,3 -8,-3" fill="#6A8A9B"/>';
+    s += '<polygon points="22,0 8,3 8,-3" fill="#6A8A9B"/>';
+    s += '<text y="-28" text-anchor="middle" font-size="9" fill="#8AAABB" font-weight="700" font-family="serif">N</text>';
+    s += '<text y="36" text-anchor="middle" font-size="7" fill="#7A9AAB" font-family="serif">S</text>';
+    s += '<text x="32" y="4" text-anchor="middle" font-size="7" fill="#7A9AAB" font-family="serif">E</text>';
+    s += '<text x="-32" y="4" text-anchor="middle" font-size="7" fill="#7A9AAB" font-family="serif">W</text>';
+    s += '</g>';
+
+    // Ocean labels
+    s += '<g font-family="serif" font-style="italic" fill="#5A8AA8" opacity="0.2" font-weight="700">';
+    s += '<text x="200" y="550" font-size="18" letter-spacing="8">ATLANTIC</text>';
+    s += '<text x="480" y="700" font-size="14" letter-spacing="6">OCEAN</text>';
+    s += '<text x="1050" y="480" font-size="16" letter-spacing="8">PACIFIC</text>';
+    s += '<text x="850" y="650" font-size="14" letter-spacing="6">INDIAN OCEAN</text>';
+    s += '</g>';
+
+    // Shipping routes (dotted)
+    s += '<g fill="none" stroke="#6A9AB8" stroke-width="0.8" opacity="0.12" stroke-dasharray="6,4">';
+    s += '<path d="M350,350 Q450,400 580,280"/>';
+    s += '<path d="M680,280 Q780,350 900,300"/>';
+    s += '<path d="M950,350 Q1050,420 1150,380"/>';
+    s += '</g>';
+
+    return s;
   }
 };
