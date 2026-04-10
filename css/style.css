@@ -1996,67 +1996,82 @@ h4 { font-size: 1rem; }
 #world-map-pins {
   position: absolute;
   inset: 0;
+  pointer-events: none;
 }
 
-.map-pin {
+/* Pin group (dot + leader + label) */
+.map-pin-group { pointer-events: none; }
+
+/* The dot sits exactly at the city position */
+.map-pin-dot-wrap {
   position: absolute;
-  transform: translate(-50%, -100%);
+  transform: translate(-50%, -50%);
+  z-index: 4;
   cursor: pointer;
-  text-align: center;
-  transition: transform 0.2s ease;
-  z-index: 2;
-}
-
-.map-pin:hover {
-  transform: translate(-50%, -100%) scale(1.25);
-  z-index: 10;
+  pointer-events: auto;
+  padding: 4px; /* larger click target */
 }
 
 .map-pin-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #C8A858, #8A6828);
   border: 1.5px solid #6A5020;
-  margin: 0 auto;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,220,140,0.4);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5), 0 0 6px rgba(200,168,88,0.3);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .map-pin-dot.owned {
   background: radial-gradient(circle at 35% 35%, #5AAA48, #2A7A20);
   border-color: #1A5A12;
-  width: 12px;
-  height: 12px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.4), 0 0 6px rgba(42,122,32,0.4), inset 0 1px 2px rgba(140,255,120,0.3);
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5), 0 0 8px rgba(42,122,32,0.5);
 }
 
-.map-pin:hover .map-pin-dot {
-  transform: scale(1.4);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5), 0 0 8px rgba(200,168,88,0.5);
+.map-pin-dot-wrap:hover .map-pin-dot {
+  transform: scale(1.5);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6), 0 0 12px rgba(200,168,88,0.6);
+}
+
+/* Label positioned at offset from city via calc() */
+.map-pin-label-wrap {
+  position: absolute;
+  z-index: 5;
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translate(0, -50%);
+}
+.map-pin-label-wrap:hover .map-pin-label {
+  background: rgba(255,248,230,0.95);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  transform: scale(1.05);
 }
 
 .map-pin-label {
   font-size: 0.55rem;
   font-weight: 700;
-  font-family: 'Playfair Display', Georgia, serif;
-  color: #3A2A18;
-  background: rgba(248,240,225,0.88);
+  font-family: 'Palatino Linotype', 'Playfair Display', Georgia, serif;
+  color: #f2e0a0;
+  background: rgba(4,2,1,0.85);
   padding: 2px 6px;
   border-radius: 3px;
-  margin-top: 3px;
   white-space: nowrap;
-  text-shadow: none;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-  border: 1px solid rgba(90,74,56,0.15);
-  letter-spacing: 0.3px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  border: 0.5px solid rgba(200,158,50,0.35);
+  letter-spacing: 0.5px;
+  transition: all 0.15s;
 }
 
 .map-pin-owned {
-  background: rgba(42,100,40,0.12);
-  border-color: rgba(42,122,32,0.3);
-  color: #1A4A12;
-  font-weight: 800;
+  color: #a0f090;
+  border-color: rgba(42,122,32,0.5);
+}
+
+/* Leader line SVG */
+.map-leader-line {
+  z-index: 3;
 }
 
 /* ---------- City Map View ---------- */

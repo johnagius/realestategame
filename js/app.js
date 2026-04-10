@@ -40,9 +40,10 @@ const App = {
 
     // Map pin clicks
     document.getElementById('world-map-pins').addEventListener('click', function(e) {
-      var pin = e.target.closest('.map-pin');
-      if (pin) {
-        var cityId = pin.getAttribute('data-city');
+      // Click on dot or label — both have data-city, or find parent group
+      var target = e.target.closest('[data-city]');
+      if (target) {
+        var cityId = target.getAttribute('data-city');
         GameUI.currentCityTab = 'market';
         document.querySelectorAll('.tab-btn').forEach(function(t) { t.classList.remove('active'); });
         document.querySelector('.tab-btn[data-tab="market"]').classList.add('active');
