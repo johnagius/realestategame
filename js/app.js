@@ -156,12 +156,18 @@ const App = {
   selectFamily(familyId) {
     GameEngine.newGame(familyId);
     this.enterGame();
+    // Start on slow auto-play by default so game feels alive
+    GameUI.setAutoAdvance(1);
   },
 
   continueGame() {
     var state = GameEngine.loadGame();
     if (state) {
       this.enterGame();
+      // Resume auto-play if it was running
+      if (state.autoAdvanceSpeed > 0) {
+        GameUI.setAutoAdvance(state.autoAdvanceSpeed);
+      }
     } else {
       GameUI.toast('No saved game found', 'error');
     }

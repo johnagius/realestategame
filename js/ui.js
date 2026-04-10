@@ -534,6 +534,8 @@ const GameUI = {
     var hasDisasters = results.disasters.length > 0;
     var hasEvents = results.events.length > 0;
     var hasCompletions = results.completedRefurbishments.length > 0 || results.completedBuilds.length > 0;
+    var speed = (GameEngine.state && GameEngine.state.autoAdvanceSpeed) || 0;
+    var isAutoPlaying = speed > 0;
 
     // Show disasters as event popups
     if (hasDisasters) {
@@ -571,8 +573,8 @@ const GameUI = {
       });
     }
 
-    // Dividends
-    if (results.dividends > 0) {
+    // Dividends - only show when not in fast auto-play
+    if (results.dividends > 0 && (!isAutoPlaying || speed <= 1)) {
       GameUI.toast('💼 Dividends received: +' + GameData.formatMoney(results.dividends), 'success');
     }
 
@@ -583,11 +585,13 @@ const GameUI = {
       });
     }
 
-    // Basic summary toast
-    if (!hasDisasters && !hasEvents && !(results.milestones && results.milestones.length)) {
-      var net = results.rentIncome - results.expenses;
-      if (results.rentIncome > 0) {
-        GameUI.toast('Month complete: +' + GameData.formatMoney(results.rentIncome) + ' rent, -' + GameData.formatMoney(results.expenses) + ' costs', net >= 0 ? 'success' : 'warning');
+    // Basic summary toast - skip during fast auto-play to reduce noise
+    if (!isAutoPlaying || speed === 1) {
+      if (!hasDisasters && !hasEvents && !(results.milestones && results.milestones.length)) {
+        var net = results.rentIncome - results.expenses;
+        if (results.rentIncome > 0 && !isAutoPlaying) {
+          GameUI.toast('Month complete: +' + GameData.formatMoney(results.rentIncome) + ' rent, -' + GameData.formatMoney(results.expenses) + ' costs', net >= 0 ? 'success' : 'warning');
+        }
       }
     }
   },
