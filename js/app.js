@@ -237,6 +237,11 @@ const App = {
     }
     GameUI.showMonthResults(results);
 
+    // Show decision card if one was generated
+    if (results.decision) {
+      GameUI.showDecision(results.decision);
+    }
+
     // Rotate tips every few months
     if (GameEngine.state.month % 3 === 0) this.showRandomTip();
 
@@ -430,6 +435,18 @@ const App = {
     GameEngine.removeAutoSellRule(propertyId);
     GameUI.toast('Auto-sell rule removed.', 'info');
     GameUI.renderProperty(propertyId);
+  },
+
+  // ---- Decision Resolution ----
+  resolveDecision(action, data) {
+    var result = GameEngine.resolveDecision(action, data);
+    GameUI.hideDecision();
+    if (result.success) {
+      GameUI.toast(result.message, action === 'pass' ? 'info' : 'success');
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+    GameUI.updateHUD();
   },
 
   // ---- Bank Savings ----

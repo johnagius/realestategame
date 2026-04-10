@@ -984,6 +984,9 @@ const GameEngine = {
     this.state.bankRateModifier += (Math.random() - 0.5) * 0.002;
     this.state.bankRateModifier = Math.max(-0.02, Math.min(0.02, this.state.bankRateModifier));
 
+    // 14b. Generate monthly decision (the "one more turn" hook)
+    results.decision = this.generateDecision();
+
     // 15. Check era transition
     results.eraChange = this.checkEraTransition();
 
@@ -1957,6 +1960,202 @@ const GameEngine = {
   getInvestmentValue() {
     if (!this.state.investments) return 0;
     return this.state.investments.reduce((sum, inv) => sum + (inv.currentUnitPrice * inv.units), 0);
+  },
+
+  // ========== DECISION SYSTEM ==========
+
+  generateDecision() {
+    // 40% chance of a decision each month (not every month — variable schedule)
+    if (Math.random() > 0.4) return null;
+    if (!this.state.properties) return null;
+
+    var decisions = [];
+    var nw = this.getNetWorth();
+    var era = this.getCurrentEra();
+    var year = this.state.year;
+    var cash = this.state.cash;
+
+    // TYPE 1: Rival bidding on property — outbid or lose it
+    if (this.state.aiFamilies && this.state.aiFamilies.length > 0) {
+      var rival = this.state.aiFamilies[Math.floor(Math.random() * this.state.aiFamilies.length)];
+      var cities = Object.keys(this.state.marketProperties);
+      var cityId = cities[Math.floor(Math.random() * cities.length)];
+      var cityMarket = this.state.marketProperties[cityId] || [];
+      if (cityMarket.length > 0) {
+        var prop = cityMarket[Math.floor(Math.random() * cityMarket.length)];
+        var premium = 1.1 + Math.random() * 0.2; // 10-30% above asking
+        decisions.push({
+          type: 'rival_bid',
+          title: rival.icon + ' ' + rival.name + ' Bidding War',
+          description: rival.name + ' want to buy ' + prop.name + '. Outbid them?',
+          choices: [
+            { label: 'Outbid (' + GameData.formatMoney(Math.round(prop.currentValue * premium)) + ')', action: 'outbid', data: { propId: prop.id, cityId: cityId, cost: Math.round(prop.currentValue * premium) } },
+            { label: 'Let them have it', action: 'pass' }
+          ]
+        });
+      }
+    }
+
+    // TYPE 2: Investment opportunity (limited time)
+    if (cash > 0) {
+      var returnPct = 5 + Math.floor(Math.random() * 15);
+      var riskPct = Math.floor(Math.random() * 40) + 10;
+      var investAmt = Math.round(cash * (0.1 + Math.random() * 0.3));
+      var ventures = ['a spice shipment', 'a cotton plantation', 'a railway expansion', 'a mining venture',
+        'a new factory', 'a shipping company', 'a land development', 'a trading expedition'];
+      if (year > 1900) ventures = ['a tech startup', 'an oil field', 'a shopping mall', 'a hotel chain',
+        'a film studio', 'a telecom company', 'a pharmaceutical lab', 'a real estate fund'];
+      var venture = ventures[Math.floor(Math.random() * ventures.length)];
+      decisions.push({
+        type: 'investment_opportunity',
+        title: '💰 Investment Opportunity',
+        description: 'A contact offers you a stake in ' + venture + '. Potential ' + returnPct + '% return, but ' + riskPct + '% chance of total loss.',
+        choices: [
+          { label: 'Invest ' + GameData.formatMoney(investAmt), action: 'invest', data: { amount: investAmt, returnPct: returnPct, riskPct: riskPct } },
+          { label: 'Too risky, pass', action: 'pass' }
+        ]
+      });
+    }
+
+    // TYPE 3: Sell offer on owned property (AI makes you an offer)
+    if (this.state.properties.length > 0) {
+      var ownedProp = this.state.properties[Math.floor(Math.random() * this.state.properties.length)];
+      if (!ownedProp.isBuilding && !ownedProp.isRefurbishing) {
+        var offerMultiplier = 1.2 + Math.random() * 0.5; // 120-170% of current value
+        var offerAmount = Math.round(ownedProp.currentValue * offerMultiplier);
+        var buyer = this.state.aiFamilies ? this.state.aiFamilies[Math.floor(Math.random() * this.state.aiFamilies.length)] : { icon: '🏢', name: 'A foreign investor' };
+        decisions.push({
+          type: 'sell_offer',
+          title: buyer.icon + ' Offer to Buy',
+          description: buyer.name + ' offers ' + GameData.formatMoney(offerAmount) + ' for your ' + ownedProp.name + ' (worth ' + GameData.formatMoney(ownedProp.currentValue) + ').',
+          choices: [
+            { label: 'Accept offer (sell)', action: 'accept_sell', data: { propId: ownedProp.id, amount: offerAmount } },
+            { label: 'Decline — not for sale', action: 'pass' }
+          ]
+        });
+      }
+    }
+
+    // TYPE 4: Political/tax event choice
+    if (Math.random() < 0.5) {
+      var taxChange = Math.random() < 0.5;
+      if (taxChange) {
+        decisions.push({
+          type: 'political',
+          title: '📜 Government Policy Change',
+          description: 'New legislation proposed: lower property tax but higher transaction fees, or keep current rates?',
+          choices: [
+            { label: 'Lobby for lower tax (-0.2% property tax, +2% transaction fee)', action: 'lobby_low_tax' },
+            { label: 'Support current system', action: 'pass' }
+          ]
+        });
+      }
+    }
+
+    // TYPE 5: Philanthropy / reputation
+    if (nw > 1000 && Math.random() < 0.3) {
+      var donationAmt = Math.round(nw * 0.02);
+      decisions.push({
+        type: 'philanthropy',
+        title: '🎗️ Philanthropic Opportunity',
+        description: 'A charity requests ' + GameData.formatMoney(donationAmt) + ' to build a hospital. Your reputation would grow significantly.',
+        choices: [
+          { label: 'Donate ' + GameData.formatMoney(donationAmt), action: 'donate', data: { amount: donationAmt } },
+          { label: 'Decline politely', action: 'pass' }
+        ]
+      });
+    }
+
+    // Pick one decision (not all)
+    if (decisions.length === 0) return null;
+    var chosen = decisions[Math.floor(Math.random() * decisions.length)];
+
+    // Store pending decision
+    this.state.pendingDecision = chosen;
+    return chosen;
+  },
+
+  resolveDecision(choiceAction, choiceData) {
+    var decision = this.state.pendingDecision;
+    if (!decision) return { success: false, message: 'No pending decision.' };
+
+    this.state.pendingDecision = null;
+    var result = { success: true, message: '' };
+
+    switch (choiceAction) {
+      case 'outbid': {
+        var d = choiceData || decision.choices[0].data;
+        if (this.state.cash < d.cost) {
+          result.message = 'Not enough cash to outbid!';
+          result.success = false;
+        } else {
+          // Force-buy at premium price
+          var buyResult = this.buyProperty(d.propId, d.cityId);
+          if (buyResult.success) {
+            result.message = 'You outbid the rival! ' + buyResult.message;
+          } else {
+            result.message = 'Bid failed: ' + buyResult.message;
+            result.success = false;
+          }
+        }
+        break;
+      }
+      case 'invest': {
+        var d = choiceData || decision.choices[0].data;
+        if (this.state.cash < d.amount) {
+          result.message = 'Not enough cash!';
+          result.success = false;
+        } else {
+          this.state.cash -= d.amount;
+          // Resolve: risk% chance of losing it all, otherwise get return%
+          if (Math.random() * 100 < d.riskPct) {
+            result.message = '💸 The venture failed! You lost ' + GameData.formatMoney(d.amount) + '.';
+          } else {
+            var profit = Math.round(d.amount * d.returnPct / 100);
+            this.state.cash += d.amount + profit;
+            result.message = '📈 The venture succeeded! Profit: ' + GameData.formatMoney(profit) + '.';
+          }
+        }
+        break;
+      }
+      case 'accept_sell': {
+        var d = choiceData || decision.choices[0].data;
+        var propIdx = this.state.properties.findIndex(p => p.id === d.propId);
+        if (propIdx >= 0) {
+          this.state.properties.splice(propIdx, 1);
+          this.state.cash += d.amount;
+          this.state.totalSaleRevenue += d.amount;
+          this.state.totalPropertiesSold++;
+          result.message = 'Property sold for ' + GameData.formatMoney(d.amount) + '!';
+        }
+        break;
+      }
+      case 'lobby_low_tax': {
+        // Reduce property tax rate slightly, increase transaction costs
+        GameData.cities.forEach(c => { c.taxRate = Math.min(0.15, c.taxRate + 0.02); });
+        result.message = 'Property tax reduced, but transaction fees are now higher.';
+        break;
+      }
+      case 'donate': {
+        var d = choiceData || decision.choices[0].data;
+        if (this.state.cash >= d.amount) {
+          this.state.cash -= d.amount;
+          if (!this.state.reputation) this.state.reputation = 50;
+          this.state.reputation = Math.min(100, this.state.reputation + 8);
+          result.message = '🎗️ Donated ' + GameData.formatMoney(d.amount) + '. Reputation increased!';
+        } else {
+          result.message = 'Not enough cash.';
+          result.success = false;
+        }
+        break;
+      }
+      case 'pass':
+        result.message = 'You passed on this opportunity.';
+        break;
+    }
+
+    this.save();
+    return result;
   },
 
   // ========== UPDATED NET WORTH ==========

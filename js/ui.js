@@ -683,6 +683,42 @@ const GameUI = {
     if (el) el.textContent = '💡 ' + text;
   },
 
+  // ---- Decision Card ----
+  showDecision(decision) {
+    if (!decision) {
+      document.getElementById('decision-panel').classList.add('hidden');
+      return;
+    }
+
+    var html = '<div class="decision-title">' + decision.title + '</div>' +
+      '<div class="decision-desc">' + decision.description + '</div>' +
+      '<div class="decision-choices">';
+
+    for (var i = 0; i < decision.choices.length; i++) {
+      var c = decision.choices[i];
+      html += '<button class="decision-choice" onclick="App.resolveDecision(\'' + c.action + '\', ' + (c.data ? JSON.stringify(c.data).replace(/"/g, '&quot;') : 'null') + ')">' + c.label + '</button>';
+    }
+    html += '</div>';
+
+    document.getElementById('decision-card').innerHTML = html;
+    document.getElementById('decision-panel').classList.remove('hidden');
+
+    // Auto-play pauses during decisions
+    if (GameEngine.state.autoAdvanceSpeed > 0) {
+      this._savedSpeed = GameEngine.state.autoAdvanceSpeed;
+      this.setAutoAdvance(0);
+    }
+  },
+
+  hideDecision() {
+    document.getElementById('decision-panel').classList.add('hidden');
+    // Resume auto-play if it was running
+    if (this._savedSpeed && this._savedSpeed > 0) {
+      this.setAutoAdvance(this._savedSpeed);
+      this._savedSpeed = 0;
+    }
+  },
+
   // ---- Show modal ----
   showModal(title, bodyHTML, actions) {
     var modal = document.getElementById('modal-content');
