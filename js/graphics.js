@@ -1558,5 +1558,305 @@ const GameGraphics = {
     s += '</g>';
 
     return s;
+  },
+
+  // ===== HONG KONG =====
+  _city_hong_kong() {
+    var s = '';
+    s += '<rect width="1200" height="500" fill="url(#c-sky-sunset)"/>';
+
+    // Victoria Peak (mountain backdrop)
+    s += '<path d="M0,250 Q200,150 400,200 Q600,140 800,190 Q1000,160 1200,220 L1200,300 L0,300Z" fill="#3A5A3A" opacity="0.5"/>';
+
+    // Dense skyscraper skyline
+    var hkBuildings = [];
+    for (var bx = 10; bx < 1190; bx += 22) {
+      var bh = 60 + Math.sin(bx * 0.04) * 40 + Math.cos(bx * 0.07) * 20;
+      if (bx > 500 && bx < 700) bh += 40; // IFC area taller
+      hkBuildings.push([bx, 280-bh, 18, bh]);
+    }
+    for (var i = 0; i < hkBuildings.length; i++) {
+      var b = hkBuildings[i];
+      var shade = 160 + Math.floor(Math.sin(i * 0.7) * 30);
+      var color = 'rgb('+shade+','+(shade+10)+','+(shade+20)+')';
+      s += '<rect x="'+b[0]+'" y="'+b[1]+'" width="'+b[2]+'" height="'+b[3]+'" fill="'+color+'" stroke="rgb('+(shade-20)+','+(shade-10)+','+shade+')" stroke-width="0.4"/>';
+      // Lit windows (night feel with sunset)
+      s += '<g fill="#F0D870" opacity="0.3">';
+      for (var wy = b[1]+3; wy < b[1]+b[3]-3; wy += 5) {
+        if (Math.random() > 0.3) s += '<rect x="'+(b[0]+2)+'" y="'+wy+'" width="'+(b[2]-4)+'" height="2"/>';
+      }
+      s += '</g>';
+    }
+
+    // IFC Tower (tallest, center)
+    s += '<rect x="580" y="100" width="22" height="180" fill="#B0C0D0" stroke="#90A0B0" stroke-width="0.8"/>';
+    s += '<polygon points="580,100 591,80 602,100" fill="#C0D0E0"/>';
+
+    // Victoria Harbour
+    s += '<path d="M0,300 L1200,300 L1200,340 L0,340Z" fill="url(#c-water)"/>';
+    // Night reflections
+    s += '<g opacity="0.2">';
+    for (var rx = 20; rx < 1180; rx += 25) {
+      var rh = 5 + Math.random() * 10;
+      s += '<rect x="'+rx+'" y="305" width="2" height="'+rh+'" fill="#F0D870"/>';
+    }
+    s += '</g>';
+
+    // Star Ferry
+    s += '<g transform="translate(600, 315)">';
+    s += '<rect x="0" y="0" width="20" height="6" fill="#F0F0E8" rx="2" stroke="#888" stroke-width="0.5"/>';
+    s += '<rect x="2" y="-3" width="16" height="4" fill="#2A8A2A" rx="1"/>';
+    s += '</g>';
+
+    // Kowloon side (far shore buildings)
+    s += '<g opacity="0.4">';
+    for (var kx = 0; kx < 1200; kx += 30) {
+      var kh = 30 + Math.sin(kx * 0.05) * 15;
+      s += '<rect x="'+kx+'" y="'+(340-kh)+'" width="25" height="'+kh+'" fill="#8A9AA8"/>';
+    }
+    s += '</g>';
+
+    // Ground
+    s += '<rect x="0" y="340" width="1200" height="160" fill="#5A6A58"/>';
+
+    // Junk boat
+    s += '<g transform="translate(300, 310)" opacity="0.6">';
+    s += '<polygon points="0,8 15,0 30,8 25,12 5,12" fill="#8A2A1A"/>';
+    s += '<line x1="15" y1="0" x2="15" y2="-12" stroke="#6A4A3A" stroke-width="1"/>';
+    s += '<polygon points="15,-12 25,-5 15,0" fill="#C84A2A" opacity="0.7"/>';
+    s += '</g>';
+
+    return s;
+  },
+
+  // ===== BARCELONA =====
+  _city_barcelona() {
+    var s = '';
+    s += '<rect width="1200" height="500" fill="#A8D0E8"/>';
+    s += '<g opacity="0.3"><ellipse cx="250" cy="50" rx="80" ry="16" fill="#fff"/><ellipse cx="700" cy="40" rx="100" ry="18" fill="#fff"/></g>';
+
+    // === SAGRADA FAMILIA ===
+    s += '<g transform="translate(500, 80)">';
+    // Main facade
+    s += '<rect x="0" y="60" width="100" height="120" fill="#D8C8A8" stroke="#B8A888" stroke-width="1"/>';
+    // Towers (4 main spires)
+    s += '<g fill="#D0C098" stroke="#B0A078" stroke-width="0.8">';
+    s += '<rect x="5" y="0" width="12" height="100" rx="4"/><polygon points="5,0 11,-20 17,0" fill="#C8B888"/>';
+    s += '<rect x="25" y="10" width="12" height="90" rx="4"/><polygon points="25,10 31,-8 37,10" fill="#C8B888"/>';
+    s += '<rect x="63" y="10" width="12" height="90" rx="4"/><polygon points="63,10 69,-8 75,10" fill="#C8B888"/>';
+    s += '<rect x="83" y="0" width="12" height="100" rx="4"/><polygon points="83,0 89,-20 95,0" fill="#C8B888"/>';
+    s += '</g>';
+    // Nativity facade detail
+    s += '<path d="M20,60 L50,40 L80,60" fill="none" stroke="#B8A888" stroke-width="1"/>';
+    // Rose window
+    s += '<circle cx="50" cy="75" r="10" fill="#88AAC8" stroke="#A09878" stroke-width="0.8"/>';
+    // Door
+    s += '<rect x="38" y="140" width="24" height="40" fill="#5A4A3A" rx="12" ry="12"/>';
+    // Organic Gaudi texture hints
+    s += '<g stroke="#C0B090" stroke-width="0.3" fill="none" opacity="0.5">';
+    for (var gy = 65; gy < 170; gy += 8) {
+      s += '<path d="M5,'+gy+' Q50,'+(gy-3)+' 95,'+gy+'" />';
+    }
+    s += '</g>';
+    s += '</g>';
+
+    // Mediterranean buildings
+    for (var bx = 0; bx < 1200; bx += 50) {
+      if (bx > 470 && bx < 630) continue;
+      var bh = 45 + Math.sin(bx * 0.06) * 15;
+      var by = 260 - bh;
+      var colors = ['#E8D0A8','#D8C098','#E0C8A0','#F0D8B0','#D0B888'];
+      var cl = colors[Math.floor(bx / 50) % colors.length];
+      s += '<rect x="'+bx+'" y="'+by+'" width="44" height="'+bh+'" fill="'+cl+'" stroke="#C0A880" stroke-width="0.5"/>';
+      // Tiled roof
+      s += '<path d="M'+(bx-1)+','+by+' L'+(bx+22)+','+(by-6)+' L'+(bx+45)+','+by+'" fill="#C07848" stroke="#A05830" stroke-width="0.4"/>';
+      // Windows
+      for (var wy = by + 8; wy < by + bh - 8; wy += 13) {
+        for (var wx = bx + 6; wx < bx + 38; wx += 12) {
+          s += '<rect x="'+wx+'" y="'+wy+'" width="6" height="8" fill="#88B8D0" stroke="#B0A080" stroke-width="0.3"/>';
+        }
+      }
+      // Balcony (some buildings)
+      if (bx % 100 < 50) {
+        var balY = by + 20;
+        s += '<line x1="'+(bx+5)+'" y1="'+balY+'" x2="'+(bx+39)+'" y2="'+balY+'" stroke="#4A4A4A" stroke-width="0.8"/>';
+        s += '<g fill="#3A7A3A" opacity="0.5">';
+        s += '<ellipse cx="'+(bx+15)+'" cy="'+(balY-2)+'" rx="4" ry="3"/>';
+        s += '<ellipse cx="'+(bx+30)+'" cy="'+(balY-2)+'" rx="4" ry="3"/>';
+        s += '</g>';
+      }
+    }
+
+    // Mediterranean Sea
+    s += '<rect x="0" y="300" width="1200" height="200" fill="url(#c-water)"/>';
+    // Beach
+    s += '<rect x="0" y="295" width="1200" height="8" fill="#E8D8B0"/>';
+
+    // La Rambla (tree-lined boulevard)
+    s += '<rect x="0" y="260" width="1200" height="40" fill="url(#c-road)" opacity="0.6"/>';
+    s += '<g fill="#4A8A38">';
+    for (var tx = 20; tx < 1180; tx += 30) {
+      s += '<ellipse cx="'+tx+'" cy="262" rx="10" ry="8"/>';
+    }
+    s += '</g>';
+
+    return s;
+  },
+
+  // ===== AMSTERDAM =====
+  _city_amsterdam() {
+    var s = '';
+    s += '<rect width="1200" height="500" fill="url(#c-sky)"/>';
+    s += '<g opacity="0.4"><ellipse cx="300" cy="50" rx="100" ry="20" fill="#E0E0E0"/><ellipse cx="800" cy="40" rx="90" ry="18" fill="#E0E0E0"/></g>';
+
+    // Canal houses - tall narrow buildings with distinctive gable tops
+    var gableTypes = ['step','bell','neck','spout','triangle'];
+    for (var hx = 20; hx < 1180; hx += 38) {
+      var hh = 60 + Math.sin(hx * 0.08) * 12;
+      var hy = 230 - hh;
+      var gable = gableTypes[Math.floor(hx / 38) % gableTypes.length];
+      var colors = ['#C85838','#A04828','#8A3818','#D08858','#B06038','#C87048'];
+      var cl = colors[Math.floor(hx / 38) % colors.length];
+
+      s += '<rect x="'+hx+'" y="'+hy+'" width="32" height="'+hh+'" fill="'+cl+'" stroke="#6A3818" stroke-width="0.6"/>';
+
+      // Gable shapes
+      var gx = hx, gw = 32;
+      if (gable === 'step') {
+        s += '<path d="M'+gx+','+hy+' L'+gx+','+(hy-5)+' L'+(gx+5)+','+(hy-5)+' L'+(gx+5)+','+(hy-10)+' L'+(gx+11)+','+(hy-10)+' L'+(gx+16)+','+(hy-18)+' L'+(gx+21)+','+(hy-10)+' L'+(gx+27)+','+(hy-10)+' L'+(gx+27)+','+(hy-5)+' L'+(gx+32)+','+(hy-5)+' L'+(gx+32)+','+hy+'Z" fill="'+cl+'" stroke="#6A3818" stroke-width="0.5"/>';
+      } else if (gable === 'bell') {
+        s += '<path d="M'+gx+','+hy+' Q'+(gx+16)+','+(hy-22)+' '+(gx+32)+','+hy+'" fill="'+cl+'" stroke="#6A3818" stroke-width="0.5"/>';
+      } else {
+        s += '<polygon points="'+gx+','+hy+' '+(gx+16)+','+(hy-15)+' '+(gx+32)+','+hy+'" fill="'+cl+'" stroke="#6A3818" stroke-width="0.5"/>';
+      }
+
+      // Windows (tall, narrow Dutch style)
+      for (var wy = hy + 6; wy < hy + hh - 8; wy += 14) {
+        s += '<rect x="'+(hx+4)+'" y="'+wy+'" width="10" height="11" fill="#8AB0C8" stroke="#7A4A28" stroke-width="0.3"/>';
+        s += '<rect x="'+(hx+18)+'" y="'+wy+'" width="10" height="11" fill="#8AB0C8" stroke="#7A4A28" stroke-width="0.3"/>';
+        // Cross bars
+        s += '<line x1="'+(hx+9)+'" y1="'+wy+'" x2="'+(hx+9)+'" y2="'+(wy+11)+'" stroke="#7A4A28" stroke-width="0.3"/>';
+        s += '<line x1="'+(hx+23)+'" y1="'+wy+'" x2="'+(hx+23)+'" y2="'+(wy+11)+'" stroke="#7A4A28" stroke-width="0.3"/>';
+      }
+
+      // Hook beam at top
+      s += '<line x1="'+(hx+16)+'" y1="'+(hy-5)+'" x2="'+(hx+16)+'" y2="'+(hy-10)+'" stroke="#5A3A1A" stroke-width="1"/>';
+    }
+
+    // Canals
+    s += '<rect x="0" y="290" width="1200" height="30" fill="url(#c-water)"/>';
+    // Canal reflections
+    s += '<g opacity="0.15">';
+    for (var rx = 20; rx < 1180; rx += 38) {
+      s += '<rect x="'+rx+'" y="292" width="30" height="25" fill="#C85838" rx="1"/>';
+    }
+    s += '</g>';
+
+    // Bridges
+    for (var bridgeX = 150; bridgeX < 1100; bridgeX += 200) {
+      s += '<path d="M'+bridgeX+',290 Q'+(bridgeX+20)+',280 '+(bridgeX+40)+',290" fill="none" stroke="#8A8078" stroke-width="2.5"/>';
+      s += '<rect x="'+(bridgeX-2)+'" y="288" width="44" height="3" fill="#9A9088"/>';
+    }
+
+    // Ground
+    s += '<rect x="0" y="320" width="1200" height="180" fill="#8A7A68"/>';
+    // Bicycle lane
+    s += '<rect x="0" y="320" width="1200" height="8" fill="#C85030" opacity="0.4"/>';
+
+    // Bicycles
+    for (var bkx = 50; bkx < 1150; bkx += 120) {
+      s += '<g transform="translate('+bkx+', 325)" opacity="0.5">';
+      s += '<circle cx="0" cy="0" r="3" fill="none" stroke="#333" stroke-width="0.8"/>';
+      s += '<circle cx="8" cy="0" r="3" fill="none" stroke="#333" stroke-width="0.8"/>';
+      s += '<line x1="0" y1="0" x2="4" y2="-4" stroke="#333" stroke-width="0.6"/>';
+      s += '<line x1="4" y1="-4" x2="8" y2="0" stroke="#333" stroke-width="0.6"/>';
+      s += '</g>';
+    }
+
+    // Tulips in window boxes
+    s += '<g opacity="0.6">';
+    for (var tlx = 60; tlx < 1150; tlx += 76) {
+      s += '<rect x="'+tlx+'" y="225" width="15" height="4" fill="#5A4030"/>';
+      s += '<circle cx="'+(tlx+3)+'" cy="223" r="2" fill="#E03050"/>';
+      s += '<circle cx="'+(tlx+8)+'" cy="222" r="2" fill="#F0E030"/>';
+      s += '<circle cx="'+(tlx+12)+'" cy="223" r="2" fill="#E03050"/>';
+    }
+    s += '</g>';
+
+    return s;
+  },
+
+  // ===== MUMBAI =====
+  _city_mumbai() {
+    var s = '';
+    // Hazy tropical sky
+    s += '<rect width="1200" height="500" fill="#D0D8D8"/>';
+    s += '<rect width="1200" height="250" fill="#B8CCE0" opacity="0.4"/>';
+
+    // === GATEWAY OF INDIA ===
+    s += '<g transform="translate(500, 160)">';
+    s += '<rect x="0" y="30" width="80" height="80" fill="#D8C8A0" stroke="#B0A078" stroke-width="1"/>';
+    // Central arch
+    s += '<path d="M25,110 L25,50 Q40,30 55,50 L55,110" fill="#8A7A5A" stroke="#A09068" stroke-width="0.8"/>';
+    // Towers
+    s += '<rect x="-5" y="10" width="15" height="100" fill="#D0C098" stroke="#B0A078" stroke-width="0.8"/>';
+    s += '<rect x="70" y="10" width="15" height="100" fill="#D0C098" stroke="#B0A078" stroke-width="0.8"/>';
+    // Domes
+    s += '<ellipse cx="2" cy="10" rx="8" ry="8" fill="#D8C8A0" stroke="#B0A078" stroke-width="0.5"/>';
+    s += '<ellipse cx="77" cy="10" rx="8" ry="8" fill="#D8C8A0" stroke="#B0A078" stroke-width="0.5"/>';
+    s += '<ellipse cx="40" cy="25" rx="14" ry="12" fill="#D8C8A0" stroke="#B0A078" stroke-width="0.8"/>';
+    // Finials
+    s += '<line x1="2" y1="2" x2="2" y2="-5" stroke="#B0A078" stroke-width="1"/>';
+    s += '<line x1="77" y1="2" x2="77" y2="-5" stroke="#B0A078" stroke-width="1"/>';
+    s += '<line x1="40" y1="13" x2="40" y2="5" stroke="#B0A078" stroke-width="1"/>';
+    s += '</g>';
+
+    // Dense city buildings (mix of old and new)
+    for (var bx = 0; bx < 1200; bx += 35) {
+      if (bx > 470 && bx < 610) continue;
+      var bh = 40 + Math.sin(bx * 0.06) * 20 + Math.random() * 15;
+      var by = 270 - bh;
+      var isModern = Math.random() > 0.6;
+      if (isModern) {
+        s += '<rect x="'+bx+'" y="'+by+'" width="30" height="'+bh+'" fill="#B0B8C0" stroke="#90A0A8" stroke-width="0.5"/>';
+        s += '<g fill="#88A0B0" opacity="0.3">';
+        for (var wy = by+3; wy < by+bh-3; wy += 5) {
+          s += '<rect x="'+(bx+2)+'" y="'+wy+'" width="26" height="3"/>';
+        }
+        s += '</g>';
+      } else {
+        var oldColors = ['#D8C8A0','#C8B890','#D0C098','#E0D0A8'];
+        s += '<rect x="'+bx+'" y="'+by+'" width="30" height="'+bh+'" fill="'+oldColors[Math.floor(bx/35)%4]+'" stroke="#A09868" stroke-width="0.5"/>';
+        for (var wy = by+6; wy < by+bh-6; wy += 11) {
+          for (var wx = bx+4; wx < bx+26; wx += 10) {
+            s += '<rect x="'+wx+'" y="'+wy+'" width="6" height="7" fill="#7A98A8" stroke="#A09068" stroke-width="0.3"/>';
+          }
+        }
+      }
+    }
+
+    // Arabian Sea
+    s += '<rect x="0" y="290" width="1200" height="210" fill="url(#c-water)"/>';
+    s += '<rect x="0" y="285" width="1200" height="8" fill="#C8B8A0" opacity="0.5"/>';
+
+    // Fishing boats
+    s += '<g opacity="0.5">';
+    var boats = [100,300,700,900,1050];
+    for (var i = 0; i < boats.length; i++) {
+      var bx = boats[i];
+      s += '<path d="M'+bx+',310 Q'+(bx+10)+',305 '+(bx+20)+',310 L'+(bx+18)+',315 L'+(bx+2)+',315Z" fill="#8A6A4A"/>';
+      s += '<line x1="'+(bx+10)+'" y1="305" x2="'+(bx+10)+'" y2="295" stroke="#6A5A4A" stroke-width="0.8"/>';
+    }
+    s += '</g>';
+
+    // Auto-rickshaw
+    s += '<g transform="translate(200, 272)">';
+    s += '<rect x="0" y="0" width="10" height="8" fill="#2A8A2A" rx="2"/>';
+    s += '<rect x="10" y="1" width="8" height="6" fill="#F0E830" rx="1"/>';
+    s += '<circle cx="3" cy="10" r="2" fill="#444"/>';
+    s += '<circle cx="15" cy="10" r="2" fill="#444"/>';
+    s += '</g>';
+
+    return s;
   }
 };
