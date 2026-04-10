@@ -139,40 +139,45 @@ const Mosaic = {
     return Math.max(0, Math.min(1, elev));
   },
 
-  // Mountain ridge definitions: [x1, y1, x2, y2, width, boost] in normalized 0-1 coords
+  // Mountain ridge definitions: [x1, y1, x2, y2, width, boost]
+  // Coordinates calibrated to the 1100x550 country-path viewBox (normalized 0-1)
   _ridges: [
-    // Rocky Mountains
-    [0.085, 0.18, 0.095, 0.38, 0.025, 0.25],
-    [0.075, 0.12, 0.085, 0.18, 0.02, 0.22],
-    // Andes
-    [0.155, 0.52, 0.14, 0.65, 0.018, 0.28],
-    [0.14, 0.65, 0.155, 0.78, 0.015, 0.25],
-    [0.155, 0.78, 0.165, 0.85, 0.012, 0.2],
-    // Alps
-    [0.37, 0.28, 0.42, 0.27, 0.012, 0.18],
-    // Carpathians
-    [0.42, 0.26, 0.45, 0.28, 0.01, 0.12],
-    // Himalayas
-    [0.52, 0.35, 0.58, 0.34, 0.015, 0.32],
-    [0.58, 0.34, 0.62, 0.33, 0.012, 0.28],
-    // Tibetan Plateau
-    [0.54, 0.30, 0.62, 0.32, 0.035, 0.15],
-    // Urals
-    [0.45, 0.08, 0.45, 0.22, 0.008, 0.12],
-    // Atlas Mountains
-    [0.37, 0.40, 0.42, 0.39, 0.01, 0.12],
-    // East African Rift
-    [0.47, 0.52, 0.48, 0.62, 0.01, 0.14],
-    // Appalachians
-    [0.175, 0.30, 0.17, 0.40, 0.012, 0.1],
-    // Scandinavian Mountains
-    [0.37, 0.06, 0.40, 0.12, 0.01, 0.12],
-    // Great Dividing Range (Australia)
-    [0.73, 0.67, 0.72, 0.73, 0.008, 0.1],
-    // Caucasus
-    [0.44, 0.26, 0.47, 0.26, 0.008, 0.14],
-    // Japanese Alps
-    [0.70, 0.27, 0.71, 0.30, 0.006, 0.14],
+    // Rocky Mountains (western US/Canada, ~x:170-200 in 1100px)
+    [0.17, 0.16, 0.18, 0.25, 0.02, 0.25],
+    [0.16, 0.25, 0.17, 0.35, 0.018, 0.22],
+    // Andes (western South America)
+    [0.28, 0.50, 0.27, 0.58, 0.015, 0.28],
+    [0.27, 0.58, 0.24, 0.68, 0.012, 0.25],
+    [0.24, 0.68, 0.22, 0.78, 0.01, 0.2],
+    // Alps (Switzerland/Austria, ~x:520-550)
+    [0.48, 0.25, 0.52, 0.25, 0.01, 0.18],
+    // Carpathians (Romania, ~x:560-580)
+    [0.52, 0.25, 0.56, 0.26, 0.008, 0.12],
+    // Himalayas (Nepal/Pakistan, ~x:720-760)
+    [0.67, 0.32, 0.72, 0.34, 0.012, 0.32],
+    [0.72, 0.34, 0.75, 0.35, 0.01, 0.28],
+    // Tibetan Plateau (north of Himalayas)
+    [0.70, 0.28, 0.78, 0.32, 0.03, 0.15],
+    // Urals (Russia, ~x:550, runs N-S)
+    [0.53, 0.10, 0.54, 0.20, 0.006, 0.12],
+    // Atlas Mountains (Morocco, ~x:460-500)
+    [0.46, 0.33, 0.50, 0.35, 0.008, 0.12],
+    // East African Rift (Ethiopia/Kenya, ~x:600-630)
+    [0.60, 0.44, 0.61, 0.52, 0.008, 0.14],
+    // Appalachians (eastern US, ~x:305-330)
+    [0.29, 0.22, 0.28, 0.32, 0.01, 0.1],
+    // Scandinavian Mountains (Norway, ~x:480-550)
+    [0.48, 0.09, 0.51, 0.15, 0.008, 0.12],
+    // Great Dividing Range (E. Australia, ~x:950-970)
+    [0.91, 0.60, 0.90, 0.70, 0.007, 0.1],
+    // Caucasus (Georgia, ~x:615-630)
+    [0.62, 0.27, 0.63, 0.28, 0.006, 0.14],
+    // Japanese Alps (~x:940-960)
+    [0.86, 0.29, 0.87, 0.33, 0.005, 0.14],
+    // Hindu Kush / Karakoram (Afghanistan/Pakistan)
+    [0.67, 0.30, 0.70, 0.32, 0.01, 0.22],
+    // Drakensberg (South Africa)
+    [0.60, 0.70, 0.60, 0.74, 0.006, 0.08],
   ],
 
   // Distance from point to line segment
@@ -192,27 +197,29 @@ const Mosaic = {
     var lat = Math.abs(ny - 0.5) * 2;
     var n = this.fbm(nx * 10, ny * 10, 3); // moisture/vegetation noise
 
-    // Specific desert regions
-    // Sahara
-    if (nx > 0.37 && nx < 0.50 && ny > 0.38 && ny < 0.48) return 'desert';
-    // Arabian
-    if (nx > 0.47 && nx < 0.55 && ny > 0.36 && ny < 0.46) return 'desert';
-    // Australian outback
-    if (nx > 0.71 && nx < 0.79 && ny > 0.65 && ny < 0.74) return 'desert';
-    // Gobi
-    if (nx > 0.60 && nx < 0.68 && ny > 0.28 && ny < 0.34) return 'desert';
-    // Kalahari
-    if (nx > 0.42 && nx < 0.47 && ny > 0.60 && ny < 0.66) return 'desert';
-    // SW USA
-    if (nx > 0.09 && nx < 0.14 && ny > 0.33 && ny < 0.40) return 'desert';
+    // Specific desert regions (calibrated to 1100x550 country-path projection)
+    // Sahara (Libya, Algeria, Egypt region)
+    if (nx > 0.47 && nx < 0.61 && ny > 0.30 && ny < 0.42) return 'desert';
+    // Arabian (Saudi Arabia, Iraq)
+    if (nx > 0.59 && nx < 0.66 && ny > 0.30 && ny < 0.42) return 'desert';
+    // Australian outback (central Australia)
+    if (nx > 0.84 && nx < 0.93 && ny > 0.60 && ny < 0.72) return 'desert';
+    // Gobi (Mongolia)
+    if (nx > 0.75 && nx < 0.83 && ny > 0.23 && ny < 0.29) return 'desert';
+    // Kalahari / Namib (Namibia, Botswana)
+    if (nx > 0.53 && nx < 0.58 && ny > 0.59 && ny < 0.65) return 'desert';
+    // SW USA / Mexican desert
+    if (nx > 0.15 && nx < 0.21 && ny > 0.30 && ny < 0.40) return 'desert';
     // Patagonia steppe
-    if (nx > 0.16 && nx < 0.22 && ny > 0.80 && ny < 0.88) return 'desert';
-    // Central Asia steppe
-    if (nx > 0.48 && nx < 0.56 && ny > 0.24 && ny < 0.30) return 'desert';
+    if (nx > 0.30 && nx < 0.35 && ny > 0.72 && ny < 0.80) return 'desert';
+    // Central Asia steppe (Kazakhstan)
+    if (nx > 0.63 && nx < 0.74 && ny > 0.21 && ny < 0.29) return 'desert';
 
-    // Arctic / Antarctic
+    // Arctic / Antarctic / Greenland
     if (lat > 0.82) return 'ice';
-    if (ny < 0.06 || ny > 0.94) return 'ice';
+    if (ny < 0.08 || ny > 0.92) return 'ice';
+    // Greenland
+    if (nx > 0.30 && nx < 0.47 && ny > 0.06 && ny < 0.19) return 'ice';
 
     // Tundra
     if (lat > 0.72) return 'tundra';
@@ -222,12 +229,12 @@ const Mosaic = {
 
     // Tropical rainforest
     if (lat < 0.18 && n > 0.4) return 'tropical';
-    // Amazon specifically
-    if (nx > 0.17 && nx < 0.25 && ny > 0.52 && ny < 0.62 && n > 0.3) return 'tropical';
+    // Amazon specifically (Brazil interior)
+    if (nx > 0.30 && nx < 0.40 && ny > 0.48 && ny < 0.60 && n > 0.3) return 'tropical';
     // Congo basin
-    if (nx > 0.41 && nx < 0.48 && ny > 0.50 && ny < 0.58 && n > 0.3) return 'tropical';
-    // SE Asia
-    if (nx > 0.62 && nx < 0.72 && ny > 0.42 && ny < 0.52 && n > 0.35) return 'tropical';
+    if (nx > 0.53 && nx < 0.59 && ny > 0.47 && ny < 0.57 && n > 0.3) return 'tropical';
+    // SE Asia (Myanmar, Thailand, Vietnam)
+    if (nx > 0.75 && nx < 0.82 && ny > 0.37 && ny < 0.48 && n > 0.35) return 'tropical';
 
     // Savanna / grassland
     if (lat < 0.30 && lat > 0.12) return 'savanna';
