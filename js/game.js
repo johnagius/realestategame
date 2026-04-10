@@ -8,9 +8,14 @@ const GameEngine = {
   state: null,
 
   // ---- Initialize new game ----
-  newGame() {
+  newGame(familyId) {
+    var family = GameData.families.find(f => f.id === familyId) || GameData.families[1];
     this.state = {
-      cash: GameData.startingCash,
+      familyId: family.id,
+      familyName: family.name,
+      familyIcon: family.icon,
+      familyColor: family.color,
+      cash: family.startingCash,
       month: 0,       // months since start
       year: 2024,
       monthIndex: 0,  // 0-11
@@ -22,7 +27,7 @@ const GameEngine = {
       totalExpensesPaid: 0,
       totalPurchaseSpent: 0,
       totalSaleRevenue: 0,
-      networthHistory: [GameData.startingCash],
+      networthHistory: [family.startingCash],
       monthlyIncome: 0,
       monthlyExpenses: 0,
       activeEvents: [],     // {eventId, cityId, monthsLeft}
@@ -67,6 +72,25 @@ const GameEngine = {
         if (biz) this.state.businesses[city.id].push(biz);
       }
     });
+
+    // Initialize AI families
+    this.state.aiFamilies = GameData.aiFamilies.map(ai => ({
+      id: ai.id,
+      name: ai.name,
+      icon: ai.icon,
+      color: ai.color,
+      aggressiveness: ai.aggressiveness,
+      riskTolerance: ai.riskTolerance,
+      netWorth: ai.startingWealth,
+      propertyCount: Math.floor(ai.startingWealth / 500000),
+      monthlyIncome: Math.round(ai.startingWealth * 0.004),
+      history: [ai.startingWealth],
+      rank: 0
+    }));
+
+    // Milestones / goals
+    this.state.milestones = [];
+    this.state.monthlyGoal = null;
 
     this.save();
     return this.state;
@@ -888,7 +912,13 @@ const GameEngine = {
     this.state.bankRateModifier += (Math.random() - 0.5) * 0.002;
     this.state.bankRateModifier = Math.max(-0.02, Math.min(0.02, this.state.bankRateModifier));
 
-    // 15. Track net worth
+    // 15. Simulate AI families
+    this.simulateAIFamilies();
+
+    // 16. Check milestones
+    results.milestones = this.checkMilestones();
+
+    // 17. Track net worth
     this.state.networthHistory.push(this.getNetWorth());
     if (this.state.networthHistory.length > 120) {
       this.state.networthHistory.shift();
@@ -899,6 +929,86 @@ const GameEngine = {
 
     this.save();
     return results;
+  },
+
+  // ---- Simulate AI families ----
+  simulateAIFamilies() {
+    if (!this.state.aiFamilies) return;
+    this.state.aiFamilies.forEach(ai => {
+      // Monthly income from their properties
+      const income = ai.monthlyIncome * (0.9 + Math.random() * 0.2);
+      ai.netWorth += income;
+
+      // Occasionally buy/sell (simulated)
+      if (Math.random() < ai.aggressiveness * 0.15) {
+        const investAmount = ai.netWorth * (0.02 + Math.random() * 0.05) * ai.riskTolerance;
+        ai.netWorth += investAmount * (Math.random() - 0.4); // Could gain or lose
+        ai.propertyCount += Math.random() > 0.4 ? 1 : 0;
+      }
+
+      // Market effects hit AI too
+      const marketShift = (Math.random() - 0.48) * 0.03;
+      ai.netWorth *= (1 + marketShift);
+      ai.netWorth = Math.max(100000, Math.round(ai.netWorth));
+
+      // Grow income slowly
+      ai.monthlyIncome = Math.round(ai.monthlyIncome * (1 + (Math.random() - 0.45) * 0.02));
+
+      // Track history
+      ai.history.push(ai.netWorth);
+      if (ai.history.length > 120) ai.history.shift();
+    });
+
+    // Rank all families including player
+    const playerNW = this.getNetWorth();
+    const allFamilies = [
+      { id: 'player', netWorth: playerNW },
+      ...this.state.aiFamilies
+    ];
+    allFamilies.sort((a, b) => b.netWorth - a.netWorth);
+    allFamilies.forEach((f, i) => {
+      if (f.id === 'player') {
+        this.state.playerRank = i + 1;
+      } else {
+        const ai = this.state.aiFamilies.find(a => a.id === f.id);
+        if (ai) ai.rank = i + 1;
+      }
+    });
+  },
+
+  // ---- Check milestones ----
+  checkMilestones() {
+    if (!this.state.milestones) this.state.milestones = [];
+    const nw = this.getNetWorth();
+    const achieved = [];
+    const milestoneList = [
+      { id: 'm_500k', name: 'Half Millionaire', threshold: 500000, icon: '⭐' },
+      { id: 'm_1m', name: 'Millionaire', threshold: 1000000, icon: '🌟' },
+      { id: 'm_5m', name: 'Multi-Millionaire', threshold: 5000000, icon: '💫' },
+      { id: 'm_10m', name: 'Decamillionaire', threshold: 10000000, icon: '🏆' },
+      { id: 'm_50m', name: 'Tycoon', threshold: 50000000, icon: '👑' },
+      { id: 'm_100m', name: 'Mogul', threshold: 100000000, icon: '🎖️' },
+      { id: 'm_500m', name: 'Billionaire', threshold: 500000000, icon: '💎' },
+      { id: 'm_1b', name: 'Empire Builder', threshold: 1000000000, icon: '🏰' },
+      { id: 'm_rank1', name: 'Number One', threshold: -1, icon: '🥇' },
+      { id: 'm_10props', name: 'Portfolio Builder', threshold: -2, icon: '🏠' },
+      { id: 'm_5cities', name: 'Global Investor', threshold: -3, icon: '🌍' },
+    ];
+
+    milestoneList.forEach(m => {
+      if (this.state.milestones.includes(m.id)) return;
+      let earned = false;
+      if (m.threshold === -1) earned = this.state.playerRank === 1;
+      else if (m.threshold === -2) earned = this.state.properties.length >= 10;
+      else if (m.threshold === -3) earned = new Set(this.state.properties.map(p => p.cityId)).size >= 5;
+      else earned = nw >= m.threshold;
+
+      if (earned) {
+        this.state.milestones.push(m.id);
+        achieved.push(m);
+      }
+    });
+    return achieved;
   },
 
   // ---- Apply event effects ----

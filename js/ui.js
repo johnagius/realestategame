@@ -41,7 +41,8 @@ const GameUI = {
     const s = GameEngine.state;
     if (!s) return;
     document.getElementById('hud-cash').textContent = GameData.formatMoney(s.cash);
-    document.getElementById('hud-date').textContent = GameEngine.getDateString();
+    var dateEl = document.getElementById('hud-date');
+    dateEl.textContent = GameEngine.getDateString();
     document.getElementById('hud-networth').textContent = GameData.formatMoney(GameEngine.getNetWorth());
     // Speed controls in HUD
     document.getElementById('hud-speed').innerHTML = this.renderSpeedControls();
@@ -76,9 +77,10 @@ const GameUI = {
     cities.forEach(function(city, i) {
       var summary = GameEngine.getCitySummary(city.id);
       var inflRate = city.inflationRate !== undefined ? city.inflationRate : 0.02;
+      var lm = GameData.cityLandmarks[city.id] || {};
       html += '<div class="city-card" data-tier="' + city.tier + '" data-city="' + city.id + '" style="animation-delay:' + (i * 0.05) + 's">' +
         '<div class="city-card-header">' +
-          '<span class="city-flag">' + city.flag + '</span>' +
+          '<span class="city-flag">' + (lm.landmark || city.flag) + '</span>' +
           '<div>' +
             '<div class="city-card-name">' + city.name + '</div>' +
             '<div class="city-card-country">' + city.country + '</div>' +
@@ -449,6 +451,67 @@ const GameUI = {
             }).join('') +
           '</div>' +
         '</div>' : '');
+
+    // Wealth Leaderboard
+    if (s.aiFamilies) {
+      var playerNW = GameEngine.getNetWorth();
+      var allFamilies = [
+        { name: (s.familyIcon || '👤') + ' ' + (s.familyName || 'You'), netWorth: playerNW, color: s.familyColor || '#2C6E49', isPlayer: true }
+      ];
+      s.aiFamilies.forEach(function(ai) {
+        allFamilies.push({ name: ai.icon + ' ' + ai.name, netWorth: ai.netWorth, color: ai.color, isPlayer: false });
+      });
+      allFamilies.sort(function(a, b) { return b.netWorth - a.netWorth; });
+      var maxNW = allFamilies[0].netWorth || 1;
+
+      content.innerHTML += '<div class="finance-section">' +
+        '<div class="finance-section-title">🏆 Wealth Leaderboard</div>' +
+        '<div class="finance-card">' +
+          allFamilies.map(function(f, i) {
+            var barPct = Math.max(5, (f.netWorth / maxNW) * 100);
+            var rank = i + 1;
+            var medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '#' + rank;
+            return '<div style="margin-bottom:8px' + (f.isPlayer ? ';padding:6px;background:rgba(44,110,73,0.06);border-radius:8px;border:1.5px solid var(--primary-light)' : '') + '">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">' +
+                '<span style="font-size:0.8rem;font-weight:700' + (f.isPlayer ? ';color:var(--primary)' : '') + '">' + medal + ' ' + f.name + '</span>' +
+                '<span style="font-size:0.8rem;font-weight:800">' + GameData.formatMoneyShort(f.netWorth) + '</span>' +
+              '</div>' +
+              '<div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">' +
+                '<div style="height:100%;width:' + barPct + '%;background:' + f.color + ';border-radius:4px;transition:width 0.5s"></div>' +
+              '</div>' +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+
+      // Wealth over time chart (player vs top AI)
+      var playerHist = s.networthHistory;
+      var topAI = s.aiFamilies.reduce(function(best, ai) { return ai.netWorth > best.netWorth ? ai : best; }, s.aiFamilies[0]);
+      if (topAI && topAI.history && playerHist.length > 1) {
+        var allVals = playerHist.concat(topAI.history);
+        var chartMax = Math.max.apply(null, allVals) || 1;
+
+        content.innerHTML += '<div class="finance-section">' +
+          '<div class="finance-section-title">📈 Wealth Over Time</div>' +
+          '<div class="finance-card">' +
+            '<div style="display:flex;gap:12px;margin-bottom:8px;font-size:0.7rem;font-weight:700">' +
+              '<span style="color:' + (s.familyColor || '#2C6E49') + '">● ' + (s.familyName || 'You') + '</span>' +
+              '<span style="color:' + topAI.color + '">● ' + topAI.name + '</span>' +
+            '</div>' +
+            '<div style="position:relative;height:120px;display:flex;align-items:flex-end;gap:1px">' +
+              playerHist.map(function(v, i) {
+                var pPct = Math.max(2, (v / chartMax) * 100);
+                var aiVal = topAI.history[i] || 0;
+                var aPct = Math.max(2, (aiVal / chartMax) * 100);
+                return '<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:1px">' +
+                  '<div style="height:' + pPct + '%;background:' + (s.familyColor || '#2C6E49') + ';border-radius:2px 2px 0 0;min-height:2px;opacity:0.7"></div>' +
+                '</div>';
+              }).join('') +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }
+    }
   },
 
   // ---- Render Settings ----
@@ -471,6 +534,8 @@ const GameUI = {
     var hasDisasters = results.disasters.length > 0;
     var hasEvents = results.events.length > 0;
     var hasCompletions = results.completedRefurbishments.length > 0 || results.completedBuilds.length > 0;
+    var speed = (GameEngine.state && GameEngine.state.autoAdvanceSpeed) || 0;
+    var isAutoPlaying = speed > 0;
 
     // Show disasters as event popups
     if (hasDisasters) {
@@ -508,18 +573,25 @@ const GameUI = {
       });
     }
 
-    // Dividends
-    if (results.dividends > 0) {
+    // Dividends - only show when not in fast auto-play
+    if (results.dividends > 0 && (!isAutoPlaying || speed <= 1)) {
       GameUI.toast('💼 Dividends received: +' + GameData.formatMoney(results.dividends), 'success');
     }
 
-    // Basic summary toast
-    if (!hasDisasters && !hasEvents) {
-      var net = results.rentIncome - results.expenses;
-      if (results.rentIncome > 0) {
-        GameUI.toast('Month complete: +' + GameData.formatMoney(results.rentIncome) + ' rent, -' + GameData.formatMoney(results.expenses) + ' costs', net >= 0 ? 'success' : 'warning');
-      } else {
-        GameUI.toast('Month complete', 'info');
+    // Milestones
+    if (results.milestones) {
+      results.milestones.forEach(function(m) {
+        GameUI.toast(m.icon + ' Milestone: ' + m.name + '!', 'milestone');
+      });
+    }
+
+    // Basic summary toast - skip during fast auto-play to reduce noise
+    if (!isAutoPlaying || speed === 1) {
+      if (!hasDisasters && !hasEvents && !(results.milestones && results.milestones.length)) {
+        var net = results.rentIncome - results.expenses;
+        if (results.rentIncome > 0 && !isAutoPlaying) {
+          GameUI.toast('Month complete: +' + GameData.formatMoney(results.rentIncome) + ' rent, -' + GameData.formatMoney(results.expenses) + ' costs', net >= 0 ? 'success' : 'warning');
+        }
       }
     }
   },
@@ -573,38 +645,35 @@ const GameUI = {
     var svg = document.getElementById('world-map-svg');
     var pins = document.getElementById('world-map-pins');
 
-    // Draw simple continent shapes
-    svg.innerHTML =
-      '<rect width="1000" height="500" fill="#C8DFF0"/>' +
-      // North America
-      '<path d="M50,80 L180,60 L260,100 L280,180 L240,250 L200,280 L160,260 L120,300 L80,260 L40,200 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // South America
-      '<path d="M220,310 L280,290 L320,330 L340,400 L320,460 L280,480 L240,450 L220,380 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // Europe
-      '<path d="M420,60 L520,50 L560,80 L540,120 L520,150 L480,160 L440,140 L420,100 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // Africa
-      '<path d="M440,180 L520,170 L560,220 L580,300 L560,380 L520,420 L480,400 L440,340 L430,260 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // Asia
-      '<path d="M560,40 L700,30 L800,60 L860,100 L880,160 L840,200 L780,220 L700,210 L640,180 L580,150 L560,100 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // India
-      '<path d="M640,180 L680,200 L700,260 L680,300 L640,280 L620,240 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // Southeast Asia
-      '<path d="M720,220 L780,230 L800,280 L760,310 L720,290 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // Australia
-      '<path d="M800,340 L900,330 L940,370 L920,420 L860,440 L800,420 L790,380 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>' +
-      // Japan
-      '<path d="M850,100 L870,90 L880,120 L870,150 L855,140 Z" fill="#D4CBA8" stroke="#C4B898" stroke-width="1.5"/>';
+    // Load the detailed SVG map
+    if (!this._mapLoaded) {
+      fetch('assets/worldmap.svg')
+        .then(function(r) { return r.text(); })
+        .then(function(svgText) {
+          // Extract inner SVG content
+          var match = svgText.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
+          if (match) svg.innerHTML = match[1];
+          GameUI._mapLoaded = true;
+        })
+        .catch(function() {
+          // Fallback: simple colored map
+          svg.innerHTML = '<rect width="1200" height="600" fill="#B8D4E3"/>';
+        });
+    }
 
-    // Render city pins
+    // Render city pins with landmarks
     var pinsHTML = '';
     GameData.cities.forEach(function(city) {
       var coords = GameData.cityCoords[city.id];
       if (!coords) return;
       var summary = GameEngine.getCitySummary(city.id);
       var hasOwned = summary.owned > 0;
+      var lm = GameData.cityLandmarks[city.id] || {};
+      var pinIcon = lm.landmark || '📍';
+
       pinsHTML += '<div class="map-pin" data-city="' + city.id + '" style="left:' + coords.x + '%;top:' + coords.y + '%">' +
-        '<div class="map-pin-dot ' + (hasOwned ? 'owned' : '') + '"></div>' +
-        '<div class="map-pin-label">' + city.name + (hasOwned ? ' (' + summary.owned + ')' : '') + '</div>' +
+        '<div class="map-pin-icon">' + pinIcon + '</div>' +
+        '<div class="map-pin-label">' + city.name + (hasOwned ? ' <span style="color:var(--primary)">(' + summary.owned + ')</span>' : '') + '</div>' +
       '</div>';
     });
     pins.innerHTML = pinsHTML;

@@ -129,14 +129,45 @@ const App = {
   },
 
   startNewGame() {
-    GameEngine.newGame();
+    // Show family selection
+    document.getElementById('splash-main-btns').style.display = 'none';
+    var familySelect = document.getElementById('family-select');
+    familySelect.style.display = 'block';
+
+    var html = '';
+    GameData.families.forEach(function(f) {
+      var diffClass = f.difficulty.toLowerCase();
+      html += '<div class="family-card" onclick="App.selectFamily(\'' + f.id + '\')">' +
+        '<div class="family-card-icon">' + f.icon + '</div>' +
+        '<div class="family-card-info">' +
+          '<div class="family-card-name">' + f.name + '</div>' +
+          '<div class="family-card-desc">' + f.description + '</div>' +
+          '<div class="family-card-motto">' + f.motto + '</div>' +
+        '</div>' +
+        '<div class="family-card-meta">' +
+          '<div class="family-card-cash">' + GameData.formatMoney(f.startingCash) + '</div>' +
+          '<div class="family-card-diff diff-' + diffClass + '">' + f.difficulty + '</div>' +
+        '</div>' +
+      '</div>';
+    });
+    document.getElementById('family-cards').innerHTML = html;
+  },
+
+  selectFamily(familyId) {
+    GameEngine.newGame(familyId);
     this.enterGame();
+    // Start on slow auto-play by default so game feels alive
+    GameUI.setAutoAdvance(1);
   },
 
   continueGame() {
     var state = GameEngine.loadGame();
     if (state) {
       this.enterGame();
+      // Resume auto-play if it was running
+      if (state.autoAdvanceSpeed > 0) {
+        GameUI.setAutoAdvance(state.autoAdvanceSpeed);
+      }
     } else {
       GameUI.toast('No saved game found', 'error');
     }
@@ -258,10 +289,13 @@ const App = {
     GameUI.hideModal();
     if (GameUI.autoTimer) { clearInterval(GameUI.autoTimer); GameUI.autoTimer = null; }
     GameEngine.deleteSave();
-    GameEngine.newGame();
-    GameUI.updateHUD();
-    GameUI.showScreen('map');
-    GameUI.toast('New game started!', 'success');
+    // Go back to splash for family selection
+    document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('main-nav').classList.add('hidden');
+    document.getElementById('screen-splash').classList.add('active');
+    document.getElementById('splash-main-btns').style.display = '';
+    document.getElementById('family-select').style.display = 'none';
   },
 
   // ---- Bank / Loans ----
