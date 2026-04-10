@@ -54,19 +54,17 @@ const GameUI = {
     document.getElementById('hud-networth').textContent = GameData.formatMoney(GameEngine.getNetWorth());
     // Speed controls in HUD
     document.getElementById('hud-speed').innerHTML = this.renderSpeedControls();
-    // Goal tracker
-    var goalEl = document.getElementById('hud-goal-text');
+    // Goal + cycle in merged ticker bar (right side)
+    var goalEl = document.getElementById('hud-ticker-goal');
     if (goalEl) {
       var cycleIcons = { boom:'📈', growth:'📊', stagnation:'📉', recession:'🔻', depression:'💥' };
       var cycleLabel = cycleIcons[s.economicCycle || 'growth'] || '📊';
       var goalText = '';
       if (s.goals && s.goals.monthly) {
         var g = s.goals.monthly;
-        goalText = g.done
-          ? '<span class="goal-done">✅ ' + g.text + '</span>'
-          : '🎯 ' + g.text;
+        goalText = g.done ? '✅ Done' : '🎯 ' + g.text;
       }
-      goalEl.innerHTML = cycleLabel + ' ' + (s.economicCycle || 'growth').toUpperCase() + '  |  ' + goalText;
+      goalEl.innerHTML = cycleLabel + ' ' + (s.economicCycle || 'growth') + ' | ' + goalText;
     }
   },
 

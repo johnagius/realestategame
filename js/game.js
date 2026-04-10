@@ -759,8 +759,11 @@ const GameEngine = {
     results.propertyTax = 0;
     results.decisions = [];
 
-    // 1. Collect rent (with tenant problems and diminishing returns)
+    // 1. Collect rent (with tenant problems, diminishing returns, cycle effects)
     var rentedCount = this.state.properties.filter(p => p.isRented).length;
+    // Economic cycle rent multiplier (boom=110%, recession=85%, depression=70%)
+    var cycleRentMult = { boom:1.1, growth:1.0, stagnation:0.95, recession:0.85, depression:0.7 };
+    var rentCycleFactor = cycleRentMult[this.state.economicCycle] || 1.0;
     this.state.properties.forEach(p => {
       if (p.isRented && !p.isRefurbishing && !p.isBuilding) {
         // Diminishing returns: after 5 rented properties, each additional yields 5% less
@@ -770,12 +773,12 @@ const GameEngine = {
           diminishFactor = Math.max(0.3, 1 - (excessProps * 0.04));
         }
 
-        // Tenant problems: 8% chance per property per month
-        if (Math.random() < 0.08) {
+        // Tenant problems: 3% chance per property per month (was 8% — too frequent at scale)
+        if (Math.random() < 0.03) {
           var problemRoll = Math.random();
           if (problemRoll < 0.35) {
             // Late payment — get only 50% rent this month
-            var reducedRent = Math.round(p.monthlyRent * 0.5 * diminishFactor);
+            var reducedRent = Math.round(p.monthlyRent * 0.5 * diminishFactor * rentCycleFactor);
             this.state.cash += reducedRent;
             p.totalRentCollected += reducedRent;
             results.rentIncome += reducedRent;
@@ -796,8 +799,8 @@ const GameEngine = {
             results.tenantProblems.push({ property: p.name, type: 'dispute', loss: legalFee + p.monthlyRent });
           }
         } else {
-          // Normal rent collection with diminishing returns
-          var actualRent = Math.round(p.monthlyRent * diminishFactor);
+          // Normal rent collection with diminishing returns + cycle effect
+          var actualRent = Math.round(p.monthlyRent * diminishFactor * rentCycleFactor);
           this.state.cash += actualRent;
           p.totalRentCollected += actualRent;
           results.rentIncome += actualRent;
@@ -1466,8 +1469,11 @@ const GameEngine = {
     const existingDebt = (this.state.loans || []).reduce((s, l) => s + l.remainingBalance, 0);
     const existingPayments = (this.state.loans || []).reduce((s, l) => s + l.monthlyPayment, 0);
     const monthlyIncome = this.getMonthlyIncome();
-    // Debt-to-income cap: total loan payments can't exceed 40% of rental income
-    const paymentCapacity = Math.max(0, Math.round(monthlyIncome * 0.4) - existingPayments);
+    // Debt-to-income cap: 40% of rental income, OR 2% of net worth monthly (whichever higher)
+    // This allows new players to bootstrap with small loans
+    const incomeCapacity = Math.round(monthlyIncome * 0.4) - existingPayments;
+    const worthCapacity = Math.round(netWorth * 0.02) - existingPayments;
+    const paymentCapacity = Math.max(0, Math.max(incomeCapacity, worthCapacity));
     const offers = [];
 
     GameData.banks.forEach(bank => {
@@ -1986,7 +1992,9 @@ const GameEngine = {
     const year = this.state.year;
     const era = this.getCurrentEra();
     // Investment prices scale differently — use square root of era multiplier for gentler scaling
-    const eraScale = Math.max(0.1, Math.sqrt(era.propertyMultiplier || 1));
+    // Investment price scaling — gentler than property scaling, minimum €2 per unit
+    const rawScale = Math.sqrt(era.propertyMultiplier || 1);
+    const eraScale = Math.max(0.15, rawScale); // floor at 0.15 (gold=€8, silver=€2)
     const all = [];
 
     // Commodities - historically accurate availability

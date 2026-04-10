@@ -30,7 +30,7 @@
   --radius: 14px;
   --radius-sm: 8px;
   --radius-lg: 20px;
-  --hud-height: 56px;
+  --hud-height: 48px;
   --nav-height: 64px;
   --font-body: 'Nunito', -apple-system, sans-serif;
   --font-heading: 'Playfair Display', Georgia, serif;
@@ -129,7 +129,7 @@ h4 { font-size: 1rem; }
 }
 
 .game-screen {
-  padding-top: calc(var(--hud-height) + 48px);
+  padding-top: calc(var(--hud-height) + 28px);
   padding-bottom: calc(var(--nav-height) + 12px);
   padding-left: 12px;
   padding-right: 12px;
@@ -2183,40 +2183,45 @@ h4 { font-size: 1rem; }
 }
 
 /* ---------- Event Ticker ---------- */
+/* Combined ticker + goals bar */
 .hud-ticker {
   position: fixed;
   top: var(--hud-height);
   left: 0;
   right: 0;
-  height: 22px;
+  height: 24px;
   background: linear-gradient(90deg, #2B1810, #3A2818, #2B1810);
   color: #F0D890;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  padding: 0 12px;
   z-index: 890;
   overflow: hidden;
   border-bottom: 1px solid #5A4A38;
 }
 
-.hud-goals {
-  position: fixed;
-  top: calc(var(--hud-height) + 22px);
-  left: 0;
-  right: 0;
-  height: 22px;
-  background: linear-gradient(90deg, rgba(44,110,73,0.08), rgba(250,243,224,0.95), rgba(44,110,73,0.08));
-  color: #2C6E49;
-  font-size: 0.65rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 889;
-  border-bottom: 1px solid #B8D0B0;
+#hud-ticker-text {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+#hud-ticker-goal {
+  flex: 1;
+  text-align: right;
+  color: #A0D890;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Goals bar hidden — merged into ticker */
+.hud-goals { display: none !important; }
 
 .hud-goals .goal-done {
   color: #D4A84B;
@@ -2225,7 +2230,7 @@ h4 { font-size: 1rem; }
 
 /* ---------- Fix scrolling: lock screens to viewport ---------- */
 .game-screen {
-  padding-top: calc(var(--hud-height) + 46px);
+  padding-top: calc(var(--hud-height) + 28px);
   overflow-y: auto;
   overflow-x: hidden;
 }
