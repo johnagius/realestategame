@@ -589,11 +589,17 @@ const GameUI = {
     var speed = (GameEngine.state && GameEngine.state.autoAdvanceSpeed) || 0;
     var isAutoPlaying = speed > 0;
 
+    // Historical events — show as major decision card
+    if (results.historicalEvent) {
+      this.showHistoricalEvent(results.historicalEvent);
+      return; // Pause everything for this major event
+    }
+
     // Era transitions
     if (results.eraChange) {
       var era = results.eraChange.newEra;
       this.showEventPopup(era.icon, 'New Era: ' + era.name, era.description, '', 'positive');
-      return; // Let them read this important message
+      return;
     }
 
     // Show disasters as event popups
@@ -732,6 +738,30 @@ const GameUI = {
       this.setAutoAdvance(this._savedSpeed);
       this._savedSpeed = 0;
     }
+  },
+
+  // ---- Historical Event (major, uses modal) ----
+  showHistoricalEvent(event) {
+    // Pause auto-play
+    if (GameEngine.state.autoAdvanceSpeed > 0) {
+      this._savedSpeed = GameEngine.state.autoAdvanceSpeed;
+      this.setAutoAdvance(0);
+    }
+
+    var html = '<div style="text-align:center;padding:8px 0">' +
+      '<div style="font-size:3rem;margin-bottom:8px">' + event.icon + '</div>' +
+      '<div style="font-family:var(--font-heading);font-size:1.2rem;color:#2B1810;margin-bottom:8px">' + event.title + ' (' + event.year + ')</div>' +
+      '<div style="font-size:0.85rem;color:#6A5A42;line-height:1.5;margin-bottom:16px">' + event.description + '</div>' +
+      '</div>';
+
+    var actions = '';
+    for (var i = 0; i < event.choices.length; i++) {
+      var c = event.choices[i];
+      var btnClass = i === 0 ? 'btn btn-primary' : (i === event.choices.length - 1 ? 'btn btn-ghost' : 'btn btn-secondary');
+      actions += '<button class="' + btnClass + '" style="flex:1;font-size:0.8rem" onclick="App.resolveHistoricalEvent(' + i + ')">' + c.label + '</button>';
+    }
+
+    this.showModal(event.icon + ' ' + event.title, html, actions);
   },
 
   // ---- Show modal ----

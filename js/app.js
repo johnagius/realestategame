@@ -451,6 +451,17 @@ const App = {
     GameUI.updateHUD();
   },
 
+  // ---- Historical Events ----
+  resolveHistoricalEvent(choiceIndex) {
+    GameUI.hideModal();
+    var result = GameEngine.resolveHistoricalEvent(choiceIndex);
+    if (result.success) {
+      GameUI.toast(result.message, 'info');
+    }
+    GameUI.updateHUD();
+    GameUI.hideDecision(); // Resume auto-play
+  },
+
   // ---- Bank Savings ----
   deposit(amount) {
     var result = GameEngine.deposit(amount);
