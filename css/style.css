@@ -173,8 +173,11 @@ h4 { font-size: 1rem; }
 
 /* ---------- Splash Screen ---------- */
 #screen-splash {
-  background: linear-gradient(145deg, #2B1810 0%, #4A2C1A 30%, #6B4423 60%, #8B6914 100%);
-  justify-content: center;
+  background: #1a0a2e;
+  background-image: url('../assets/splash-bg.svg');
+  background-size: cover;
+  background-position: center 40%;
+  justify-content: flex-end;
   align-items: center;
   text-align: center;
   z-index: 1000;
@@ -183,43 +186,39 @@ h4 { font-size: 1rem; }
 .splash-bg {
   position: absolute;
   inset: 0;
-  opacity: 0.08;
-  background-image:
-    repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(255,255,255,0.2) 60px, rgba(255,255,255,0.2) 61px),
-    repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(255,255,255,0.2) 60px, rgba(255,255,255,0.2) 61px),
-    radial-gradient(ellipse at 30% 70%, rgba(139,105,20,0.3), transparent 60%),
-    radial-gradient(ellipse at 70% 30%, rgba(75,44,26,0.4), transparent 60%);
+  background: linear-gradient(to top, rgba(10,5,20,0.85) 0%, rgba(10,5,20,0.4) 30%, transparent 60%);
 }
 
 .splash-content {
   position: relative;
   z-index: 1;
-  padding: 40px 24px;
+  padding: 30px 24px 40px;
+  text-align: center;
 }
 
 .splash-icon {
-  font-size: 5rem;
-  margin-bottom: 16px;
-  animation: bounce 2s infinite;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+  font-size: 3.5rem;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
 }
 
 .splash-title {
   font-family: var(--font-heading);
   font-size: 2.8rem;
-  color: #FFF;
-  text-shadow: 0 3px 12px rgba(0,0,0,0.3);
-  margin-bottom: 12px;
-  letter-spacing: -0.5px;
+  color: #f0d890;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.6), 0 0 60px rgba(240,200,100,0.2);
+  margin-bottom: 8px;
+  letter-spacing: 1px;
 }
 
 .splash-subtitle {
-  color: rgba(255,255,255,0.8);
-  font-size: 1.05rem;
+  color: rgba(240,216,144,0.7);
+  font-size: 0.95rem;
   font-weight: 600;
-  max-width: 300px;
-  margin: 0 auto 40px;
+  max-width: 350px;
+  margin: 0 auto 24px;
   line-height: 1.5;
+  font-style: italic;
 }
 
 .splash-buttons {
