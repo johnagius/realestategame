@@ -56,11 +56,17 @@ const GameUI = {
     document.getElementById('hud-speed').innerHTML = this.renderSpeedControls();
     // Goal tracker
     var goalEl = document.getElementById('hud-goal-text');
-    if (goalEl && s.goals && s.goals.monthly) {
-      var g = s.goals.monthly;
-      goalEl.innerHTML = g.done
-        ? '<span class="goal-done">✅ ' + g.text + '</span> +' + GameData.formatMoney(g.reward)
-        : '🎯 ' + g.text + ' (reward: ' + GameData.formatMoney(g.reward) + ')';
+    if (goalEl) {
+      var cycleIcons = { boom:'📈', growth:'📊', stagnation:'📉', recession:'🔻', depression:'💥' };
+      var cycleLabel = cycleIcons[s.economicCycle || 'growth'] || '📊';
+      var goalText = '';
+      if (s.goals && s.goals.monthly) {
+        var g = s.goals.monthly;
+        goalText = g.done
+          ? '<span class="goal-done">✅ ' + g.text + '</span>'
+          : '🎯 ' + g.text;
+      }
+      goalEl.innerHTML = cycleLabel + ' ' + (s.economicCycle || 'growth').toUpperCase() + '  |  ' + goalText;
     }
   },
 
@@ -704,6 +710,26 @@ const GameUI = {
     // Dividends - only show when not in fast auto-play
     if (results.dividends > 0 && (!isAutoPlaying || speed <= 1)) {
       GameUI.toast('💼 Dividends received: +' + GameData.formatMoney(results.dividends), 'success');
+    }
+
+    // Economic cycle changes
+    if (results.cycleChange) {
+      var cycleNames = { boom:'📈 Economic Boom!', growth:'📊 Steady Growth', stagnation:'📉 Stagnation', recession:'🔻 Recession!', depression:'💥 Depression!' };
+      var cycleColors = { boom:'success', growth:'info', stagnation:'warning', recession:'error', depression:'error' };
+      GameUI.setTicker((cycleNames[results.cycleChange] || results.cycleChange) + ' — The economy has shifted.');
+      if (results.cycleChange === 'depression' || results.cycleChange === 'recession') {
+        GameUI.toast(cycleNames[results.cycleChange] + ' Property values are falling!', cycleColors[results.cycleChange]);
+      }
+    }
+
+    // Foreclosure
+    if (results.foreclosure) {
+      GameUI.toast('🏦 FORECLOSURE! ' + results.foreclosure.property.name + ' sold for ' + GameData.formatMoney(results.foreclosure.amount) + ' (70% of value)', 'error');
+    }
+
+    // Property degradation
+    if (results.degraded && results.degraded.length > 0 && !isAutoPlaying) {
+      GameUI.toast('🏚️ ' + results.degraded.length + ' propert' + (results.degraded.length > 1 ? 'ies' : 'y') + ' deteriorated. Consider renovating.', 'warning');
     }
 
     // Dynasty events

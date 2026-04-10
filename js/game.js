@@ -98,6 +98,11 @@ const GameEngine = {
     this.state.milestones = [];
     this.state.monthlyGoal = null;
 
+    // Economic cycle
+    this.state.economicCycle = 'growth'; // boom, growth, stagnation, recession, depression
+    this.state.cycleMonthsLeft = 36 + Math.floor(Math.random() * 60); // 3-8 years per phase
+    this.state.consecutiveNegativeCash = 0; // for foreclosure tracking
+
     // Dynasty: family members
     this.state.familyMembers = [this.createFamilyMember(family.name.split(' ')[1] || 'Patriarch', 30, true)];
     this.state.generation = 1;
@@ -892,7 +897,75 @@ const GameEngine = {
       }
     });
 
-    // 5. Market value fluctuations (with inflation + buying/selling pressure)
+    // 4b. Property degradation (annual check in January)
+    if (this.state.monthIndex === 0) {
+      this.state.properties.forEach(p => {
+        if (!p.isRefurbishing && !p.isBuilding && p.condition !== 'derelict') {
+          // 12% chance per year of condition dropping one level
+          if (Math.random() < 0.12) {
+            var curLevel = GameData.conditions[p.condition].level;
+            if (curLevel > 0) {
+              p.condition = GameData.conditionOrder[curLevel - 1];
+              this.recalculateRent(p);
+              if (!results.degraded) results.degraded = [];
+              results.degraded.push(p);
+            }
+          }
+        }
+      });
+    }
+
+    // 4c. Economic cycle processing
+    if (!this.state.economicCycle) this.state.economicCycle = 'growth';
+    if (!this.state.cycleMonthsLeft) this.state.cycleMonthsLeft = 48;
+    this.state.cycleMonthsLeft--;
+    if (this.state.cycleMonthsLeft <= 0) {
+      // Transition to next phase
+      var transitions = {
+        boom: ['growth', 'stagnation'],
+        growth: ['boom', 'stagnation', 'growth'],
+        stagnation: ['recession', 'growth', 'stagnation'],
+        recession: ['depression', 'stagnation', 'growth'],
+        depression: ['recession', 'stagnation']
+      };
+      var options = transitions[this.state.economicCycle] || ['growth'];
+      this.state.economicCycle = options[Math.floor(Math.random() * options.length)];
+      this.state.cycleMonthsLeft = 24 + Math.floor(Math.random() * 72); // 2-8 years
+      results.cycleChange = this.state.economicCycle;
+    }
+
+    // Cycle multipliers
+    var cycleEffects = {
+      boom:       { growth: 0.003, rent: 1.1, disaster: 0.7, newProps: 1.3 },
+      growth:     { growth: 0.001, rent: 1.0, disaster: 1.0, newProps: 1.0 },
+      stagnation: { growth: 0,     rent: 0.95, disaster: 1.0, newProps: 0.8 },
+      recession:  { growth: -0.002, rent: 0.85, disaster: 1.2, newProps: 0.5 },
+      depression: { growth: -0.005, rent: 0.7, disaster: 1.5, newProps: 0.3 }
+    };
+    var cycleEffect = cycleEffects[this.state.economicCycle] || cycleEffects.growth;
+
+    // 4d. Foreclosure check — if cash negative for 3+ months
+    if (this.state.cash < 0) {
+      if (!this.state.consecutiveNegativeCash) this.state.consecutiveNegativeCash = 0;
+      this.state.consecutiveNegativeCash++;
+      if (this.state.consecutiveNegativeCash >= 3 && this.state.properties.length > 0) {
+        // Force sell worst property at 70% value
+        var worst = this.state.properties.reduce(function(w, p) {
+          return (!w || p.currentValue < w.currentValue) ? p : w;
+        }, null);
+        if (worst) {
+          var forcedAmount = Math.round(worst.currentValue * 0.7);
+          this.state.cash += forcedAmount;
+          this.state.properties = this.state.properties.filter(function(p) { return p.id !== worst.id; });
+          results.foreclosure = { property: worst, amount: forcedAmount };
+          this.state.consecutiveNegativeCash = 0;
+        }
+      }
+    } else {
+      this.state.consecutiveNegativeCash = 0;
+    }
+
+    // 5. Market value fluctuations (with inflation + buying/selling pressure + economic cycle)
     // Track buying/selling pressure per city
     if (!this.state.marketPressure) this.state.marketPressure = {};
 
@@ -924,11 +997,11 @@ const GameEngine = {
         const monthlyInflation = (city.inflationRate || 0.02) / 12;
         const pressure = this.state.marketPressure[city.id] || 0;
         const randomFactor = (Math.random() - 0.5) * 0.015;
-        // CAP: appreciation = inflation + up to 2% real growth annually (0.17%/mo) + noise
-        const maxMonthlyGrowth = 0.0017; // ~2% annual real growth cap
+        // CAP + economic cycle
+        const maxMonthlyGrowth = 0.0017;
         const realGrowth = Math.min(maxMonthlyGrowth, city.growthRate / 12);
-        const change = realGrowth + monthlyInflation + pressure + randomFactor;
-        // Allow negative months (real crashes happen)
+        const cycleGrowth = cycleEffect.growth || 0;
+        const change = realGrowth + monthlyInflation + pressure + randomFactor + cycleGrowth;
         p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + change)));
         p.appreciation = ((p.currentValue - p.purchasePrice) / p.purchasePrice) * 100;
         this.recalculateRent(p);
@@ -944,7 +1017,8 @@ const GameEngine = {
       const realGrowth = Math.min(maxMonthlyGrowth, city.growthRate / 12);
       this.state.marketProperties[cityId].forEach(p => {
         const randomFactor = (Math.random() - 0.5) * 0.015;
-        p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + realGrowth + monthlyInflation + pressure + randomFactor)));
+        var cGrowth = cycleEffect.growth || 0;
+        p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + realGrowth + monthlyInflation + pressure + randomFactor + cGrowth)));
         this.recalculateRent(p);
       });
     });
@@ -1386,6 +1460,10 @@ const GameEngine = {
   getLoanOffers(amount) {
     const netWorth = this.getNetWorth();
     const existingDebt = (this.state.loans || []).reduce((s, l) => s + l.remainingBalance, 0);
+    const existingPayments = (this.state.loans || []).reduce((s, l) => s + l.monthlyPayment, 0);
+    const monthlyIncome = this.getMonthlyIncome();
+    // Debt-to-income cap: total loan payments can't exceed 40% of rental income
+    const paymentCapacity = Math.max(0, Math.round(monthlyIncome * 0.4) - existingPayments);
     const offers = [];
 
     GameData.banks.forEach(bank => {
@@ -1411,6 +1489,9 @@ const GameEngine = {
           (Math.pow(1 + monthlyRate, term) - 1)
         );
         const totalRepayment = monthlyPayment * term;
+
+        // Skip if monthly payment exceeds remaining capacity
+        if (monthlyPayment > paymentCapacity && paymentCapacity > 0) return;
 
         offers.push({
           bankId: bank.id,
