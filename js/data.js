@@ -619,6 +619,117 @@ const GameData = {
     warehouse: 800
   },
 
+  // ---- Historical Events (scripted, year-triggered, with choices) ----
+  historicalEvents: [
+    // Pre-Industrial
+    { year: 1756, title: 'Seven Years War', icon: '⚔️', description: 'Global conflict disrupts trade routes. European property values shaken.',
+      choices: [
+        { label: 'Invest in war supplies (risky but profitable)', effect: { type: 'gamble', amount: 0.15, risk: 35 } },
+        { label: 'Sell European properties for safety', effect: { type: 'city_crash', cities: ['london','paris','berlin','amsterdam'], value: -0.08 } },
+        { label: 'Hold steady and wait it out', effect: { type: 'none' } }
+      ]},
+    { year: 1776, title: 'American Independence', icon: '🗽', description: 'The American colonies declare independence. New York property market is volatile.',
+      choices: [
+        { label: 'Buy cheap in revolutionary New York', effect: { type: 'city_discount', city: 'new_york', value: 0.25 } },
+        { label: 'Invest in London (loyalist capital flows)', effect: { type: 'city_boost', city: 'london', value: 0.1 } },
+        { label: 'Stay neutral', effect: { type: 'none' } }
+      ]},
+    { year: 1789, title: 'French Revolution', icon: '🔥', description: 'Revolution in Paris! Aristocratic properties seized. Chaos in French markets.',
+      choices: [
+        { label: 'Buy seized estates at auction (cheap but risky)', effect: { type: 'city_discount', city: 'paris', value: 0.4 } },
+        { label: 'Flee French markets entirely', effect: { type: 'city_crash', cities: ['paris','monaco'], value: -0.15 } },
+        { label: 'Donate to the revolution (gain reputation)', effect: { type: 'reputation', value: 15, cost: 0.05 } }
+      ]},
+    // Industrial Revolution
+    { year: 1804, title: 'Napoleonic Wars Escalate', icon: '⚔️', description: 'Napoleon conquers Europe. Continental trade blockades disrupt commerce.',
+      choices: [
+        { label: 'Smuggle goods past blockade (very risky, very profitable)', effect: { type: 'gamble', amount: 0.25, risk: 45 } },
+        { label: 'Invest in British naval power', effect: { type: 'city_boost', city: 'london', value: 0.12 } },
+        { label: 'Wait for peace', effect: { type: 'none' } }
+      ]},
+    { year: 1825, title: 'Railway Mania Begins', icon: '🚂', description: 'Railway stocks are booming! Everyone is investing. Is it a bubble?',
+      choices: [
+        { label: 'Invest heavily in railways', effect: { type: 'gamble', amount: 0.2, risk: 30 } },
+        { label: 'Buy land near proposed railway routes', effect: { type: 'global_boost', value: 0.05 } },
+        { label: 'This is a bubble — stay away', effect: { type: 'none' } }
+      ]},
+    { year: 1848, title: 'Revolutions Across Europe', icon: '🔥', description: 'Popular uprisings sweep Paris, Berlin, Rome, Barcelona. Markets panic.',
+      choices: [
+        { label: 'Buy the dip — revolution creates opportunity', effect: { type: 'city_discount', city: 'paris', value: 0.3 } },
+        { label: 'Move assets to stable London/New York', effect: { type: 'city_boost', city: 'new_york', value: 0.08 } },
+        { label: 'Support the revolutionaries (+reputation)', effect: { type: 'reputation', value: 12, cost: 0.03 } }
+      ]},
+    // Gilded Age
+    { year: 1873, title: 'The Long Depression', icon: '📉', description: 'A devastating global depression begins. Property values crash worldwide.',
+      choices: [
+        { label: 'Sell everything before it gets worse', effect: { type: 'global_crash', value: -0.12 } },
+        { label: 'Buy distressed assets at rock bottom', effect: { type: 'global_discount', value: 0.2 } },
+        { label: 'Hoard cash and wait', effect: { type: 'none' } }
+      ]},
+    { year: 1886, title: 'Statue of Liberty Unveiled', icon: '🗽', description: 'New York becomes the symbol of opportunity. Immigration drives property demand.',
+      choices: [
+        { label: 'Invest in New York tenements', effect: { type: 'city_boost', city: 'new_york', value: 0.15 } },
+        { label: 'Build worker housing (+reputation, lower returns)', effect: { type: 'reputation', value: 10, cost: 0.02 } },
+        { label: 'Focus elsewhere', effect: { type: 'none' } }
+      ]},
+    { year: 1914, title: 'World War I', icon: '💥', description: 'The Great War erupts. European property values plummet. Industry booms in the Americas.',
+      choices: [
+        { label: 'Sell European holdings, buy American', effect: { type: 'city_crash', cities: ['london','paris','berlin','rome','amsterdam'], value: -0.15 } },
+        { label: 'Invest in wartime manufacturing', effect: { type: 'gamble', amount: 0.2, risk: 25 } },
+        { label: 'Hold and pray for peace', effect: { type: 'none' } }
+      ]},
+    { year: 1929, title: 'Wall Street Crash', icon: '💥', description: 'Black Tuesday! Stock market collapses. The Great Depression begins.',
+      choices: [
+        { label: 'Panic sell everything', effect: { type: 'global_crash', value: -0.25 } },
+        { label: 'Buy when others are fearful', effect: { type: 'global_discount', value: 0.3 } },
+        { label: 'Move to gold and cash', effect: { type: 'none' } }
+      ]},
+    // Modern Era
+    { year: 1939, title: 'World War II', icon: '💥', description: 'Global war. European cities devastated. Massive post-war rebuilding ahead.',
+      choices: [
+        { label: 'Invest in military industry', effect: { type: 'gamble', amount: 0.25, risk: 20 } },
+        { label: 'Buy bombed-out European properties cheaply', effect: { type: 'city_discount', city: 'london', value: 0.35 } },
+        { label: 'Wait for the war to end', effect: { type: 'none' } }
+      ]},
+    { year: 1955, title: 'Post-War Boom', icon: '🏠', description: 'Suburbs explode. Consumer culture drives housing demand worldwide.',
+      choices: [
+        { label: 'Build suburban housing developments', effect: { type: 'global_boost', value: 0.1 } },
+        { label: 'Invest in commercial real estate (shopping malls)', effect: { type: 'gamble', amount: 0.15, risk: 15 } },
+        { label: 'Focus on city center properties', effect: { type: 'none' } }
+      ]},
+    { year: 1973, title: 'Oil Crisis', icon: '🛢️', description: 'OPEC embargo sends oil prices soaring. Global recession follows.',
+      choices: [
+        { label: 'Invest in Dubai oil wealth', effect: { type: 'city_boost', city: 'dubai', value: 0.2 } },
+        { label: 'Sell energy-dependent properties', effect: { type: 'global_crash', value: -0.08 } },
+        { label: 'Diversify into commodities', effect: { type: 'none' } }
+      ]},
+    // Information Age
+    { year: 1989, title: 'Fall of the Berlin Wall', icon: '🚪', description: 'The Cold War ends! Berlin property market opens up. Reunification boom.',
+      choices: [
+        { label: 'Rush to buy in East Berlin', effect: { type: 'city_discount', city: 'berlin', value: 0.4 } },
+        { label: 'Invest across emerging Eastern Europe', effect: { type: 'global_boost', value: 0.06 } },
+        { label: 'Watch and wait — too uncertain', effect: { type: 'none' } }
+      ]},
+    { year: 2000, title: 'Dot-Com Bubble Bursts', icon: '💻', description: 'Tech stocks collapse! Silicon Valley in crisis. Traditional real estate holds.',
+      choices: [
+        { label: 'Buy cheap tech company offices', effect: { type: 'city_discount', city: 'los_angeles', value: 0.25 } },
+        { label: 'Double down on safe property', effect: { type: 'global_boost', value: 0.05 } },
+        { label: 'Invest in the surviving tech giants', effect: { type: 'gamble', amount: 0.2, risk: 30 } }
+      ]},
+    { year: 2008, title: 'Global Financial Crisis', icon: '🏦', description: 'Subprime mortgage collapse! Banks fail. Property values crash 30-50% worldwide.',
+      choices: [
+        { label: 'Buy the crash — once in a lifetime opportunity', effect: { type: 'global_discount', value: 0.35 } },
+        { label: 'Sell before it gets worse', effect: { type: 'global_crash', value: -0.2 } },
+        { label: 'Hold and ride it out', effect: { type: 'global_crash', value: -0.1 } }
+      ]},
+    { year: 2020, title: 'Global Pandemic', icon: '🦠', description: 'COVID-19 shuts down the world. Tourism collapses. Remote work changes everything.',
+      choices: [
+        { label: 'Sell tourist/hotel properties', effect: { type: 'city_crash', cities: ['dubai','barcelona','rome','miami'], value: -0.15 } },
+        { label: 'Buy suburban/residential (remote work boom)', effect: { type: 'global_boost', value: 0.08 } },
+        { label: 'Wait for vaccines', effect: { type: 'none' } }
+      ]}
+  ],
+
   // ---- Agent/selling fee percentage ----
   sellingFeeRate: 0.03,
 

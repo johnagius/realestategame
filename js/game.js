@@ -168,7 +168,7 @@ const GameEngine = {
   },
 
   // ---- Buy property ----
-  buyProperty(propertyId, cityId) {
+  buyProperty(propertyId, cityId, offerPct) {
     const cityMarket = this.state.marketProperties[cityId];
     if (!cityMarket) return { success: false, message: 'City not found.' };
 
@@ -177,8 +177,27 @@ const GameEngine = {
 
     const property = cityMarket[propIdx];
     const city = GameData.cities.find(c => c.id === cityId);
-    const purchaseTax = Math.round(property.currentValue * city.taxRate);
-    const totalCost = property.currentValue + purchaseTax;
+
+    // Negotiation: offerPct is 0.8-1.2 of asking price
+    var offerMultiplier = offerPct || 1.0;
+    var offerValue = Math.round(property.currentValue * offerMultiplier);
+
+    // Acceptance probability: below asking = risky, above = guaranteed
+    if (offerMultiplier < 1.0) {
+      // Lower offers have lower acceptance chance
+      // At 80%: ~30% acceptance. At 90%: ~60%. At 95%: ~80%
+      var acceptChance = Math.pow(offerMultiplier, 6); // 0.8^6=0.26, 0.9^6=0.53, 0.95^6=0.74
+      // Reputation helps
+      var repBonus = (this.state.reputation || 50) / 500; // 0-0.2 bonus
+      acceptChance = Math.min(0.95, acceptChance + repBonus);
+
+      if (Math.random() > acceptChance) {
+        return { success: false, message: 'Offer of ' + GameData.formatMoney(offerValue) + ' rejected! The seller wants closer to asking price.' };
+      }
+    }
+
+    const purchaseTax = Math.round(offerValue * city.taxRate);
+    const totalCost = offerValue + purchaseTax;
 
     if (this.state.cash < totalCost) {
       return { success: false, message: `Not enough cash. Need ${GameData.formatMoney(totalCost)} (incl. ${GameData.formatMoney(purchaseTax)} tax).` };
@@ -190,11 +209,12 @@ const GameEngine = {
       return { success: false, message: `Maximum ${city.maxProperties} properties in ${city.name}.` };
     }
 
-    // Execute purchase
+    // Execute purchase at negotiated price
     this.state.cash -= totalCost;
     property.isOwned = true;
     property.isNew = false;
-    property.purchasePrice = property.currentValue;
+    property.purchasePrice = offerValue;
+    property.currentValue = offerValue; // Update to purchase price
     property.monthPurchased = this.state.month;
     property.totalRentCollected = 0;
     property.totalExpensesPaid = purchaseTax;
@@ -269,7 +289,7 @@ const GameEngine = {
   },
 
   // ---- Refurbish property ----
-  refurbishProperty(propertyId) {
+  refurbishProperty(propertyId, tier) {
     const property = this.state.properties.find(p => p.id === propertyId);
     if (!property) return { success: false, message: 'Property not found.' };
 
@@ -280,7 +300,20 @@ const GameEngine = {
     if (property.isBuilding) return { success: false, message: 'Still under construction.' };
 
     const condDef = GameData.conditions[property.condition];
-    let cost = Math.round(property.currentValue * condDef.refurbCostPct);
+    let baseCost = Math.round(property.currentValue * condDef.refurbCostPct);
+    tier = tier || 'standard';
+
+    // Tier modifiers
+    var costMultiplier, condLevels, valueBoost, months, failChance;
+    if (tier === 'budget') {
+      costMultiplier = 0.6; condLevels = 1; valueBoost = 0; months = 2; failChance = 0.2;
+    } else if (tier === 'luxury') {
+      costMultiplier = 2.0; condLevels = 2; valueBoost = 0.25; months = 4; failChance = 0.1;
+    } else { // standard
+      costMultiplier = 1.0; condLevels = 1; valueBoost = 0.12; months = 3; failChance = 0;
+    }
+
+    let cost = Math.round(baseCost * costMultiplier);
 
     // Check for renovation grant discount
     const grantEvent = this.state.activeEvents.find(
@@ -294,18 +327,15 @@ const GameEngine = {
       return { success: false, message: `Not enough cash. Need ${GameData.formatMoney(cost)}.` };
     }
 
-    // Determine time
-    let months;
-    if (property.condition === 'derelict') months = 4;
-    else if (property.condition === 'poor') months = 3;
-    else if (property.condition === 'fair') months = 2;
-    else months = 2;
-
     // Execute
     this.state.cash -= cost;
     property.isRefurbishing = true;
     property.isRented = false;
     property.refurbMonthsLeft = months;
+    property.refurbTier = tier;
+    property.refurbCondLevels = condLevels;
+    property.refurbValueBoost = valueBoost;
+    property.refurbFailChance = failChance;
     property.totalExpensesPaid += cost;
     this.state.totalExpensesPaid += cost;
 
@@ -796,20 +826,34 @@ const GameEngine = {
       results.expenses += monthlyTax;
     }
 
-    // 3. Process refurbishments
+    // 3. Process refurbishments (with tier results)
     this.state.properties.forEach(p => {
       if (p.isRefurbishing) {
         p.refurbMonthsLeft--;
         if (p.refurbMonthsLeft <= 0) {
           p.isRefurbishing = false;
-          // Upgrade condition
+          var condLevels = p.refurbCondLevels || 1;
+          var valueBoost = p.refurbValueBoost || 0.12;
+          var failChance = p.refurbFailChance || 0;
+
+          // Budget renovation can fail
+          if (failChance > 0 && Math.random() < failChance) {
+            // Failed — no condition improvement, small value loss
+            p.currentValue = Math.round(p.currentValue * 0.95);
+            results.completedRefurbishments.push(p);
+            p.refurbTier = null;
+            return; // forEach continues
+          }
+
+          // Upgrade condition by tier levels
           const currentLevel = GameData.conditions[p.condition].level;
-          const newLevel = Math.min(4, currentLevel + 1);
+          const newLevel = Math.min(4, currentLevel + condLevels);
           p.condition = GameData.conditionOrder[newLevel];
-          // Increase value
-          p.currentValue = Math.round(p.currentValue * 1.12);
+          // Value boost
+          p.currentValue = Math.round(p.currentValue * (1 + valueBoost));
           this.recalculateRent(p);
           results.completedRefurbishments.push(p);
+          p.refurbTier = null;
         }
       }
     });
@@ -898,6 +942,21 @@ const GameEngine = {
         this.recalculateRent(p);
       });
     });
+
+    // 5b. Check for historical events (scripted, year-triggered)
+    results.historicalEvent = null;
+    if (this.state.monthIndex === 0 && GameData.historicalEvents) { // January each year
+      var yr = this.state.year;
+      if (!this.state.triggeredHistEvents) this.state.triggeredHistEvents = [];
+      var histEvent = GameData.historicalEvents.find(function(e) {
+        return e.year === yr && !GameEngine.state.triggeredHistEvents.includes(e.year);
+      });
+      if (histEvent) {
+        this.state.triggeredHistEvents.push(histEvent.year);
+        this.state.pendingHistoricalEvent = histEvent;
+        results.historicalEvent = histEvent;
+      }
+    }
 
     // 6. Random events
     GameData.events.forEach(event => {
@@ -993,6 +1052,9 @@ const GameEngine = {
     if (!this.state.bankRateModifier) this.state.bankRateModifier = 0;
     this.state.bankRateModifier += (Math.random() - 0.5) * 0.002;
     this.state.bankRateModifier = Math.max(-0.02, Math.min(0.02, this.state.bankRateModifier));
+
+    // 14a2. AI rivalry interactions (offers, threats)
+    results.aiInteraction = this.generateAIInteraction();
 
     // 14b. Check and generate goals
     results.goalsAchieved = this.checkGoals();
@@ -2012,6 +2074,210 @@ const GameEngine = {
   getInvestmentValue() {
     if (!this.state.investments) return 0;
     return this.state.investments.reduce((sum, inv) => sum + (inv.currentUnitPrice * inv.units), 0);
+  },
+
+  // ========== AI RIVALRY INTERACTIONS ==========
+
+  generateAIInteraction() {
+    if (!this.state.aiFamilies || this.state.aiFamilies.length === 0) return null;
+    if (Math.random() > 0.15) return null; // 15% chance per month
+
+    var ai = this.state.aiFamilies[Math.floor(Math.random() * this.state.aiFamilies.length)];
+    var interactions = [];
+
+    // Buyout offer: AI wants to buy one of your properties
+    if (this.state.properties.length > 0) {
+      var prop = this.state.properties[Math.floor(Math.random() * this.state.properties.length)];
+      if (!prop.isBuilding && !prop.isRefurbishing) {
+        var premium = 1.3 + Math.random() * 0.4; // 130-170%
+        interactions.push({
+          type: 'buyout_offer',
+          ai: ai,
+          title: ai.icon + ' ' + ai.name + ' — Buyout Offer',
+          description: ai.name + ' offer ' + GameData.formatMoney(Math.round(prop.currentValue * premium)) + ' for your ' + prop.name + ' (worth ' + GameData.formatMoney(prop.currentValue) + ').',
+          data: { propId: prop.id, amount: Math.round(prop.currentValue * premium) }
+        });
+      }
+    }
+
+    // Threat: AI dominates a city you're in
+    var playerCities = [...new Set(this.state.properties.map(function(p){return p.cityId;}))];
+    if (playerCities.length > 0) {
+      var cityId = playerCities[Math.floor(Math.random() * playerCities.length)];
+      var city = GameData.cities.find(function(c){return c.id === cityId;});
+      if (city) {
+        interactions.push({
+          type: 'threat',
+          ai: ai,
+          title: ai.icon + ' ' + ai.name + ' — Market Warning',
+          description: ai.name + ' are aggressively expanding in ' + city.name + '. "This city belongs to us. Sell now or face consequences."',
+          data: { cityId: cityId }
+        });
+      }
+    }
+
+    // Alliance offer
+    if (this.state.properties.length >= 3 && ai.netWorth > 100) {
+      interactions.push({
+        type: 'alliance',
+        ai: ai,
+        title: ai.icon + ' ' + ai.name + ' — Alliance Proposal',
+        description: ai.name + ' propose a business alliance. Pool resources for a joint venture with shared profits.',
+        data: { amount: Math.round(Math.min(this.state.cash * 0.2, ai.netWorth * 0.1)) }
+      });
+    }
+
+    if (interactions.length === 0) return null;
+    return interactions[Math.floor(Math.random() * interactions.length)];
+  },
+
+  resolveAIInteraction(action, data) {
+    this.state.pendingAIInteraction = null;
+    var result = { success: true, message: '' };
+
+    switch (action) {
+      case 'accept_buyout': {
+        var propIdx = this.state.properties.findIndex(function(p){return p.id === data.propId;});
+        if (propIdx >= 0) {
+          this.state.cash += data.amount;
+          this.state.properties.splice(propIdx, 1);
+          this.state.totalSaleRevenue += data.amount;
+          this.state.totalPropertiesSold++;
+          result.message = 'Sold for ' + GameData.formatMoney(data.amount) + '!';
+        }
+        break;
+      }
+      case 'reject_threat': {
+        // AI retaliates — slight market pressure on that city
+        if (data.cityId) {
+          var market = this.state.marketProperties[data.cityId] || [];
+          market.forEach(function(p) { p.currentValue = Math.round(p.currentValue * 0.95); });
+          result.message = 'You stood your ground. They retaliated — prices dipped 5% in the city.';
+        }
+        break;
+      }
+      case 'accept_alliance': {
+        if (this.state.cash >= data.amount) {
+          this.state.cash -= data.amount;
+          // Alliance has 70% chance of profit, 30% loss
+          if (Math.random() < 0.7) {
+            var profit = Math.round(data.amount * (0.3 + Math.random() * 0.5));
+            this.state.cash += data.amount + profit;
+            result.message = 'Alliance profitable! Earned ' + GameData.formatMoney(profit) + '.';
+          } else {
+            result.message = 'Alliance failed. Lost ' + GameData.formatMoney(data.amount) + '.';
+          }
+          if (!this.state.reputation) this.state.reputation = 50;
+          this.state.reputation = Math.min(100, this.state.reputation + 3);
+        }
+        break;
+      }
+      case 'decline':
+        result.message = 'You declined the offer.';
+        break;
+    }
+
+    this.save();
+    return result;
+  },
+
+  // ========== HISTORICAL EVENT RESOLUTION ==========
+
+  resolveHistoricalEvent(choiceIndex) {
+    var event = this.state.pendingHistoricalEvent;
+    if (!event || !event.choices || !event.choices[choiceIndex]) return { success: false, message: 'No event.' };
+
+    var choice = event.choices[choiceIndex];
+    var effect = choice.effect;
+    this.state.pendingHistoricalEvent = null;
+    var msg = choice.label;
+
+    switch (effect.type) {
+      case 'gamble': {
+        var amount = Math.round(this.state.cash * effect.amount);
+        if (this.state.cash < amount) { msg = 'Not enough cash!'; break; }
+        this.state.cash -= amount;
+        if (Math.random() * 100 < effect.risk) {
+          msg = '💸 Lost ' + GameData.formatMoney(amount) + '! The venture failed.';
+        } else {
+          var profit = Math.round(amount * (0.5 + Math.random()));
+          this.state.cash += amount + profit;
+          msg = '📈 Gained ' + GameData.formatMoney(profit) + '!';
+        }
+        break;
+      }
+      case 'city_crash': {
+        (effect.cities || []).forEach(function(cid) {
+          var props = GameEngine.state.properties.filter(function(p) { return p.cityId === cid; });
+          var market = GameEngine.state.marketProperties[cid] || [];
+          props.concat(market).forEach(function(p) {
+            p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + effect.value)));
+          });
+        });
+        msg = 'Markets crashed in affected cities.';
+        break;
+      }
+      case 'city_boost': {
+        var props = this.state.properties.filter(function(p) { return p.cityId === effect.city; });
+        var market = this.state.marketProperties[effect.city] || [];
+        props.concat(market).forEach(function(p) {
+          p.currentValue = Math.round(p.currentValue * (1 + effect.value));
+        });
+        msg = GameData.cities.find(function(c){return c.id===effect.city;}).name + ' property values rose ' + Math.round(effect.value*100) + '%!';
+        break;
+      }
+      case 'city_discount': {
+        // Temporarily reduce prices in a city (apply to market properties)
+        var market = this.state.marketProperties[effect.city] || [];
+        market.forEach(function(p) {
+          p.currentValue = Math.max(1, Math.round(p.currentValue * (1 - effect.value)));
+        });
+        msg = 'Bargain prices in ' + (GameData.cities.find(function(c){return c.id===effect.city;}) || {name:'the city'}).name + '!';
+        break;
+      }
+      case 'global_boost': {
+        this.state.properties.forEach(function(p) {
+          p.currentValue = Math.round(p.currentValue * (1 + effect.value));
+        });
+        msg = 'Global property values rose ' + Math.round(effect.value*100) + '%!';
+        break;
+      }
+      case 'global_crash': {
+        var all = this.state.properties.concat(Object.values(this.state.marketProperties).flat());
+        all.forEach(function(p) {
+          p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + effect.value)));
+        });
+        msg = 'Global market crash: ' + Math.round(Math.abs(effect.value)*100) + '% decline!';
+        break;
+      }
+      case 'global_discount': {
+        Object.values(this.state.marketProperties).forEach(function(cityMarket) {
+          cityMarket.forEach(function(p) {
+            p.currentValue = Math.max(1, Math.round(p.currentValue * (1 - effect.value)));
+          });
+        });
+        msg = 'Distressed assets available at ' + Math.round(effect.value*100) + '% discount!';
+        break;
+      }
+      case 'reputation': {
+        var cost = Math.round(this.state.cash * (effect.cost || 0));
+        if (this.state.cash >= cost) {
+          this.state.cash -= cost;
+          if (!this.state.reputation) this.state.reputation = 50;
+          this.state.reputation = Math.min(100, this.state.reputation + effect.value);
+          msg = 'Reputation +' + effect.value + '! Cost: ' + GameData.formatMoney(cost);
+        } else {
+          msg = 'Not enough cash for this choice.';
+        }
+        break;
+      }
+      case 'none':
+        msg = 'You chose to wait and see.';
+        break;
+    }
+
+    this.save();
+    return { success: true, message: msg };
   },
 
   // ========== GOAL SYSTEM ==========
