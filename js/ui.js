@@ -659,6 +659,30 @@ const GameUI = {
     var speed = (GameEngine.state && GameEngine.state.autoAdvanceSpeed) || 0;
     var isAutoPlaying = speed > 0;
 
+    // Prestige — end of game
+    if (results.prestige) {
+      var stats = GameEngine.getPrestigeStats();
+      this.showModal('🏆 The Year 2030 — Your Legacy',
+        '<div style="text-align:center;padding:8px 0">' +
+          '<div style="font-size:3rem;margin-bottom:8px">🏛️</div>' +
+          '<div style="font-family:var(--font-heading);font-size:1.1rem;margin-bottom:12px">Your dynasty spans ' + stats.generation + ' generations</div>' +
+          '<div class="finance-card">' +
+            '<div class="finance-row"><span class="finance-row-label">Final Net Worth</span><span class="finance-row-value">' + GameData.formatMoney(stats.netWorth) + '</span></div>' +
+            '<div class="finance-row"><span class="finance-row-label">Properties</span><span class="finance-row-value">' + stats.properties + '</span></div>' +
+            '<div class="finance-row"><span class="finance-row-label">Cities</span><span class="finance-row-value">' + stats.cities + '</span></div>' +
+            '<div class="finance-row"><span class="finance-row-label">Reputation</span><span class="finance-row-value">' + stats.reputation + '</span></div>' +
+            '<div class="finance-row"><span class="finance-row-label">Ranking</span><span class="finance-row-value">#' + stats.rank + '</span></div>' +
+            '<div class="finance-row finance-total"><span class="finance-row-label">Prestige Score</span><span class="finance-row-value text-primary fw-800">' + stats.score + ' pts</span></div>' +
+          '</div>' +
+          '<div style="margin-top:12px;font-size:0.8rem;color:var(--text-muted)">Next game: +' + Math.round((stats.cashBonus-1)*100) + '% starting cash, +' + stats.repBonus + ' reputation</div>' +
+        '</div>',
+        '<button class="btn btn-primary" onclick="App.startPrestige()">🔄 New Game+ (Prestige)</button>' +
+        '<button class="btn btn-ghost" onclick="GameUI.hideModal()">Keep Playing</button>'
+      );
+      GameAudio.fanfare();
+      return;
+    }
+
     // Historical events — show as major decision card
     if (results.historicalEvent) {
       this.showHistoricalEvent(results.historicalEvent);

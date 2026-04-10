@@ -1143,8 +1143,12 @@ const GameEngine = {
     // 14c. Generate monthly decision (the "one more turn" hook)
     results.decision = this.generateDecision();
 
-    // 15. Check era transition
+    // 15. Check era transition + prestige
     results.eraChange = this.checkEraTransition();
+    if (this.state.year >= 2030 && !this.state.prestigeOffered) {
+      this.state.prestigeOffered = true;
+      results.prestige = true;
+    }
 
     // 15b. Process dynasty (aging, births, deaths, succession)
     results.dynasty = this.processDynasty();
@@ -2164,6 +2168,57 @@ const GameEngine = {
   getInvestmentValue() {
     if (!this.state.investments) return 0;
     return this.state.investments.reduce((sum, inv) => sum + (inv.currentUnitPrice * inv.units), 0);
+  },
+
+  // ========== PRESTIGE / NEW GAME+ ==========
+
+  getPrestigeStats() {
+    var nw = this.getNetWorth();
+    var gen = this.state.generation || 1;
+    var props = this.state.properties.length;
+    var cities = new Set(this.state.properties.map(function(p){return p.cityId;})).size;
+    var rep = this.state.reputation || 50;
+    var rank = this.state.playerRank || 7;
+
+    // Prestige score based on achievements
+    var score = 0;
+    score += Math.floor(Math.log10(Math.max(1, nw))) * 10; // wealth magnitude
+    score += gen * 5; // generations survived
+    score += props * 2; // properties owned
+    score += cities * 8; // city diversity
+    score += Math.floor(rep / 10) * 3; // reputation
+    score += (7 - Math.min(7, rank)) * 10; // ranking bonus
+
+    // Prestige bonus for next game
+    var cashBonus = 1 + score * 0.01; // 1% per point
+    var repBonus = Math.min(30, Math.floor(score / 5));
+
+    return {
+      score: score,
+      netWorth: nw,
+      generation: gen,
+      properties: props,
+      cities: cities,
+      reputation: rep,
+      rank: rank,
+      cashBonus: cashBonus,
+      repBonus: repBonus
+    };
+  },
+
+  startPrestige(familyId) {
+    var stats = this.getPrestigeStats();
+    var prestigeLevel = (this.state.prestigeLevel || 0) + 1;
+    var family = GameData.families.find(function(f){return f.id === familyId;}) || GameData.families[1];
+
+    this.newGame(familyId);
+    this.state.prestigeLevel = prestigeLevel;
+    this.state.cash = Math.round(family.startingCash * stats.cashBonus);
+    this.state.reputation = 50 + stats.repBonus;
+    this.state.familyName = family.name + ' (Prestige ' + prestigeLevel + ')';
+
+    this.save();
+    return stats;
   },
 
   // ========== DYNASTY SYSTEM ==========

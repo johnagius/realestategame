@@ -602,6 +602,21 @@ const App = {
     }
   },
 
+  // ---- Prestige ----
+  startPrestige() {
+    GameUI.hideModal();
+    // Show family selection for prestige run
+    document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('main-nav').classList.add('hidden');
+    document.getElementById('hud-ticker').classList.add('hidden');
+    document.getElementById('hud-goals').classList.add('hidden');
+    document.getElementById('screen-splash').classList.add('active');
+    document.getElementById('splash-main-btns').style.display = 'none';
+    // Reuse family selection — prestige flag stored
+    this.startNewGame();
+  },
+
   // ---- Tutorial System ----
   tutorialSteps: [
     { icon: '🏛️', text: '<strong>Welcome to Property Empire!</strong><br>You are founding a dynasty in ' + (GameData.startingYear || 1750) + '. Your goal: build the wealthiest real estate empire across centuries.' },
