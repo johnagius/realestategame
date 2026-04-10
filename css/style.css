@@ -1957,14 +1957,25 @@ h4 { font-size: 1rem; }
 }
 
 /* ---------- World Map ---------- */
+/* D3 map animations */
+@keyframes cpulse{0%,100%{r:5;opacity:.6}50%{r:14;opacity:0}}
+.cpulse{animation:cpulse 2.8s ease-out infinite}
+@keyframes shimmer{0%,100%{opacity:.012}50%{opacity:.05}}
+.ow{animation:shimmer 5s ease-in-out infinite}
+.ow:nth-child(3n){animation-delay:1.6s}
+.ow:nth-child(3n+1){animation-delay:3.2s}
+@keyframes borderPulse{0%,100%{stroke-opacity:.3}50%{stroke-opacity:.7}}
+.gborder{animation:borderPulse 3s ease-in-out infinite}
+.country{cursor:pointer}
+
 .world-map-container {
   position: relative;
   width: 100%;
   border-radius: 6px;
   overflow: hidden;
-  border: 4px solid #5A4A38;
+  border: 3px solid #c8a030;
   margin-bottom: 12px;
-  background: #3A6078;
+  background: #060c1a;
   flex-shrink: 0;
   box-shadow: 0 6px 28px rgba(30, 18, 8, 0.35), 0 2px 8px rgba(0,0,0,0.2), inset 0 0 20px rgba(0,0,0,0.08);
 }
@@ -1972,7 +1983,7 @@ h4 { font-size: 1rem; }
 .world-map {
   position: relative;
   width: 100%;
-  padding-bottom: 50%;
+  padding-bottom: 48.6%; /* 1400:680 aspect ratio for D3 Natural Earth projection */
 }
 
 .world-map-svg {
