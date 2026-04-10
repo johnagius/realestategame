@@ -1998,127 +1998,159 @@ const GameGraphics = {
     return s;
   },
 
-  // ===== TOKYO =====
+  // ===== TOKYO — Premium illustrated =====
   _city_tokyo() {
     var s = '';
-    // Sky with slight pink tint (cherry blossom season feel)
-    s += '<rect width="1200" height="500" fill="#E0E8F0"/>';
-    s += '<rect width="1200" height="200" fill="#F0E8F0" opacity="0.5"/>';
+    // Clean pale sky — Tokyo dawn/dusk
+    s += '<linearGradient id="tk-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#C8D8E8"/><stop offset="40%" stop-color="#D8E0EC"/><stop offset="70%" stop-color="#E8E0D8"/><stop offset="90%" stop-color="#F0D8C8"/><stop offset="100%" stop-color="#F0E0D0"/></linearGradient>';
+    s += '<rect width="1200" height="500" fill="url(#tk-sky)"/>';
 
-    // Mt Fuji in background
-    s += '<g transform="translate(950, 50)" opacity="0.3">';
-    s += '<polygon points="-80,120 0,0 80,120" fill="#8888AA"/>';
-    s += '<polygon points="-30,40 0,0 30,40" fill="#E8E8F0"/>';
+    // Mount Fuji — distant, iconic
+    s += '<g opacity="0.3">';
+    s += '<polygon points="900,180 980,280 820,280" fill="#8090A8"/>';
+    s += '<polygon points="920,200 980,280 860,280" fill="#7888A0" opacity="0.5"/>'; // shadow face
+    s += '<polygon points="900,180 870,210 930,210" fill="#E8F0F8" opacity="0.6"/>'; // snow cap
+    s += '<polygon points="895,185 880,200 915,200" fill="#F0F4F8" opacity="0.4"/>'; // highlight
     s += '</g>';
 
-    // === TOKYO TOWER ===
-    s += '<g transform="translate(400, 80)">';
-    s += '<path d="M-3,0 L-30,180 L-38,180" fill="none" stroke="#E83030" stroke-width="3"/>';
-    s += '<path d="M3,0 L30,180 L38,180" fill="none" stroke="#E83030" stroke-width="3"/>';
-    // Cross beams
-    for (var ty = 20; ty < 180; ty += 20) {
-      var tw = (ty / 180) * 30;
-      s += '<line x1="'+(-tw)+'" y1="'+ty+'" x2="'+tw+'" y2="'+ty+'" stroke="#E83030" stroke-width="1.5"/>';
+    // Soft clouds
+    s += '<g opacity="0.3">';
+    s += '<ellipse cx="200" cy="55" rx="100" ry="16" fill="#FFF"/>';
+    s += '<ellipse cx="230" cy="50" rx="60" ry="12" fill="#F8F8FF"/>';
+    s += '<ellipse cx="550" cy="45" rx="120" ry="18" fill="#FFF"/>';
+    s += '<ellipse cx="580" cy="40" rx="70" ry="13" fill="#F8F8FF"/>';
+    s += '<ellipse cx="1050" cy="60" rx="90" ry="15" fill="#FFF"/>';
+    s += '</g>';
+
+    // === DISTANT SKYLINE (atmospheric) ===
+    s += '<g opacity="0.1" fill="#8A98A8">';
+    for (var dx = 0; dx < 1200; dx += 20) {
+      var dh = 8 + Math.sin(dx * 0.05) * 5;
+      s += '<rect x="'+dx+'" y="'+(270-dh)+'" width="16" height="'+dh+'"/>';
     }
-    // White bands
-    s += '<g stroke="#FFF" stroke-width="2">';
-    for (var ty = 30; ty < 170; ty += 40) {
-      var tw = (ty / 180) * 30;
+    s += '</g>';
+
+    // === TOKYO TOWER (red-orange lattice) ===
+    s += '<g transform="translate(350, 90)">';
+    // Legs
+    s += '<path d="M-2,0 L-30,210 L-40,210 Q-22,140 -18,80 Q-10,30 -2,0" fill="#C83828" opacity="0.9"/>';
+    s += '<path d="M2,0 L30,210 L40,210 Q22,140 18,80 Q10,30 2,0" fill="#B03020" opacity="0.85"/>';
+    // Cross-bracing
+    s += '<g stroke="#C83828" stroke-width="0.5" opacity="0.4">';
+    for (var ty = 10; ty < 200; ty += 10) {
+      var tw = (ty / 210) * 30;
       s += '<line x1="'+(-tw)+'" y1="'+ty+'" x2="'+tw+'" y2="'+ty+'"/>';
+      if (ty < 190) {
+        var tw2 = ((ty+10) / 210) * 30;
+        s += '<line x1="'+(-tw)+'" y1="'+ty+'" x2="'+(-tw2*0.5)+'" y2="'+(ty+10)+'"/>';
+        s += '<line x1="'+tw+'" y1="'+ty+'" x2="'+(tw2*0.5)+'" y2="'+(ty+10)+'"/>';
+      }
     }
     s += '</g>';
-    // Observation deck
-    s += '<rect x="-18" y="80" width="36" height="8" fill="#E83030" rx="1"/>';
+    // Observation platforms
+    s += '<rect x="-18" y="65" width="36" height="5" fill="#D04030" rx="1"/>';
+    s += '<rect x="-26" y="140" width="52" height="6" fill="#D04030" rx="1"/>';
+    // White bands
+    s += '<rect x="-14" y="30" width="28" height="4" fill="#F0F0F0" opacity="0.6" rx="0.5"/>';
+    s += '<rect x="-22" y="100" width="44" height="4" fill="#F0F0F0" opacity="0.6" rx="0.5"/>';
     // Antenna
-    s += '<line x1="0" y1="0" x2="0" y2="-20" stroke="#E83030" stroke-width="1.5"/>';
+    s += '<line x1="0" y1="0" x2="0" y2="-20" stroke="#D04030" stroke-width="2"/>';
+    s += '<circle cx="0" cy="-21" r="1.5" fill="#F04040" opacity="0.5"/>';
     s += '</g>';
 
-    // === SKYTREE (background) ===
-    s += '<g transform="translate(800, 40)" opacity="0.5">';
-    s += '<rect x="-4" y="0" width="8" height="230" fill="#B0B8C0"/>';
-    s += '<rect x="-10" y="100" width="20" height="10" fill="#B8C0C8" rx="2"/>';
-    s += '<polygon points="-6,0 0,-15 6,0" fill="#B0B8C0"/>';
+    // === TOKYO SKYTREE (far right, taller, more modern) ===
+    s += '<g transform="translate(1050, 60)" opacity="0.5">';
+    // Tapered shaft
+    s += '<path d="M-3,0 L-10,240 L10,240 L3,0Z" fill="#8898A8" stroke="#6878888" stroke-width="0.5"/>';
+    // Observation decks
+    s += '<ellipse cx="0" cy="165" rx="14" ry="4" fill="#98A8B8" stroke="#6878888" stroke-width="0.4"/>';
+    s += '<ellipse cx="0" cy="100" rx="10" ry="3" fill="#98A8B8" stroke="#6878888" stroke-width="0.3"/>';
+    // Antenna
+    s += '<line x1="0" y1="0" x2="0" y2="-30" stroke="#8898A8" stroke-width="1.5"/>';
     s += '</g>';
 
-    // === BUILDINGS - mix of modern and traditional ===
+    // === MAIN BUILDINGS — mixed Japanese architecture ===
     // Modern glass towers
     var towers = [
-      [80,100,35,180,'#A0B0C8'],[140,120,28,160,'#B0C0D0'],[190,90,40,190,'#98A8B8'],
-      [530,110,32,170,'#A8B8C8'],[580,95,38,185,'#B0B8C8'],[640,125,30,158,'#A0B0C0'],
-      [880,105,34,175,'#A8B8D0'],[940,120,28,162,'#B8C0D0'],[990,100,36,180,'#A0A8C0'],
-      [1050,130,30,150,'#B0B8C0'],[1100,110,32,170,'#A8B0C8']
+      {x:100,w:45,h:120,color:'#7888A0'}, {x:150,w:38,h:95,color:'#6A7A92'},
+      {x:200,w:55,h:140,color:'#8090A8'}, {x:260,w:40,h:105,color:'#7080A0'},
+      {x:420,w:48,h:110,color:'#7A8AA0'}, {x:475,w:36,h:85,color:'#6A7892'},
+      {x:520,w:52,h:130,color:'#8090A8'}, {x:580,w:42,h:100,color:'#7888A0'},
+      {x:650,w:50,h:115,color:'#7080A0'}, {x:710,w:38,h:90,color:'#6A7A92'},
+      {x:760,w:55,h:135,color:'#8090A8'}, {x:825,w:42,h:105,color:'#7888A0'},
+      {x:880,w:48,h:95,color:'#7080A0'}, {x:940,w:40,h:110,color:'#7A8AA0'},
+      {x:1000,w:36,h:80,color:'#6A7892'}, {x:1100,w:45,h:100,color:'#8090A8'},
+      {x:1150,w:38,h:85,color:'#7888A0'}
     ];
-    for (var i = 0; i < towers.length; i++) {
-      var t = towers[i];
-      s += '<rect x="'+t[0]+'" y="'+t[1]+'" width="'+t[2]+'" height="'+t[3]+'" fill="'+t[4]+'" stroke="#8898A8" stroke-width="0.5" rx="1"/>';
-      // Glass curtain wall effect
-      s += '<g fill="#88A0B8" opacity="0.4">';
-      for (var wy = t[1]+4; wy < t[1]+t[3]-4; wy += 5) {
-        s += '<rect x="'+(t[0]+2)+'" y="'+wy+'" width="'+(t[2]-4)+'" height="3"/>';
+    for (var ti = 0; ti < towers.length; ti++) {
+      var t = towers[ti];
+      var by = 300 - t.h;
+      s += '<rect x="'+t.x+'" y="'+by+'" width="'+t.w+'" height="'+t.h+'" fill="'+t.color+'" stroke="#5A6A80" stroke-width="0.4"/>';
+      // Glass curtain wall lines
+      s += '<g stroke="#6A7A90" stroke-width="0.3" opacity="0.3">';
+      for (var fy = by + 3; fy < 298; fy += 4) {
+        s += '<line x1="'+t.x+'" y1="'+fy+'" x2="'+(t.x+t.w)+'" y2="'+fy+'"/>';
+      }
+      for (var fx = t.x + 6; fx < t.x + t.w; fx += 6) {
+        s += '<line x1="'+fx+'" y1="'+by+'" x2="'+fx+'" y2="300"/>';
       }
       s += '</g>';
     }
 
-    // === SENSOJI TEMPLE (foreground right) ===
-    s += '<g transform="translate(700, 230)">';
-    // Base
-    s += '<rect x="0" y="15" width="60" height="35" fill="#C8A878" stroke="#A08858" stroke-width="0.8"/>';
-    // Roof layers (pagoda style)
-    s += '<path d="M-8,15 Q30,5 68,15" fill="#5A2A2A" stroke="#4A1A1A" stroke-width="0.8"/>';
-    s += '<path d="M-5,15 Q30,8 65,15" fill="none" stroke="#7A3A3A" stroke-width="0.5"/>';
-    s += '<path d="M2,0 Q30,-8 58,0" fill="#5A2A2A" stroke="#4A1A1A" stroke-width="0.8"/>';
-    // Roof ornament
-    s += '<line x1="30" y1="-8" x2="30" y2="-15" stroke="#8A6A4A" stroke-width="1"/>';
-    // Red gate (torii)
-    s += '<g transform="translate(30, 35)">';
-    s += '<rect x="-15" y="0" width="3" height="25" fill="#D03030"/>';
-    s += '<rect x="12" y="0" width="3" height="25" fill="#D03030"/>';
-    s += '<rect x="-18" y="-2" width="36" height="3" fill="#D03030"/>';
-    s += '<rect x="-16" y="3" width="32" height="2" fill="#D03030"/>';
-    s += '</g>';
+    // === SENSO-JI TEMPLE (foreground left) ===
+    s += '<g transform="translate(40, 260)">';
+    // Temple gate (Kaminarimon-style)
+    s += '<rect x="0" y="8" width="60" height="32" fill="#A83828" stroke="#7A2018" stroke-width="0.8"/>';
+    // Pagoda-style roof — multi-tiered with upturned eaves
+    s += '<path d="M-8,8 Q30,-5 68,8" fill="#3A2818" stroke="#2A1A0A" stroke-width="0.8"/>';
+    s += '<path d="M-4,8 Q30,-2 64,8" fill="#4A3828" stroke="#2A1A0A" stroke-width="0.5"/>'; // highlight ridge
+    // Upturned corners
+    s += '<path d="M-8,8 Q-12,6 -14,3" fill="none" stroke="#3A2818" stroke-width="1.2"/>';
+    s += '<path d="M68,8 Q72,6 74,3" fill="none" stroke="#3A2818" stroke-width="1.2"/>';
+    // Lantern
+    s += '<ellipse cx="30" cy="22" rx="7" ry="10" fill="#D02020" stroke="#A01818" stroke-width="0.5"/>';
+    s += '<line x1="30" y1="12" x2="30" y2="8" stroke="#8A6A4A" stroke-width="1"/>';
+    // Kanji hint
+    s += '<line x1="28" y1="18" x2="32" y2="18" stroke="#F0E0C0" stroke-width="0.6"/>';
+    s += '<line x1="30" y1="16" x2="30" y2="28" stroke="#F0E0C0" stroke-width="0.5"/>';
     s += '</g>';
 
-    // === CHERRY BLOSSOM TREES ===
-    var blossomTrees = [50, 270, 350, 500, 680, 850, 1000, 1130];
-    s += '<g>';
-    for (var i = 0; i < blossomTrees.length; i++) {
-      var bx = blossomTrees[i];
-      s += '<rect x="'+(bx-1.5)+'" y="268" width="3" height="18" fill="#5A4030"/>';
-      s += '<ellipse cx="'+bx+'" cy="258" rx="14" ry="16" fill="#F0A0B0" opacity="0.8"/>';
-      s += '<ellipse cx="'+(bx-6)+'" cy="262" rx="10" ry="12" fill="#F8B8C8" opacity="0.6"/>';
-      s += '<ellipse cx="'+(bx+5)+'" cy="260" rx="8" ry="10" fill="#F0A8B8" opacity="0.7"/>';
-      // Falling petals
-      s += '<g fill="#F8C0D0" opacity="0.5">';
-      for (var p = 0; p < 3; p++) {
-        var px = bx - 10 + Math.sin(bx + p * 30) * 15;
-        var py = 275 + p * 8 + Math.cos(bx + p * 20) * 5;
-        s += '<ellipse cx="'+px+'" cy="'+py+'" rx="1.5" ry="1" transform="rotate('+(p*30)+','+px+','+py+')"/>';
-      }
-      s += '</g>';
+    // === GROUND ===
+    s += '<rect x="0" y="300" width="1200" height="6" fill="#808080"/>'; // Elevated highway
+    s += '<rect x="0" y="306" width="1200" height="194" fill="#5A6A58"/>';
+    // Railway tracks
+    s += '<rect x="0" y="310" width="1200" height="12" fill="#6A6A68"/>';
+    s += '<g stroke="#8A8A88" stroke-width="0.6" opacity="0.4">';
+    for (var rx = 0; rx < 1200; rx += 8) {
+      s += '<line x1="'+rx+'" y1="312" x2="'+rx+'" y2="320"/>';
     }
     s += '</g>';
 
-    // Ground
-    s += '<rect x="0" y="285" width="1200" height="215" fill="#D0C8B8"/>';
-    // Crosswalk (Shibuya crossing style)
-    s += '<g stroke="#FFF" stroke-width="3" opacity="0.6">';
-    s += '<line x1="560" y1="290" x2="640" y2="290"/>';
-    s += '<line x1="560" y1="296" x2="640" y2="296"/>';
-    s += '<line x1="560" y1="302" x2="640" y2="302"/>';
-    s += '<line x1="560" y1="308" x2="640" y2="308"/>';
+    // Bullet train
+    s += '<g transform="translate(500, 310)">';
+    s += '<path d="M-5,2 Q0,-2 5,0 L55,0 Q60,2 60,6 L-5,6Z" fill="#F0F0F0" stroke="#C8C8C8" stroke-width="0.4"/>';
+    s += '<path d="M-5,2 Q0,-2 5,0 L5,6 L-5,6Z" fill="#E8E8E8"/>'; // nose
+    s += '<line x1="0" y1="1" x2="55" y2="1" stroke="#2828E8" stroke-width="1.2"/>'; // blue stripe
+    s += '<g fill="#88B8D0" stroke="#C8C8C8" stroke-width="0.2">';
+    for (var wx = 8; wx < 52; wx += 7) { s += '<rect x="'+wx+'" y="2" width="4" height="3" rx="0.3"/>'; }
+    s += '</g>';
     s += '</g>';
 
-    // Neon signs
-    s += '<g opacity="0.7">';
-    s += '<rect x="145" y="200" width="22" height="8" fill="#FF4488" rx="1"/>';
-    s += '<rect x="535" y="195" width="25" height="8" fill="#44AAFF" rx="1"/>';
-    s += '<rect x="890" y="205" width="20" height="8" fill="#FFAA22" rx="1"/>';
-    s += '<rect x="1060" y="200" width="28" height="8" fill="#AA44FF" rx="1"/>';
+    // Cherry blossoms (sakura) — scattered petals
+    s += '<g opacity="0.5">';
+    var sakura = [[60,285],[90,278],[130,290],[180,282],[680,288],[720,275],[800,292],[1060,280],[1120,285]];
+    for (var si = 0; si < sakura.length; si++) {
+      var sk = sakura[si];
+      s += '<rect x="'+(sk[0]-1)+'" y="'+(sk[1]+10)+'" width="2" height="15" fill="#5A3A20" rx="0.5"/>';
+      // Blossom clusters — pink
+      for (var pi = 0; pi < 5; pi++) {
+        var px = sk[0] + Math.cos(pi * 1.25) * (6 + pi * 2);
+        var py = sk[1] + Math.sin(pi * 1.8) * (4 + pi * 1.5);
+        s += '<circle cx="'+px+'" cy="'+py+'" r="'+(3.5 - pi*0.3)+'" fill="#F0A0B0" opacity="'+(0.7-pi*0.08)+'"/>';
+        s += '<circle cx="'+(px+1)+'" cy="'+(py-1)+'" r="'+(2.5-pi*0.2)+'" fill="#F8C0D0" opacity="'+(0.5-pi*0.06)+'"/>';
+      }
+    }
     s += '</g>';
-
-    // Train/monorail line
-    s += '<line x1="0" y1="200" x2="1200" y2="195" stroke="#555" stroke-width="2" opacity="0.3"/>';
-    s += '<rect x="300" y="192" width="25" height="8" fill="#338833" rx="2" opacity="0.4"/>';
 
     return s;
   },
