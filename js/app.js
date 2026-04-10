@@ -287,6 +287,7 @@ const App = {
     var result = GameEngine.buyProperty(propertyId, cityId, offerPct);
     if (result.success) {
       GameUI.toast(result.message, 'success');
+      GameAudio.purchase();
       GameUI.updateHUD();
       GameUI.showScreen('property', propertyId);
     } else {

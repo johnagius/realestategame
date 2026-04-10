@@ -641,6 +641,7 @@ const GameUI = {
     content.innerHTML =
       '<div class="settings-section">' +
         '<div class="settings-row"><div><div class="settings-label">Auto-Advance Time</div><div class="settings-description">Automatically advance months</div></div>' + this.renderSpeedControls() + '</div>' +
+        '<div class="settings-row"><div><div class="settings-label">Sound Effects</div><div class="settings-description">' + (GameAudio.muted ? 'Muted' : 'On') + '</div></div><button class="btn btn-secondary btn-small" onclick="GameAudio.toggle();GameUI.renderSettings()">' + (GameAudio.muted ? '🔇 Unmute' : '🔊 Mute') + '</button></div>' +
         '<div class="settings-row"><div><div class="settings-label">Save Game</div><div class="settings-description">Game saves automatically each month</div></div><button class="btn btn-primary btn-small" onclick="GameEngine.save(); GameUI.toast(\'Game saved!\', \'success\')">Save Now</button></div>' +
         '<div class="settings-row"><div><div class="settings-label">New Game</div><div class="settings-description">Start fresh with €500,000</div></div><button class="btn btn-danger btn-small" onclick="App.confirmNewGame()">Reset</button></div>' +
       '</div>' +
@@ -725,6 +726,7 @@ const GameUI = {
     // Foreclosure
     if (results.foreclosure) {
       GameUI.toast('🏦 FORECLOSURE! ' + results.foreclosure.property.name + ' sold for ' + GameData.formatMoney(results.foreclosure.amount) + ' (70% of value)', 'error');
+      GameAudio.alarm();
     }
 
     // Property degradation
@@ -755,7 +757,7 @@ const GameUI = {
 
     // Floating income/expense numbers (only at slow speed or manual)
     if (!isAutoPlaying || speed <= 1) {
-      if (results.rentIncome > 0) GameUI.animateIncome(results.rentIncome);
+      if (results.rentIncome > 0) { GameUI.animateIncome(results.rentIncome); GameAudio.coin(); }
       if (results.expenses > 0) {
         setTimeout(function() { GameUI.animateExpense(results.expenses); }, 400);
       }
@@ -787,6 +789,7 @@ const GameUI = {
         GameUI.toast(m.icon + ' Milestone: ' + m.name + '!', 'milestone');
       });
       GameUI.animateConfetti();
+      GameAudio.fanfare();
     }
 
     // Basic summary toast - skip during fast auto-play to reduce noise
@@ -843,6 +846,8 @@ const GameUI = {
 
     document.getElementById('decision-card').innerHTML = html;
     document.getElementById('decision-panel').classList.remove('hidden');
+
+    GameAudio.decision();
 
     // Auto-play pauses during decisions
     if (GameEngine.state.autoAdvanceSpeed > 0) {
