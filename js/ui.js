@@ -8,6 +8,8 @@ const GameUI = {
   currentCity: null,
   currentProperty: null,
   cityMapView: false,
+  cityPage: 0,
+  PAGE_SIZE: 4,
   currentCityTab: 'market',
   currentPortfolioFilter: 'all',
   mapView: true,
@@ -121,6 +123,7 @@ const GameUI = {
     if (!city) return;
 
     document.getElementById('city-title').textContent = city.flag + ' ' + city.name;
+    this.cityPage = 0; // reset pagination
 
     // City info chips
     var info = document.getElementById('city-info');
@@ -163,7 +166,27 @@ const GameUI = {
     }
 
     empty.style.display = 'none';
-    grid.innerHTML = props.map(function(p, i) { return GameUI.renderPropertyCard(p, i); }).join('');
+
+    // Paginate
+    var total = props.length;
+    var ps = this.PAGE_SIZE;
+    var maxPage = Math.max(0, Math.ceil(total / ps) - 1);
+    if (this.cityPage > maxPage) this.cityPage = maxPage;
+    var start = this.cityPage * ps;
+    var pageProps = props.slice(start, start + ps);
+
+    var html = pageProps.map(function(p, i) { return GameUI.renderPropertyCard(p, start + i); }).join('');
+
+    // Pagination controls
+    if (total > ps) {
+      html += '<div style="grid-column:1/-1;display:flex;justify-content:center;gap:8px;padding:8px 0;align-items:center">';
+      html += '<button class="btn btn-ghost btn-small" onclick="GameUI.cityPage=Math.max(0,GameUI.cityPage-1);GameUI.renderCityProperties()" ' + (this.cityPage <= 0 ? 'disabled' : '') + '>← Prev</button>';
+      html += '<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted)">' + (this.cityPage + 1) + ' / ' + (maxPage + 1) + ' (' + total + ' total)</span>';
+      html += '<button class="btn btn-ghost btn-small" onclick="GameUI.cityPage=Math.min('+ maxPage+',GameUI.cityPage+1);GameUI.renderCityProperties()" ' + (this.cityPage >= maxPage ? 'disabled' : '') + '>Next →</button>';
+      html += '</div>';
+    }
+
+    grid.innerHTML = html;
   },
 
   // ---- Render a property card ----
@@ -1014,19 +1037,27 @@ const GameUI = {
 
   // ---- Auto-advance controls ----
   setAutoAdvance(speed) {
+    // Clear existing timer
     if (this.autoTimer) {
       clearInterval(this.autoTimer);
       this.autoTimer = null;
     }
 
+    if (!GameEngine.state) return;
     GameEngine.state.autoAdvanceSpeed = speed;
-    var intervals = { 0: 0, 1: 5000, 2: 2500, 3: 1200 };
+    var intervals = { 0: 0, 1: 4000, 2: 2000, 3: 800 };
     var ms = intervals[speed] || 0;
 
     if (ms > 0) {
-      this.autoTimer = setInterval(function() { App.advanceMonth(); }, ms);
+      var self = this;
+      this.autoTimer = setInterval(function() {
+        if (GameEngine.state) App.advanceMonth();
+      }, ms);
     }
     GameEngine.save();
+    // Re-render speed buttons to show active state
+    var el = document.getElementById('hud-speed');
+    if (el) el.innerHTML = this.renderSpeedControls();
   },
 
   renderSpeedControls() {
