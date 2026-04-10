@@ -938,6 +938,18 @@ h4 { font-size: 1rem; }
   line-height: 1;
 }
 
+.property-thumb {
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.property-thumb svg {
+  display: block;
+}
+
 .property-type-label {
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -1660,6 +1672,23 @@ h4 { font-size: 1rem; }
 .justify-between { justify-content: space-between; }
 
 /* ---------- Responsive ---------- */
+/* Mobile: increase tiny HUD text for readability */
+@media (max-width: 480px) {
+  .hud-label { font-size: 0.55rem; }
+  .hud-value { font-size: 0.85rem; }
+  .hud-ticker { font-size: 0.6rem; height: 22px; }
+  .nav-btn { font-size: 0.6rem; min-width: 50px; }
+  .nav-btn .nav-icon { font-size: 1rem; }
+  .screen-header h2 { font-size: 0.95rem; }
+  .city-card-name { font-size: 0.9rem; }
+  .property-card-name { font-size: 0.85rem; }
+  .property-card-price { font-size: 0.95rem; }
+  .card-grid { grid-template-columns: 1fr; gap: 6px; }
+  .decision-card { padding: 14px; }
+  .decision-title { font-size: 0.95rem; }
+  .decision-desc { font-size: 0.78rem; }
+}
+
 @media (min-width: 600px) {
   .game-screen {
     padding-left: 24px;
