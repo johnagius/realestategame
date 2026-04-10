@@ -645,7 +645,11 @@ const GameGraphics = {
       this._wmContinents() +
       this._wmTerrain() +
       this._wmCoastalShading() +
-      this._wmBorder();
+      this._wmCoastHatching() +
+      this._wmShips() +
+      this._wmAgedOverlay() +
+      this._wmBorder() +
+      this._wmCartouche();
   },
 
   _wmDefs() {
@@ -714,6 +718,16 @@ const GameGraphics = {
       // Wave pattern — subtle, hand-drawn feel
       '<pattern id="wm-wave" width="80" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(-3)">' +
         '<path d="M0,8 Q20,4 40,8 Q60,12 80,8" fill="none" stroke="#5A8EA8" stroke-width="0.5" opacity="0.12"/>' +
+      '</pattern>' +
+      // Stipple/noise pattern for aged parchment
+      '<filter id="wm-noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>' +
+        '<feColorMatrix type="saturate" values="0"/>' +
+        '<feComponentTransfer><feFuncA type="linear" slope="0.06" intercept="0"/></feComponentTransfer>' +
+        '<feBlend in="SourceGraphic" mode="multiply"/>' +
+      '</filter>' +
+      // Coastline hatch pattern
+      '<pattern id="wm-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
+        '<line x1="0" y1="0" x2="0" y2="6" stroke="#3A5A48" stroke-width="0.4" opacity="0.15"/>' +
       '</pattern>' +
     '</defs>';
   },
@@ -886,45 +900,55 @@ const GameGraphics = {
     // Australian outback
     s += '<ellipse cx="1220" cy="565" rx="45" ry="30" fill="url(#wm-desert)" opacity="0.35"/>';
 
-    // ===== MOUNTAIN RANGES — relief triangles with shadow =====
+    // ===== MOUNTAIN RANGES — relief shaded (lit from upper-left) =====
+    // Helper: each peak has a lit left face and shadowed right face
+    function mtnPeak(x, y, h, w, snow) {
+      var hw = w || 5, pk = '';
+      // Shadow face (right side, darker)
+      pk += '<polygon points="'+x+','+(y-h)+' '+(x+hw)+','+y+' '+x+','+y+'" fill="#5A4A38" opacity="0.5"/>';
+      // Lit face (left side, lighter)
+      pk += '<polygon points="'+(x-hw)+','+y+' '+x+','+(y-h)+' '+x+','+y+'" fill="#8A7A62" opacity="0.6"/>';
+      // Ridge line
+      pk += '<line x1="'+x+'" y1="'+(y-h)+'" x2="'+x+'" y2="'+y+'" stroke="#6A5A42" stroke-width="0.3" opacity="0.3"/>';
+      if (snow) {
+        pk += '<polygon points="'+(x-hw*0.3)+','+(y-h*0.65)+' '+x+','+(y-h)+' '+(x+hw*0.3)+','+(y-h*0.65)+'" fill="#E8F0F4" opacity="0.7"/>';
+      }
+      return pk;
+    }
+
     // Rocky Mountains
-    s += '<g fill="url(#wm-mtn)" stroke="#5A5040" stroke-width="0.5" opacity="0.65">';
-    var rockies = [[125,150],[132,140],[140,152],[148,138],[155,150],[162,135],[170,148]];
+    s += '<g opacity="0.7">';
+    var rockies = [[120,152,18,6],[128,142,22,7],[138,154,16,5],[146,140,24,7],[155,152,18,6],[164,138,26,8],[174,150,20,6]];
     for (var i = 0; i < rockies.length; i++) {
       var m = rockies[i];
-      s += '<polygon points="'+(m[0]-5)+','+m[1]+' '+m[0]+','+(m[1]-16)+' '+(m[0]+5)+','+m[1]+'"/>';
-      // Snow cap
-      if (i % 2 === 0) s += '<polygon points="'+(m[0]-2)+','+(m[1]-10)+' '+m[0]+','+(m[1]-16)+' '+(m[0]+2)+','+(m[1]-10)+'" fill="#E4ECF0" opacity="0.6"/>';
+      s += mtnPeak(m[0], m[1], m[2], m[3], i % 2 === 0);
     }
     s += '</g>';
 
     // Andes
-    s += '<g fill="url(#wm-mtn)" stroke="#5A5040" stroke-width="0.4" opacity="0.6">';
-    var andes = [[292,460],[298,448],[304,462],[310,445],[316,458],[322,442],[328,456],[334,440],[338,455]];
+    s += '<g opacity="0.65">';
+    var andes = [[290,462,16,5],[296,450,18,5],[303,464,14,4],[310,448,20,6],[317,460,16,5],[324,444,22,6],[331,458,18,5],[337,442,24,7],[342,456,16,5]];
     for (var i = 0; i < andes.length; i++) {
       var m = andes[i];
-      s += '<polygon points="'+(m[0]-4)+','+m[1]+' '+m[0]+','+(m[1]-14)+' '+(m[0]+4)+','+m[1]+'"/>';
-      if (i % 3 === 0) s += '<polygon points="'+(m[0]-1.5)+','+(m[1]-9)+' '+m[0]+','+(m[1]-14)+' '+(m[0]+1.5)+','+(m[1]-9)+'" fill="#E4ECF0" opacity="0.5"/>';
+      s += mtnPeak(m[0], m[1], m[2], m[3], i % 3 === 0);
     }
     s += '</g>';
 
     // Alps
-    s += '<g fill="url(#wm-mtn)" stroke="#5A5040" stroke-width="0.4" opacity="0.6">';
-    var alps = [[680,135],[688,128],[696,136],[704,126],[710,134]];
+    s += '<g opacity="0.65">';
+    var alps = [[678,136,14,4],[686,128,16,5],[695,137,12,4],[703,126,18,5],[712,135,14,4]];
     for (var i = 0; i < alps.length; i++) {
       var m = alps[i];
-      s += '<polygon points="'+(m[0]-4)+','+m[1]+' '+m[0]+','+(m[1]-12)+' '+(m[0]+4)+','+m[1]+'"/>';
-      s += '<polygon points="'+(m[0]-1.5)+','+(m[1]-8)+' '+m[0]+','+(m[1]-12)+' '+(m[0]+1.5)+','+(m[1]-8)+'" fill="#E4ECF0" opacity="0.5"/>';
+      s += mtnPeak(m[0], m[1], m[2], m[3], true);
     }
     s += '</g>';
 
     // Himalayas — larger, more dramatic
-    s += '<g fill="url(#wm-mtn)" stroke="#5A5040" stroke-width="0.5" opacity="0.7">';
-    var himal = [[918,160],[928,148],[938,158],[948,142],[958,155],[968,140],[978,152],[988,138],[998,150]];
+    s += '<g opacity="0.75">';
+    var himal = [[916,162,20,6],[926,148,26,7],[936,160,18,6],[948,142,30,8],[958,158,22,6],[968,140,32,8],[980,155,24,7],[990,138,34,9],[1000,152,22,7]];
     for (var i = 0; i < himal.length; i++) {
       var m = himal[i];
-      s += '<polygon points="'+(m[0]-5)+','+m[1]+' '+m[0]+','+(m[1]-18)+' '+(m[0]+5)+','+m[1]+'"/>';
-      s += '<polygon points="'+(m[0]-2)+','+(m[1]-12)+' '+m[0]+','+(m[1]-18)+' '+(m[0]+2)+','+(m[1]-12)+'" fill="#E4ECF0" opacity="0.7"/>';
+      s += mtnPeak(m[0], m[1], m[2], m[3], true);
     }
     s += '</g>';
 
@@ -1053,6 +1077,103 @@ const GameGraphics = {
     // Vignette — darker edges for depth
     s += '<rect width="1600" height="800" fill="none" stroke="#1A2A18" stroke-width="40" rx="4" opacity="0.06"/>';
 
+    return s;
+  },
+
+  _wmCoastHatching() {
+    // Fine parallel lines along coastlines for cartographic depth
+    var s = '<g opacity="0.08" fill="none" stroke="#2A4A38" stroke-width="0.6">';
+    // North America east coast hatching
+    for (var i = 0; i < 8; i++) {
+      var offset = i * 3;
+      s += '<path d="M'+(335+offset)+','+(72+offset)+' C'+(410+offset)+','+(115+offset)+' '+(425+offset)+','+(180+offset)+' '+(418+offset)+','+(245+offset)+' C'+(408+offset)+','+(298+offset)+' '+(342+offset)+','+(335+offset)+' '+(302+offset)+','+(352+offset)+'" />';
+    }
+    // South America east
+    for (var i = 0; i < 6; i++) {
+      var o = i * 3;
+      s += '<path d="M'+(378+o)+','+(420+o)+' C'+(422+o)+','+(472+o)+' '+(432+o)+','+(528+o)+' '+(405+o)+','+(638+o)+'" />';
+    }
+    // Africa west
+    for (var i = 0; i < 6; i++) {
+      var o = i * 3;
+      s += '<path d="M'+(645-o)+','+(240-o)+' C'+(630-o)+','+(310-o)+' '+(620-o)+','+(400-o)+' '+(678-o)+','+(565-o)+'" />';
+    }
+    // Europe south
+    for (var i = 0; i < 5; i++) {
+      var o = i * 2.5;
+      s += '<path d="M'+(620+o)+','+(165+o)+' C'+(660+o)+','+(180+o)+' '+(730+o)+','+(185+o)+' '+(782+o)+','+(168+o)+'" />';
+    }
+    s += '</g>';
+    return s;
+  },
+
+  _wmShips() {
+    // 1750-era sailing vessels for atmosphere and era identity
+    var s = '<g opacity="0.25">';
+    var ships = [
+      [450, 440, 0.8, 10],   // Mid-Atlantic
+      [320, 510, 0.7, -5],   // South Atlantic
+      [1300, 460, 0.9, -8],  // Pacific
+      [870, 580, 0.7, 12],   // Indian Ocean
+      [580, 320, 0.6, 5],    // Mediterranean
+      [200, 300, 0.65, -3],  // N. Atlantic
+    ];
+    for (var i = 0; i < ships.length; i++) {
+      var sh = ships[i];
+      s += '<g transform="translate('+sh[0]+','+sh[1]+') scale('+sh[2]+') rotate('+sh[3]+')">';
+      // Hull
+      s += '<path d="M-12,4 Q0,8 12,4 L10,0 L-10,0Z" fill="#6A5040" stroke="#4A3828" stroke-width="0.8"/>';
+      // Mast
+      s += '<line x1="0" y1="0" x2="0" y2="-22" stroke="#5A4838" stroke-width="1"/>';
+      // Sails
+      s += '<path d="M1,-20 Q8,-14 2,-6" fill="#E8E0D0" stroke="#B0A890" stroke-width="0.4"/>';
+      s += '<path d="M-1,-18 Q-7,-12 -1,-4" fill="#E0D8C8" stroke="#B0A890" stroke-width="0.4"/>';
+      // Flag
+      s += '<path d="M0,-22 L6,-20 L0,-18" fill="#A04030" opacity="0.7"/>';
+      // Wake
+      s += '<path d="M12,4 Q18,6 25,5" fill="none" stroke="#6AA0B8" stroke-width="0.5" opacity="0.4"/>';
+      s += '</g>';
+    }
+    s += '</g>';
+    return s;
+  },
+
+  _wmAgedOverlay() {
+    // Subtle age/wear effect — vignette + warm tone + noise texture hint
+    var s = '';
+    // Warm parchment tint over everything
+    s += '<rect width="1600" height="800" fill="#D8C8A0" opacity="0.04"/>';
+    // Darker corners (vignette)
+    s += '<radialGradient id="wm-vig" cx="0.5" cy="0.5" r="0.7"><stop offset="0%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#1A1008" stop-opacity="0.15"/></radialGradient>';
+    s += '<rect width="1600" height="800" fill="url(#wm-vig)"/>';
+    // Stain marks (very subtle)
+    s += '<circle cx="300" cy="600" r="80" fill="#8A7A58" opacity="0.015"/>';
+    s += '<circle cx="1200" cy="200" r="60" fill="#8A7A58" opacity="0.01"/>';
+    s += '<ellipse cx="800" cy="700" rx="120" ry="40" fill="#7A6A48" opacity="0.012"/>';
+    return s;
+  },
+
+  _wmCartouche() {
+    // Decorative title cartouche — top left area
+    var s = '<g transform="translate(40, 30)">';
+    // Cartouche background — ornate frame
+    s += '<rect x="0" y="0" width="180" height="65" rx="4" fill="#F0E8D4" stroke="#6A5A42" stroke-width="1.5" opacity="0.85"/>';
+    // Inner border
+    s += '<rect x="4" y="4" width="172" height="57" rx="3" fill="none" stroke="#8A7A5A" stroke-width="0.5" opacity="0.5"/>';
+    // Decorative corner flourishes
+    s += '<g stroke="#8A7A5A" stroke-width="0.8" fill="none" opacity="0.4">';
+    s += '<path d="M8,8 Q4,14 8,20"/><path d="M8,8 Q14,4 20,8"/>';
+    s += '<path d="M172,8 Q176,14 172,20"/><path d="M172,8 Q166,4 160,8"/>';
+    s += '<path d="M8,57 Q4,51 8,45"/><path d="M8,57 Q14,61 20,57"/>';
+    s += '<path d="M172,57 Q176,51 172,45"/><path d="M172,57 Q166,61 160,57"/>';
+    s += '</g>';
+    // Title text
+    s += '<text x="90" y="28" text-anchor="middle" font-family="\'Playfair Display\',serif" font-size="14" fill="#3A2A18" font-weight="700" letter-spacing="2">PROPERTY EMPIRE</text>';
+    s += '<text x="90" y="44" text-anchor="middle" font-family="serif" font-size="9" fill="#6A5A42" font-style="italic" letter-spacing="1">Atlas of the Known World</text>';
+    // Era line
+    s += '<line x1="30" y1="50" x2="150" y2="50" stroke="#8A7A5A" stroke-width="0.4" opacity="0.4"/>';
+    s += '<text x="90" y="58" text-anchor="middle" font-family="serif" font-size="7" fill="#8A7A5A" letter-spacing="1">ANNO DOMINI</text>';
+    s += '</g>';
     return s;
   },
 
