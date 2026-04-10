@@ -1,0 +1,240 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Sky gradient - golden sunset -->
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a0a2e"/>
+      <stop offset="20%" stop-color="#2d1b4e"/>
+      <stop offset="40%" stop-color="#6b3a5e"/>
+      <stop offset="55%" stop-color="#c4654a"/>
+      <stop offset="70%" stop-color="#e8a84c"/>
+      <stop offset="82%" stop-color="#f0c87a"/>
+      <stop offset="100%" stop-color="#fae8c8"/>
+    </linearGradient>
+    <!-- Water reflection -->
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c4875a"/>
+      <stop offset="30%" stop-color="#5a6e8a"/>
+      <stop offset="100%" stop-color="#2a3a5a"/>
+    </linearGradient>
+    <!-- Hill greens -->
+    <linearGradient id="hillFar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a4a3a"/>
+      <stop offset="100%" stop-color="#1a3a2a"/>
+    </linearGradient>
+    <linearGradient id="hillMid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2d5a3a"/>
+      <stop offset="100%" stop-color="#1e4a2e"/>
+    </linearGradient>
+    <linearGradient id="hillNear" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a3a22"/>
+      <stop offset="100%" stop-color="#0f2a18"/>
+    </linearGradient>
+    <linearGradient id="mansion" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5e6d0"/>
+      <stop offset="100%" stop-color="#d4c4a8"/>
+    </linearGradient>
+    <linearGradient id="roof" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5a4a3a"/>
+      <stop offset="100%" stop-color="#3a2a1a"/>
+    </linearGradient>
+    <!-- Star glow -->
+    <radialGradient id="starGlow">
+      <stop offset="0%" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Sun glow -->
+    <radialGradient id="sunGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ffe8a0" stop-opacity="0.8"/>
+      <stop offset="40%" stop-color="#f0c060" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#e88040" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Tree -->
+    <radialGradient id="tree1">
+      <stop offset="0%" stop-color="#3a6a3a"/>
+      <stop offset="100%" stop-color="#1a4a2a"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1200" height="800" fill="url(#sky)"/>
+
+  <!-- Stars -->
+  <g opacity="0.8">
+    <circle cx="100" cy="40" r="1.5" fill="#fff"/>
+    <circle cx="250" cy="80" r="1" fill="#fff"/>
+    <circle cx="350" cy="30" r="1.2" fill="#fff"/>
+    <circle cx="500" cy="60" r="0.8" fill="#fff"/>
+    <circle cx="620" cy="25" r="1.5" fill="#fff"/>
+    <circle cx="780" cy="50" r="1" fill="#fff"/>
+    <circle cx="900" cy="35" r="1.3" fill="#fff"/>
+    <circle cx="1050" cy="70" r="0.9" fill="#fff"/>
+    <circle cx="1150" cy="40" r="1.1" fill="#fff"/>
+    <circle cx="150" cy="120" r="0.7" fill="#fff"/>
+    <circle cx="450" cy="100" r="1" fill="#fff"/>
+    <circle cx="700" cy="90" r="0.8" fill="#fff"/>
+    <circle cx="950" cy="110" r="1.2" fill="#fff"/>
+    <circle cx="180" cy="160" r="0.6" fill="#fff"/>
+    <circle cx="830" cy="130" r="0.7" fill="#fff"/>
+    <circle cx="1100" cy="100" r="1" fill="#fff"/>
+  </g>
+
+  <!-- Moon -->
+  <circle cx="900" cy="100" r="30" fill="#ffeedd" opacity="0.9"/>
+  <circle cx="910" cy="95" r="28" fill="url(#sky)"/>
+
+  <!-- Sun glow on horizon -->
+  <ellipse cx="350" cy="440" rx="250" ry="150" fill="url(#sunGlow)"/>
+
+  <!-- Distant mountains -->
+  <path d="M0,480 Q100,400 200,440 Q300,380 400,420 Q500,370 600,410 Q700,360 800,400 Q900,380 1000,420 Q1100,390 1200,430 L1200,500 L0,500Z" fill="#3a2a4a" opacity="0.6"/>
+
+  <!-- Far hills -->
+  <path d="M0,470 Q80,430 160,450 Q240,420 350,445 Q450,415 550,440 Q650,410 750,435 Q850,420 950,445 Q1050,425 1150,448 L1200,450 L1200,520 L0,520Z" fill="url(#hillFar)" opacity="0.9"/>
+
+  <!-- Lake/river -->
+  <path d="M300,490 Q450,480 600,485 Q750,478 900,490 L900,520 Q750,510 600,515 Q450,510 300,520Z" fill="url(#water)" opacity="0.7"/>
+  <!-- Water shimmer -->
+  <g opacity="0.3">
+    <line x1="350" y1="498" x2="380" y2="498" stroke="#f0d090" stroke-width="1"/>
+    <line x1="450" y1="495" x2="490" y2="495" stroke="#f0d090" stroke-width="0.8"/>
+    <line x1="560" y1="500" x2="600" y2="500" stroke="#f0d090" stroke-width="1"/>
+    <line x1="680" y1="497" x2="720" y2="497" stroke="#f0d090" stroke-width="0.7"/>
+    <line x1="780" y1="502" x2="830" y2="502" stroke="#f0d090" stroke-width="0.9"/>
+  </g>
+
+  <!-- Mid hills -->
+  <path d="M0,500 Q100,475 200,490 Q350,470 500,488 Q650,472 800,490 Q950,478 1100,492 L1200,490 L1200,560 L0,560Z" fill="url(#hillMid)"/>
+
+  <!-- Distant trees on mid hill -->
+  <g opacity="0.7">
+    <ellipse cx="80" cy="488" rx="12" ry="18" fill="#2a5a35"/>
+    <ellipse cx="110" cy="485" rx="10" ry="15" fill="#245530"/>
+    <ellipse cx="140" cy="490" rx="14" ry="20" fill="#2a5a35"/>
+    <ellipse cx="920" cy="484" rx="11" ry="16" fill="#245530"/>
+    <ellipse cx="950" cy="488" rx="13" ry="19" fill="#2a5a35"/>
+    <ellipse cx="1050" cy="486" rx="10" ry="14" fill="#245530"/>
+    <ellipse cx="1080" cy="490" rx="15" ry="21" fill="#2a5a35"/>
+  </g>
+
+  <!-- === GRAND MANSION === -->
+  <g transform="translate(420, 440)">
+    <!-- Mansion shadow -->
+    <ellipse cx="180" cy="105" rx="200" ry="15" fill="#0a1a0a" opacity="0.3"/>
+
+    <!-- Main building -->
+    <rect x="80" y="30" width="200" height="75" fill="url(#mansion)" stroke="#b0a080" stroke-width="1"/>
+    <!-- Roof -->
+    <polygon points="70,30 180,0 290,30" fill="url(#roof)" stroke="#4a3a2a" stroke-width="1"/>
+
+    <!-- Left wing -->
+    <rect x="10" y="45" width="80" height="60" fill="url(#mansion)" stroke="#b0a080" stroke-width="1"/>
+    <polygon points="5,45 50,25 95,45" fill="url(#roof)" stroke="#4a3a2a" stroke-width="1"/>
+
+    <!-- Right wing -->
+    <rect x="270" y="45" width="80" height="60" fill="url(#mansion)" stroke="#b0a080" stroke-width="1"/>
+    <polygon points="265,45 310,25 355,45" fill="url(#roof)" stroke="#4a3a2a" stroke-width="1"/>
+
+    <!-- Windows - main building -->
+    <g fill="#4a5a7a" stroke="#8a7a60" stroke-width="0.5">
+      <rect x="100" y="42" width="14" height="20" rx="7" ry="7"/>
+      <rect x="125" y="42" width="14" height="20" rx="7" ry="7"/>
+      <rect x="155" y="42" width="14" height="20" rx="7" ry="7"/>
+      <rect x="180" y="42" width="14" height="20" rx="7" ry="7"/>
+      <rect x="210" y="42" width="14" height="20" rx="7" ry="7"/>
+      <rect x="240" y="42" width="14" height="20" rx="7" ry="7"/>
+      <!-- Second floor -->
+      <rect x="110" y="75" width="12" height="18" rx="1"/>
+      <rect x="135" y="75" width="12" height="18" rx="1"/>
+      <rect x="210" y="75" width="12" height="18" rx="1"/>
+      <rect x="235" y="75" width="12" height="18" rx="1"/>
+    </g>
+
+    <!-- Grand entrance -->
+    <rect x="160" y="70" width="40" height="35" fill="#3a2a1a" rx="20" ry="20"/>
+    <rect x="160" y="85" width="40" height="20" fill="#3a2a1a"/>
+    <!-- Door -->
+    <line x1="180" y1="85" x2="180" y2="105" stroke="#5a4a3a" stroke-width="1"/>
+
+    <!-- Columns at entrance -->
+    <rect x="155" y="68" width="4" height="37" fill="#e8d8c0" rx="2"/>
+    <rect x="201" y="68" width="4" height="37" fill="#e8d8c0" rx="2"/>
+
+    <!-- Pediment above entrance -->
+    <polygon points="150,68 180,55 210,68" fill="url(#roof)" stroke="#4a3a2a" stroke-width="0.8"/>
+
+    <!-- Wing windows -->
+    <g fill="#4a5a7a" stroke="#8a7a60" stroke-width="0.5">
+      <rect x="25" y="55" width="12" height="16" rx="1"/>
+      <rect x="50" y="55" width="12" height="16" rx="1"/>
+      <rect x="75" y="55" width="12" height="16" rx="1"/>
+      <rect x="285" y="55" width="12" height="16" rx="1"/>
+      <rect x="310" y="55" width="12" height="16" rx="1"/>
+      <rect x="335" y="55" width="12" height="16" rx="1"/>
+    </g>
+
+    <!-- Chimneys -->
+    <rect x="100" y="-5" width="10" height="20" fill="#7a6a5a"/>
+    <rect x="245" y="-5" width="10" height="20" fill="#7a6a5a"/>
+    <rect x="35" y="15" width="8" height="15" fill="#7a6a5a"/>
+    <rect x="320" y="15" width="8" height="15" fill="#7a6a5a"/>
+
+    <!-- Garden path -->
+    <path d="M180,105 Q180,130 180,155 Q165,170 150,185 Q180,200 210,185 Q195,170 180,155" fill="#c0b090" opacity="0.6"/>
+
+    <!-- Window glow (warm light) -->
+    <g opacity="0.4" fill="#f0d080">
+      <rect x="162" y="87" width="16" height="15" rx="1"/>
+    </g>
+  </g>
+
+  <!-- Near foreground trees -->
+  <g>
+    <!-- Left tree cluster -->
+    <rect x="50" y="510" width="6" height="50" fill="#3a2a1a"/>
+    <ellipse cx="53" cy="495" rx="25" ry="35" fill="url(#tree1)"/>
+    <ellipse cx="40" cy="505" rx="18" ry="25" fill="#2a5a2a"/>
+
+    <rect x="130" y="520" width="5" height="40" fill="#3a2a1a"/>
+    <ellipse cx="132" cy="505" rx="20" ry="28" fill="url(#tree1)"/>
+
+    <!-- Right tree cluster -->
+    <rect x="1050" y="505" width="7" height="55" fill="#3a2a1a"/>
+    <ellipse cx="1053" cy="488" rx="28" ry="38" fill="url(#tree1)"/>
+    <ellipse cx="1070" cy="500" rx="20" ry="28" fill="#2a5a2a"/>
+
+    <rect x="1130" y="515" width="5" height="45" fill="#3a2a1a"/>
+    <ellipse cx="1132" cy="500" rx="22" ry="30" fill="url(#tree1)"/>
+  </g>
+
+  <!-- Foreground hill -->
+  <path d="M0,560 Q200,540 400,555 Q600,545 800,555 Q1000,542 1200,558 L1200,800 L0,800Z" fill="url(#hillNear)"/>
+
+  <!-- Foreground grass details -->
+  <g stroke="#2a4a20" stroke-width="0.8" opacity="0.5">
+    <path d="M50,580 Q55,570 60,580" fill="none"/>
+    <path d="M200,575 Q205,565 210,575" fill="none"/>
+    <path d="M400,578 Q405,568 410,578" fill="none"/>
+    <path d="M700,572 Q705,562 710,572" fill="none"/>
+    <path d="M900,580 Q905,570 910,580" fill="none"/>
+    <path d="M1100,576 Q1105,566 1110,576" fill="none"/>
+  </g>
+
+  <!-- Decorative fence in foreground -->
+  <g stroke="#2a3a1a" stroke-width="1.5" opacity="0.3">
+    <line x1="0" y1="590" x2="1200" y2="590"/>
+    <line x1="50" y1="580" x2="50" y2="600"/>
+    <line x1="100" y1="580" x2="100" y2="600"/>
+    <line x1="150" y1="580" x2="150" y2="600"/>
+    <line x1="200" y1="580" x2="200" y2="600"/>
+    <line x1="1000" y1="580" x2="1000" y2="600"/>
+    <line x1="1050" y1="580" x2="1050" y2="600"/>
+    <line x1="1100" y1="580" x2="1100" y2="600"/>
+    <line x1="1150" y1="580" x2="1150" y2="600"/>
+  </g>
+
+  <!-- Vignette overlay -->
+  <rect width="1200" height="800" fill="url(#sky)" opacity="0" />
+  <rect width="1200" height="800" rx="0">
+    <animate attributeName="opacity" from="0" to="0" dur="1s"/>
+  </rect>
+</svg>
