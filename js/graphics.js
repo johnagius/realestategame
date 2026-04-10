@@ -29,79 +29,182 @@ const GameGraphics = {
 
   _splashDefs() {
     return '<defs>' +
+      // Sky - richer with more stops and hue shifts
       '<linearGradient id="s-sky" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0%" stop-color="#0a0620"/>' +
-        '<stop offset="12%" stop-color="#1a0e38"/>' +
-        '<stop offset="25%" stop-color="#2d1854"/>' +
-        '<stop offset="38%" stop-color="#5a2a5c"/>' +
-        '<stop offset="50%" stop-color="#8a3a4a"/>' +
-        '<stop offset="60%" stop-color="#c45a3a"/>' +
-        '<stop offset="70%" stop-color="#e08040"/>' +
-        '<stop offset="78%" stop-color="#eaa050"/>' +
-        '<stop offset="85%" stop-color="#f0c070"/>' +
-        '<stop offset="92%" stop-color="#f5d898"/>' +
-        '<stop offset="100%" stop-color="#fae8c0"/>' +
+        '<stop offset="0%" stop-color="#060412"/>' +
+        '<stop offset="8%" stop-color="#0e0822"/>' +
+        '<stop offset="15%" stop-color="#1a0e38"/>' +
+        '<stop offset="22%" stop-color="#2a1850"/>' +
+        '<stop offset="30%" stop-color="#44205a"/>' +
+        '<stop offset="38%" stop-color="#6a2a54"/>' +
+        '<stop offset="45%" stop-color="#8e3248"/>' +
+        '<stop offset="52%" stop-color="#b8443a"/>' +
+        '<stop offset="58%" stop-color="#d05a30"/>' +
+        '<stop offset="63%" stop-color="#da7035"/>' +
+        '<stop offset="68%" stop-color="#e48838"/>' +
+        '<stop offset="73%" stop-color="#eca040"/>' +
+        '<stop offset="78%" stop-color="#f0b450"/>' +
+        '<stop offset="83%" stop-color="#f4c868"/>' +
+        '<stop offset="88%" stop-color="#f6d888"/>' +
+        '<stop offset="93%" stop-color="#f8e4a8"/>' +
+        '<stop offset="100%" stop-color="#faecc8"/>' +
+      '</linearGradient>' +
+      // Warm light hitting surfaces from the left/horizon
+      '<linearGradient id="s-warmface" x1="0" y1="0" x2="1" y2="0.3">' +
+        '<stop offset="0%" stop-color="#f8d890" stop-opacity="0.35"/>' +
+        '<stop offset="100%" stop-color="#f8d890" stop-opacity="0"/>' +
+      '</linearGradient>' +
+      // Cool shadow on opposite faces
+      '<linearGradient id="s-coolshade" x1="1" y1="0" x2="0" y2="0.3">' +
+        '<stop offset="0%" stop-color="#2a3050" stop-opacity="0.25"/>' +
+        '<stop offset="100%" stop-color="#2a3050" stop-opacity="0"/>' +
       '</linearGradient>' +
       '<linearGradient id="s-water" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0%" stop-color="#c08050" stop-opacity="0.6"/>' +
-        '<stop offset="50%" stop-color="#5a7090" stop-opacity="0.7"/>' +
-        '<stop offset="100%" stop-color="#304060" stop-opacity="0.8"/>' +
+        '<stop offset="0%" stop-color="#c88858" stop-opacity="0.7"/>' +
+        '<stop offset="30%" stop-color="#6a7a98" stop-opacity="0.8"/>' +
+        '<stop offset="100%" stop-color="#2a3a58" stop-opacity="0.9"/>' +
       '</linearGradient>' +
-      '<linearGradient id="s-hill1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2a4a35"/><stop offset="100%" stop-color="#1a3825"/></linearGradient>' +
-      '<linearGradient id="s-hill2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1e3e28"/><stop offset="100%" stop-color="#14301c"/></linearGradient>' +
-      '<linearGradient id="s-hill3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#142a1a"/><stop offset="100%" stop-color="#0c1e10"/></linearGradient>' +
-      '<linearGradient id="s-wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f0e0c8"/><stop offset="100%" stop-color="#d0c0a0"/></linearGradient>' +
-      '<linearGradient id="s-roof" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5a4535"/><stop offset="100%" stop-color="#3a2a1a"/></linearGradient>' +
+      '<linearGradient id="s-hill1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#28483a"/><stop offset="100%" stop-color="#18342a"/></linearGradient>' +
+      '<linearGradient id="s-hill2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1c3828"/><stop offset="100%" stop-color="#12281c"/></linearGradient>' +
+      '<linearGradient id="s-hill3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#10241a"/><stop offset="100%" stop-color="#081810"/></linearGradient>' +
+      // Mansion walls - subtle stone texture variation via gradient
+      '<linearGradient id="s-wall" x1="0" y1="0" x2="0.1" y2="1">' +
+        '<stop offset="0%" stop-color="#f2e4cc"/>' +
+        '<stop offset="40%" stop-color="#e8d8b8"/>' +
+        '<stop offset="70%" stop-color="#e0d0b0"/>' +
+        '<stop offset="100%" stop-color="#d4c4a0"/>' +
+      '</linearGradient>' +
+      '<linearGradient id="s-wall-warm" x1="0" y1="0" x2="1" y2="0.5">' +
+        '<stop offset="0%" stop-color="#f8e8c8"/>' +
+        '<stop offset="100%" stop-color="#d8c8a0"/>' +
+      '</linearGradient>' +
+      '<linearGradient id="s-roof" x1="0" y1="0" x2="0.3" y2="1">' +
+        '<stop offset="0%" stop-color="#5e4838"/>' +
+        '<stop offset="50%" stop-color="#483220"/>' +
+        '<stop offset="100%" stop-color="#382218"/>' +
+      '</linearGradient>' +
       '<linearGradient id="s-door" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4a3020"/><stop offset="100%" stop-color="#2a1a0a"/></linearGradient>' +
-      '<radialGradient id="s-sun" cx="0.5" cy="0.5" r="0.5">' +
-        '<stop offset="0%" stop-color="#fff8e0" stop-opacity="0.9"/>' +
-        '<stop offset="20%" stop-color="#f0c060" stop-opacity="0.5"/>' +
-        '<stop offset="50%" stop-color="#e08040" stop-opacity="0.2"/>' +
-        '<stop offset="100%" stop-color="#c05030" stop-opacity="0"/>' +
+      '<radialGradient id="s-sun" cx="0.42" cy="0.45" r="0.5">' +
+        '<stop offset="0%" stop-color="#fffff0" stop-opacity="1"/>' +
+        '<stop offset="8%" stop-color="#fff0c0" stop-opacity="0.8"/>' +
+        '<stop offset="20%" stop-color="#f0c060" stop-opacity="0.45"/>' +
+        '<stop offset="40%" stop-color="#e08840" stop-opacity="0.2"/>' +
+        '<stop offset="70%" stop-color="#c06030" stop-opacity="0.08"/>' +
+        '<stop offset="100%" stop-color="#a04020" stop-opacity="0"/>' +
       '</radialGradient>' +
-      '<radialGradient id="s-treeDk"><stop offset="0%" stop-color="#2a5a30"/><stop offset="100%" stop-color="#1a4020"/></radialGradient>' +
-      '<radialGradient id="s-treeLt"><stop offset="0%" stop-color="#3a7040"/><stop offset="100%" stop-color="#2a5530"/></radialGradient>' +
-      '<radialGradient id="s-glow"><stop offset="0%" stop-color="#f0c060" stop-opacity="0.5"/><stop offset="100%" stop-color="#f0c060" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="s-treeDk" cx="0.4" cy="0.35"><stop offset="0%" stop-color="#305828"/><stop offset="60%" stop-color="#1e4418"/><stop offset="100%" stop-color="#14320e"/></radialGradient>' +
+      '<radialGradient id="s-treeLt" cx="0.3" cy="0.3"><stop offset="0%" stop-color="#4a7838"/><stop offset="60%" stop-color="#346228"/><stop offset="100%" stop-color="#244e1c"/></radialGradient>' +
+      '<radialGradient id="s-treeMid" cx="0.5" cy="0.4"><stop offset="0%" stop-color="#3a6830"/><stop offset="100%" stop-color="#1c4418"/></radialGradient>' +
+      '<radialGradient id="s-windowGlow" cx="0.5" cy="0.5" r="0.5"><stop offset="0%" stop-color="#f8d070" stop-opacity="0.7"/><stop offset="60%" stop-color="#e8a840" stop-opacity="0.3"/><stop offset="100%" stop-color="#d08020" stop-opacity="0"/></radialGradient>' +
       '<filter id="s-blur"><feGaussianBlur stdDeviation="3"/></filter>' +
       '<filter id="s-blur2"><feGaussianBlur stdDeviation="1.5"/></filter>' +
+      '<filter id="s-blurSoft"><feGaussianBlur stdDeviation="6"/></filter>' +
+      '<filter id="s-shadow"><feDropShadow dx="3" dy="5" stdDeviation="4" flood-color="#0a0a08" flood-opacity="0.35"/></filter>' +
     '</defs>';
   },
 
   _splashSky() {
     var s = '<rect width="1600" height="900" fill="url(#s-sky)"/>';
-    // Stars
-    var stars = [[120,30,2],[250,65,1.2],[380,22,1.5],[520,50,1],[680,18,1.8],[820,42,1.3],
-      [970,28,1.6],[1120,55,1],[1280,35,1.4],[1420,20,1.7],[180,100,0.8],[450,85,1],
-      [630,72,0.9],[880,95,1.1],[1050,80,0.7],[1300,68,1.2],[100,140,0.6],[320,130,0.9],
-      [560,115,0.7],[790,125,1],[1000,108,0.8],[1200,140,0.6],[1380,110,0.9],
-      [200,170,0.5],[700,155,0.7],[1100,165,0.5],[400,160,0.6]];
-    s += '<g opacity="0.9">';
+
+    // Atmospheric haze layers near horizon
+    s += '<rect x="0" y="420" width="1600" height="120" fill="#e8a040" opacity="0.06"/>';
+    s += '<rect x="0" y="460" width="1600" height="80" fill="#f0c060" opacity="0.08"/>';
+
+    // Stars with varied brightness and subtle color
+    var stars = [
+      [80,18,1.8,0.9],[155,52,1.0,0.5],[240,32,1.4,0.7],[340,14,1.6,0.85],[430,48,0.8,0.4],
+      [530,22,1.5,0.75],[650,10,2.0,0.95],[760,38,1.1,0.55],[850,28,1.3,0.65],[960,16,1.7,0.8],
+      [1070,42,0.9,0.45],[1180,25,1.5,0.7],[1300,18,1.2,0.6],[1430,35,1.6,0.8],[1530,12,1.1,0.5],
+      [120,85,0.7,0.35],[280,72,1.0,0.5],[440,90,0.6,0.3],[590,65,0.9,0.45],[730,80,0.8,0.4],
+      [880,68,1.1,0.55],[1020,78,0.7,0.35],[1160,62,0.9,0.45],[1320,88,0.6,0.3],
+      [170,130,0.5,0.25],[380,115,0.7,0.35],[540,125,0.6,0.3],[700,108,0.8,0.4],
+      [920,120,0.5,0.25],[1100,112,0.7,0.35],[1280,128,0.4,0.2],
+      [250,160,0.4,0.2],[500,148,0.5,0.25],[780,155,0.3,0.15],[1050,142,0.5,0.25]
+    ];
+    s += '<g>';
     for (var i = 0; i < stars.length; i++) {
       var st = stars[i];
-      s += '<circle cx="'+st[0]+'" cy="'+st[1]+'" r="'+st[2]+'" fill="#fff" opacity="'+(0.4+Math.random()*0.6)+'"/>';
+      // Larger stars get a subtle glow halo
+      if (st[2] > 1.3) {
+        s += '<circle cx="'+st[0]+'" cy="'+st[1]+'" r="'+(st[2]*3)+'" fill="#fff" opacity="'+(st[3]*0.08)+'"/>';
+      }
+      // Slight color variation (blue-white to warm-white for lower stars)
+      var starColor = st[1] < 80 ? '#E8E8FF' : '#FFF8F0';
+      s += '<circle cx="'+st[0]+'" cy="'+st[1]+'" r="'+st[2]+'" fill="'+starColor+'" opacity="'+st[3]+'"/>';
     }
     s += '</g>';
-    // Moon
-    s += '<circle cx="1200" cy="90" r="35" fill="#ffeedd" opacity="0.9"/>';
-    s += '<circle cx="1212" cy="82" r="33" fill="#1a0e38"/>';
-    // Sun glow on horizon
-    s += '<ellipse cx="500" cy="530" rx="350" ry="200" fill="url(#s-sun)"/>';
+
+    // Moon with crater detail
+    s += '<g transform="translate(1200, 85)">';
+    s += '<circle cx="0" cy="0" r="36" fill="#f4e8d8" opacity="0.15" filter="url(#s-blurSoft)"/>'; // outer glow
+    s += '<circle cx="0" cy="0" r="28" fill="#f0e4d0"/>';
+    s += '<circle cx="10" cy="-6" r="27" fill="url(#s-sky)"/>'; // crescent mask
+    // Subtle crater texture on lit part
+    s += '<circle cx="-8" cy="-4" r="3" fill="#e8dcc4" opacity="0.4"/>';
+    s += '<circle cx="-14" cy="6" r="2" fill="#e0d4bc" opacity="0.3"/>';
+    s += '<circle cx="-4" cy="10" r="2.5" fill="#e4d8c0" opacity="0.35"/>';
+    s += '</g>';
+
+    // Sun glow - multiple layers for richer light bleed
+    s += '<ellipse cx="480" cy="525" rx="400" ry="220" fill="url(#s-sun)"/>';
+    s += '<ellipse cx="480" cy="530" rx="250" ry="120" fill="#f0c060" opacity="0.08" filter="url(#s-blurSoft)"/>';
+    // Horizon light band
+    s += '<rect x="0" y="500" width="1600" height="8" fill="#f8d880" opacity="0.12"/>';
+
     return s;
   },
 
   _splashClouds() {
-    var s = '<g opacity="0.25">';
-    // Wispy clouds near horizon
-    s += '<ellipse cx="300" cy="350" rx="120" ry="15" fill="#e0a060"/>';
-    s += '<ellipse cx="500" cy="370" rx="80" ry="10" fill="#d09050"/>';
-    s += '<ellipse cx="750" cy="340" rx="150" ry="12" fill="#e0a060"/>';
-    s += '<ellipse cx="1000" cy="360" rx="100" ry="8" fill="#d09050"/>';
-    s += '<ellipse cx="1250" cy="345" rx="130" ry="14" fill="#e0a060"/>';
-    // Higher thin clouds
-    s += '<ellipse cx="200" cy="250" rx="100" ry="6" fill="#8060a0" opacity="0.3"/>';
-    s += '<ellipse cx="600" cy="230" rx="140" ry="5" fill="#8060a0" opacity="0.2"/>';
-    s += '<ellipse cx="1100" cy="260" rx="120" ry="7" fill="#8060a0" opacity="0.25"/>';
+    var s = '';
+    // High cirrus wisps (purple/blue tinted)
+    s += '<g opacity="0.15">';
+    s += '<path d="M100,200 Q180,195 250,202 Q310,198 380,205" fill="none" stroke="#7868a8" stroke-width="3" stroke-linecap="round"/>';
+    s += '<path d="M500,185 Q600,178 720,188 Q790,182 850,190" fill="none" stroke="#7060a0" stroke-width="2.5" stroke-linecap="round"/>';
+    s += '<path d="M1000,210 Q1080,204 1180,212 Q1250,206 1320,215" fill="none" stroke="#7868a8" stroke-width="2" stroke-linecap="round"/>';
     s += '</g>';
+
+    // Mid-altitude clouds with volume (multiple overlapping ellipses per cloud)
+    // Cloud 1 - large, left
+    s += '<g opacity="0.18">';
+    s += '<ellipse cx="250" cy="310" rx="110" ry="18" fill="#c88858"/>';
+    s += '<ellipse cx="280" cy="306" rx="80" ry="14" fill="#d89868"/>';
+    s += '<ellipse cx="220" cy="314" rx="60" ry="10" fill="#c88050"/>';
+    s += '<ellipse cx="310" cy="312" rx="50" ry="12" fill="#d09060"/>';
+    s += '</g>';
+    // Cloud 2 - mid
+    s += '<g opacity="0.22">';
+    s += '<ellipse cx="650" cy="340" rx="140" ry="16" fill="#d49060"/>';
+    s += '<ellipse cx="690" cy="336" rx="100" ry="13" fill="#e0a070"/>';
+    s += '<ellipse cx="610" cy="343" rx="70" ry="10" fill="#c88050"/>';
+    s += '<ellipse cx="740" cy="338" rx="60" ry="11" fill="#d89868"/>';
+    s += '<ellipse cx="670" cy="332" rx="50" ry="8" fill="#e8b080"/>';
+    s += '</g>';
+    // Cloud 3 - right
+    s += '<g opacity="0.16">';
+    s += '<ellipse cx="1100" cy="325" rx="120" ry="15" fill="#c88858"/>';
+    s += '<ellipse cx="1140" cy="321" rx="80" ry="12" fill="#d89868"/>';
+    s += '<ellipse cx="1060" cy="328" rx="55" ry="9" fill="#c08048"/>';
+    s += '</g>';
+    // Cloud 4 - far left wisp
+    s += '<g opacity="0.12">';
+    s += '<ellipse cx="80" cy="350" rx="70" ry="10" fill="#c88858"/>';
+    s += '<ellipse cx="100" cy="347" rx="45" ry="7" fill="#d89868"/>';
+    s += '</g>';
+    // Cloud 5 - far right
+    s += '<g opacity="0.14">';
+    s += '<ellipse cx="1400" cy="335" rx="90" ry="12" fill="#c88858"/>';
+    s += '<ellipse cx="1430" cy="332" rx="60" ry="9" fill="#d89868"/>';
+    s += '</g>';
+
+    // Tiny scattered puffs near horizon for depth
+    s += '<g opacity="0.1">';
+    for (var cx = 50; cx < 1550; cx += 120 + Math.floor(Math.sin(cx) * 30)) {
+      var cy = 370 + Math.sin(cx * 0.02) * 15;
+      var cr = 20 + Math.sin(cx * 0.05) * 10;
+      s += '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+cr+'" ry="'+(cr*0.4)+'" fill="#d09060"/>';
+    }
+    s += '</g>';
+
     return s;
   },
 
@@ -134,117 +237,238 @@ const GameGraphics = {
 
   _splashTrees(cx, cy, scale) {
     var s = '<g transform="translate('+cx+','+cy+') scale('+scale+')">';
-    // Cluster of trees
-    s += '<rect x="-3" y="0" width="6" height="45" fill="#3a2818"/>';
-    s += '<ellipse cx="0" cy="-15" rx="22" ry="32" fill="url(#s-treeDk)"/>';
-    s += '<ellipse cx="-12" cy="-5" rx="16" ry="24" fill="url(#s-treeLt)" opacity="0.8"/>';
-    s += '<rect x="35" y="5" width="5" height="38" fill="#3a2818"/>';
-    s += '<ellipse cx="37" cy="-10" rx="18" ry="28" fill="url(#s-treeDk)"/>';
-    s += '<rect x="-40" y="8" width="5" height="35" fill="#3a2818"/>';
-    s += '<ellipse cx="-38" cy="-5" rx="20" ry="30" fill="url(#s-treeLt)" opacity="0.85"/>';
+
+    // Tree 1 (main, large deciduous)
+    s += '<path d="M-2,5 L-3,-10 Q-5,-25 -2,-45 L0,-55 L2,-45 Q5,-25 3,-10 L2,5Z" fill="#38280e" opacity="0.9"/>';
+    // Main branches
+    s += '<path d="M-2,-25 Q-18,-35 -25,-30" fill="none" stroke="#38280e" stroke-width="2.5" stroke-linecap="round"/>';
+    s += '<path d="M2,-20 Q20,-28 28,-22" fill="none" stroke="#38280e" stroke-width="2" stroke-linecap="round"/>';
+    s += '<path d="M-1,-38 Q-12,-48 -16,-42" fill="none" stroke="#38280e" stroke-width="1.5" stroke-linecap="round"/>';
+    s += '<path d="M1,-35 Q14,-45 18,-38" fill="none" stroke="#38280e" stroke-width="1.5" stroke-linecap="round"/>';
+    // Foliage - irregular clusters, not ellipses
+    s += '<path d="M-30,-28 Q-28,-42 -18,-48 Q-8,-55 2,-52 Q12,-58 22,-50 Q32,-42 30,-30 Q34,-22 28,-16 Q22,-10 12,-14 Q2,-8 -10,-12 Q-22,-8 -28,-18 Q-34,-24 -30,-28Z" fill="url(#s-treeDk)"/>';
+    s += '<path d="M-22,-34 Q-18,-48 -6,-52 Q6,-56 16,-48 Q24,-40 20,-28 Q14,-22 4,-26 Q-8,-20 -18,-28Z" fill="url(#s-treeMid)" opacity="0.8"/>';
+    // Highlight cluster (sun-facing side - left)
+    s += '<path d="M-26,-30 Q-24,-42 -14,-46 Q-6,-50 -2,-44 Q-8,-36 -16,-32 Q-24,-26 -26,-30Z" fill="url(#s-treeLt)" opacity="0.6"/>';
+    // Deep shadow cluster (right side)
+    s += '<path d="M16,-20 Q22,-28 26,-24 Q28,-18 22,-14 Q16,-16 16,-20Z" fill="#122e0e" opacity="0.4"/>';
+
+    // Tree 2 (smaller, offset right)
+    s += '<path d="M38,10 L37,0 Q36,-8 38,-18 L38,-22 Q40,-8 39,0Z" fill="#342408" opacity="0.85"/>';
+    s += '<path d="M38,-18 Q32,-22 28,-18" fill="none" stroke="#342408" stroke-width="1.5" stroke-linecap="round"/>';
+    s += '<path d="M24,-16 Q20,-28 28,-34 Q36,-38 44,-32 Q50,-26 46,-18 Q40,-12 32,-16 Q26,-12 24,-16Z" fill="url(#s-treeDk)"/>';
+    s += '<path d="M28,-22 Q34,-32 40,-28 Q44,-22 38,-18 Q32,-16 28,-22Z" fill="url(#s-treeLt)" opacity="0.5"/>';
+
+    // Tree 3 (left, medium)
+    s += '<path d="M-44,12 L-45,2 Q-46,-6 -44,-16 L-43,-20 Q-42,-6 -43,2Z" fill="#342408" opacity="0.85"/>';
+    s += '<path d="M-44,-14 Q-52,-18 -55,-12" fill="none" stroke="#342408" stroke-width="1.5" stroke-linecap="round"/>';
+    s += '<path d="M-58,-10 Q-54,-24 -44,-28 Q-34,-32 -28,-24 Q-24,-16 -30,-10 Q-38,-6 -48,-8 Q-56,-6 -58,-10Z" fill="url(#s-treeMid)"/>';
+    s += '<path d="M-54,-14 Q-50,-24 -42,-26 Q-36,-22 -40,-14 Q-48,-10 -54,-14Z" fill="url(#s-treeLt)" opacity="0.5"/>';
+
     s += '</g>';
     return s;
   },
 
   _splashMansion() {
-    var s = '<g transform="translate(560, 465)">';
+    var s = '<g transform="translate(520, 455)" filter="url(#s-shadow)">';
 
-    // === Ground shadow ===
-    s += '<ellipse cx="240" cy="130" rx="280" ry="18" fill="#0a1a0a" opacity="0.25"/>';
+    // === Ground shadow (elongated, warm) ===
+    s += '<ellipse cx="260" cy="148" rx="320" ry="20" fill="#08120a" opacity="0.3"/>';
 
-    // === Main building (center) ===
-    s += '<rect x="120" y="30" width="240" height="100" fill="url(#s-wall)" stroke="#b0a080" stroke-width="1.2"/>';
-    // Roof
-    s += '<polygon points="105,30 240,0 375,30" fill="url(#s-roof)" stroke="#4a3a2a" stroke-width="1"/>';
-    // Roof ridge ornament
-    s += '<rect x="232" y="-5" width="16" height="8" fill="#8a7a5a" rx="2"/>';
-
-    // Windows top floor (arched)
-    var winX = [140,165,190,215,275,300,325];
-    s += '<g fill="#3a4a6a" stroke="#a09070" stroke-width="0.8">';
-    for (var i = 0; i < winX.length; i++) {
-      s += '<rect x="'+winX[i]+'" y="42" width="14" height="22" rx="7" ry="7"/>';
-      // Window panes
-      s += '<line x1="'+(winX[i]+7)+'" y1="42" x2="'+(winX[i]+7)+'" y2="64" stroke="#607090" stroke-width="0.5"/>';
-    }
-    // Windows bottom floor (rectangular)
-    var winX2 = [135,160,185,285,310,335];
-    for (var i = 0; i < winX2.length; i++) {
-      s += '<rect x="'+winX2[i]+'" y="80" width="16" height="22" rx="1"/>';
-      // Sill
-      s += '<rect x="'+(winX2[i]-2)+'" y="102" width="20" height="2" fill="#d0c0a0"/>';
+    // === LEFT WING (slightly recessed, narrower) ===
+    s += '<g>';
+    // Wall - warm lit face
+    s += '<rect x="8" y="55" width="130" height="88" fill="url(#s-wall-warm)" stroke="#b8a888" stroke-width="0.8"/>';
+    s += '<rect x="8" y="55" width="130" height="88" fill="url(#s-warmface)"/>'; // warm light overlay
+    // Hipped roof with slight overhang
+    s += '<polygon points="2,55 73,28 142,55" fill="url(#s-roof)" stroke="#4a3a2a" stroke-width="1"/>';
+    // Roof tiles suggestion
+    s += '<g stroke="#4a3a28" stroke-width="0.3" opacity="0.4">';
+    for (var ry = 35; ry < 55; ry += 4) {
+      var rx1 = 2 + (ry - 28) * 2.5, rx2 = 142 - (ry - 28) * 2.5;
+      s += '<line x1="'+rx1+'" y1="'+ry+'" x2="'+rx2+'" y2="'+ry+'"/>';
     }
     s += '</g>';
+    // Left wing windows - varied sizes, not uniform
+    s += '<g fill="#3a4a68" stroke="#a09070" stroke-width="0.6">';
+    // Upper floor - tall arched
+    var lwx = [22, 52, 82, 110];
+    for (var i = 0; i < lwx.length; i++) {
+      var ww = i === 1 ? 16 : 14, wh = i === 1 ? 22 : 18;
+      s += '<rect x="'+lwx[i]+'" y="62" width="'+ww+'" height="'+wh+'" rx="'+(ww/2)+'" ry="'+(ww/2)+'"/>';
+      // Mullion
+      s += '<line x1="'+(lwx[i]+ww/2)+'" y1="62" x2="'+(lwx[i]+ww/2)+'" y2="'+(62+wh)+'" stroke="#5a6a80" stroke-width="0.4"/>';
+    }
+    // Lower floor - rectangular with prominent sills and lintels
+    var lwx2 = [20, 50, 80, 108];
+    for (var i = 0; i < lwx2.length; i++) {
+      s += '<rect x="'+lwx2[i]+'" y="96" width="15" height="18" rx="1"/>';
+      s += '<rect x="'+(lwx2[i]-2)+'" y="95" width="19" height="2" fill="#d8c8a8"/>'; // lintel
+      s += '<rect x="'+(lwx2[i]-2)+'" y="114" width="19" height="2.5" fill="#d0c0a0"/>'; // sill
+    }
+    s += '</g>';
+    // Left chimney (slightly off-center, realistic)
+    s += '<rect x="42" y="18" width="10" height="15" fill="#6a5a48"/>';
+    s += '<rect x="40" y="16" width="14" height="3" fill="#7a6a58"/>';
+    s += '<rect x="41" y="14" width="12" height="2.5" fill="#8a7a68"/>';
+    s += '</g>';
 
-    // Grand entrance with portico
-    s += '<rect x="215" y="72" width="50" height="58" fill="url(#s-door)" rx="25" ry="25"/>';
-    s += '<rect x="215" y="95" width="50" height="35" fill="url(#s-door)"/>';
-    // Door split
-    s += '<line x1="240" y1="95" x2="240" y2="130" stroke="#5a4030" stroke-width="1"/>';
-    // Door handles
-    s += '<circle cx="234" cy="112" r="1.5" fill="#c0a060"/>';
-    s += '<circle cx="246" cy="112" r="1.5" fill="#c0a060"/>';
+    // === MAIN BUILDING (center, taller, grander) ===
+    s += '<g>';
+    s += '<rect x="130" y="28" width="260" height="115" fill="url(#s-wall)" stroke="#b0a080" stroke-width="1"/>';
+    s += '<rect x="130" y="28" width="130" height="115" fill="url(#s-warmface)"/>'; // sun hits left half
+    s += '<rect x="260" y="28" width="130" height="115" fill="url(#s-coolshade)"/>'; // shadow on right
+    // Stone quoin details on corners
+    s += '<g fill="#dcd0b8" opacity="0.6">';
+    for (var qy = 30; qy < 140; qy += 12) {
+      s += '<rect x="130" y="'+qy+'" width="6" height="10" rx="0.5"/>';
+      s += '<rect x="384" y="'+qy+'" width="6" height="10" rx="0.5"/>';
+    }
+    s += '</g>';
+    // Cornice / entablature
+    s += '<rect x="126" y="26" width="268" height="4" fill="#d8c8a8" stroke="#b8a888" stroke-width="0.4"/>';
+    s += '<rect x="128" y="22" width="264" height="5" fill="#e0d0b4"/>';
+    // String course between floors
+    s += '<rect x="130" y="82" width="260" height="2.5" fill="#d4c4a4" opacity="0.7"/>';
 
-    // Portico columns
-    s += '<rect x="208" y="68" width="5" height="62" fill="#e8d8c0" rx="2.5"/>';
-    s += '<rect x="267" y="68" width="5" height="62" fill="#e8d8c0" rx="2.5"/>';
-    // Column capitals
-    s += '<rect x="206" y="66" width="9" height="4" fill="#d8c8b0" rx="1"/>';
-    s += '<rect x="265" y="66" width="9" height="4" fill="#d8c8b0" rx="1"/>';
-    // Pediment
-    s += '<polygon points="200,66 240,48 280,66" fill="url(#s-roof)" stroke="#4a3a2a" stroke-width="0.8"/>';
-    // Pediment ornament
-    s += '<circle cx="240" cy="58" r="4" fill="#d0c0a0" stroke="#a09070" stroke-width="0.5"/>';
+    // Main roof - steeper pitch, with slight irregularity
+    s += '<polygon points="118,28 260,-8 402,28" fill="url(#s-roof)" stroke="#42302a" stroke-width="1"/>';
+    // Roof tile rows
+    s += '<g stroke="#3a2818" stroke-width="0.25" opacity="0.35">';
+    for (var ry = 0; ry < 28; ry += 3) {
+      var factor = ry / 36;
+      var x1 = 118 + (260-118) * factor;
+      var x2 = 402 - (402-260) * factor;
+      s += '<line x1="'+x1+'" y1="'+(28-ry*0)+'" x2="'+x2+'" y2="'+(28-ry*0)+'"/>';
+    }
+    s += '</g>';
+    // Ridge ornament - more elaborate
+    s += '<rect x="252" y="-12" width="16" height="6" fill="#8a7a5a" rx="1"/>';
+    s += '<polygon points="256,-12 260,-18 264,-12" fill="#8a7a5a"/>';
 
-    // Steps
-    s += '<rect x="210" y="130" width="60" height="4" fill="#d8d0c0" rx="1"/>';
-    s += '<rect x="206" y="134" width="68" height="4" fill="#c8c0b0" rx="1"/>';
-    s += '<rect x="202" y="138" width="76" height="4" fill="#b8b0a0" rx="1"/>';
+    // === DORMER WINDOWS (3, varied) ===
+    var dormers = [{x:180,w:18},{x:252,w:20},{x:330,w:18}];
+    for (var di = 0; di < dormers.length; di++) {
+      var d = dormers[di];
+      var dh = 14, dRoofH = 8;
+      s += '<rect x="'+d.x+'" y="'+(28-dh-2)+'" width="'+d.w+'" height="'+(dh+4)+'" fill="url(#s-wall)" stroke="#b0a080" stroke-width="0.5"/>';
+      s += '<polygon points="'+(d.x-2)+','+(28-dh-2)+' '+(d.x+d.w/2)+','+(28-dh-2-dRoofH)+' '+(d.x+d.w+2)+','+(28-dh-2)+'" fill="url(#s-roof)" stroke="#42302a" stroke-width="0.5"/>';
+      s += '<rect x="'+(d.x+3)+'" y="'+(28-dh+1)+'" width="'+(d.w-6)+'" height="'+(dh-2)+'" fill="#4a5a78" rx="'+(d.w/4)+'" ry="'+(d.w/4)+'" stroke="#8a7a60" stroke-width="0.3"/>';
+    }
 
-    // === Left wing ===
-    s += '<rect x="10" y="50" width="120" height="80" fill="url(#s-wall)" stroke="#b0a080" stroke-width="1"/>';
-    s += '<polygon points="0,50 70,28 140,50" fill="url(#s-roof)" stroke="#4a3a2a" stroke-width="1"/>';
-    // Left wing windows
-    s += '<g fill="#3a4a6a" stroke="#a09070" stroke-width="0.6">';
-    for (var x = 22; x <= 112; x += 30) {
-      s += '<rect x="'+x+'" y="60" width="14" height="18" rx="7" ry="7"/>';
-      s += '<rect x="'+(x+1)+'" y="92" width="12" height="16" rx="1"/>';
-      s += '<rect x="'+(x-1)+'" y="108" width="16" height="2" fill="#d0c0a0"/>';
+    // === WINDOWS - upper floor (piano nobile - tallest, most ornate) ===
+    s += '<g>';
+    var uwx = [148,175,202,229, 290,317,344,371];
+    for (var i = 0; i < uwx.length; i++) {
+      var wx = uwx[i], ww = 15, wh = 26;
+      // Pediment above window (alternating triangular / segmental)
+      if (i % 2 === 0) {
+        s += '<polygon points="'+(wx-2)+',38 '+(wx+ww/2)+',32 '+(wx+ww+2)+',38" fill="#d8c8a8" stroke="#b8a888" stroke-width="0.4"/>';
+      } else {
+        s += '<path d="M'+(wx-2)+',38 Q'+(wx+ww/2)+',33 '+(wx+ww+2)+',38" fill="#d8c8a8" stroke="#b8a888" stroke-width="0.4"/>';
+      }
+      s += '<rect x="'+wx+'" y="40" width="'+ww+'" height="'+wh+'" rx="'+(ww/2)+'" ry="'+(ww/2)+'" fill="#3a4a68" stroke="#9a8a68" stroke-width="0.6"/>';
+      // Glazing bars
+      s += '<line x1="'+(wx+ww/2)+'" y1="40" x2="'+(wx+ww/2)+'" y2="'+(40+wh)+'" stroke="#5a6a88" stroke-width="0.4"/>';
+      s += '<line x1="'+wx+'" y1="'+(40+wh*0.5)+'" x2="'+(wx+ww)+'" y2="'+(40+wh*0.5)+'" stroke="#5a6a88" stroke-width="0.4"/>';
+      // Sill with bracket
+      s += '<rect x="'+(wx-2)+'" y="'+(40+wh)+'" width="'+(ww+4)+'" height="2.5" fill="#d0c0a0"/>';
+      // Balconette ironwork on piano nobile
+      s += '<rect x="'+(wx-3)+'" y="'+(40+wh+3)+'" width="'+(ww+6)+'" height="4" fill="none" stroke="#3a3a3a" stroke-width="0.6" rx="1"/>';
     }
     s += '</g>';
 
-    // === Right wing ===
-    s += '<rect x="350" y="50" width="120" height="80" fill="url(#s-wall)" stroke="#b0a080" stroke-width="1"/>';
-    s += '<polygon points="340,50 410,28 480,50" fill="url(#s-roof)" stroke="#4a3a2a" stroke-width="1"/>';
-    s += '<g fill="#3a4a6a" stroke="#a09070" stroke-width="0.6">';
-    for (var x = 362; x <= 452; x += 30) {
-      s += '<rect x="'+x+'" y="60" width="14" height="18" rx="7" ry="7"/>';
-      s += '<rect x="'+(x+1)+'" y="92" width="12" height="16" rx="1"/>';
-      s += '<rect x="'+(x-1)+'" y="108" width="16" height="2" fill="#d0c0a0"/>';
+    // === WINDOWS - lower floor (shorter, simpler) ===
+    s += '<g fill="#3a4868">';
+    var lwx = [150,178,206, 292,320,348,374];
+    for (var i = 0; i < lwx.length; i++) {
+      var wx = lwx[i], ww = 14, wh = 20;
+      s += '<rect x="'+wx+'" y="90" width="'+ww+'" height="'+wh+'" fill="#3a4868" stroke="#9a8a68" stroke-width="0.5" rx="1"/>';
+      s += '<line x1="'+(wx+ww/2)+'" y1="90" x2="'+(wx+ww/2)+'" y2="'+(90+wh)+'" stroke="#5a6a80" stroke-width="0.3"/>';
+      s += '<rect x="'+(wx-1)+'" y="'+(90+wh)+'" width="'+(ww+2)+'" height="2" fill="#d0c0a0"/>';
     }
     s += '</g>';
 
-    // Chimneys
-    s += '<g fill="#7a6a5a">';
-    s += '<rect x="145" y="-8" width="10" height="25" /><rect x="143" y="-10" width="14" height="4" fill="#8a7a6a"/>';
-    s += '<rect x="325" y="-8" width="10" height="25" /><rect x="323" y="-10" width="14" height="4" fill="#8a7a6a"/>';
-    s += '<rect x="45" y="18" width="8" height="18"/><rect x="43" y="16" width="12" height="3" fill="#8a7a6a"/>';
-    s += '<rect x="425" y="18" width="8" height="18"/><rect x="423" y="16" width="12" height="3" fill="#8a7a6a"/>';
+    // === GRAND ENTRANCE (portico) ===
+    // Raised portico base
+    s += '<rect x="228" y="128" width="64" height="15" fill="#d4c8b0" stroke="#b8a890" stroke-width="0.5"/>';
+    // Four columns (not two) - Corinthian style
+    var colX = [232, 248, 268, 284];
+    for (var i = 0; i < colX.length; i++) {
+      var cx = colX[i];
+      // Column shaft with entasis (slight bulge)
+      s += '<path d="M'+cx+',68 Q'+(cx+0.5)+',98 '+cx+',128" fill="none" stroke="#e4d8c4" stroke-width="5"/>';
+      s += '<path d="M'+cx+',68 Q'+(cx+0.3)+',98 '+cx+',128" fill="none" stroke="#ece0cc" stroke-width="3"/>';
+      // Capital
+      s += '<rect x="'+(cx-4)+'" y="66" width="8" height="3" fill="#dcd0b8"/>';
+      s += '<rect x="'+(cx-3.5)+'" y="64" width="7" height="2.5" fill="#e4d8c0"/>';
+      // Base
+      s += '<rect x="'+(cx-3.5)+'" y="126" width="7" height="3" fill="#d0c4ac"/>';
+    }
+    // Pediment (triangular, larger)
+    s += '<polygon points="222,66 260,44 298,66" fill="url(#s-roof)" stroke="#42302a" stroke-width="0.8"/>';
+    // Tympanum ornament (coat of arms suggestion)
+    s += '<circle cx="260" cy="56" r="5" fill="#c8b898" stroke="#a09070" stroke-width="0.5"/>';
+    s += '<path d="M257,56 L260,52 L263,56 L260,60Z" fill="#b8a888"/>';
+    // Grand doorway
+    s += '<rect x="245" y="86" width="30" height="42" fill="url(#s-door)" rx="15" ry="15"/>';
+    s += '<rect x="245" y="105" width="30" height="23" fill="url(#s-door)"/>';
+    s += '<line x1="260" y1="105" x2="260" y2="128" stroke="#4a3828" stroke-width="0.8"/>';
+    // Fanlight above door
+    s += '<path d="M245,86 Q260,78 275,86" fill="#4a5a70" stroke="#8a7a60" stroke-width="0.5"/>';
+    // Brass handles
+    s += '<circle cx="255" cy="116" r="1.2" fill="#c8a858"/>';
+    s += '<circle cx="265" cy="116" r="1.2" fill="#c8a858"/>';
+    // Steps (wider, grander, 5 steps)
+    for (var si = 0; si < 5; si++) {
+      var sw = 56 + si * 8, sx = 232 - si * 4, sy = 128 + si * 4;
+      s += '<rect x="'+sx+'" y="'+sy+'" width="'+sw+'" height="4" fill="rgb('+(212-si*5)+','+(204-si*5)+','+(188-si*5)+')" rx="0.5"/>';
+    }
+
+    // === RIGHT WING (slightly different from left - asymmetry) ===
+    s += '<g>';
+    s += '<rect x="382" y="52" width="115" height="92" fill="url(#s-wall)" stroke="#b8a888" stroke-width="0.8"/>';
+    s += '<rect x="382" y="52" width="115" height="92" fill="url(#s-coolshade)"/>'; // in shadow
+    // Different roof style - hip + gable mix
+    s += '<polygon points="376,52 440,24 502,52" fill="url(#s-roof)" stroke="#42302a" stroke-width="1"/>';
+    // Right wing windows
+    s += '<g fill="#3a4a68" stroke="#a09070" stroke-width="0.6">';
+    var rwx = [395, 423, 455, 478];
+    for (var i = 0; i < rwx.length; i++) {
+      var ww = i === 2 ? 16 : 13;
+      s += '<rect x="'+rwx[i]+'" y="62" width="'+ww+'" height="18" rx="'+(ww/2)+'" ry="'+(ww/2)+'"/>';
+      s += '<rect x="'+rwx[i]+'" y="98" width="'+ww+'" height="16" rx="1"/>';
+      s += '<rect x="'+(rwx[i]-1)+'" y="114" width="'+(ww+2)+'" height="2" fill="#ccc0a8"/>';
+    }
+    s += '</g>';
+    // Right chimney - different position than left
+    s += '<rect x="460" y="14" width="10" height="16" fill="#6a5a48"/>';
+    s += '<rect x="458" y="12" width="14" height="3" fill="#7a6a58"/>';
+    s += '<rect x="459" y="10" width="12" height="2.5" fill="#8a7a68"/>';
     s += '</g>';
 
-    // Chimney smoke
-    s += '<g opacity="0.15" fill="none" stroke="#aaa" stroke-width="2">';
-    s += '<path d="M150,-10 Q155,-25 148,-40 Q142,-55 150,-70"/>';
-    s += '<path d="M330,-10 Q335,-28 328,-45"/>';
+    // === MAIN CHIMNEYS (central, slightly different heights) ===
+    s += '<rect x="172" y="-14" width="11" height="28" fill="#6a5a48"/>';
+    s += '<rect x="170" y="-16" width="15" height="3.5" fill="#7a6a58"/>';
+    s += '<rect x="340" y="-10" width="10" height="24" fill="#6a5a48"/>';
+    s += '<rect x="338" y="-12" width="14" height="3" fill="#7a6a58"/>';
+
+    // Chimney smoke (very subtle, wispy)
+    s += '<g opacity="0.08" fill="none" stroke="#b8b0a0" stroke-width="1.5" stroke-linecap="round">';
+    s += '<path d="M178,-16 Q182,-30 176,-42 Q170,-55 178,-68 Q184,-80 178,-92"/>';
+    s += '<path d="M345,-12 Q350,-24 344,-36 Q338,-48 345,-58"/>';
     s += '</g>';
 
-    // Window warm glow (some lit)
-    s += '<g opacity="0.3" fill="#f0c060">';
-    s += '<rect x="216" y="96" width="48" height="30" rx="1"/>';
-    s += '<rect x="136" y="81" width="14" height="20" rx="1"/>';
-    s += '<rect x="312" y="81" width="14" height="20" rx="1"/>';
-    s += '<rect x="53" y="93" width="10" height="14" rx="1"/>';
-    s += '<rect x="393" y="93" width="10" height="14" rx="1"/>';
+    // === WINDOW GLOW (warm interior light - selective, not uniform) ===
+    s += '<g>';
+    // Grand entrance glow
+    s += '<rect x="247" y="90" width="26" height="35" fill="url(#s-windowGlow)" rx="1"/>';
+    // A few lit windows (randomish, not all)
+    var litWindows = [[150,42,14,24],[229,42,14,24],[344,42,14,24],[178,90,14,20],[320,90,14,20],[50,96,12,14],[423,98,13,16]];
+    for (var i = 0; i < litWindows.length; i++) {
+      var lw = litWindows[i];
+      s += '<rect x="'+lw[0]+'" y="'+lw[1]+'" width="'+lw[2]+'" height="'+lw[3]+'" fill="url(#s-windowGlow)" rx="1"/>';
+    }
     s += '</g>';
 
     s += '</g>';
@@ -290,31 +514,70 @@ const GameGraphics = {
   },
 
   _splashHillsNear() {
-    return '<path d="M0,610 Q150,585 300,600 Q500,580 700,598 Q900,578 1100,595 Q1300,582 1500,600 L1600,598 L1600,900 L0,900Z" fill="url(#s-hill2)"/>' +
-      '<path d="M0,660 Q200,640 400,655 Q600,638 800,652 Q1000,636 1200,650 Q1400,640 1600,655 L1600,900 L0,900Z" fill="url(#s-hill3)"/>';
+    var s = '';
+    // Mid-ground hill with undulation
+    s += '<path d="M0,610 Q100,592 200,602 Q320,588 450,600 Q580,586 700,598 Q830,584 960,596 Q1100,582 1250,595 Q1400,585 1550,600 L1600,598 L1600,900 L0,900Z" fill="url(#s-hill2)"/>';
+    // Grass texture on mid hill
+    s += '<g stroke="#1a3420" stroke-width="0.6" opacity="0.2">';
+    for (var gx = 20; gx < 1580; gx += 15) {
+      var gy = 610 + Math.sin(gx * 0.03) * 8 - 6;
+      s += '<path d="M'+gx+','+gy+' Q'+(gx+2)+','+(gy-6)+' '+(gx+4)+','+gy+'" fill="none"/>';
+    }
+    s += '</g>';
+
+    // Foreground hill (darkest)
+    s += '<path d="M0,660 Q120,642 250,655 Q400,638 550,650 Q720,635 880,648 Q1050,636 1200,650 Q1380,640 1550,655 L1600,652 L1600,900 L0,900Z" fill="url(#s-hill3)"/>';
+    // Foreground grass detail
+    s += '<g stroke="#0e1c10" stroke-width="0.7" opacity="0.25">';
+    for (var gx = 10; gx < 1590; gx += 12) {
+      var gy = 660 + Math.sin(gx * 0.025) * 6 - 3;
+      s += '<path d="M'+gx+','+gy+' Q'+(gx+1.5)+','+(gy-7)+' '+(gx+3)+','+gy+'" fill="none"/>';
+      if (gx % 36 === 0) s += '<path d="M'+(gx+5)+','+(gy+1)+' Q'+(gx+6.5)+','+(gy-5)+' '+(gx+8)+','+(gy+1)+'" fill="none"/>';
+    }
+    s += '</g>';
+
+    return s;
   },
 
   _splashForegroundTrees() {
     var s = '';
-    // Large detailed trees in foreground
-    var trees = [[60,620,1.2],[150,630,0.9],[1400,615,1.3],[1520,625,1]];
-    for (var i = 0; i < trees.length; i++) {
-      var t = trees[i];
-      s += '<g transform="translate('+t[0]+','+t[1]+') scale('+t[2]+')">';
-      // Trunk
-      s += '<path d="M-4,0 L-6,-15 L-3,-40 L0,-60 L3,-40 L6,-15 L4,0Z" fill="#3a2818"/>';
-      // Branches
-      s += '<line x1="-3" y1="-30" x2="-18" y2="-38" stroke="#3a2818" stroke-width="2"/>';
-      s += '<line x1="3" y1="-25" x2="20" y2="-30" stroke="#3a2818" stroke-width="2"/>';
-      s += '<line x1="-2" y1="-45" x2="-12" y2="-55" stroke="#3a2818" stroke-width="1.5"/>';
-      // Foliage layers
-      s += '<ellipse cx="0" cy="-55" rx="28" ry="22" fill="#1a4020"/>';
-      s += '<ellipse cx="-15" cy="-42" rx="22" ry="18" fill="#2a5530"/>';
-      s += '<ellipse cx="15" cy="-38" rx="20" ry="16" fill="#1a4520"/>';
-      s += '<ellipse cx="0" cy="-65" rx="18" ry="14" fill="#2a5a30"/>';
-      s += '<ellipse cx="-8" cy="-50" rx="15" ry="12" fill="#3a6a3a" opacity="0.7"/>';
-      s += '</g>';
-    }
+    // Large detailed trees - each unique silhouette
+    // Left large oak
+    s += '<g transform="translate(70,625) scale(1.3)">';
+    s += '<path d="M-5,5 L-7,-15 Q-9,-30 -5,-50 L-3,-65 Q0,-50 4,-30 Q6,-15 4,5Z" fill="#2c1c08"/>';
+    s += '<path d="M-5,-30 Q-22,-40 -30,-32" fill="none" stroke="#2c1c08" stroke-width="3" stroke-linecap="round"/>';
+    s += '<path d="M4,-22 Q24,-30 32,-20" fill="none" stroke="#2c1c08" stroke-width="2.5" stroke-linecap="round"/>';
+    s += '<path d="M-3,-48 Q-16,-58 -22,-50" fill="none" stroke="#2c1c08" stroke-width="2" stroke-linecap="round"/>';
+    s += '<path d="M2,-45 Q18,-56 24,-46" fill="none" stroke="#2c1c08" stroke-width="1.8" stroke-linecap="round"/>';
+    s += '<path d="M-35,-28 Q-32,-48 -18,-56 Q-4,-64 10,-60 Q24,-66 34,-54 Q42,-42 36,-28 Q40,-18 30,-12 Q18,-4 6,-10 Q-6,-2 -20,-10 Q-32,-6 -38,-18Z" fill="#102a0e"/>';
+    s += '<path d="M-28,-34 Q-22,-50 -10,-54 Q4,-58 14,-48 Q20,-38 14,-26 Q4,-20 -8,-26 Q-20,-18 -28,-28Z" fill="#1a3a16" opacity="0.7"/>';
+    s += '<path d="M-32,-30 Q-28,-44 -18,-48 Q-10,-42 -16,-32 Q-26,-24 -32,-30Z" fill="#244a1e" opacity="0.5"/>';
+    s += '</g>';
+
+    // Right large elm (different shape - more vertical)
+    s += '<g transform="translate(1420,618) scale(1.25)">';
+    s += '<path d="M-4,8 L-5,-18 Q-4,-38 -2,-55 L0,-68 Q2,-55 4,-38 Q5,-18 4,8Z" fill="#2c1c08"/>';
+    s += '<path d="M-3,-35 Q-20,-42 -26,-34" fill="none" stroke="#2c1c08" stroke-width="2.5" stroke-linecap="round"/>';
+    s += '<path d="M3,-30 Q22,-38 28,-28" fill="none" stroke="#2c1c08" stroke-width="2.2" stroke-linecap="round"/>';
+    s += '<path d="M0,-50 Q-10,-60 -14,-52" fill="none" stroke="#2c1c08" stroke-width="1.5" stroke-linecap="round"/>';
+    s += '<path d="M0,-48 Q12,-58 16,-48" fill="none" stroke="#2c1c08" stroke-width="1.5" stroke-linecap="round"/>';
+    // Taller, narrower canopy
+    s += '<path d="M-22,-30 Q-20,-50 -12,-60 Q0,-70 12,-60 Q20,-50 22,-30 Q26,-20 18,-12 Q8,-6 -4,-8 Q-16,-4 -22,-14 Q-26,-22 -22,-30Z" fill="#102a0e"/>';
+    s += '<path d="M-14,-38 Q-8,-56 6,-58 Q16,-50 12,-34 Q4,-28 -6,-32 Q-14,-28 -14,-38Z" fill="#183818" opacity="0.7"/>';
+    s += '</g>';
+
+    // Smaller flanking trees
+    s += '<g transform="translate(170,638) scale(0.85)">';
+    s += '<path d="M-2,4 L-3,-12 Q-2,-24 0,-35 Q2,-24 3,-12 L2,4Z" fill="#2c1c08"/>';
+    s += '<path d="M-18,-15 Q-14,-32 -4,-36 Q8,-40 18,-32 Q24,-22 18,-12 Q8,-6 -4,-10 Q-16,-4 -18,-15Z" fill="#14320e"/>';
+    s += '<path d="M-12,-20 Q-6,-30 4,-28 Q10,-22 6,-14 Q-2,-10 -12,-16Z" fill="#1e4218" opacity="0.6"/>';
+    s += '</g>';
+
+    s += '<g transform="translate(1530,632) scale(0.9)">';
+    s += '<path d="M-2,4 L-3,-14 Q-1,-28 0,-38 Q1,-28 3,-14 L2,4Z" fill="#2c1c08"/>';
+    s += '<path d="M-20,-18 Q-16,-36 -4,-40 Q10,-44 20,-34 Q26,-24 20,-14 Q8,-6 -6,-12 Q-18,-6 -20,-18Z" fill="#14320e"/>';
+    s += '</g>';
+
     return s;
   },
 
