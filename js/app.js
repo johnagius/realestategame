@@ -29,10 +29,9 @@ const App = {
     });
 
     // Advance month buttons
-    document.getElementById('btn-advance-month').addEventListener('click', function() { App.advanceMonth(); });
-    document.querySelectorAll('.btn-advance-alt').forEach(function(btn) {
-      btn.addEventListener('click', function() { App.advanceMonth(); });
-    });
+    // HUD advance button (always visible)
+    document.getElementById('btn-hud-advance').addEventListener('click', function() { App.advanceMonth(); });
+    // Removed: .btn-advance-alt buttons no longer exist in HTML
 
     // Map toggle
     document.getElementById('btn-map-toggle').addEventListener('click', function() {

@@ -31,7 +31,7 @@
   --radius-sm: 8px;
   --radius-lg: 20px;
   --hud-height: 48px;
-  --nav-height: 64px;
+  --nav-height: 52px;
   --font-body: 'Nunito', -apple-system, sans-serif;
   --font-heading: 'Playfair Display', Georgia, serif;
   --sketch-border: 2px dashed var(--border-sketch);
@@ -406,6 +406,26 @@ h4 { font-size: 1rem; }
 .diff-easy { background: rgba(69,123,157,0.3); color: #8BF; }
 .diff-sandbox { background: rgba(212,168,75,0.3); color: #FD8; }
 
+/* HUD advance button */
+.hud-advance-btn {
+  background: #C85A3A;
+  color: #FFF;
+  border: 1px solid #A04828;
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.hud-advance-btn:hover {
+  background: #E07A5F;
+}
+.hud-advance-btn:active {
+  transform: scale(0.95);
+}
+
 /* HUD leaderboard toggle */
 .hud-lb-btn {
   background: rgba(255,255,255,0.15);
@@ -699,7 +719,7 @@ h4 { font-size: 1rem; }
 }
 
 .nav-btn .nav-icon {
-  font-size: 1.4rem;
+  font-size: 1.15rem;
   transition: transform var(--transition);
 }
 
@@ -721,9 +741,13 @@ h4 { font-size: 1rem; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
-  padding: 8px 0;
+  margin-bottom: 6px;
+  padding: 4px 0;
   flex-shrink: 0;
+}
+
+.screen-header h2 {
+  font-size: 1.1rem;
 }
 
 .screen-header h2 {
@@ -765,9 +789,9 @@ h4 { font-size: 1rem; }
 /* ---------- Card Grid ---------- */
 .card-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  padding-bottom: 16px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding-bottom: 8px;
   flex: 1;
   overflow-y: auto;
 }
@@ -797,13 +821,12 @@ h4 { font-size: 1rem; }
   background-image: linear-gradient(135deg, rgba(255,248,238,0.5) 0%, rgba(255,255,255,0) 100%);
   border: 2px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 10px;
   cursor: pointer;
   transition: all var(--transition);
   position: relative;
   overflow: hidden;
-  animation: slideUp 0.4s ease backwards;
-  box-shadow: 0 2px 8px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.8);
+  box-shadow: 0 2px 6px var(--shadow);
 }
 
 .city-card::before {
@@ -890,11 +913,10 @@ h4 { font-size: 1rem; }
   background-image: linear-gradient(135deg, rgba(255,248,238,0.5) 0%, rgba(255,255,255,0) 100%);
   border: 2px solid var(--border);
   border-radius: var(--radius);
-  padding: 14px;
+  padding: 10px;
   cursor: pointer;
   transition: all var(--transition);
   position: relative;
-  animation: slideUp 0.4s ease backwards;
   box-shadow: 0 2px 8px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.8);
 }
 
@@ -1245,10 +1267,15 @@ h4 { font-size: 1rem; }
 .portfolio-summary-card {
   background: linear-gradient(135deg, #2B1810 0%, #4A2C1A 40%, #6B4423 100%);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 14px;
   color: #FFF;
   border: 2px solid #8B6914;
   box-shadow: 0 4px 16px rgba(43, 24, 16, 0.35);
+}
+
+.portfolio-summary-value {
+  font-size: 1.4rem;
+  margin-bottom: 10px;
 }
 
 .portfolio-summary-title {

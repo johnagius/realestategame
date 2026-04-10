@@ -9,7 +9,7 @@ const GameUI = {
   currentProperty: null,
   cityMapView: false,
   cityPage: 0,
-  PAGE_SIZE: 4,
+  PAGE_SIZE: 6,
   currentCityTab: 'market',
   currentPortfolioFilter: 'all',
   mapView: true,
