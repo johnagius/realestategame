@@ -143,6 +143,32 @@ const App = {
       document.getElementById('event-overlay').classList.remove('active');
     });
 
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      if (!GameEngine.state) return;
+      // Don't trigger during text input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      switch(e.code) {
+        case 'Space':
+          e.preventDefault();
+          App.advanceMonth();
+          break;
+        case 'Digit1': GameUI.setAutoAdvance(1); break;
+        case 'Digit2': GameUI.setAutoAdvance(2); break;
+        case 'Digit3': GameUI.setAutoAdvance(3); break;
+        case 'Digit0': case 'KeyP': GameUI.setAutoAdvance(0); break;
+        case 'Escape':
+          GameUI.hideModal();
+          GameUI.hideDecision();
+          document.getElementById('floating-leaderboard').classList.add('hidden');
+          break;
+        case 'KeyL':
+          GameUI.toggleLeaderboard();
+          break;
+      }
+    });
+
     // Leaderboard toggle
     document.getElementById('btn-leaderboard').addEventListener('click', function() {
       GameUI.toggleLeaderboard();
@@ -614,6 +640,59 @@ const App = {
     document.getElementById('splash-main-btns').style.display = 'none';
     // Reuse family selection — prestige flag stored
     this.startNewGame();
+  },
+
+  // ---- Share Prestige Card ----
+  sharePrestige() {
+    var stats = GameEngine.getPrestigeStats();
+    var s = GameEngine.state;
+    // Create a canvas card
+    var canvas = document.createElement('canvas');
+    canvas.width = 600; canvas.height = 340;
+    var ctx = canvas.getContext('2d');
+    // Background
+    var bg = ctx.createLinearGradient(0, 0, 600, 340);
+    bg.addColorStop(0, '#2B1810'); bg.addColorStop(0.5, '#4A2C1A'); bg.addColorStop(1, '#6B4423');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, 600, 340);
+    // Border
+    ctx.strokeStyle = '#D4A84B'; ctx.lineWidth = 4; ctx.strokeRect(8, 8, 584, 324);
+    ctx.strokeStyle = '#8B6914'; ctx.lineWidth = 1; ctx.strokeRect(14, 14, 572, 312);
+    // Title
+    ctx.fillStyle = '#F0D890'; ctx.font = 'bold 28px serif'; ctx.textAlign = 'center';
+    ctx.fillText('PROPERTY EMPIRE', 300, 50);
+    ctx.font = 'italic 14px serif'; ctx.fillStyle = '#C8A868';
+    ctx.fillText('Dynasty Legacy Card', 300, 72);
+    // Family name
+    ctx.font = 'bold 22px sans-serif'; ctx.fillStyle = '#FFF';
+    ctx.fillText(s.familyName || 'Dynasty', 300, 110);
+    // Stats
+    ctx.font = '14px sans-serif'; ctx.fillStyle = '#E8D8B8'; ctx.textAlign = 'left';
+    var y = 145;
+    var rows = [
+      ['Net Worth', GameData.formatMoney(stats.netWorth)],
+      ['Properties', stats.properties + ''],
+      ['Cities', stats.cities + ''],
+      ['Generations', stats.generation + ''],
+      ['Reputation', stats.reputation + '/100'],
+      ['Ranking', '#' + stats.rank],
+      ['Prestige Score', stats.score + ' pts']
+    ];
+    for (var i = 0; i < rows.length; i++) {
+      ctx.fillStyle = '#A09080'; ctx.fillText(rows[i][0], 60, y);
+      ctx.fillStyle = '#F0D890'; ctx.font = 'bold 14px sans-serif'; ctx.fillText(rows[i][1], 300, y);
+      ctx.font = '14px sans-serif';
+      y += 24;
+    }
+    // Footer
+    ctx.fillStyle = '#6A5A42'; ctx.font = 'italic 11px serif'; ctx.textAlign = 'center';
+    ctx.fillText('propertyempire.game • ' + new Date().getFullYear(), 300, 320);
+
+    // Download
+    var link = document.createElement('a');
+    link.download = 'property-empire-legacy.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    GameUI.toast('Legacy card downloaded!', 'success');
   },
 
   // ---- Tutorial System ----

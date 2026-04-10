@@ -459,8 +459,10 @@ const GameUI = {
     var options = GameEngine.getMitigationOptions(property);
     var owned = GameEngine.state.mitigations[property.id] || {};
 
-    var html = '<div style="border-top:2px dashed #DDD3C0; margin-top:12px; padding-top:12px;">' +
-      '<div class="action-info mb-8">🛡️ Risk Mitigation:</div>';
+    var ownedCount = Object.keys(owned).filter(function(k){return owned[k];}).length;
+    var html = '<div style="border-top:2px dashed #DDD3C0; margin-top:12px; padding-top:8px;">' +
+      '<div class="action-info mb-8" style="cursor:pointer" onclick="var el=document.getElementById(\'mit-list\');el.style.display=el.style.display===\'none\'?\'block\':\'none\'">🛡️ Risk Mitigation (' + ownedCount + '/' + options.length + ') ▾</div>' +
+      '<div id="mit-list" style="display:none">';
 
     options.forEach(function(m) {
       var isOwned = !!owned[m.id];
@@ -477,7 +479,7 @@ const GameUI = {
       }
     });
 
-    html += '</div>';
+    html += '</div></div>'; // close mit-list and outer div
     return html;
   },
 
@@ -676,6 +678,7 @@ const GameUI = {
           '<div style="margin-top:12px;font-size:0.8rem;color:var(--text-muted)">Next game: +' + Math.round((stats.cashBonus-1)*100) + '% starting cash, +' + stats.repBonus + ' reputation</div>' +
         '</div>',
         '<button class="btn btn-primary" onclick="App.startPrestige()">🔄 New Game+ (Prestige)</button>' +
+        '<button class="btn btn-accent" onclick="App.sharePrestige()">📷 Share Legacy</button>' +
         '<button class="btn btn-ghost" onclick="GameUI.hideModal()">Keep Playing</button>'
       );
       GameAudio.fanfare();
