@@ -1534,13 +1534,20 @@ h4 { font-size: 1rem; }
   font-size: 0.55rem;
   font-weight: 800;
   color: var(--text);
-  background: rgba(255,255,255,0.85);
-  padding: 1px 4px;
-  border-radius: 3px;
+  background: rgba(255,255,255,0.92);
+  padding: 2px 5px;
+  border-radius: 4px;
   margin-top: 2px;
   white-space: nowrap;
   text-shadow: none;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+.map-pin-owned {
+  background: rgba(44,110,73,0.12);
+  border-color: var(--primary-light);
+  color: var(--primary-dark);
 }
 
 /* ---------- Business Cards ---------- */

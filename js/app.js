@@ -156,8 +156,6 @@ const App = {
   selectFamily(familyId) {
     GameEngine.newGame(familyId);
     this.enterGame();
-    // Start on slow auto-play by default so game feels alive
-    GameUI.setAutoAdvance(1);
   },
 
   continueGame() {
