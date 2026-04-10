@@ -297,7 +297,7 @@ const GameUI = {
     return '<div class="property-card" data-property="' + p.id + '" data-city="' + p.cityId + '" style="animation-delay:' + delay + 's">' +
       badge +
       '<div class="property-card-type">' +
-        '<span class="property-icon">' + typeDef.icon + '</span>' +
+        '<span class="property-thumb">' + (typeof GameGraphics !== 'undefined' ? GameGraphics.propertyThumb(p.type) : typeDef.icon) + '</span>' +
         '<span class="property-type-label">' + typeDef.name + '</span>' +
       '</div>' +
       '<div class="property-card-name">' + p.name + '</div>' +
