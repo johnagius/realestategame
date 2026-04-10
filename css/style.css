@@ -2083,26 +2083,31 @@ h4 { font-size: 1rem; }
   border-bottom: 1px solid #5A4A38;
 }
 
-.hud-tips {
+.hud-goals {
   position: fixed;
   top: calc(var(--hud-height) + 22px);
   left: 0;
   right: 0;
-  height: 20px;
-  background: rgba(250,243,224,0.95);
-  color: #6A5A42;
-  font-size: 0.6rem;
-  font-weight: 600;
+  height: 22px;
+  background: linear-gradient(90deg, rgba(44,110,73,0.08), rgba(250,243,224,0.95), rgba(44,110,73,0.08));
+  color: #2C6E49;
+  font-size: 0.65rem;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 889;
-  border-bottom: 1px solid #DDD3C0;
+  border-bottom: 1px solid #B8D0B0;
+}
+
+.hud-goals .goal-done {
+  color: #D4A84B;
+  text-decoration: line-through;
 }
 
 /* ---------- Fix scrolling: lock screens to viewport ---------- */
 .game-screen {
-  padding-top: calc(var(--hud-height) + 44px);
+  padding-top: calc(var(--hud-height) + 46px);
   overflow-y: auto;
   overflow-x: hidden;
 }

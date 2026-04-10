@@ -984,7 +984,11 @@ const GameEngine = {
     this.state.bankRateModifier += (Math.random() - 0.5) * 0.002;
     this.state.bankRateModifier = Math.max(-0.02, Math.min(0.02, this.state.bankRateModifier));
 
-    // 14b. Generate monthly decision (the "one more turn" hook)
+    // 14b. Check and generate goals
+    results.goalsAchieved = this.checkGoals();
+    this.generateGoals();
+
+    // 14c. Generate monthly decision (the "one more turn" hook)
     results.decision = this.generateDecision();
 
     // 15. Check era transition
@@ -1997,6 +2001,93 @@ const GameEngine = {
   getInvestmentValue() {
     if (!this.state.investments) return 0;
     return this.state.investments.reduce((sum, inv) => sum + (inv.currentUnitPrice * inv.units), 0);
+  },
+
+  // ========== GOAL SYSTEM ==========
+
+  generateGoals() {
+    if (!this.state.goals) this.state.goals = { monthly: null, decade: null, completed: [] };
+    var g = this.state.goals;
+    var nw = this.getNetWorth();
+    var propCount = this.state.properties.length;
+    var cityCount = new Set(this.state.properties.map(p => p.cityId)).size;
+    var year = this.state.year;
+
+    // Monthly goal — changes each month
+    var monthlyGoals = [
+      { id: 'buy_property', text: 'Buy a property this month', check: function(s, prev) { return s.properties.length > prev.propCount; } },
+      { id: 'earn_rent', text: 'Earn ' + GameData.formatMoney(Math.round(nw * 0.01)) + ' in rent', check: function(s, prev) { return s.cash > prev.cash + nw * 0.008; } },
+      { id: 'new_city', text: 'Buy in a new city', check: function(s, prev) { return new Set(s.properties.map(function(p){return p.cityId;})).size > prev.cityCount; } },
+      { id: 'refurbish', text: 'Refurbish a property', check: function(s, prev) { return s.properties.some(function(p){return p.isRefurbishing;}); } },
+      { id: 'rent_out', text: 'Rent out a vacant property', check: function(s, prev) { return s.properties.filter(function(p){return p.isRented;}).length > prev.rentedCount; } },
+    ];
+    if (!g.monthly || g.monthly.done) {
+      var pick = monthlyGoals[Math.floor(Math.random() * monthlyGoals.length)];
+      g.monthly = { id: pick.id, text: pick.text, done: false, reward: Math.max(1, Math.round(nw * 0.005)) };
+    }
+    // Snapshot for comparison next month
+    g._snapshot = { propCount: propCount, cityCount: cityCount, cash: this.state.cash, rentedCount: this.state.properties.filter(function(p){return p.isRented;}).length };
+
+    // Decade goal — changes every 10 years
+    if (!g.decade || g.decade.done || (year % 10 === 0 && this.state.monthIndex === 0)) {
+      var decadeEnd = Math.ceil(year / 10) * 10;
+      var decadeGoals = [
+        { text: 'Own properties in ' + Math.min(5, cityCount + 3) + ' cities by ' + decadeEnd, target: Math.min(5, cityCount + 3), type: 'cities' },
+        { text: 'Own ' + (propCount + 5) + ' properties by ' + decadeEnd, target: propCount + 5, type: 'properties' },
+        { text: 'Reach net worth ' + GameData.formatMoney(Math.round(nw * 3)) + ' by ' + decadeEnd, target: Math.round(nw * 3), type: 'networth' },
+        { text: 'Rank #1 among families by ' + decadeEnd, target: 1, type: 'rank' },
+      ];
+      var dpick = decadeGoals[Math.floor(Math.random() * decadeGoals.length)];
+      g.decade = { text: dpick.text, target: dpick.target, type: dpick.type, deadline: decadeEnd, done: false, reward: Math.max(5, Math.round(nw * 0.02)) };
+    }
+  },
+
+  checkGoals() {
+    if (!this.state.goals) return [];
+    var g = this.state.goals;
+    var achieved = [];
+
+    // Check monthly goal
+    if (g.monthly && !g.monthly.done && g._snapshot) {
+      var snap = g._snapshot;
+      var s = this.state;
+      var met = false;
+      if (g.monthly.id === 'buy_property') met = s.properties.length > snap.propCount;
+      else if (g.monthly.id === 'earn_rent') met = s.cash > snap.cash + this.getNetWorth() * 0.008;
+      else if (g.monthly.id === 'new_city') met = new Set(s.properties.map(function(p){return p.cityId;})).size > snap.cityCount;
+      else if (g.monthly.id === 'refurbish') met = s.properties.some(function(p){return p.isRefurbishing;});
+      else if (g.monthly.id === 'rent_out') met = s.properties.filter(function(p){return p.isRented;}).length > snap.rentedCount;
+
+      if (met) {
+        g.monthly.done = true;
+        s.cash += g.monthly.reward;
+        achieved.push({ type: 'monthly', text: g.monthly.text, reward: g.monthly.reward });
+        if (!g.completed) g.completed = [];
+        g.completed.push(g.monthly.text);
+      }
+    }
+
+    // Check decade goal
+    if (g.decade && !g.decade.done) {
+      var s = this.state;
+      var met = false;
+      if (g.decade.type === 'cities') met = new Set(s.properties.map(function(p){return p.cityId;})).size >= g.decade.target;
+      else if (g.decade.type === 'properties') met = s.properties.length >= g.decade.target;
+      else if (g.decade.type === 'networth') met = this.getNetWorth() >= g.decade.target;
+      else if (g.decade.type === 'rank') met = (s.playerRank || 99) <= g.decade.target;
+
+      if (met) {
+        g.decade.done = true;
+        s.cash += g.decade.reward;
+        if (!s.reputation) s.reputation = 50;
+        s.reputation = Math.min(100, s.reputation + 10);
+        achieved.push({ type: 'decade', text: g.decade.text, reward: g.decade.reward });
+        if (!g.completed) g.completed = [];
+        g.completed.push(g.decade.text);
+      }
+    }
+
+    return achieved;
   },
 
   // ========== DECISION SYSTEM ==========

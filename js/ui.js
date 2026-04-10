@@ -51,6 +51,14 @@ const GameUI = {
     document.getElementById('hud-networth').textContent = GameData.formatMoney(GameEngine.getNetWorth());
     // Speed controls in HUD
     document.getElementById('hud-speed').innerHTML = this.renderSpeedControls();
+    // Goal tracker
+    var goalEl = document.getElementById('hud-goal-text');
+    if (goalEl && s.goals && s.goals.monthly) {
+      var g = s.goals.monthly;
+      goalEl.innerHTML = g.done
+        ? '<span class="goal-done">✅ ' + g.text + '</span> +' + GameData.formatMoney(g.reward)
+        : '🎯 ' + g.text + ' (reward: ' + GameData.formatMoney(g.reward) + ')';
+    }
   },
 
   // ---- Toast notification ----
@@ -627,6 +635,13 @@ const GameUI = {
     // Dividends - only show when not in fast auto-play
     if (results.dividends > 0 && (!isAutoPlaying || speed <= 1)) {
       GameUI.toast('💼 Dividends received: +' + GameData.formatMoney(results.dividends), 'success');
+    }
+
+    // Goals achieved
+    if (results.goalsAchieved) {
+      results.goalsAchieved.forEach(function(g) {
+        GameUI.toast('🎯 Goal complete: ' + g.text + ' +' + GameData.formatMoney(g.reward), 'milestone');
+      });
     }
 
     // Tenant problems — show in ticker

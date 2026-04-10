@@ -201,7 +201,9 @@ const App = {
     document.getElementById('hud').classList.remove('hidden');
     document.getElementById('main-nav').classList.remove('hidden');
     document.getElementById('hud-ticker').classList.remove('hidden');
-    document.getElementById('hud-tips').classList.remove('hidden');
+    document.getElementById('hud-goals').classList.remove('hidden');
+    // Generate initial goals
+    GameEngine.generateGoals();
     GameUI.updateHUD();
     GameUI.showScreen('map');
     // Show random tip
