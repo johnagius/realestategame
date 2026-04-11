@@ -728,7 +728,7 @@ const City3D = {
       // Sun variation
       if (self._sun) self._sun.intensity = 1.6 + Math.sin(ts * 0.0001) * 0.3;
 
-      self._renderer.render(self._scene, self._cam);
+      if (self._renderer && self._scene && self._cam) self._renderer.render(self._scene, self._cam);
     }
 
     requestAnimationFrame(animate);
@@ -747,13 +747,15 @@ const City3D = {
     if (this._onMouseMove) { window.removeEventListener('mousemove', this._onMouseMove); this._onMouseMove = null; }
     if (this._onTouchEnd) { window.removeEventListener('touchend', this._onTouchEnd); this._onTouchEnd = null; }
     if (this._onTouchMove) { window.removeEventListener('touchmove', this._onTouchMove); this._onTouchMove = null; }
-    // Dispose Three.js scene resources (geometries, materials, textures)
+    // Dispose Three.js geometries but preserve shared City3D.M materials
+    // Materials in City3D.M are reused across cities — disposing them breaks subsequent renders
     if (this._scene) {
+      var shared = this.M ? new Set(Object.keys(this.M).map(function(k) { return City3D.M[k]; })) : new Set();
       this._scene.traverse(function(obj) {
         if (obj.geometry) obj.geometry.dispose();
         if (obj.material) {
-          if (Array.isArray(obj.material)) obj.material.forEach(function(m) { m.dispose(); });
-          else obj.material.dispose();
+          var mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+          mats.forEach(function(m) { if (!shared.has(m)) m.dispose(); });
         }
       });
     }
@@ -763,6 +765,7 @@ const City3D = {
     this._pivot = null; this._grid = null; this._canvas = null;
     this._container = null; this._selCell = null; this._selWire = null;
     this._sun = null; this._cityDef = null; this._onBuildingClick = null;
+    this._dragState = { active: false, prevX: 0, startX: 0 };
   },
 
   // ── Main entry point: render a city into a container ──
