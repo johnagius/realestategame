@@ -700,6 +700,10 @@ const App = {
     } else {
       GameUI.toast(result.message, 'error');
     }
+    // Navigate if decision requested it (e.g. open_bank)
+    if (result.navigateTo) {
+      GameUI.showScreen(result.navigateTo);
+    }
     GameUI.updateHUD();
   },
 

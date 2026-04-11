@@ -3263,7 +3263,7 @@ const GameEngine = {
 
     if (!uf.bank && propCount >= 1) {
       uf.bank = true;
-      newlyUnlocked.push({ id: 'bank', icon: '🏦', message: 'Bank Unlocked! Take loans to grow your empire faster.' });
+      newlyUnlocked.push({ id: 'bank', icon: '🏦', message: 'Bank Unlocked! Take a loan to buy your next property — tap the Bank tab.' });
     }
     if (!uf.businesses && tier >= 1) {
       uf.businesses = true;
@@ -3581,6 +3581,22 @@ const GameEngine = {
     var cycle = s.economicCycle || 'growth';
 
     // ---- PORTFOLIO-LINKED DECISIONS (emerge from what the player owns) ----
+
+    // LOAN NUDGE: Player has 1 property but can't afford another — teach them to use the bank
+    var loans = s.loans || [];
+    if (props.length >= 1 && props.length < 3 && loans.length === 0 && cash < 6500 && s.unlockedFeatures && s.unlockedFeatures.bank) {
+      var loanNW = this.getNetWorth();
+      var suggestedLoan = Math.round(loanNW * 0.5);
+      decisions.push({
+        type: 'loan_nudge',
+        title: '🏦 Your Banker Calls',
+        description: 'With ' + GameData.formatMoney(cash) + ' in cash, you can\'t afford another property. But your portfolio is worth ' + GameData.formatMoney(loanNW) + '. A loan of ' + GameData.formatMoney(suggestedLoan) + ' would let you expand. Visit the Bank tab to explore loan offers.',
+        choices: [
+          { label: 'Open Bank', action: 'open_bank' },
+          { label: 'Not yet', action: 'pass' }
+        ]
+      });
+    }
 
     // DERELICT OPPORTUNITY: Player owns a poor/derelict property — neighbor wants to sell adjacent lot cheap
     var derelicts = props.filter(function(p) { return p.condition === 'derelict' || p.condition === 'poor'; });
@@ -4084,6 +4100,10 @@ const GameEngine = {
         result.message = 'Scandal made public. Reputation -' + d.repLoss + '.';
         break;
       }
+      case 'open_bank':
+        result.message = 'Opening the Bank...';
+        result.navigateTo = 'bank';
+        break;
       case 'pass':
         result.message = 'You passed on this opportunity.';
         break;
