@@ -237,10 +237,14 @@ const GameUI = {
     if (!city) return;
 
     document.getElementById('city-title').textContent = city.flag + ' ' + city.name;
-    this.cityPage = 0; // reset pagination
-    this.cityTypeFilter = 'all'; // reset filter when switching cities
-    var typeFilterEl = document.getElementById('city-type-filter');
-    if (typeFilterEl) typeFilterEl.value = 'all';
+    // Only reset pagination and filter when actually switching cities (cityId provided)
+    // Not during auto-advance re-renders (cityId undefined)
+    if (cityId) {
+      this.cityPage = 0;
+      this.cityTypeFilter = 'all';
+      var typeFilterEl = document.getElementById('city-type-filter');
+      if (typeFilterEl) typeFilterEl.value = 'all';
+    }
 
     // City info chips
     var info = document.getElementById('city-info');
@@ -337,7 +341,13 @@ const GameUI = {
     if (props.length === 0) {
       grid.innerHTML = '';
       empty.style.display = 'block';
-      empty.querySelector('p').textContent = tab === 'market' ? 'No properties for sale right now' : 'You don\'t own any properties here';
+      var isFiltered = this.cityTypeFilter && this.cityTypeFilter !== 'all';
+      if (isFiltered) {
+        empty.innerHTML = '<span class="empty-icon">🔍</span><p>No ' + this.cityTypeFilter + ' properties found</p>' +
+          '<button class="btn btn-ghost btn-small" onclick="GameUI.cityTypeFilter=\'all\';document.getElementById(\'city-type-filter\').value=\'all\';GameUI.renderCityProperties()">Show All Types</button>';
+      } else {
+        empty.innerHTML = '<span class="empty-icon">🏗️</span><p>' + (tab === 'market' ? 'No properties for sale right now' : 'You don\'t own any properties here') + '</p>';
+      }
       return;
     }
 
@@ -1758,7 +1768,7 @@ const GameUI = {
           var typeName = City3D.BNAMES[cell.t] || cell.t;
           // Map 3D tile type to game property type for filtering
           var typeMap = { HO:'house', ST:'studio', AP:'apartment', PH:'penthouse',
-            TH:'townhouse', VI:'villa', MN:'mansion', CM:'commercial', WR:'warehouse', SK:'penthouse' };
+            TH:'townhouse', VI:'villa', MN:'mansion', CM:'commercial', WR:'warehouse', SK:'commercial' };
           var gameType = typeMap[cell.t];
           if (gameType) {
             // Set filter to this type and re-render property list
