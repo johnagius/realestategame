@@ -223,6 +223,8 @@ const App = {
   },
 
   enterGame() {
+    // Stop intro animation
+    if (typeof IntroScene !== 'undefined') IntroScene.stop();
     document.getElementById('screen-splash').classList.remove('active');
     document.getElementById('hud').classList.remove('hidden');
     document.getElementById('main-nav').classList.remove('hidden');
