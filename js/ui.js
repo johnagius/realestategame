@@ -103,6 +103,12 @@ const GameUI = {
         }
       }
     }
+    // Progressive feature gating: show/hide nav tabs
+    var uf = s.unlockedFeatures;
+    if (uf) {
+      var bankBtn = document.querySelector('.nav-btn[data-screen="bank"]');
+      if (bankBtn) bankBtn.style.display = uf.bank ? '' : 'none';
+    }
   },
 
   // Show floating income/expense summary near HUD
@@ -306,6 +312,12 @@ const GameUI = {
     if (!city) return;
 
     document.getElementById('city-title').textContent = city.flag + ' ' + city.name;
+    // Gate businesses tab
+    var bizTab = document.querySelector('.tab-btn[data-tab="businesses"]');
+    if (bizTab) {
+      var uf = GameEngine.state.unlockedFeatures;
+      bizTab.style.display = (uf && uf.businesses) ? '' : 'none';
+    }
     // Only reset pagination and filter when actually switching cities (cityId provided)
     // Not during auto-advance re-renders (cityId undefined)
     if (cityId) {
@@ -1433,6 +1445,15 @@ const GameUI = {
       GameAudio.fanfare();
     }
 
+    // Feature unlocks
+    if (results.featureUnlocks && results.featureUnlocks.length > 0) {
+      results.featureUnlocks.forEach(function(fu) {
+        GameUI.toast(fu.icon + ' ' + fu.message, 'milestone');
+      });
+      GameUI.updateHUD(); // refresh nav visibility immediately
+      if (!isAutoPlaying) GameAudio.fanfare();
+    }
+
     // Campaign tier completion
     if (results.campaignTierCompleted) {
       var ct = results.campaignTierCompleted;
@@ -1630,7 +1651,10 @@ const GameUI = {
     var all = [
       { name: (s.familyIcon || '👤') + ' ' + (s.familyName || 'You'), nw: playerNW, isPlayer: true }
     ];
+    var showFull = s.unlockedFeatures && s.unlockedFeatures.fullLeaderboard;
     s.aiFamilies.forEach(function(ai) {
+      // Before full leaderboard unlock, only show the Rothschilds (named rival)
+      if (!showFull && ai.id !== 'rothschild') return;
       all.push({ name: ai.icon + ' ' + ai.name, nw: ai.netWorth, isPlayer: false, aiId: ai.id });
     });
     all.sort(function(a, b) { return b.nw - a.nw; });
@@ -1737,8 +1761,10 @@ const GameUI = {
       '</div>' +
     '</div>';
 
-    // Investments (stocks & bonds)
+    // Investments (stocks & bonds) — gated until unlocked
+    var investmentsUnlocked = s.unlockedFeatures && s.unlockedFeatures.investments;
     var investments = s.investments || [];
+    if (investmentsUnlocked) {
     html += '<div class="finance-section">' +
       '<div class="finance-section-title">📈 Investments</div>';
 
@@ -1783,6 +1809,7 @@ const GameUI = {
       '</div>';
     });
     html += '</div></div>';
+    } // end investmentsUnlocked gate
 
     // Player-owned banks
     var playerBanks = s.playerBanks || [];

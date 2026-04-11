@@ -75,6 +75,14 @@ const GameEngine = {
         rivalId: 'rothschild',
         completed: false,
         failed: false
+      },
+      // Progressive feature unlocking
+      unlockedFeatures: {
+        bank: false,           // unlocks at 2 properties
+        businesses: false,     // unlocks at campaign tier 1
+        investments: false,    // unlocks at campaign tier 2
+        aiDiplomacy: false,    // unlocks at 5 properties
+        fullLeaderboard: false // unlocks when opening objective done or 3 properties
       }
     };
 
@@ -169,6 +177,10 @@ const GameEngine = {
         }
         if (!this.state.openingObjective) {
           this.state.openingObjective = { active: false, completed: true, failed: false };
+        }
+        // Old saves: unlock all features (they already had access)
+        if (!this.state.unlockedFeatures) {
+          this.state.unlockedFeatures = { bank: true, businesses: true, investments: true, aiDiplomacy: true, fullLeaderboard: true };
         }
         // Migrate old properties: ensure tenant + rentMultiplier fields exist
         if (this.state.properties) {
@@ -1434,6 +1446,9 @@ const GameEngine = {
 
     // 16c. Check opening objective
     results.openingObjectiveResult = this.checkOpeningObjective();
+
+    // 16d. Check feature unlocks
+    results.featureUnlocks = this.checkFeatureUnlocks();
 
     // 17. Track net worth
     this.state.networthHistory.push(this.getNetWorth());
@@ -2744,6 +2759,8 @@ const GameEngine = {
 
   generateAIInteraction() {
     if (!this.state.aiFamilies || this.state.aiFamilies.length === 0) return null;
+    // Gate: AI diplomacy locked until player owns 5+ properties
+    if (this.state.unlockedFeatures && !this.state.unlockedFeatures.aiDiplomacy) return null;
     if (Math.random() > 0.15) return null; // 15% chance per month
 
     var ai = this.state.aiFamilies[Math.floor(Math.random() * this.state.aiFamilies.length)];
@@ -3209,6 +3226,39 @@ const GameEngine = {
       };
     }
     return null;
+  },
+
+  // ========== PROGRESSIVE FEATURE UNLOCKING ==========
+
+  checkFeatureUnlocks() {
+    var uf = this.state.unlockedFeatures;
+    if (!uf) return [];
+    var newlyUnlocked = [];
+    var propCount = this.state.properties.length;
+    var tier = this.state.campaignTier || 0;
+    var objDone = this.state.openingObjective && (this.state.openingObjective.completed || !this.state.openingObjective.active);
+
+    if (!uf.bank && propCount >= 2) {
+      uf.bank = true;
+      newlyUnlocked.push({ id: 'bank', icon: '🏦', message: 'Bank Unlocked! Take loans to grow your empire faster.' });
+    }
+    if (!uf.businesses && tier >= 1) {
+      uf.businesses = true;
+      newlyUnlocked.push({ id: 'businesses', icon: '💼', message: 'Businesses Unlocked! Buy stakes in local businesses for dividends.' });
+    }
+    if (!uf.investments && tier >= 2) {
+      uf.investments = true;
+      newlyUnlocked.push({ id: 'investments', icon: '📈', message: 'Investments Unlocked! Trade stocks and bonds on the Bank screen.' });
+    }
+    if (!uf.aiDiplomacy && propCount >= 5) {
+      uf.aiDiplomacy = true;
+      newlyUnlocked.push({ id: 'aiDiplomacy', icon: '⚔️', message: 'Rival families are taking notice. Diplomacy is now active.' });
+    }
+    if (!uf.fullLeaderboard && (objDone || propCount >= 3)) {
+      uf.fullLeaderboard = true;
+      newlyUnlocked.push({ id: 'fullLeaderboard', icon: '🏆', message: 'Leaderboard expanded — see all rival families.' });
+    }
+    return newlyUnlocked;
   },
 
   // ========== CITY UNLOCKING ==========
