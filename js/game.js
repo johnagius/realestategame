@@ -65,17 +65,20 @@ const GameEngine = {
       // Campaign goals
       campaignTier: 0,       // current tier (0=none completed, 1-5)
       campaignCompleted: [],  // array of completed tier numbers
-      // Focused start: unlocked cities + opening objective
+      // Focused start: unlocked cities + opening objective (scaled by family difficulty)
       unlockedCities: ['london'],  // start with London only
-      openingObjective: {
-        active: true,
-        deadline: 24,        // 24 months to complete
-        monthsLeft: 24,
-        targetProperties: 3,
-        rivalId: 'rothschild',
-        completed: false,
-        failed: false
-      },
+      openingObjective: (function() {
+        var d = family.difficulty;
+        // Each difficulty gets a proportional rival and targets
+        var cfg = {
+          Hard:    { target: 1, deadline: 36, rival: 'okonkwo' },     // weakest rival (€5K)
+          Normal:  { target: 2, deadline: 30, rival: 'martinez' },    // mid-low rival (€8K)
+          Easy:    { target: 3, deadline: 24, rival: 'rothschild' },  // main rival (€23K)
+          Sandbox: { target: 3, deadline: 18, rival: 'rothschild' }
+        };
+        var c = cfg[d] || cfg.Easy;
+        return { active: true, deadline: c.deadline, monthsLeft: c.deadline, targetProperties: c.target, rivalId: c.rival, completed: false, failed: false };
+      })(),
       // Progressive feature unlocking
       unlockedFeatures: {
         bank: false,           // unlocks at 2 properties
@@ -3113,7 +3116,7 @@ const GameEngine = {
     {
       tier: 1, name: 'Established', icon: '🏠',
       requirements: [
-        { type: 'networth', target: 1000000, label: 'Net worth €1M' },
+        { type: 'networth', target: 100000, label: 'Net worth €100K' },
         { type: 'properties', target: 5, label: 'Own 5 properties' },
         { type: 'cities', target: 2, label: 'Invest in 2 cities' }
       ],
@@ -3122,7 +3125,7 @@ const GameEngine = {
     {
       tier: 2, name: 'Regional Power', icon: '🏘️',
       requirements: [
-        { type: 'networth', target: 10000000, label: 'Net worth €10M' },
+        { type: 'networth', target: 1000000, label: 'Net worth €1M' },
         { type: 'properties', target: 15, label: 'Own 15 properties' },
         { type: 'cities', target: 5, label: 'Invest in 5 cities' }
       ],
@@ -3131,7 +3134,7 @@ const GameEngine = {
     {
       tier: 3, name: 'National Empire', icon: '🏰',
       requirements: [
-        { type: 'networth', target: 100000000, label: 'Net worth €100M' },
+        { type: 'networth', target: 10000000, label: 'Net worth €10M' },
         { type: 'properties', target: 30, label: 'Own 30 properties' },
         { type: 'cities', target: 10, label: 'Invest in 10 cities' },
         { type: 'rank', target: 3, label: 'Reach rank #3' }
@@ -3141,7 +3144,7 @@ const GameEngine = {
     {
       tier: 4, name: 'Global Dynasty', icon: '🌍',
       requirements: [
-        { type: 'networth', target: 1000000000, label: 'Net worth €1B' },
+        { type: 'networth', target: 100000000, label: 'Net worth €100M' },
         { type: 'properties', target: 50, label: 'Own 50 properties' },
         { type: 'cities', target: 15, label: 'Invest in 15 cities' },
         { type: 'rank', target: 1, label: 'Reach rank #1' }
@@ -3151,7 +3154,7 @@ const GameEngine = {
     {
       tier: 5, name: 'Legendary Estate', icon: '👑',
       requirements: [
-        { type: 'networth', target: 10000000000, label: 'Net worth €10B' },
+        { type: 'networth', target: 1000000000, label: 'Net worth €1B' },
         { type: 'properties', target: 75, label: 'Own 75 properties' },
         { type: 'cities', target: 20, label: 'All 20 cities' },
         { type: 'generations', target: 3, label: '3+ generations' },

@@ -258,10 +258,15 @@ const App = {
   showOpeningNarrative() {
     var s = GameEngine.state;
     var family = GameData.families.find(function(f) { return f.id === s.familyId; }) || { name: 'Your family' };
-    var rival = s.aiFamilies ? s.aiFamilies.find(function(ai) { return ai.id === 'rothschild'; }) : null;
+    var rivalId = (s.openingObjective && s.openingObjective.rivalId) || 'rothschild';
+    var rival = s.aiFamilies ? s.aiFamilies.find(function(ai) { return ai.id === rivalId; }) : null;
     var rivalName = rival ? rival.name : 'The Rothschilds';
-    var rivalNW = rival ? GameData.formatMoney(rival.netWorth) : '€30,000';
+    var rivalNW = rival ? GameData.formatMoney(rival.netWorth) : '€23,000';
     var cash = GameData.formatMoney(s.cash);
+    var obj = s.openingObjective || {};
+    var targetProps = obj.targetProperties || 3;
+    var deadline = obj.deadline || 24;
+    var propWord = targetProps === 1 ? '1 property' : targetProps + ' properties';
 
     GameUI.showModal('🎡 London, 1750',
       '<div style="text-align:center;padding:6px 0">' +
@@ -275,12 +280,12 @@ const App = {
             '<strong>' + rivalName + '</strong> already have a foothold here, ' +
             'with <strong>' + rivalNW + '</strong> in assets. They are watching.' +
           '</div>' +
-          'You have <strong>24 months</strong> to prove your family belongs:' +
+          'You have <strong>' + deadline + ' months</strong> to prove your family belongs:' +
           '<div style="margin:10px 0;padding:8px 12px;background:rgba(44,110,73,0.06);border-radius:8px">' +
             '<div style="font-weight:700;color:var(--primary-dark);margin-bottom:4px">Your Objective</div>' +
-            '<div>🏠 Buy <strong>3 properties</strong> in London</div>' +
+            '<div>🏠 Buy <strong>' + propWord + '</strong> in London</div>' +
             '<div>💰 Surpass <strong>' + rivalName + '</strong> in net worth</div>' +
-            '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:6px">⏱️ Deadline: 24 months</div>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:6px">⏱️ Deadline: ' + deadline + ' months</div>' +
           '</div>' +
           '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:8px">' +
             '<strong>Tip:</strong> Browse the market, buy affordable properties, and rent them out for income. Click "Next Month" to advance time.' +
