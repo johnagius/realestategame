@@ -1256,7 +1256,7 @@ const GameUI = {
     // Achievements
     if (results.newAchievements && results.newAchievements.length > 0) {
       results.newAchievements.forEach(function(a) {
-        GameUI.toast(a.icon + ' Achievement: ' + a.name + '! +' + GameData.formatMoney(a.reward), 'success');
+        GameUI.toast(a.icon + ' Achievement: ' + a.name + '! +' + GameData.formatMoney(a._lastReward || a.reward), 'success');
         GameAudio.fanfare();
       });
     }
