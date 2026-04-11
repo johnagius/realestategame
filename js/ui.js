@@ -1713,6 +1713,7 @@ const GameUI = {
   // Map of city IDs to 3D definitions
   _city3dDefs: {
     new_york: function() { return typeof CityDef_NewYork !== 'undefined' ? CityDef_NewYork : null; },
+    london: function() { return typeof CityDef_London !== 'undefined' ? CityDef_London : null; },
   },
 
   renderCityMap() {
