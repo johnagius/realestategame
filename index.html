@@ -6,7 +6,7 @@
   <title>Property Empire</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2C6E49">
@@ -17,31 +17,18 @@
 
   <!-- ==================== SPLASH SCREEN ==================== -->
   <div id="screen-splash" class="screen active">
-    <div class="splash-scene" id="splash-scene"></div>
-    <div class="splash-bg"></div>
-    <div class="splash-content">
-      <!-- Ornamental frame -->
-      <svg class="splash-ornament" viewBox="0 0 400 60" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="gold-grad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="#8B6914" stop-opacity="0"/>
-            <stop offset="30%" stop-color="#D4A84B"/>
-            <stop offset="50%" stop-color="#F0D68A"/>
-            <stop offset="70%" stop-color="#D4A84B"/>
-            <stop offset="100%" stop-color="#8B6914" stop-opacity="0"/>
-          </linearGradient>
-        </defs>
-        <line x1="20" y1="30" x2="380" y2="30" stroke="url(#gold-grad)" stroke-width="1"/>
-        <path d="M170,30 Q185,10 200,30 Q215,50 230,30" fill="none" stroke="#D4A84B" stroke-width="1.5"/>
-        <circle cx="200" cy="30" r="4" fill="#D4A84B"/>
-        <path d="M140,30 Q150,20 160,30" fill="none" stroke="#D4A84B" stroke-width="1" opacity="0.6"/>
-        <path d="M240,30 Q250,40 260,30" fill="none" stroke="#D4A84B" stroke-width="1" opacity="0.6"/>
-      </svg>
-      <h1 class="splash-title">Property Empire</h1>
-      <p class="splash-subtitle">Build a dynasty from 1750 to the modern age</p>
+    <canvas id="splash-canvas"></canvas>
+    <div class="splash-ui">
+      <div class="splash-title-block">
+        <span class="splash-crown">♛</span>
+        <div class="splash-orn"><div class="splash-ol splash-oll"></div><div class="splash-od"></div><div class="splash-og"></div><div class="splash-od"></div><div class="splash-ol splash-olr"></div></div>
+        <h1 class="splash-title">Property Empire</h1>
+        <p class="splash-subtitle">Build a dynasty · from 1750 to the modern age</p>
+        <div class="splash-orn" style="margin-top:8px"><div class="splash-ol splash-oll"></div><div class="splash-od"></div><div class="splash-og"></div><div class="splash-od"></div><div class="splash-ol splash-olr"></div></div>
+      </div>
       <div id="splash-main-btns" class="splash-buttons">
-        <button id="btn-new-game" class="btn btn-primary btn-large">New Game</button>
-        <button id="btn-continue-game" class="btn btn-secondary btn-large" style="display:none">Continue Game</button>
+        <button id="btn-new-game" class="splash-btn splash-btn-new">New Game</button>
+        <button id="btn-continue-game" class="splash-btn splash-btn-cont" style="display:none">Continue Game</button>
       </div>
       <!-- Family Selection (shown after clicking New Game) -->
       <div id="family-select" class="family-select" style="display:none">
@@ -299,11 +286,15 @@
   <!-- ==================== SCRIPTS ==================== -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/intro.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/data.js"></script>
   <script src="js/game.js"></script>
   <script src="js/imageloader.js"></script>
   <script src="js/mosaic.js"></script>
+  <script src="js/city3d-engine.js"></script>
+  <script src="js/cities/new_york.js"></script>
   <script src="js/graphics.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/app.js"></script>
