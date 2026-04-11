@@ -3269,38 +3269,51 @@ const GameEngine = {
 
   // ========== CITY UNLOCKING (Challenge-based) ==========
 
-  // Each city has a unique unlock challenge — a mini-campaign step
-  // Rivalry challenges are marked with rivalId for UI display
+  // Each city unlock requires beating a rival family — every city is a rivalry victory
   cityUnlockChallenges: [
-    // Tier 1: Starter expansion
-    { cityId: 'paris', challenge: 'Own 3 properties', icon: '🗼', check: function(s) { return s.properties.length >= 3; } },
-    { cityId: 'amsterdam', challenge: 'Earn €500 total rent', icon: '🌷', check: function(s) { return s.totalRentEarned >= 500; } },
-    // Tier 2: Growing empire — first rival challenges
-    { cityId: 'berlin', challenge: 'Surpass the Okonkwos in net worth', icon: '🚪', rivalId: 'okonkwo',
+    // Early: beat the weakest families first
+    { cityId: 'paris', challenge: 'Surpass the Okonkwos in net worth', icon: '🗼', rivalId: 'okonkwo',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='okonkwo';}); return ai && ge.getNetWorth() > ai.netWorth; } },
-    { cityId: 'rome', challenge: 'Own properties in 2 cities', icon: '🏛️', check: function(s) { var c = {}; s.properties.forEach(function(p) { c[p.cityId] = 1; }); return Object.keys(c).length >= 2; } },
-    { cityId: 'barcelona', challenge: 'Surpass the Bourbon-Martinez in net worth', icon: '⛪', rivalId: 'martinez',
+    { cityId: 'amsterdam', challenge: 'Own more properties than the Okonkwos', icon: '🌷', rivalId: 'okonkwo',
+      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='okonkwo';}); return ai && s.properties.length > ai.propertyCount; } },
+    // Mid-early: step up to Bourbon-Martinez
+    { cityId: 'berlin', challenge: 'Surpass the Bourbon-Martinez in net worth', icon: '🚪', rivalId: 'martinez',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='martinez';}); return ai && ge.getNetWorth() > ai.netWorth; } },
-    // Tier 3: Serious investor
-    { cityId: 'toronto', challenge: 'Own more properties than the Petrovs', icon: '🗼', rivalId: 'petrov',
+    { cityId: 'rome', challenge: 'Own more properties than the Bourbon-Martinez', icon: '🏛️', rivalId: 'martinez',
+      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='martinez';}); return ai && s.properties.length > ai.propertyCount; } },
+    { cityId: 'barcelona', challenge: 'Earn more total rent than the Petrovs earn income', icon: '⛪', rivalId: 'petrov',
+      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='petrov';}); return ai && s.totalRentEarned > ai.netWorth * 0.1; } },
+    // Mid: take on Petrovs directly
+    { cityId: 'toronto', challenge: 'Surpass the Petrovs in net worth', icon: '🗼', rivalId: 'petrov',
+      check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='petrov';}); return ai && ge.getNetWorth() > ai.netWorth; } },
+    { cityId: 'los_angeles', challenge: 'Own more properties than the Petrovs', icon: '🎬', rivalId: 'petrov',
       check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='petrov';}); return ai && s.properties.length > ai.propertyCount; } },
-    { cityId: 'los_angeles', challenge: 'Earn €5K total rent', icon: '🎬', check: function(s) { return s.totalRentEarned >= 5000; } },
-    { cityId: 'miami', challenge: 'Reach €200K net worth', icon: '🌴', check: function(s, ge) { return ge.getNetWorth() >= 200000; } },
-    { cityId: 'sydney', challenge: 'Own properties in 4 cities', icon: '🎭', check: function(s) { var c = {}; s.properties.forEach(function(p) { c[p.cityId] = 1; }); return Object.keys(c).length >= 4; } },
-    // Tier 4: Global player
-    { cityId: 'new_york', challenge: 'Surpass the Wong Dynasty in net worth', icon: '🗽', rivalId: 'wong',
+    // Mid-late: Wong Dynasty
+    { cityId: 'miami', challenge: 'Surpass the Wong Dynasty in net worth', icon: '🌴', rivalId: 'wong',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='wong';}); return ai && ge.getNetWorth() > ai.netWorth; } },
+    { cityId: 'sydney', challenge: 'Own more properties than the Wong Dynasty', icon: '🎭', rivalId: 'wong',
+      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='wong';}); return ai && s.properties.length > ai.propertyCount; } },
+    // Late: Rothschilds
+    { cityId: 'new_york', challenge: 'Surpass the Rothschilds in net worth', icon: '🗽', rivalId: 'rothschild',
+      check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='rothschild';}); return ai && ge.getNetWorth() > ai.netWorth; } },
+    { cityId: 'singapore', challenge: 'Own more properties than the Rothschilds', icon: '🦁', rivalId: 'rothschild',
+      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='rothschild';}); return ai && s.properties.length > ai.propertyCount; } },
+    // Late: Al-Rashids (richest AI family)
     { cityId: 'dubai', challenge: 'Surpass the Al-Rashids in net worth', icon: '🏗️', rivalId: 'al_rashid',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='al_rashid';}); return ai && ge.getNetWorth() > ai.netWorth; } },
-    { cityId: 'singapore', challenge: 'Earn €50K total rent', icon: '🦁', check: function(s) { return s.totalRentEarned >= 50000; } },
-    { cityId: 'tokyo', challenge: 'Own properties in 8 cities', icon: '⛩️', check: function(s) { var c = {}; s.properties.forEach(function(p) { c[p.cityId] = 1; }); return Object.keys(c).length >= 8; } },
-    { cityId: 'mumbai', challenge: 'Reach €5M net worth', icon: '🕌', check: function(s, ge) { return ge.getNetWorth() >= 5000000; } },
-    // Tier 5: Endgame
-    { cityId: 'shanghai', challenge: 'Own more properties than the Wong Dynasty', icon: '🏯', rivalId: 'wong',
-      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='wong';}); return ai && s.properties.length > ai.propertyCount; } },
-    { cityId: 'hong_kong', challenge: 'Reach €50M net worth', icon: '🌉', check: function(s, ge) { return ge.getNetWorth() >= 50000000; } },
-    { cityId: 'cape_town', challenge: 'Earn €500K total rent', icon: '⛰️', check: function(s) { return s.totalRentEarned >= 500000; } },
-    { cityId: 'sao_paulo', challenge: 'Own properties in 12 cities', icon: '🎨', check: function(s) { var c = {}; s.properties.forEach(function(p) { c[p.cityId] = 1; }); return Object.keys(c).length >= 12; } },
+    { cityId: 'tokyo', challenge: 'Own more properties than the Al-Rashids', icon: '⛩️', rivalId: 'al_rashid',
+      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='al_rashid';}); return ai && s.properties.length > ai.propertyCount; } },
+    // Endgame: double down — must dominate multiple families at once
+    { cityId: 'mumbai', challenge: 'Have 2x the Petrovs\' net worth', icon: '🕌', rivalId: 'petrov',
+      check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='petrov';}); return ai && ge.getNetWorth() > ai.netWorth * 2; } },
+    { cityId: 'shanghai', challenge: 'Have 2x the Wong Dynasty\'s net worth', icon: '🏯', rivalId: 'wong',
+      check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='wong';}); return ai && ge.getNetWorth() > ai.netWorth * 2; } },
+    { cityId: 'hong_kong', challenge: 'Have 2x the Rothschilds\' net worth', icon: '🌉', rivalId: 'rothschild',
+      check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='rothschild';}); return ai && ge.getNetWorth() > ai.netWorth * 2; } },
+    { cityId: 'cape_town', challenge: 'Have 2x the Al-Rashids\' net worth', icon: '⛰️', rivalId: 'al_rashid',
+      check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='al_rashid';}); return ai && ge.getNetWorth() > ai.netWorth * 2; } },
+    { cityId: 'sao_paulo', challenge: 'Own more properties than all rival families combined', icon: '🎨',
+      check: function(s) { var total = (s.aiFamilies||[]).reduce(function(sum,a){return sum+a.propertyCount;},0); return s.properties.length > total; } },
     { cityId: 'monaco', challenge: 'Reach Rank #1 on the leaderboard', icon: '🎰',
       check: function(s) { return (s.playerRank || 99) <= 1; } }
   ],
