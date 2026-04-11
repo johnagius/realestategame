@@ -357,8 +357,11 @@ const City3D = {
     if (typeof THREE === 'undefined') { console.warn('Three.js not loaded'); return false; }
     this.initMaterials();
 
+    // Force reflow to ensure container has dimensions
+    container.offsetHeight;
     var VW = container.clientWidth || 800;
-    var VH = container.clientHeight || 500;
+    var VH = container.clientHeight || 400;
+    if (VH < 50) VH = 400; // fallback if container hasn't laid out yet
 
     // Scene
     var scene = new THREE.Scene();
