@@ -991,9 +991,10 @@ const GameEngine = {
           }
 
           // Upgrade condition by tier levels
-          const currentLevel = GameData.conditions[p.condition].level;
-          const newLevel = Math.min(4, currentLevel + condLevels);
-          p.condition = GameData.conditionOrder[newLevel];
+          var condDef = GameData.conditions[p.condition];
+          var currentLevel = condDef ? condDef.level : 2; // default to 'fair' if missing
+          var newLevel = Math.min(4, currentLevel + condLevels);
+          p.condition = GameData.conditionOrder[newLevel] || 'good';
           // Value boost
           p.currentValue = Math.round(p.currentValue * (1 + valueBoost));
           this.recalculateRent(p);

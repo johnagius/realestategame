@@ -719,6 +719,7 @@ const GameUI = {
           condBarHTML +
           (p.isOwned ? this.renderDegradationInfo(p) : '') +
         '</div>' +
+        this.renderPropertyRisks(p, city) +
         actionsHTML +
       '</div>';
   },
@@ -745,6 +746,42 @@ const GameUI = {
     return '<div class="degradation-info ' + urgency + '">' +
       (p.isRented ? '📊 Est. ~' + monthsEstimate + ' months until condition drops (rented)' : '📊 Est. ~' + monthsEstimate + ' months until condition drops') +
     '</div>';
+  },
+
+  // ---- Property Risk Percentages ----
+  renderPropertyRisks: function(p, city) {
+    var disasters = GameEngine.getCityDisasterProfile(p.cityId);
+    if (!disasters || disasters.length === 0) return '';
+    var disIcons = { flood:'🌊', earthquake:'🌍', fire:'🔥', storm:'⛈️', theft:'🔓', sandstorm:'🏜️', drought:'☀️', vandalism:'🎨', burglary:'🚨' };
+    // Base probability per disaster: 0.2-0.4% per month
+    // Modified by condition
+    var condMult = 1;
+    if (p.condition === 'poor') condMult = 1.3;
+    if (p.condition === 'derelict') condMult = 1.8;
+    // Check mitigations
+    var owned = GameEngine.state.mitigations[p.id] || {};
+    var html = '<div style="margin:8px 0;padding:8px;background:rgba(230,57,70,0.03);border-radius:8px;border:1px solid rgba(230,57,70,0.1)">';
+    html += '<div style="font-size:0.72rem;font-weight:700;margin-bottom:5px;color:var(--text-muted)">⚠️ Monthly Risk Factors</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:4px">';
+    disasters.forEach(function(d) {
+      var baseProb = (d === 'earthquake' || d === 'flood') ? 0.004 : (d === 'fire' || d === 'storm') ? 0.003 : 0.002;
+      var prob = baseProb * condMult;
+      // Check if mitigated
+      var mitigated = false;
+      var options = GameEngine.getMitigationOptions(p);
+      options.forEach(function(m) {
+        if (m.disasterTypes && m.disasterTypes.indexOf(d) >= 0 && owned[m.id]) {
+          prob *= (1 - (m.riskReduction || 0.5));
+          mitigated = true;
+        }
+      });
+      var pctStr = (prob * 100).toFixed(2) + '%';
+      var col = prob >= 0.004 ? '#E63946' : prob >= 0.002 ? '#D4A84B' : '#2A9D8F';
+      html += '<span style="font-size:0.65rem;padding:2px 7px;border-radius:10px;background:rgba(0,0,0,0.03);border:1px solid ' + col + '30;color:' + col + '">' +
+        (disIcons[d] || '⚠️') + ' ' + pctStr + (mitigated ? ' ✓' : '') + '</span>';
+    });
+    html += '</div></div>';
+    return html;
   },
 
   // ---- Render Mitigations ----
