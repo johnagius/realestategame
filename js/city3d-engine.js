@@ -747,12 +747,22 @@ const City3D = {
     if (this._onMouseMove) { window.removeEventListener('mousemove', this._onMouseMove); this._onMouseMove = null; }
     if (this._onTouchEnd) { window.removeEventListener('touchend', this._onTouchEnd); this._onTouchEnd = null; }
     if (this._onTouchMove) { window.removeEventListener('touchmove', this._onTouchMove); this._onTouchMove = null; }
+    // Dispose Three.js scene resources (geometries, materials, textures)
+    if (this._scene) {
+      this._scene.traverse(function(obj) {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          if (Array.isArray(obj.material)) obj.material.forEach(function(m) { m.dispose(); });
+          else obj.material.dispose();
+        }
+      });
+    }
     if (this._renderer) this._renderer.dispose();
     if (this._canvas && this._canvas.parentNode) this._canvas.parentNode.removeChild(this._canvas);
     this._scene = null; this._cam = null; this._renderer = null;
     this._pivot = null; this._grid = null; this._canvas = null;
-    this._container = null; this._selCell = null;
-    this._cityDef = null; this._onBuildingClick = null;
+    this._container = null; this._selCell = null; this._selWire = null;
+    this._sun = null; this._cityDef = null; this._onBuildingClick = null;
   },
 
   // ── Main entry point: render a city into a container ──

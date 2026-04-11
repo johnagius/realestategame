@@ -244,6 +244,9 @@ const GameUI = {
       this.cityTypeFilter = 'all';
       var typeFilterEl = document.getElementById('city-type-filter');
       if (typeFilterEl) typeFilterEl.value = 'all';
+      // Clear compare list — stale IDs from previous city would be confusing
+      this.compareList = [];
+      this.updateCompareBar();
     }
 
     // City info chips
