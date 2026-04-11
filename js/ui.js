@@ -641,17 +641,23 @@ const GameUI = {
           actionsHTML += '</div>';
         }
 
-        // Build on land
+        // Build on land (era-appropriate options only)
         if (p.type === 'land') {
+          var era = GameEngine.getCurrentEra();
+          var eraM = era.propertyMultiplier || 1;
+          // Era-appropriate building types
+          var eraBuilds = { pre_industrial: ['house', 'warehouse'], industrial: ['house', 'townhouse', 'warehouse', 'commercial'], gilded: ['house', 'townhouse', 'apartment', 'villa', 'warehouse', 'commercial'], modern: ['house', 'townhouse', 'apartment', 'villa', 'warehouse', 'commercial'], information: ['house', 'townhouse', 'apartment', 'villa', 'warehouse', 'commercial'] };
+          var allowed = eraBuilds[era.id] || Object.keys(GameData.buildOptions);
           actionsHTML += '<div class="action-info mb-8">Build on this land:</div>';
           var opts = GameData.buildOptions;
           for (var key in opts) {
+            if (allowed.indexOf(key) < 0) continue;
             var opt = opts[key];
             var resultType = GameData.propertyTypes[opt.resultType];
             var minP = resultType.basePriceRange[0];
             var maxP = resultType.basePriceRange[1];
-            var estValue = Math.round(((minP + maxP) / 2) * city.priceMultiplier / 1000) * 1000;
-            var buildCost = Math.round(estValue * opt.costPct);
+            var estValue = Math.max(1, Math.round(((minP + maxP) / 2) * city.priceMultiplier * eraM));
+            var buildCost = Math.max(1, Math.round(estValue * opt.costPct));
             actionsHTML += '<button class="btn btn-secondary btn-small" onclick="App.buildOnLand(\'' + p.id + '\', \'' + key + '\')">' + opt.icon + ' ' + opt.name + ' — ' + GameData.formatMoney(buildCost) + ' (' + opt.timeMonths + 'mo)</button>';
           }
         }
@@ -1256,7 +1262,7 @@ const GameUI = {
     // Achievements
     if (results.newAchievements && results.newAchievements.length > 0) {
       results.newAchievements.forEach(function(a) {
-        GameUI.toast(a.icon + ' Achievement: ' + a.name + '! +' + GameData.formatMoney(a.reward), 'success');
+        GameUI.toast(a.icon + ' Achievement: ' + a.name + '! +' + GameData.formatMoney(a._lastReward || a.reward), 'success');
         GameAudio.fanfare();
       });
     }
