@@ -360,6 +360,30 @@ const App = {
     }
   },
 
+  demolishProperty(propertyId) {
+    var p = GameEngine.state.properties.find(function(x) { return x.id === propertyId; });
+    var cost = p ? GameData.formatMoney(Math.round(p.currentValue * 0.10)) : '';
+    GameUI.showModal(
+      'Demolish Property?',
+      '<p>This will demolish the building and convert it to land. You keep ownership.</p>' +
+      '<p style="font-size:0.8rem;color:var(--text-muted);margin-top:6px">Demolition cost: <strong>' + cost + '</strong><br>Land value will be ~30% of current building value.</p>',
+      '<button class="btn btn-secondary" onclick="GameUI.hideModal()">Cancel</button>' +
+      '<button class="btn btn-danger" onclick="App.confirmDemolish(\'' + propertyId + '\')">Demolish</button>'
+    );
+  },
+
+  confirmDemolish(propertyId) {
+    GameUI.hideModal();
+    var result = GameEngine.demolishProperty(propertyId);
+    if (result.success) {
+      GameUI.toast(result.message, 'success');
+      GameUI.updateHUD();
+      GameUI.renderProperty(propertyId);
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+  },
+
   toggleRent(propertyId) {
     var result = GameEngine.toggleRent(propertyId);
     if (result.success) {
