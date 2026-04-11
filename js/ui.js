@@ -22,6 +22,10 @@ const GameUI = {
 
   // ---- Show a screen ----
   showScreen(screenId, data) {
+    // Cleanup 3D city when leaving city screen
+    if (this.currentScreen === 'city' && screenId !== 'city' && typeof City3D !== 'undefined') {
+      City3D.destroy();
+    }
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const screen = document.getElementById('screen-' + screenId);
     if (screen) screen.classList.add('active');
@@ -1654,14 +1658,38 @@ const GameUI = {
     document.getElementById('city-map-view').style.display = this.cityMapView ? 'block' : 'none';
     document.getElementById('city-list-view').style.display = this.cityMapView ? 'none' : '';
     document.getElementById('btn-city-view-toggle').textContent = this.cityMapView ? '📋 List View' : '🏙️ City View';
+    // Cleanup 3D city when switching away
+    if (!this.cityMapView && typeof City3D !== 'undefined') City3D.destroy();
     if (this.cityMapView) this.renderCityMap();
   },
 
   // ---- Render City Map ----
+  // Map of city IDs to 3D definitions
+  _city3dDefs: {
+    new_york: function() { return typeof CityDef_NewYork !== 'undefined' ? CityDef_NewYork : null; },
+  },
+
   renderCityMap() {
     var cityId = this.currentCity;
     var city = GameData.cities.find(function(c) { return c.id === cityId; });
     if (!city) return;
+
+    // Try 3D city first
+    if (typeof City3D !== 'undefined' && typeof THREE !== 'undefined') {
+      var defFn = this._city3dDefs[cityId];
+      var def = defFn ? defFn() : null;
+      if (def) {
+        var container = document.getElementById('city-map');
+        // Don't re-render if same city is already showing
+        if (City3D._cityDef && City3D._cityDef.id === cityId) return;
+        container.innerHTML = '';
+        container.style.background = '#060c1a';
+        container.style.minHeight = '450px';
+        City3D.renderCity(def, container);
+        return;
+      }
+    }
+    // Fall back to SVG city rendering
 
     var market = GameEngine.state.marketProperties[cityId] || [];
     var owned = GameEngine.state.properties.filter(function(p) { return p.cityId === cityId; });
