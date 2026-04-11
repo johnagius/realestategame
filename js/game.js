@@ -3834,8 +3834,10 @@ const GameEngine = {
           result.message = 'Not enough cash to outbid!';
           result.success = false;
         } else {
-          // Force-buy at premium price
-          var buyResult = this.buyProperty(d.propId, d.cityId);
+          // Force-buy at premium price — pass offer percentage so buyProperty uses the premium
+          var prop = (this.state.marketProperties[d.cityId] || []).find(function(p) { return p.id === d.propId; });
+          var offerPct = prop ? d.cost / prop.currentValue : 1.0;
+          var buyResult = this.buyProperty(d.propId, d.cityId, offerPct);
           if (buyResult.success) {
             result.message = 'You outbid the rival! ' + buyResult.message;
           } else {
@@ -3867,7 +3869,10 @@ const GameEngine = {
         var d = choiceData || decision.choices[0].data;
         var propIdx = this.state.properties.findIndex(p => p.id === d.propId);
         if (propIdx >= 0) {
+          var propId = this.state.properties[propIdx].id;
           this.state.properties.splice(propIdx, 1);
+          // Clean up mitigations for sold property
+          if (this.state.mitigations) delete this.state.mitigations[propId];
           this.state.cash += d.amount;
           this.state.totalSaleRevenue += d.amount;
           this.state.totalPropertiesSold++;

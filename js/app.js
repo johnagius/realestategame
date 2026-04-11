@@ -215,7 +215,12 @@ const App = {
   },
 
   selectFamily(familyId) {
-    GameEngine.newGame(familyId);
+    if (this._prestigeMode) {
+      GameEngine.startPrestige(familyId);
+      this._prestigeMode = false;
+    } else {
+      GameEngine.newGame(familyId);
+    }
     this.enterGame(true);
   },
 
@@ -825,7 +830,8 @@ const App = {
     document.getElementById('hud-goals').classList.add('hidden');
     document.getElementById('screen-splash').classList.add('active');
     document.getElementById('splash-main-btns').style.display = 'none';
-    // Reuse family selection — prestige flag stored
+    // Show family selection — store prestige flag so selectFamily uses startPrestige
+    this._prestigeMode = true;
     this.startNewGame();
   },
 

@@ -63,6 +63,7 @@
   <div id="hud-ticker" class="hud-ticker hidden">
     <span id="hud-ticker-text"></span>
     <span id="hud-ticker-goal"></span>
+    <span id="hud-tips-text" style="font-size:0.68rem;color:var(--text-muted)"></span>
   </div>
 
   <!-- ==================== GOAL TRACKER ==================== -->
@@ -333,7 +334,7 @@
   <script src="js/app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(function(){});
+      navigator.serviceWorker.register('sw.js').catch(function(){});
     }
   </script>
 </body>
