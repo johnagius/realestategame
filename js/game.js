@@ -1858,11 +1858,15 @@ const GameEngine = {
     const totalRentEarned = this.state.totalRentEarned || 0;
 
     // Monthly payment capacity: percentage of rental income allocated to debt service
+    // Use higher of current income or historical average (vacancy shouldn't kill credit)
+    var monthsPlayed = Math.max(1, this.state.month || 1);
+    var historicalAvgIncome = totalRentEarned > 0 ? Math.round(totalRentEarned / monthsPlayed) : 0;
+    var effectiveIncome = Math.max(monthlyIncome, historicalAvgIncome);
     // Bootstrap (<3 properties): 90% — aggressive but necessary to enable growth from 1→2 properties
     // Established (3+ properties): 50% — tighter discipline as portfolio scales
     var propCount = this.state.properties ? this.state.properties.length : 0;
     var debtRatio = propCount < 3 ? 0.9 : 0.5;
-    var paymentCapacity = Math.max(0, Math.round(monthlyIncome * debtRatio) - existingPayments);
+    var paymentCapacity = Math.max(0, Math.round(effectiveIncome * debtRatio) - existingPayments);
 
     // Max total debt: proportional to rent history (can't borrow big with no track record)
     // Must have earned rent before qualifying for meaningful loans
@@ -1876,7 +1880,7 @@ const GameEngine = {
       var ltvRatio = netWorth < 20000 ? 0.85 : 0.7;
       maxTotalDebt = Math.min(
         Math.round(netWorth * ltvRatio), // NW cap (higher for small players)
-        totalRentEarned * 20              // must earn 5% of loan in rent first
+        totalRentEarned * 30              // must earn ~3% of loan in rent first
       );
       // Floor: at least 5 years of current monthly income
       maxTotalDebt = Math.max(maxTotalDebt, monthlyIncome * 60);

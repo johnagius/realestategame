@@ -614,69 +614,71 @@ const GameData = {
 
   // ---- Random Events ----
   events: [
+    // EVENT BALANCE: positive expected monthly value ≈ +0.5%, negative ≈ -0.3%
+    // Net events should ADD value over time, not destroy it
     {
       id: 'market_boom',
       title: 'Market Boom!',
       icon: '📈',
       description: 'Economic growth drives property values up across {city}.',
       effect: { type: 'city_value_change', value: 0.08 },
-      probability: 0.04
+      probability: 0.05       // 5% — booms are common
     },
     {
       id: 'market_downturn',
       title: 'Market Downturn',
       icon: '📉',
       description: 'Economic uncertainty hits {city}\'s property market. Values dip.',
-      effect: { type: 'city_value_change', value: -0.08 },
-      probability: 0.04
+      effect: { type: 'city_value_change', value: -0.05 },  // reduced from -8% to -5%
+      probability: 0.03       // reduced from 4% to 3%
     },
     {
       id: 'market_crash',
       title: 'Market Crash!',
       icon: '💥',
       description: 'Panic selling triggers a severe crash in {city}. Property values plummet!',
-      effect: { type: 'city_crash', value: -0.20 },
-      probability: 0.012
+      effect: { type: 'city_crash', value: -0.12 },  // reduced from -20% to -12%
+      probability: 0.006      // halved from 1.2%
     },
     {
       id: 'global_recession',
       title: 'Global Recession!',
       icon: '🌍💥',
       description: 'A worldwide economic recession hammers all markets. Values drop sharply everywhere.',
-      effect: { type: 'global_crash', value: -0.15 },
-      probability: 0.006
+      effect: { type: 'global_crash', value: -0.08 },  // reduced from -15% to -8%
+      probability: 0.003      // halved from 0.6%
     },
     {
       id: 'housing_bubble_burst',
       title: 'Housing Bubble Burst!',
       icon: '🫧',
-      description: 'The property bubble in {city} has burst! Prices collapse as buyers vanish.',
-      effect: { type: 'city_crash', value: -0.30 },
-      probability: 0.005
+      description: 'The property bubble in {city} has burst! Prices drop as buyers retreat.',
+      effect: { type: 'city_crash', value: -0.15 },  // reduced from -30% to -15%
+      probability: 0.003      // reduced from 0.5%
     },
     {
       id: 'business_sector_crash',
       title: 'Business Sector Crash',
       icon: '📊',
       description: 'Corporate failures cascade through {city}. Businesses lose major value.',
-      effect: { type: 'city_business_crash', value: -0.25 },
-      probability: 0.015
+      effect: { type: 'city_business_crash', value: -0.15 },  // reduced from -25%
+      probability: 0.008      // reduced from 1.5%
     },
     {
       id: 'currency_crisis',
       title: 'Currency Crisis',
       icon: '💱',
       description: 'Currency devaluation in {city}\'s region. Foreign investors pull out.',
-      effect: { type: 'city_crash', value: -0.12 },
-      probability: 0.015
+      effect: { type: 'city_crash', value: -0.08 },  // reduced from -12%
+      probability: 0.008      // reduced from 1.5%
     },
     {
       id: 'banking_crisis',
       title: 'Banking Crisis',
       icon: '🏦💥',
       description: 'Banking sector collapses in {city}. Credit dries up, market freezes.',
-      effect: { type: 'city_crash', value: -0.18 },
-      probability: 0.008
+      effect: { type: 'city_crash', value: -0.10 },  // reduced from -18%
+      probability: 0.005      // reduced from 0.8%
     },
     {
       id: 'tourism_surge',
@@ -691,8 +693,8 @@ const GameData = {
       title: 'New Infrastructure',
       icon: '🚇',
       description: 'New transit line announced near your property in {city}!',
-      effect: { type: 'city_value_change', value: 0.05 },
-      probability: 0.04
+      effect: { type: 'city_value_change', value: 0.06 },
+      probability: 0.05       // increased — infrastructure boosts are common
     },
     {
       id: 'natural_disaster',
@@ -938,9 +940,9 @@ const GameData = {
     const annualMaintenance = price * typeDef.maintenanceRate;
     const monthlyMaintenance = Math.max(1, Math.round(annualMaintenance / 12));
 
-    // Licensing fee — scale with property value (1% annually), not fixed
-    const annualLicense = Math.round(price * 0.01);
-    const monthlyLicense = Math.round(annualLicense / 12);
+    // Licensing fee — 0.3% annual (reduced from 1% to prevent eating profits on cheap properties)
+    const annualLicense = Math.round(price * 0.003);
+    const monthlyLicense = Math.max(1, Math.round(annualLicense / 12));
 
     return {
       id: 'prop_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
@@ -992,6 +994,9 @@ const GameData = {
     starterTypes.forEach(function(st, idx) {
       var prop = GameData.generateProperty(cityId, st);
       if (prop) {
+        // All starter properties: force Good condition so they're immediately profitable
+        prop.condition = 'good';
+
         // First starter property: force to cheapest end of price range so it's always affordable
         if (idx === 0) {
           var td = GameData.propertyTypes[st];
