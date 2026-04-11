@@ -905,6 +905,12 @@ const GameEngine = {
     const city = GameData.cities.find(c => c.id === property.cityId);
     if (!typeDef || !city || !typeDef.canRent) return;
 
+    // Premium lease: locked rent that doesn't change with market
+    if (property.premiumRent) {
+      property.monthlyRent = property.premiumRent;
+      return;
+    }
+
     const condPenalty = GameData.conditions[property.condition].rentPenalty;
     const rentMultiplier = typeDef.rentMultiplier || 0;
 
@@ -3989,9 +3995,9 @@ const GameEngine = {
           prop.isRented = true;
           prop.tenant = GameData.assignTenant(prop);
           if (prop.tenant) { prop.tenant.type = 'corporate'; prop.tenant.icon = '🏢'; prop.tenant.reliability = 0.96; prop.tenant.care = 0.90; }
-          // Premium lease sets higher base rent — don't also set rentMultiplier (would double-count)
           prop.rentMultiplier = 1.0;
-          this.recalculateRent(prop);
+          // Lock in premium rent — survives recalculateRent() calls
+          prop.premiumRent = d.rent;
           prop.monthlyRent = d.rent;
         }
         result.message = '🔑 Premium corporate lease signed! ' + GameData.formatMoney(d.rent) + '/month guaranteed.';

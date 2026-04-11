@@ -255,7 +255,7 @@ const GameData = {
       description: 'Historic and prestigious. A global hub for luxury property.',
       priceMultiplier: 2.0, rentYield: 0.075, taxRate: 0.07, growthRate: 0.025,
       inflationRate: 0.022, tier: 1, maxProperties: 15,
-      trait: 'foreign_buyer'
+      trait: 'density_premium'
     },
     {
       id: 'paris', name: 'Paris', country: 'France', flag: '🇫🇷',
@@ -269,7 +269,7 @@ const GameData = {
       description: 'Ultra-modern metropolis. High density, high returns.',
       priceMultiplier: 1.8, rentYield: 0.08, taxRate: 0.06, growthRate: 0.02,
       inflationRate: 0.015, tier: 1, maxProperties: 14,
-      trait: 'density_premium'
+      trait: 'foreign_buyer'
     },
     {
       id: 'dubai', name: 'Dubai', country: 'UAE', flag: '🇦🇪',
