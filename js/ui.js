@@ -90,6 +90,10 @@ const GameUI = {
           cpTextEl.innerHTML = '⏱️ <strong>' + objProgress.monthsLeft + ' months left</strong> · ' +
             propsCheck + ' ' + objProgress.properties + '/' + objProgress.targetProperties + ' properties · ' +
             rivalCheck + ' vs ' + objProgress.rivalIcon + ' ' + GameData.formatMoneyShort(objProgress.rivalNW);
+        } else if (GameEngine.getActiveCampaign && GameEngine.getActiveCampaign()) {
+          var ac = GameEngine.getActiveCampaign();
+          cpTextEl.innerHTML = ac.icon + ' <strong>' + ac.title + '</strong> · ' + ac.challenge +
+            ' <span style="color:var(--text-muted)">(' + ac.monthsActive + 'mo)</span>';
         } else if (GameEngine.getCampaignProgress) {
           var cp = GameEngine.getCampaignProgress();
           if (cp.completed) {
@@ -245,19 +249,11 @@ const GameUI = {
           '</div>';
         if (locked) {
           var ch = GameEngine.cityUnlockChallenges ? GameEngine.cityUnlockChallenges.find(function(c) { return c.cityId === city.id; }) : null;
-          var challengeText = ch ? ch.challenge : 'Keep progressing to unlock';
-          // Show rival info for rivalry challenges
-          var rivalInfo = '';
-          if (ch && ch.rivalId && GameEngine.state.aiFamilies) {
-            var rival = GameEngine.state.aiFamilies.find(function(a) { return a.id === ch.rivalId; });
-            if (rival) {
-              rivalInfo = '<div style="font-size:0.68rem;margin-top:4px;color:var(--text-muted)">' +
-                rival.icon + ' ' + rival.name + ': ' + GameData.formatMoneyShort(rival.netWorth) +
-                (rival.propertyCount ? ' · ' + rival.propertyCount + ' properties' : '') + '</div>';
-            }
-          }
-          html += '<div style="text-align:center;padding:10px 0;font-size:0.75rem;color:var(--text-muted)">' +
-            '🔒 ' + challengeText + rivalInfo + '</div>';
+          var isActive = GameEngine.state.activeCampaign && GameEngine.state.activeCampaign.cityId === city.id;
+          var statusIcon = isActive ? '⚔️' : '🔒';
+          var statusText = ch ? (isActive ? '<strong style="color:var(--primary)">' + ch.title + '</strong><br>' + ch.challenge : ch.title) : 'Click to start campaign';
+          html += '<div style="text-align:center;padding:10px 0;font-size:0.72rem;color:var(--text-muted)">' +
+            statusIcon + ' ' + statusText + '</div>';
         } else {
           var trait = city.trait ? GameData.cityTraits[city.trait] : null;
           html += '<div class="city-card-stats">' +
@@ -1466,15 +1462,21 @@ const GameUI = {
       if (!isAutoPlaying) GameAudio.fanfare();
     }
 
-    // City unlock celebrations
+    // City campaign completion — show a proper victory modal
     if (results.cityUnlocks && results.cityUnlocks.length > 0) {
-      results.cityUnlocks.forEach(function(cu) {
-        GameUI.toast(cu.cityFlag + ' ' + cu.cityName + ' Unlocked! (' + cu.challenge + ')', 'milestone');
-      });
-      if (!isAutoPlaying) {
-        GameUI.animateConfetti();
-        GameAudio.fanfare();
-      }
+      var cu = results.cityUnlocks[0]; // only one at a time now
+      GameUI.showModal(cu.icon + ' Campaign Complete!',
+        '<div style="text-align:center;padding:10px 0">' +
+          '<div style="font-size:2.5rem;margin-bottom:6px">' + cu.cityFlag + '</div>' +
+          '<div style="font-family:var(--font-heading);font-size:1.1rem;margin-bottom:4px;color:var(--primary-dark)">' + cu.cityName + ' Unlocked!</div>' +
+          '<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:10px">' + (cu.title || cu.challenge) + '</div>' +
+          '<div style="font-size:0.82rem;color:var(--text-dark)">A new market awaits. Click ' + cu.cityName + ' on the map to explore its properties.</div>' +
+        '</div>',
+        '<button class="btn btn-primary" onclick="GameUI.hideModal()">Continue</button>'
+      );
+      GameUI.animateConfetti();
+      GameAudio.fanfare();
+      return; // pause for the modal
     }
 
     // Campaign tier completion
