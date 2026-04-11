@@ -1,8 +1,32 @@
 /* ========================================
    PROPERTY EMPIRE - Game Engine
+   Debug logging: GameEngine.debug = true to enable
+   All economy events logged to GameEngine.log[]
    ======================================== */
 
 const GameEngine = {
+  debug: false,  // set true to log all economy events
+  log: [],       // structured log of every cash/value change
+
+  // Log an economy event for debugging/simulation
+  _log(category, action, amount, detail) {
+    if (!this.debug) return;
+    var entry = {
+      month: this.state ? this.state.month : 0,
+      year: this.state ? this.state.year : 0,
+      cash: this.state ? this.state.cash : 0,
+      nw: this.state ? this.getNetWorth() : 0,
+      category: category,   // 'rent', 'expense', 'loan', 'buy', 'sell', 'disaster', 'decision', 'ai', 'tax'
+      action: action,       // what happened
+      amount: amount,       // +/- change
+      detail: detail || ''  // extra context
+    };
+    this.log.push(entry);
+    if (typeof console !== 'undefined') {
+      var sign = amount >= 0 ? '+' : '';
+      console.log('[M' + entry.month + ' Y' + entry.year + '] ' + category + '.' + action + ': ' + sign + amount + ' | cash=' + entry.cash + ' | ' + detail);
+    }
+  },
 
   // ---- Game State ----
   state: null,
@@ -296,8 +320,9 @@ const GameEngine = {
       return { success: false, message: `Maximum ${city.maxProperties} properties in ${city.name}.` };
     }
 
-    // Execute purchase at negotiated price
+    // BUY PROPERTY: price + city tax + trait surcharge (foreign_buyer/tax_haven)
     this.state.cash -= totalCost;
+    this._log('buy', 'property', -totalCost, property.name + ' price=' + offerValue + ' tax=' + purchaseTax + ' surcharge=' + traitSurcharge + ' in ' + cityId);
     property.isOwned = true;
     property.isNew = false;
     property.purchasePrice = offerValue;
@@ -1048,19 +1073,22 @@ const GameEngine = {
 
           // Cap combined multiplier at 2.5x to prevent snowball
           var combinedMult = Math.min(2.5, synergyFactor * rentCycleFactor * seasonFactor * traitFactor);
+          // RENT COLLECTION: base rent × player adjust × synergy × cycle × season × trait (capped 2.5x)
           var actualRent = Math.round(adjustedRent * combinedMult);
           this.state.cash += actualRent;
           p.totalRentCollected += actualRent;
           results.rentIncome += actualRent;
           this.state.totalRentEarned += actualRent;
+          this._log('rent', 'collect', actualRent, p.name + ' base=' + p.monthlyRent + ' mult=' + combinedMult.toFixed(2));
         }
       }
     });
 
-    // 2. Pay expenses (maintenance + licensing + mitigation upkeep)
+    // 2. EXPENSES: maintenance (type-based %) + licensing (1% annual) per property
     this.state.properties.forEach(p => {
       const expense = p.monthlyMaintenance + p.monthlyLicense;
       this.state.cash -= expense;
+      this._log('expense', 'maint+license', -expense, p.name + ' maint=' + p.monthlyMaintenance + ' lic=' + p.monthlyLicense);
       p.totalExpensesPaid += expense;
       results.expenses += expense;
       this.state.totalExpensesPaid += expense;
@@ -1088,10 +1116,12 @@ const GameEngine = {
         var portfolioValue = taxableProps.reduce(function(s, p) { return s + p.currentValue; }, 0);
         // Base rate: 0.5% annual. Increases 0.1% for every 10 properties owned (up to 2.5%)
         var taxRate = Math.min(0.025, 0.005 + Math.floor(this.state.properties.length / 10) * 0.001);
+        // PROPERTY TAX: 0.5% base + 0.1% per 10 properties, annual, applied monthly. Tax haven exempt.
         var monthlyTax = Math.round(portfolioValue * taxRate / 12);
         this.state.cash -= monthlyTax;
         results.propertyTax = monthlyTax;
         results.expenses += monthlyTax;
+        this._log('tax', 'property', -monthlyTax, 'rate=' + (taxRate*100).toFixed(1) + '% on ' + taxableProps.length + ' taxable props worth ' + portfolioValue);
       }
     }
 
@@ -1481,6 +1511,13 @@ const GameEngine = {
     this.state.monthlyIncome = results.rentIncome;
     this.state.monthlyExpenses = results.expenses;
 
+    // MONTHLY SUMMARY LOG: snapshot of all key metrics after processing
+    this._log('summary', 'month_end', results.rentIncome - results.expenses,
+      'rent=' + results.rentIncome + ' exp=' + results.expenses + ' tax=' + (results.propertyTax||0) +
+      ' loans=' + (results.loanPayments||0) + ' divs=' + (results.dividends||0) +
+      ' props=' + this.state.properties.length + ' nw=' + this.getNetWorth() +
+      ' cash=' + this.state.cash + ' cycle=' + this.state.economicCycle);
+
     this.save();
     return results;
   },
@@ -1519,10 +1556,11 @@ const GameEngine = {
               ai.netWorth -= target.currentValue;
               ai.propertyCount++;
               ai.monthlyIncome += Math.round(target.monthlyRent * 0.7);
-              // Track for notification
+              // AI BUY: AI purchases from unlocked city market, reduces supply
               if (!results.aiBuys) results.aiBuys = [];
               var cityName = (GameData.cities.find(function(c){return c.id===cityId;}) || {}).name || cityId;
               results.aiBuys.push({ ai: ai, property: target, cityName: cityName });
+              GameEngine._log('ai', 'buy', -target.currentValue, ai.name + ' bought ' + target.name + ' in ' + cityName + ' | ai_nw=' + ai.netWorth + ' ai_props=' + ai.propertyCount);
             }
           }
         }
@@ -1956,6 +1994,7 @@ const GameEngine = {
       const payment = Math.min(loan.monthlyPayment, loan.remainingBalance);
       const interestPortion = Math.round(loan.remainingBalance * loan.interestRate / 12);
 
+      // LOAN PAYMENT: fixed monthly, split between interest (on balance) and principal
       this.state.cash -= payment;
       loan.remainingBalance -= (payment - interestPortion);
       loan.monthsLeft--;
@@ -1963,6 +2002,7 @@ const GameEngine = {
 
       if (!this.state.totalLoanInterestPaid) this.state.totalLoanInterestPaid = 0;
       this.state.totalLoanInterestPaid += interestPortion;
+      GameEngine._log('loan', 'payment', -payment, loan.bankName + ' int=' + interestPortion + ' princ=' + (payment-interestPortion) + ' bal=' + loan.remainingBalance);
 
       if (loan.remainingBalance <= 0 || loan.monthsLeft <= 0) {
         return false; // Remove paid-off loan
