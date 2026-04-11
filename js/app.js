@@ -637,8 +637,8 @@ const App = {
     }
   },
 
-  repayLoan(loanId) {
-    var result = GameEngine.repayLoan(loanId);
+  repayLoan(loanId, amount) {
+    var result = GameEngine.repayLoan(loanId, amount);
     if (result.success) {
       GameUI.toast(result.message, 'success');
       GameUI.updateHUD();
