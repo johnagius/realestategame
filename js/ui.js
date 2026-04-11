@@ -820,26 +820,20 @@ const GameUI = {
   },
 
   renderDegradationInfo: function(p) {
-    // Show condition decay estimate
-    // Base: 0.5% chance per month to degrade, doubled if rented, worse if poor/derelict
-    var baseChance = 0.005;
-    if (p.isRented) baseChance *= 2;
-    if (p.condition === 'poor') baseChance *= 1.3;
-    if (p.condition === 'derelict') baseChance *= 0.5; // can't go lower
-    if (p.condition === 'excellent') baseChance *= 1.5; // degrades faster from top
-
-    // Tenant care factor
-    if (p.tenant && p.tenant.care) {
-      baseChance *= (2.0 - p.tenant.care); // care 0.95 → ×1.05, care 0.6 → ×1.4
-    }
-
-    var monthsEstimate = Math.round(1 / baseChance);
+    // Match the actual engine logic: annual check in January, 12% base chance
     if (p.condition === 'derelict') {
       return '<div class="degradation-info">Already at lowest condition</div>';
     }
-    var urgency = monthsEstimate < 12 ? 'degradation-warn' : monthsEstimate < 24 ? 'degradation-caution' : 'degradation-ok';
+    // Heritage city trait: never drops below Fair
+    var pCity = GameData.cities.find(function(c) { return c.id === p.cityId; });
+    if (pCity && pCity.trait === 'heritage_city' && (p.condition === 'fair' || p.condition === 'good')) {
+      var note = p.condition === 'fair' ? 'Heritage protected — cannot drop below Fair' : '12% chance to drop each January (protected above Fair)';
+      return '<div class="degradation-info degradation-ok">🏛️ ' + note + '</div>';
+    }
+    var urgency = (p.condition === 'poor') ? 'degradation-warn' : 'degradation-ok';
     return '<div class="degradation-info ' + urgency + '">' +
-      (p.isRented ? '📊 Est. ~' + monthsEstimate + ' months until condition drops (rented)' : '📊 Est. ~' + monthsEstimate + ' months until condition drops') +
+      '📊 12% chance to drop one level each January' +
+      (p.isRefurbishing ? ' (paused during refurbishment)' : '') +
     '</div>';
   },
 
@@ -1862,13 +1856,25 @@ const GameUI = {
     if (loans.length > 0) {
       html += '<div class="finance-section"><div class="finance-section-title">Active Loans</div>';
       loans.forEach(function(loan) {
+        // Calculate interest savings for early repayment
+        var remainingInterest = Math.round(loan.remainingBalance * loan.interestRate / 12 * loan.monthsLeft);
+        var partialAmounts = [
+          Math.round(loan.remainingBalance * 0.25),
+          Math.round(loan.remainingBalance * 0.5),
+          loan.remainingBalance
+        ].filter(function(a) { return a > 0; });
+
         html += '<div class="active-loan">' +
           '<div class="loan-info">' +
             '<div class="loan-info-bank">' + loan.bankName + '</div>' +
             '<div class="loan-info-detail">' + GameData.formatMoney(loan.remainingBalance) + ' remaining · ' + (loan.interestRate * 100).toFixed(1) + '% · ' + loan.monthsLeft + ' months left</div>' +
-            '<div class="loan-info-detail">' + GameData.formatMoney(loan.monthlyPayment) + '/month</div>' +
+            '<div class="loan-info-detail">' + GameData.formatMoney(loan.monthlyPayment) + '/month · <span style="color:#E63946">~' + GameData.formatMoney(remainingInterest) + ' interest remaining</span></div>' +
           '</div>' +
-          '<button class="btn btn-small btn-primary" onclick="App.repayLoan(\'' + loan.id + '\')">Repay</button>' +
+          '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">' +
+            '<button class="btn btn-small btn-secondary" onclick="App.repayLoan(\'' + loan.id + '\', ' + partialAmounts[0] + ')">Pay ' + GameData.formatMoneyShort(partialAmounts[0]) + '</button>' +
+            '<button class="btn btn-small btn-secondary" onclick="App.repayLoan(\'' + loan.id + '\', ' + partialAmounts[1] + ')">Pay ' + GameData.formatMoneyShort(partialAmounts[1]) + '</button>' +
+            '<button class="btn btn-small btn-primary" onclick="App.repayLoan(\'' + loan.id + '\')">Pay Off</button>' +
+          '</div>' +
         '</div>';
       });
       var totalDebt = loans.reduce(function(s, l) { return s + l.remainingBalance; }, 0);
@@ -1883,11 +1889,43 @@ const GameUI = {
         '<div style="margin-bottom:10px"><label class="settings-label">Loan Amount</label></div>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">';
 
-    var amounts = [50000, 100000, 250000, 500000, 1000000, 2000000];
-    amounts.forEach(function(amt) {
+    // Loan amount selector — scale to player's economy
+    var avgPropPrice = 0;
+    var unlocked = GameEngine.getUnlockedCities ? GameEngine.getUnlockedCities() : GameData.cities;
+    if (unlocked.length > 0) {
+      var sampleCity = unlocked[0];
+      var era = GameEngine.getCurrentEra();
+      avgPropPrice = Math.round(100000 * (sampleCity.priceMultiplier || 1) * (era.propertyMultiplier || 1));
+    }
+    // Dynamic presets: ~0.5x, 1x, 2x, 5x average property price, plus net worth fractions
+    var presets = [];
+    var baseAmts = [
+      Math.max(1000, Math.round(avgPropPrice * 0.5 / 1000) * 1000),
+      Math.max(2000, Math.round(avgPropPrice / 1000) * 1000),
+      Math.max(5000, Math.round(avgPropPrice * 2 / 1000) * 1000),
+      Math.max(10000, Math.round(avgPropPrice * 5 / 1000) * 1000),
+      Math.max(20000, Math.round(netWorth * 0.3 / 1000) * 1000),
+      Math.max(50000, Math.round(netWorth * 0.5 / 1000) * 1000)
+    ];
+    // Deduplicate and filter reasonable amounts
+    var seen = {};
+    baseAmts.forEach(function(a) { if (a > 0 && !seen[a] && a <= netWorth * 0.8) { seen[a] = 1; presets.push(a); } });
+    presets.sort(function(a, b) { return a - b; });
+
+    html += '<div class="finance-section">' +
+      '<div class="finance-section-title">Take a Loan</div>' +
+      '<div class="finance-card">' +
+        '<div style="margin-bottom:10px"><label class="settings-label">Loan Amount</label></div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">';
+    presets.forEach(function(amt) {
       html += '<button class="btn btn-secondary btn-small" onclick="App.showLoanOffers(' + amt + ')">' + GameData.formatMoneyShort(amt) + '</button>';
     });
-    html += '</div></div></div>';
+    html += '</div>' +
+      '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">' +
+        '<input type="number" id="custom-loan-amount" placeholder="Custom amount..." style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.8rem;max-width:160px">' +
+        '<button class="btn btn-primary btn-small" onclick="var v=parseInt(document.getElementById(\'custom-loan-amount\').value);if(v>0)App.showLoanOffers(v);else GameUI.toast(\'Enter an amount\',\'warning\')">Get Offers</button>' +
+      '</div>' +
+      '</div></div>';
 
     // Bank listings
     html += '<div class="finance-section"><div class="finance-section-title">Available Banks</div>';

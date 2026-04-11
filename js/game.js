@@ -1,8 +1,32 @@
 /* ========================================
    PROPERTY EMPIRE - Game Engine
+   Debug logging: GameEngine.debug = true to enable
+   All economy events logged to GameEngine.log[]
    ======================================== */
 
 const GameEngine = {
+  debug: false,  // set true to log all economy events
+  log: [],       // structured log of every cash/value change
+
+  // Log an economy event for debugging/simulation
+  _log(category, action, amount, detail) {
+    if (!this.debug) return;
+    var entry = {
+      month: this.state ? this.state.month : 0,
+      year: this.state ? this.state.year : 0,
+      cash: this.state ? this.state.cash : 0,
+      nw: this.state ? this.getNetWorth() : 0,
+      category: category,   // 'rent', 'expense', 'loan', 'buy', 'sell', 'disaster', 'decision', 'ai', 'tax'
+      action: action,       // what happened
+      amount: amount,       // +/- change
+      detail: detail || ''  // extra context
+    };
+    this.log.push(entry);
+    if (typeof console !== 'undefined') {
+      var sign = amount >= 0 ? '+' : '';
+      console.log('[M' + entry.month + ' Y' + entry.year + '] ' + category + '.' + action + ': ' + sign + amount + ' | cash=' + entry.cash + ' | ' + detail);
+    }
+  },
 
   // ---- Game State ----
   state: null,
@@ -296,8 +320,9 @@ const GameEngine = {
       return { success: false, message: `Maximum ${city.maxProperties} properties in ${city.name}.` };
     }
 
-    // Execute purchase at negotiated price
+    // BUY PROPERTY: price + city tax + trait surcharge (foreign_buyer/tax_haven)
     this.state.cash -= totalCost;
+    this._log('buy', 'property', -totalCost, property.name + ' price=' + offerValue + ' tax=' + purchaseTax + ' surcharge=' + traitSurcharge + ' in ' + cityId);
     property.isOwned = true;
     property.isNew = false;
     property.purchasePrice = offerValue;
@@ -905,6 +930,12 @@ const GameEngine = {
     const city = GameData.cities.find(c => c.id === property.cityId);
     if (!typeDef || !city || !typeDef.canRent) return;
 
+    // Premium lease: locked rent that doesn't change with market
+    if (property.premiumRent) {
+      property.monthlyRent = property.premiumRent;
+      return;
+    }
+
     const condPenalty = GameData.conditions[property.condition].rentPenalty;
     const rentMultiplier = typeDef.rentMultiplier || 0;
 
@@ -1042,19 +1073,22 @@ const GameEngine = {
 
           // Cap combined multiplier at 2.5x to prevent snowball
           var combinedMult = Math.min(2.5, synergyFactor * rentCycleFactor * seasonFactor * traitFactor);
+          // RENT COLLECTION: base rent × player adjust × synergy × cycle × season × trait (capped 2.5x)
           var actualRent = Math.round(adjustedRent * combinedMult);
           this.state.cash += actualRent;
           p.totalRentCollected += actualRent;
           results.rentIncome += actualRent;
           this.state.totalRentEarned += actualRent;
+          this._log('rent', 'collect', actualRent, p.name + ' base=' + p.monthlyRent + ' mult=' + combinedMult.toFixed(2));
         }
       }
     });
 
-    // 2. Pay expenses (maintenance + licensing + mitigation upkeep)
+    // 2. EXPENSES: maintenance (type-based %) + licensing (1% annual) per property
     this.state.properties.forEach(p => {
       const expense = p.monthlyMaintenance + p.monthlyLicense;
       this.state.cash -= expense;
+      this._log('expense', 'maint+license', -expense, p.name + ' maint=' + p.monthlyMaintenance + ' lic=' + p.monthlyLicense);
       p.totalExpensesPaid += expense;
       results.expenses += expense;
       this.state.totalExpensesPaid += expense;
@@ -1082,10 +1116,12 @@ const GameEngine = {
         var portfolioValue = taxableProps.reduce(function(s, p) { return s + p.currentValue; }, 0);
         // Base rate: 0.5% annual. Increases 0.1% for every 10 properties owned (up to 2.5%)
         var taxRate = Math.min(0.025, 0.005 + Math.floor(this.state.properties.length / 10) * 0.001);
+        // PROPERTY TAX: 0.5% base + 0.1% per 10 properties, annual, applied monthly. Tax haven exempt.
         var monthlyTax = Math.round(portfolioValue * taxRate / 12);
         this.state.cash -= monthlyTax;
         results.propertyTax = monthlyTax;
         results.expenses += monthlyTax;
+        this._log('tax', 'property', -monthlyTax, 'rate=' + (taxRate*100).toFixed(1) + '% on ' + taxableProps.length + ' taxable props worth ' + portfolioValue);
       }
     }
 
@@ -1475,6 +1511,13 @@ const GameEngine = {
     this.state.monthlyIncome = results.rentIncome;
     this.state.monthlyExpenses = results.expenses;
 
+    // MONTHLY SUMMARY LOG: snapshot of all key metrics after processing
+    this._log('summary', 'month_end', results.rentIncome - results.expenses,
+      'rent=' + results.rentIncome + ' exp=' + results.expenses + ' tax=' + (results.propertyTax||0) +
+      ' loans=' + (results.loanPayments||0) + ' divs=' + (results.dividends||0) +
+      ' props=' + this.state.properties.length + ' nw=' + this.getNetWorth() +
+      ' cash=' + this.state.cash + ' cycle=' + this.state.economicCycle);
+
     this.save();
     return results;
   },
@@ -1513,10 +1556,11 @@ const GameEngine = {
               ai.netWorth -= target.currentValue;
               ai.propertyCount++;
               ai.monthlyIncome += Math.round(target.monthlyRent * 0.7);
-              // Track for notification
+              // AI BUY: AI purchases from unlocked city market, reduces supply
               if (!results.aiBuys) results.aiBuys = [];
               var cityName = (GameData.cities.find(function(c){return c.id===cityId;}) || {}).name || cityId;
               results.aiBuys.push({ ai: ai, property: target, cityName: cityName });
+              GameEngine._log('ai', 'buy', -target.currentValue, ai.name + ' bought ' + target.name + ' in ' + cityName + ' | ai_nw=' + ai.netWorth + ' ai_props=' + ai.propertyCount);
             }
           }
         }
@@ -1811,17 +1855,44 @@ const GameEngine = {
     const existingDebt = (this.state.loans || []).reduce((s, l) => s + l.remainingBalance, 0);
     const existingPayments = (this.state.loans || []).reduce((s, l) => s + l.monthlyPayment, 0);
     const monthlyIncome = this.getMonthlyIncome();
-    // Debt-to-income cap: 40% of rental income, OR 2% of net worth monthly (whichever higher)
-    // This allows new players to bootstrap with small loans
-    const incomeCapacity = Math.round(monthlyIncome * 0.4) - existingPayments;
-    const worthCapacity = Math.round(netWorth * 0.02) - existingPayments;
-    const paymentCapacity = Math.max(0, Math.max(incomeCapacity, worthCapacity));
+    const totalRentEarned = this.state.totalRentEarned || 0;
+
+    // Monthly payment capacity: percentage of rental income allocated to debt service
+    // Bootstrap (<3 properties): 90% — aggressive but necessary to enable growth from 1→2 properties
+    // Established (3+ properties): 50% — tighter discipline as portfolio scales
+    var propCount = this.state.properties ? this.state.properties.length : 0;
+    var debtRatio = propCount < 3 ? 0.9 : 0.5;
+    var paymentCapacity = Math.max(0, Math.round(monthlyIncome * debtRatio) - existingPayments);
+
+    // Max total debt: proportional to rent history (can't borrow big with no track record)
+    // Must have earned rent before qualifying for meaningful loans
+    var maxTotalDebt;
+    if (totalRentEarned <= 0) {
+      // No rent history: tiny starter loans only (enough for mitigation, not properties)
+      maxTotalDebt = Math.min(Math.round(netWorth * 0.15), monthlyIncome * 24);
+    } else {
+      // Has rent history: scale with proven income
+      // Bootstrap: small portfolios (<€20K NW) get higher LTV to enable growth
+      var ltvRatio = netWorth < 20000 ? 0.85 : 0.7;
+      maxTotalDebt = Math.min(
+        Math.round(netWorth * ltvRatio), // NW cap (higher for small players)
+        totalRentEarned * 20              // must earn 5% of loan in rent first
+      );
+      // Floor: at least 5 years of current monthly income
+      maxTotalDebt = Math.max(maxTotalDebt, monthlyIncome * 60);
+    }
+    var availableDebtRoom = Math.max(0, maxTotalDebt - existingDebt);
+
     const offers = [];
 
     GameData.banks.forEach(bank => {
       if (bank.minNetWorth && netWorth < bank.minNetWorth) return;
+      if (bank.maxNetWorth && netWorth > bank.maxNetWorth) return;
 
-      const maxLoan = Math.round(netWorth * bank.maxLoanPct) - existingDebt;
+      const maxLoan = Math.min(
+        Math.round(netWorth * bank.maxLoanPct) - existingDebt,
+        availableDebtRoom
+      );
       if (maxLoan <= 0) return;
 
       const loanAmount = Math.min(amount, maxLoan);
@@ -1923,6 +1994,7 @@ const GameEngine = {
       const payment = Math.min(loan.monthlyPayment, loan.remainingBalance);
       const interestPortion = Math.round(loan.remainingBalance * loan.interestRate / 12);
 
+      // LOAN PAYMENT: fixed monthly, split between interest (on balance) and principal
       this.state.cash -= payment;
       loan.remainingBalance -= (payment - interestPortion);
       loan.monthsLeft--;
@@ -1930,6 +2002,7 @@ const GameEngine = {
 
       if (!this.state.totalLoanInterestPaid) this.state.totalLoanInterestPaid = 0;
       this.state.totalLoanInterestPaid += interestPortion;
+      GameEngine._log('loan', 'payment', -payment, loan.bankName + ' int=' + interestPortion + ' princ=' + (payment-interestPortion) + ' bal=' + loan.remainingBalance);
 
       if (loan.remainingBalance <= 0 || loan.monthsLeft <= 0) {
         return false; // Remove paid-off loan
@@ -3257,7 +3330,7 @@ const GameEngine = {
 
     if (!uf.bank && propCount >= 1) {
       uf.bank = true;
-      newlyUnlocked.push({ id: 'bank', icon: '🏦', message: 'Bank Unlocked! Take loans to grow your empire faster.' });
+      newlyUnlocked.push({ id: 'bank', icon: '🏦', message: 'Bank Unlocked! Take a loan to buy your next property — tap the Bank tab.' });
     }
     if (!uf.businesses && tier >= 1) {
       uf.businesses = true;
@@ -3575,6 +3648,22 @@ const GameEngine = {
     var cycle = s.economicCycle || 'growth';
 
     // ---- PORTFOLIO-LINKED DECISIONS (emerge from what the player owns) ----
+
+    // LOAN NUDGE: Player has 1 property but can't afford another — teach them to use the bank
+    var loans = s.loans || [];
+    if (props.length >= 1 && props.length < 3 && loans.length === 0 && cash < 6500 && s.unlockedFeatures && s.unlockedFeatures.bank) {
+      var loanNW = this.getNetWorth();
+      var suggestedLoan = Math.round(loanNW * 0.5);
+      decisions.push({
+        type: 'loan_nudge',
+        title: '🏦 Your Banker Calls',
+        description: 'With ' + GameData.formatMoney(cash) + ' in cash, you can\'t afford another property. But your portfolio is worth ' + GameData.formatMoney(loanNW) + '. A loan of ' + GameData.formatMoney(suggestedLoan) + ' would let you expand. Visit the Bank tab to explore loan offers.',
+        choices: [
+          { label: 'Open Bank', action: 'open_bank' },
+          { label: 'Not yet', action: 'pass' }
+        ]
+      });
+    }
 
     // DERELICT OPPORTUNITY: Player owns a poor/derelict property — neighbor wants to sell adjacent lot cheap
     var derelicts = props.filter(function(p) { return p.condition === 'derelict' || p.condition === 'poor'; });
@@ -3989,9 +4078,9 @@ const GameEngine = {
           prop.isRented = true;
           prop.tenant = GameData.assignTenant(prop);
           if (prop.tenant) { prop.tenant.type = 'corporate'; prop.tenant.icon = '🏢'; prop.tenant.reliability = 0.96; prop.tenant.care = 0.90; }
-          // Premium lease sets higher base rent — don't also set rentMultiplier (would double-count)
           prop.rentMultiplier = 1.0;
-          this.recalculateRent(prop);
+          // Lock in premium rent — survives recalculateRent() calls
+          prop.premiumRent = d.rent;
           prop.monthlyRent = d.rent;
         }
         result.message = '🔑 Premium corporate lease signed! ' + GameData.formatMoney(d.rent) + '/month guaranteed.';
@@ -4078,6 +4167,10 @@ const GameEngine = {
         result.message = 'Scandal made public. Reputation -' + d.repLoss + '.';
         break;
       }
+      case 'open_bank':
+        result.message = 'Opening the Bank...';
+        result.navigateTo = 'bank';
+        break;
       case 'pass':
         result.message = 'You passed on this opportunity.';
         break;

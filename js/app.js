@@ -637,8 +637,8 @@ const App = {
     }
   },
 
-  repayLoan(loanId) {
-    var result = GameEngine.repayLoan(loanId);
+  repayLoan(loanId, amount) {
+    var result = GameEngine.repayLoan(loanId, amount);
     if (result.success) {
       GameUI.toast(result.message, 'success');
       GameUI.updateHUD();
@@ -699,6 +699,10 @@ const App = {
       GameUI.toast(result.message, action === 'pass' ? 'info' : 'success');
     } else {
       GameUI.toast(result.message, 'error');
+    }
+    // Navigate if decision requested it (e.g. open_bank)
+    if (result.navigateTo) {
+      GameUI.showScreen(result.navigateTo);
     }
     GameUI.updateHUD();
   },
