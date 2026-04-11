@@ -248,6 +248,25 @@ const GameUI = {
       '<div class="city-info-chip">💹 Inflation: <strong>' + (inflationRate * 100).toFixed(1) + '%</strong></div>' +
       '<div class="city-info-chip">🏠 Yield: <strong>' + (city.rentYield * 100).toFixed(1) + '%</strong></div>';
 
+    // Auto-show 3D city view if definition exists
+    var mapView = document.getElementById('city-map-view');
+    var has3D = this._city3dDefs[this.currentCity] && typeof City3D !== 'undefined' && typeof THREE !== 'undefined';
+    if (has3D) {
+      mapView.style.display = 'block';
+      this.cityMapView = true;
+      this.renderCityMap();
+      document.getElementById('btn-city-view-toggle').textContent = '📋 List View';
+    } else {
+      // Cleanup any leftover 3D
+      if (typeof City3D !== 'undefined') City3D.destroy();
+      mapView.style.display = 'none';
+      this.cityMapView = false;
+      document.getElementById('btn-city-view-toggle').textContent = '🏙️ City View';
+    }
+
+    // Always show list view below the 3D scene
+    document.getElementById('city-list-view').style.display = '';
+
     // Render properties based on tab
     this.renderCityProperties();
   },
