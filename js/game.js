@@ -3267,31 +3267,39 @@ const GameEngine = {
   // ========== CITY UNLOCKING (Challenge-based) ==========
 
   // Each city has a unique unlock challenge — a mini-campaign step
+  // Rivalry challenges are marked with rivalId for UI display
   cityUnlockChallenges: [
-    // Tier 1: Starter expansion (unlock after opening objective)
-    { cityId: 'paris', challenge: 'Own 3 properties', icon: '🗼', check: function(s, ge) { return s.properties.length >= 3; } },
+    // Tier 1: Starter expansion
+    { cityId: 'paris', challenge: 'Own 3 properties', icon: '🗼', check: function(s) { return s.properties.length >= 3; } },
     { cityId: 'amsterdam', challenge: 'Earn €500 total rent', icon: '🌷', check: function(s) { return s.totalRentEarned >= 500; } },
-    // Tier 2: Growing empire
-    { cityId: 'berlin', challenge: 'Refurbish a property', icon: '🚪', check: function(s) { return s.properties.some(function(p) { return p.totalRentCollected > 0 && p.condition === 'good' || p.condition === 'excellent'; }); } },
+    // Tier 2: Growing empire — first rival challenges
+    { cityId: 'berlin', challenge: 'Surpass the Okonkwos in net worth', icon: '🚪', rivalId: 'okonkwo',
+      check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='okonkwo';}); return ai && ge.getNetWorth() > ai.netWorth; } },
     { cityId: 'rome', challenge: 'Own properties in 2 cities', icon: '🏛️', check: function(s) { var c = {}; s.properties.forEach(function(p) { c[p.cityId] = 1; }); return Object.keys(c).length >= 2; } },
-    { cityId: 'barcelona', challenge: 'Reach €50K net worth', icon: '⛪', check: function(s, ge) { return ge.getNetWorth() >= 50000; } },
+    { cityId: 'barcelona', challenge: 'Surpass the Bourbon-Martinez in net worth', icon: '⛪', rivalId: 'martinez',
+      check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='martinez';}); return ai && ge.getNetWorth() > ai.netWorth; } },
     // Tier 3: Serious investor
-    { cityId: 'toronto', challenge: 'Own 8 properties', icon: '🗼', check: function(s) { return s.properties.length >= 8; } },
+    { cityId: 'toronto', challenge: 'Own more properties than the Petrovs', icon: '🗼', rivalId: 'petrov',
+      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='petrov';}); return ai && s.properties.length > ai.propertyCount; } },
     { cityId: 'los_angeles', challenge: 'Earn €5K total rent', icon: '🎬', check: function(s) { return s.totalRentEarned >= 5000; } },
     { cityId: 'miami', challenge: 'Reach €200K net worth', icon: '🌴', check: function(s, ge) { return ge.getNetWorth() >= 200000; } },
     { cityId: 'sydney', challenge: 'Own properties in 4 cities', icon: '🎭', check: function(s) { var c = {}; s.properties.forEach(function(p) { c[p.cityId] = 1; }); return Object.keys(c).length >= 4; } },
     // Tier 4: Global player
-    { cityId: 'new_york', challenge: 'Reach €1M net worth', icon: '🗽', check: function(s, ge) { return ge.getNetWorth() >= 1000000; } },
-    { cityId: 'dubai', challenge: 'Own 15 properties', icon: '🏗️', check: function(s) { return s.properties.length >= 15; } },
+    { cityId: 'new_york', challenge: 'Surpass the Wong Dynasty in net worth', icon: '🗽', rivalId: 'wong',
+      check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='wong';}); return ai && ge.getNetWorth() > ai.netWorth; } },
+    { cityId: 'dubai', challenge: 'Surpass the Al-Rashids in net worth', icon: '🏗️', rivalId: 'al_rashid',
+      check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='al_rashid';}); return ai && ge.getNetWorth() > ai.netWorth; } },
     { cityId: 'singapore', challenge: 'Earn €50K total rent', icon: '🦁', check: function(s) { return s.totalRentEarned >= 50000; } },
     { cityId: 'tokyo', challenge: 'Own properties in 8 cities', icon: '⛩️', check: function(s) { var c = {}; s.properties.forEach(function(p) { c[p.cityId] = 1; }); return Object.keys(c).length >= 8; } },
     { cityId: 'mumbai', challenge: 'Reach €5M net worth', icon: '🕌', check: function(s, ge) { return ge.getNetWorth() >= 5000000; } },
     // Tier 5: Endgame
-    { cityId: 'shanghai', challenge: 'Own 30 properties', icon: '🏯', check: function(s) { return s.properties.length >= 30; } },
+    { cityId: 'shanghai', challenge: 'Own more properties than the Wong Dynasty', icon: '🏯', rivalId: 'wong',
+      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='wong';}); return ai && s.properties.length > ai.propertyCount; } },
     { cityId: 'hong_kong', challenge: 'Reach €50M net worth', icon: '🌉', check: function(s, ge) { return ge.getNetWorth() >= 50000000; } },
     { cityId: 'cape_town', challenge: 'Earn €500K total rent', icon: '⛰️', check: function(s) { return s.totalRentEarned >= 500000; } },
     { cityId: 'sao_paulo', challenge: 'Own properties in 12 cities', icon: '🎨', check: function(s) { var c = {}; s.properties.forEach(function(p) { c[p.cityId] = 1; }); return Object.keys(c).length >= 12; } },
-    { cityId: 'monaco', challenge: 'Reach €500M net worth', icon: '🎰', check: function(s, ge) { return ge.getNetWorth() >= 500000000; } }
+    { cityId: 'monaco', challenge: 'Reach Rank #1 on the leaderboard', icon: '🎰',
+      check: function(s) { return (s.playerRank || 99) <= 1; } }
   ],
 
   isCityUnlocked(cityId) {

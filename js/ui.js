@@ -246,8 +246,18 @@ const GameUI = {
         if (locked) {
           var ch = GameEngine.cityUnlockChallenges ? GameEngine.cityUnlockChallenges.find(function(c) { return c.cityId === city.id; }) : null;
           var challengeText = ch ? ch.challenge : 'Keep progressing to unlock';
-          html += '<div style="text-align:center;padding:12px 0;font-size:0.75rem;color:var(--text-muted)">' +
-            '🔒 ' + challengeText + '</div>';
+          // Show rival info for rivalry challenges
+          var rivalInfo = '';
+          if (ch && ch.rivalId && GameEngine.state.aiFamilies) {
+            var rival = GameEngine.state.aiFamilies.find(function(a) { return a.id === ch.rivalId; });
+            if (rival) {
+              rivalInfo = '<div style="font-size:0.68rem;margin-top:4px;color:var(--text-muted)">' +
+                rival.icon + ' ' + rival.name + ': ' + GameData.formatMoneyShort(rival.netWorth) +
+                (rival.propertyCount ? ' · ' + rival.propertyCount + ' properties' : '') + '</div>';
+            }
+          }
+          html += '<div style="text-align:center;padding:10px 0;font-size:0.75rem;color:var(--text-muted)">' +
+            '🔒 ' + challengeText + rivalInfo + '</div>';
         } else {
           var trait = city.trait ? GameData.cityTraits[city.trait] : null;
           html += '<div class="city-card-stats">' +
