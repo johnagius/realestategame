@@ -238,6 +238,9 @@ const GameUI = {
 
     document.getElementById('city-title').textContent = city.flag + ' ' + city.name;
     this.cityPage = 0; // reset pagination
+    this.cityTypeFilter = 'all'; // reset filter when switching cities
+    var typeFilterEl = document.getElementById('city-type-filter');
+    if (typeFilterEl) typeFilterEl.value = 'all';
 
     // City info chips
     var info = document.getElementById('city-info');
