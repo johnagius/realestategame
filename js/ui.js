@@ -263,6 +263,8 @@ const GameUI = {
     var has3D = this._city3dDefs[this.currentCity] && typeof City3D !== 'undefined' && typeof THREE !== 'undefined';
     if (has3D) {
       mapView.style.display = 'block';
+      // Force reflow so container has dimensions before 3D init
+      mapView.offsetHeight;
       this.cityMapView = true;
       this.renderCityMap();
       document.getElementById('btn-city-view-toggle').textContent = '📋 Hide City View';
@@ -1722,7 +1724,10 @@ const GameUI = {
     document.getElementById('btn-city-view-toggle').textContent = this.cityMapView ? '📋 Hide City View' : '🏙️ Show City View';
     // Cleanup 3D city when hiding
     if (!this.cityMapView && typeof City3D !== 'undefined') City3D.destroy();
-    if (this.cityMapView) this.renderCityMap();
+    if (this.cityMapView) {
+      document.getElementById('city-map-view').offsetHeight; // force reflow
+      this.renderCityMap();
+    }
   },
 
   // ---- Render City Map ----
