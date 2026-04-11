@@ -3610,8 +3610,8 @@ const GameEngine = {
             { label: 'Renegotiate at -20% rent', action: 'renegotiate_rent', data: { propId: tp.id, newMult: 0.8 } }
           ]
         });
-      } else if (tp.tenant.monthsOccupied > 12) {
-        // Long-term tenant wants improvement
+      } else if (tp.tenant.monthsOccupied > 24 && !tp._tenantUpgraded && Math.random() < 0.3) {
+        // Long-term tenant wants improvement — only once per property, 30% chance
         var upgradeCost = Math.round(monthlyR * 3);
         decisions.push({
           type: 'tenant_upgrade',
@@ -3946,8 +3946,13 @@ const GameEngine = {
         if (this.state.cash >= d.cost) {
           this.state.cash -= d.cost;
           var prop = this.state.properties.find(function(p) { return p.id === d.propId; });
-          if (prop) { prop.rentMultiplier = Math.min(1.3, (prop.rentMultiplier || 1.0) + 0.1); }
-          result.message = '🏠 Improvements made! Tenant happy, rent +10%.';
+          if (prop) {
+            // Improvement adds 10% to property value — rent follows naturally
+            prop.currentValue = Math.round(prop.currentValue * 1.10);
+            prop._tenantUpgraded = true; // prevent repeat decisions
+            this.recalculateRent(prop);
+          }
+          result.message = '🏠 Improvements made! Property value and rent increased by 10%.';
         } else { result.message = 'Not enough cash.'; result.success = false; }
         break;
       }
