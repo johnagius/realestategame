@@ -583,13 +583,19 @@ const City3D = {
         } else if (isLandmark) {
           var lmFn = cityDef.landmarks[t];
           if (typeof lmFn === 'function') {
-            var bg = lmFn.call(self);
-            bg.position.set(x, 0, z);
-            bg.traverse(function(m) { if (m.isMesh) m.userData.cell = cell; });
-            self._pivot.add(bg);
-            cell.bGrp = bg;
-            // Add landmark name to BNAMES
-            self.BNAMES[t] = t; // will be overridden by city def if provided
+            try {
+              var bg = lmFn.call(self);
+              bg.position.set(x, 0, z);
+              bg.traverse(function(m) { if (m.isMesh) m.userData.cell = cell; });
+              self._pivot.add(bg);
+              cell.bGrp = bg;
+              self.BNAMES[t] = t;
+            } catch(e) {
+              // Landmark failed to build — render ground tile instead
+              var fallback = self.flatPlane(self.TILE, self.TILE, self.M.GND);
+              fallback.position.set(x, 0, z);
+              self._pivot.add(fallback);
+            }
           }
         }
 
