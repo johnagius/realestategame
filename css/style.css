@@ -2163,7 +2163,6 @@ h4 { font-size: 1rem; }
 
 /* ---------- City Map View ---------- */
 .city-map-view {
-  overflow: hidden;
   margin-bottom: 8px;
 }
 

@@ -1770,7 +1770,12 @@ const GameUI = {
         if (City3D._cityDef && City3D._cityDef.id === cityId) return;
         container.innerHTML = '';
         container.style.background = '#060c1a';
-        City3D.renderCity(def, container);
+        try {
+          City3D.renderCity(def, container);
+        } catch(e) {
+          container.innerHTML = '<div style="color:#c8a030;text-align:center;padding:40px;font-size:13px">3D city view unavailable</div>';
+          return;
+        }
         // Wire building click → filter property list + show toast
         City3D._onBuildingClick = function(cell) {
           var typeName = City3D.BNAMES[cell.t] || cell.t;
