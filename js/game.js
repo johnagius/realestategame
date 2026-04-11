@@ -185,6 +185,7 @@ const GameEngine = {
         if (!this.state.unlockedFeatures) {
           this.state.unlockedFeatures = { bank: true, businesses: true, investments: true, aiDiplomacy: true, fullLeaderboard: true };
         }
+        if (this.state.activeCampaign === undefined) this.state.activeCampaign = null;
         // Migrate old properties: ensure tenant + rentMultiplier fields exist
         if (this.state.properties) {
           this.state.properties.forEach(function(p) {
@@ -3219,8 +3220,6 @@ const GameEngine = {
       var reward = Math.max(1000, Math.round(nw * progress.tierData.rewardPct));
       s.cash += reward;
       s.reputation = Math.min(100, (s.reputation || 50) + progress.tierData.repBonus);
-      // Unlock cities for this tier
-      var newCities = this.unlockCitiesForTier(progress.tier);
       return {
         tier: progress.tier,
         name: progress.tierData.name,
@@ -3269,57 +3268,120 @@ const GameEngine = {
 
   // ========== CITY UNLOCKING (Challenge-based) ==========
 
-  // Each city unlock requires beating a rival family — every city is a rivalry victory
+  // ========== CITY CAMPAIGNS (sequential, one-at-a-time) ==========
+
+  // Each city has a unique campaign with interesting mechanics — not just "have more money"
+  // Player must START a campaign by clicking a locked city, then complete its objective
+  // Only one campaign active at a time. Completing it unlocks the city and allows starting the next.
   cityUnlockChallenges: [
-    // Early: beat the weakest families first
-    { cityId: 'paris', challenge: 'Surpass the Okonkwos in net worth', icon: '🗼', rivalId: 'okonkwo',
-      check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='okonkwo';}); return ai && ge.getNetWorth() > ai.netWorth; } },
-    { cityId: 'amsterdam', challenge: 'Own more properties than the Okonkwos', icon: '🌷', rivalId: 'okonkwo',
-      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='okonkwo';}); return ai && s.properties.length > ai.propertyCount; } },
-    // Mid-early: step up to Bourbon-Martinez
-    { cityId: 'berlin', challenge: 'Surpass the Bourbon-Martinez in net worth', icon: '🚪', rivalId: 'martinez',
-      check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='martinez';}); return ai && ge.getNetWorth() > ai.netWorth; } },
-    { cityId: 'rome', challenge: 'Own more properties than the Bourbon-Martinez', icon: '🏛️', rivalId: 'martinez',
-      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='martinez';}); return ai && s.properties.length > ai.propertyCount; } },
-    { cityId: 'barcelona', challenge: 'Earn more total rent than the Petrovs earn income', icon: '⛪', rivalId: 'petrov',
-      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='petrov';}); return ai && s.totalRentEarned > ai.netWorth * 0.1; } },
-    // Mid: take on Petrovs directly
-    { cityId: 'toronto', challenge: 'Surpass the Petrovs in net worth', icon: '🗼', rivalId: 'petrov',
+    // --- TIER 1: Learn the ropes vs weakest families ---
+    { cityId: 'paris', rivalId: 'okonkwo', icon: '🗼',
+      title: 'The Paris Gambit',
+      challenge: 'Flip a property for profit before the Okonkwos catch up',
+      description: 'Buy a property, improve or hold it, then sell it for more than you paid. Prove you can turn a profit.',
+      setup: function(s) { s._campaignStartNW = s.totalSaleRevenue; },
+      check: function(s, ge) { return s.totalSaleRevenue > (s._campaignStartNW || 0); } },
+    { cityId: 'amsterdam', rivalId: 'okonkwo', icon: '🌷',
+      title: 'The Amsterdam Yield',
+      challenge: 'Collect €200 rent in a single month',
+      description: 'Build enough rental income that one month pays €200+. Grow your portfolio.',
+      check: function(s) { return (s.monthlyIncome || 0) >= 200; } },
+    // --- TIER 2: Outmanoeuvre the Bourbon-Martinez ---
+    { cityId: 'berlin', rivalId: 'martinez', icon: '🚪',
+      title: 'The Berlin Blitz',
+      challenge: 'Own 5 properties while the Bourbon-Martinez own fewer',
+      description: 'Build faster than your rival. Reach 5 properties while they trail behind.',
+      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='martinez';}); return s.properties.length >= 5 && ai && s.properties.length > ai.propertyCount; } },
+    { cityId: 'rome', rivalId: 'martinez', icon: '🏛️',
+      title: 'The Roman Renovation',
+      challenge: 'Refurbish 2 properties to Good or Excellent condition',
+      description: 'Master the renovation game. Two properties must reach Good or better.',
+      setup: function(s) { s._campaignRefurbCount = 0; },
+      check: function(s) { var good = s.properties.filter(function(p){return p.condition==='good'||p.condition==='excellent';}); return good.length >= 2; } },
+    // --- TIER 3: Take on the Petrovs ---
+    { cityId: 'barcelona', rivalId: 'petrov', icon: '⛪',
+      title: 'The Barcelona Boom',
+      challenge: 'Earn €500 rent in a single month',
+      description: 'Scale your rental empire. Monthly rent must hit €500 in one month.',
+      check: function(s) { return (s.monthlyIncome || 0) >= 500; } },
+    { cityId: 'toronto', rivalId: 'petrov', icon: '🗼',
+      title: 'The Toronto Takeover',
+      challenge: 'Surpass the Petrovs in net worth',
+      description: 'The aggressive Petrovs are growing fast. Overtake them before they pull away.',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='petrov';}); return ai && ge.getNetWorth() > ai.netWorth; } },
-    { cityId: 'los_angeles', challenge: 'Own more properties than the Petrovs', icon: '🎬', rivalId: 'petrov',
-      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='petrov';}); return ai && s.properties.length > ai.propertyCount; } },
-    // Mid-late: Wong Dynasty
-    { cityId: 'miami', challenge: 'Surpass the Wong Dynasty in net worth', icon: '🌴', rivalId: 'wong',
+    // --- TIER 4: Challenge the Wong Dynasty ---
+    { cityId: 'los_angeles', rivalId: 'wong', icon: '🎬',
+      title: 'The Hollywood Portfolio',
+      challenge: 'Own properties in 3 different cities',
+      description: 'Diversify beyond your home turf. Spread across three markets.',
+      check: function(s) { var c = {}; s.properties.forEach(function(p){c[p.cityId]=1;}); return Object.keys(c).length >= 3; } },
+    { cityId: 'miami', rivalId: 'wong', icon: '🌴',
+      title: 'The Miami Cash Machine',
+      challenge: 'Reach €2,000 monthly rental income',
+      description: 'Build a rent machine. €2K/month flowing in every single month.',
+      check: function(s) { return (s.monthlyIncome || 0) >= 2000; } },
+    { cityId: 'sydney', rivalId: 'wong', icon: '🎭',
+      title: 'The Sydney Showdown',
+      challenge: 'Surpass the Wong Dynasty in net worth',
+      description: 'The Wongs are formidable traders. Outgrow them.',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='wong';}); return ai && ge.getNetWorth() > ai.netWorth; } },
-    { cityId: 'sydney', challenge: 'Own more properties than the Wong Dynasty', icon: '🎭', rivalId: 'wong',
-      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='wong';}); return ai && s.properties.length > ai.propertyCount; } },
-    // Late: Rothschilds
-    { cityId: 'new_york', challenge: 'Surpass the Rothschilds in net worth', icon: '🗽', rivalId: 'rothschild',
+    // --- TIER 5: Rothschilds ---
+    { cityId: 'new_york', rivalId: 'rothschild', icon: '🗽',
+      title: 'The New York Ascent',
+      challenge: 'Reach a portfolio of 20 properties',
+      description: 'Build a true empire. 20 properties across your markets.',
+      check: function(s) { return s.properties.length >= 20; } },
+    { cityId: 'singapore', rivalId: 'rothschild', icon: '🦁',
+      title: 'The Singapore Strategy',
+      challenge: 'Surpass the Rothschilds in net worth',
+      description: 'The ultimate rivalry. Dethrone the banking dynasty.',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='rothschild';}); return ai && ge.getNetWorth() > ai.netWorth; } },
-    { cityId: 'singapore', challenge: 'Own more properties than the Rothschilds', icon: '🦁', rivalId: 'rothschild',
-      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='rothschild';}); return ai && s.properties.length > ai.propertyCount; } },
-    // Late: Al-Rashids (richest AI family)
-    { cityId: 'dubai', challenge: 'Surpass the Al-Rashids in net worth', icon: '🏗️', rivalId: 'al_rashid',
+    // --- TIER 6: Al-Rashids (richest) ---
+    { cityId: 'dubai', rivalId: 'al_rashid', icon: '🏗️',
+      title: 'The Dubai Fortune',
+      challenge: 'Reach €500K net worth',
+      description: 'Build serious wealth. Half a million in total assets.',
+      check: function(s, ge) { return ge.getNetWorth() >= 500000; } },
+    { cityId: 'tokyo', rivalId: 'al_rashid', icon: '⛩️',
+      title: 'The Tokyo Tycoon',
+      challenge: 'Surpass the Al-Rashids in net worth',
+      description: 'The wealthiest family in the game. Beat their fortune.',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='al_rashid';}); return ai && ge.getNetWorth() > ai.netWorth; } },
-    { cityId: 'tokyo', challenge: 'Own more properties than the Al-Rashids', icon: '⛩️', rivalId: 'al_rashid',
-      check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='al_rashid';}); return ai && s.properties.length > ai.propertyCount; } },
-    // Endgame: double down — must dominate multiple families at once
-    { cityId: 'mumbai', challenge: 'Have 2x the Petrovs\' net worth', icon: '🕌', rivalId: 'petrov',
-      check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='petrov';}); return ai && ge.getNetWorth() > ai.netWorth * 2; } },
-    { cityId: 'shanghai', challenge: 'Have 2x the Wong Dynasty\'s net worth', icon: '🏯', rivalId: 'wong',
-      check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='wong';}); return ai && ge.getNetWorth() > ai.netWorth * 2; } },
-    { cityId: 'hong_kong', challenge: 'Have 2x the Rothschilds\' net worth', icon: '🌉', rivalId: 'rothschild',
+    // --- TIER 7: Domination ---
+    { cityId: 'mumbai', rivalId: 'petrov', icon: '🕌',
+      title: 'The Mumbai Monopoly',
+      challenge: 'Own 5+ properties in a single city',
+      description: 'Dominate one market completely. Stack 5 properties in one city.',
+      check: function(s) { var c = {}; s.properties.forEach(function(p){c[p.cityId]=(c[p.cityId]||0)+1;}); return Object.values(c).some(function(v){return v>=5;}); } },
+    { cityId: 'shanghai', rivalId: 'wong', icon: '🏯',
+      title: 'The Shanghai Surge',
+      challenge: 'Reach €5,000 monthly rental income',
+      description: 'Industrial-scale rent collection. €5K every month.',
+      check: function(s) { return (s.monthlyIncome || 0) >= 5000; } },
+    { cityId: 'hong_kong', rivalId: 'rothschild', icon: '🌉',
+      title: 'The Hong Kong Crown',
+      challenge: 'Have 2x the Rothschilds\' net worth',
+      description: 'Don\'t just beat them — crush them. Double their entire fortune.',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='rothschild';}); return ai && ge.getNetWorth() > ai.netWorth * 2; } },
-    { cityId: 'cape_town', challenge: 'Have 2x the Al-Rashids\' net worth', icon: '⛰️', rivalId: 'al_rashid',
+    { cityId: 'cape_town', rivalId: 'al_rashid', icon: '⛰️',
+      title: 'The Cape Town Conquest',
+      challenge: 'Have 2x the Al-Rashids\' net worth',
+      description: 'Double the fortune of the richest dynasty.',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='al_rashid';}); return ai && ge.getNetWorth() > ai.netWorth * 2; } },
-    { cityId: 'sao_paulo', challenge: 'Own more properties than all rival families combined', icon: '🎨',
-      check: function(s) { var total = (s.aiFamilies||[]).reduce(function(sum,a){return sum+a.propertyCount;},0); return s.properties.length > total; } },
-    { cityId: 'monaco', challenge: 'Reach Rank #1 on the leaderboard', icon: '🎰',
+    { cityId: 'sao_paulo', icon: '🎨',
+      title: 'The São Paulo Empire',
+      challenge: 'Own properties in 10+ cities',
+      description: 'A truly global empire. Properties on every continent.',
+      check: function(s) { var c = {}; s.properties.forEach(function(p){c[p.cityId]=1;}); return Object.keys(c).length >= 10; } },
+    { cityId: 'monaco', icon: '🎰',
+      title: 'The Monaco Coronation',
+      challenge: 'Reach Rank #1 on the leaderboard',
+      description: 'The final challenge. Be the wealthiest dynasty in the world.',
       check: function(s) { return (s.playerRank || 99) <= 1; } }
   ],
 
   isCityUnlocked(cityId) {
-    if (!this.state.unlockedCities) return true; // old saves
+    if (!this.state.unlockedCities) return true;
     return this.state.unlockedCities.indexOf(cityId) >= 0;
   },
 
@@ -3330,51 +3392,74 @@ const GameEngine = {
     }
   },
 
-  // Check all city unlock challenges and unlock any that are met
+  // Start a campaign to unlock a specific city
+  startCityCampaign(cityId) {
+    if (this.isCityUnlocked(cityId)) return null;
+    if (this.state.activeCampaign) return null; // one at a time
+
+    var ch = this.cityUnlockChallenges.find(function(c) { return c.cityId === cityId; });
+    if (!ch) return null;
+
+    this.state.activeCampaign = {
+      cityId: cityId,
+      startMonth: this.state.month,
+      startNW: this.getNetWorth()
+    };
+    // Run any setup function the campaign defines
+    if (ch.setup) ch.setup(this.state);
+    this.save();
+    return ch;
+  },
+
+  // Cancel active campaign (player can switch)
+  cancelCityCampaign() {
+    this.state.activeCampaign = null;
+    this.save();
+  },
+
+  // Check ONLY the active campaign — not all challenges
   checkCityUnlocks() {
-    var self = this;
-    var s = this.state;
-    var newlyUnlocked = [];
-    this.cityUnlockChallenges.forEach(function(ch) {
-      if (!self.isCityUnlocked(ch.cityId) && ch.check(s, self)) {
-        self.unlockCity(ch.cityId);
-        var city = GameData.cities.find(function(c) { return c.id === ch.cityId; });
-        newlyUnlocked.push({
-          cityId: ch.cityId,
-          cityName: city ? city.name : ch.cityId,
-          cityFlag: city ? city.flag : '🌍',
-          challenge: ch.challenge,
-          icon: ch.icon
-        });
-      }
-    });
-    return newlyUnlocked;
-  },
+    var camp = this.state.activeCampaign;
+    if (!camp) return [];
 
-  // Get the next locked city's challenge for display
-  getNextCityChallenge() {
-    var self = this;
-    for (var i = 0; i < this.cityUnlockChallenges.length; i++) {
-      var ch = this.cityUnlockChallenges[i];
-      if (!self.isCityUnlocked(ch.cityId)) {
-        var city = GameData.cities.find(function(c) { return c.id === ch.cityId; });
-        return {
-          cityId: ch.cityId,
-          cityName: city ? city.name : ch.cityId,
-          cityFlag: city ? city.flag : '🌍',
-          challenge: ch.challenge,
-          icon: ch.icon
-        };
-      }
+    var ch = this.cityUnlockChallenges.find(function(c) { return c.cityId === camp.cityId; });
+    if (!ch) return [];
+
+    if (ch.check(this.state, this)) {
+      // Campaign won — unlock the city
+      this.unlockCity(camp.cityId);
+      this.state.activeCampaign = null;
+      var city = GameData.cities.find(function(c) { return c.id === camp.cityId; });
+      this.save();
+      return [{
+        cityId: camp.cityId,
+        cityName: city ? city.name : camp.cityId,
+        cityFlag: city ? city.flag : '🌍',
+        challenge: ch.challenge,
+        title: ch.title,
+        icon: ch.icon
+      }];
     }
-    return null; // all unlocked
+    return [];
   },
 
-  // Legacy: still works for campaign tier completions as fallback
-  unlockCitiesForTier(tier) {
-    // No longer batch-unlocks — cities unlock via individual challenges now
-    // This just triggers a check
-    return this.checkCityUnlocks();
+  getActiveCampaign() {
+    var camp = this.state.activeCampaign;
+    if (!camp) return null;
+    var ch = this.cityUnlockChallenges.find(function(c) { return c.cityId === camp.cityId; });
+    if (!ch) return null;
+    var city = GameData.cities.find(function(c) { return c.id === camp.cityId; });
+    return {
+      cityId: camp.cityId,
+      cityName: city ? city.name : camp.cityId,
+      cityFlag: city ? city.flag : '🌍',
+      title: ch.title,
+      challenge: ch.challenge,
+      description: ch.description,
+      rivalId: ch.rivalId,
+      icon: ch.icon,
+      monthsActive: this.state.month - camp.startMonth
+    };
   },
 
   getLockedCities() {

@@ -45,8 +45,7 @@ const App = {
       if (target) {
         var cityId = target.getAttribute('data-city');
         if (!GameEngine.isCityUnlocked(cityId)) {
-          var ch = GameEngine.cityUnlockChallenges ? GameEngine.cityUnlockChallenges.find(function(c) { return c.cityId === cityId; }) : null;
-          GameUI.toast('🔒 ' + (ch ? ch.challenge + ' to unlock' : 'Keep progressing to unlock'), 'warning');
+          App.showCampaignOffer(cityId);
           return;
         }
         GameUI.currentCityTab = 'market';
@@ -69,8 +68,7 @@ const App = {
       if (card) {
         var cityId = card.getAttribute('data-city');
         if (!GameEngine.isCityUnlocked(cityId)) {
-          var ch = GameEngine.cityUnlockChallenges ? GameEngine.cityUnlockChallenges.find(function(c) { return c.cityId === cityId; }) : null;
-          GameUI.toast('🔒 ' + (ch ? ch.challenge + ' to unlock' : 'Keep progressing to unlock'), 'warning');
+          App.showCampaignOffer(cityId);
           return;
         }
         GameUI.currentCityTab = 'market';
@@ -295,6 +293,71 @@ const App = {
       '<button class="btn btn-primary" onclick="GameUI.hideModal();GameEngine.state.tutorialDone=true;GameEngine.save()">Begin</button>'
     );
     if (typeof GameAudio !== 'undefined') GameAudio.fanfare();
+  },
+
+  showCampaignOffer(cityId) {
+    var ch = GameEngine.cityUnlockChallenges ? GameEngine.cityUnlockChallenges.find(function(c) { return c.cityId === cityId; }) : null;
+    if (!ch) { GameUI.toast('🔒 City locked', 'warning'); return; }
+
+    var city = GameData.cities.find(function(c) { return c.id === cityId; });
+    var cityName = city ? city.flag + ' ' + city.name : cityId;
+    var trait = city && city.trait ? GameData.cityTraits[city.trait] : null;
+
+    // Show rival info if applicable
+    var rivalHTML = '';
+    if (ch.rivalId && GameEngine.state.aiFamilies) {
+      var rival = GameEngine.state.aiFamilies.find(function(a) { return a.id === ch.rivalId; });
+      if (rival) {
+        rivalHTML = '<div style="margin:10px 0;padding:8px;background:rgba(27,77,51,0.06);border-radius:8px;border-left:3px solid ' + (rival.color || '#1B4D33') + '">' +
+          '<span style="font-size:1.1rem">' + rival.icon + '</span> <strong>' + rival.name + '</strong><br>' +
+          '<span style="font-size:0.72rem;color:var(--text-muted)">Net worth: ' + GameData.formatMoney(rival.netWorth) + ' · ' + rival.propertyCount + ' properties</span></div>';
+      }
+    }
+
+    // Check if another campaign is already active
+    var activeCamp = GameEngine.state.activeCampaign;
+    var switchWarning = '';
+    var btnLabel = 'Start Campaign';
+    if (activeCamp) {
+      var activeCh = GameEngine.cityUnlockChallenges.find(function(c) { return c.cityId === activeCamp.cityId; });
+      var activeCity = GameData.cities.find(function(c) { return c.id === activeCamp.cityId; });
+      switchWarning = '<div style="margin-top:8px;font-size:0.72rem;color:#E63946;padding:6px;background:rgba(230,57,70,0.06);border-radius:6px">' +
+        '⚠️ This will abandon your current campaign: <strong>' + (activeCh ? activeCh.title : '') + '</strong> (' + (activeCity ? activeCity.name : '') + ')</div>';
+      btnLabel = 'Switch Campaign';
+    }
+
+    var traitHTML = trait ? '<div style="font-size:0.72rem;margin-top:6px;padding:4px 8px;display:inline-block;border-radius:8px;background:' + trait.color + '15;color:' + trait.color + ';border:1px solid ' + trait.color + '30">' + trait.icon + ' ' + trait.name + '</div>' : '';
+
+    GameUI.showModal(ch.icon + ' ' + ch.title,
+      '<div style="text-align:center;padding:6px 0">' +
+        '<div style="font-size:1.8rem;margin-bottom:6px">' + (city ? (GameData.cityLandmarks[cityId] || {}).landmark || city.flag : '🌍') + '</div>' +
+        '<div style="font-family:var(--font-heading);font-size:1rem;color:var(--primary-dark)">' + cityName + '</div>' +
+        traitHTML +
+        '<div style="font-size:0.82rem;line-height:1.6;color:var(--text-dark);text-align:left;max-width:340px;margin:12px auto 0">' +
+          '<div style="margin-bottom:8px;padding:10px;background:rgba(44,110,73,0.06);border-radius:8px">' +
+            '<div style="font-weight:700;color:var(--primary-dark);margin-bottom:4px">Objective</div>' +
+            '<div>' + ch.challenge + '</div>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:6px">' + ch.description + '</div>' +
+          '</div>' +
+          rivalHTML +
+          switchWarning +
+        '</div>' +
+      '</div>',
+      '<button class="btn btn-primary" onclick="App.acceptCampaign(\'' + cityId + '\')">' + btnLabel + '</button>' +
+      '<button class="btn btn-ghost" onclick="GameUI.hideModal()">Not Yet</button>'
+    );
+  },
+
+  acceptCampaign(cityId) {
+    if (GameEngine.state.activeCampaign) {
+      GameEngine.cancelCityCampaign();
+    }
+    var ch = GameEngine.startCityCampaign(cityId);
+    GameUI.hideModal();
+    if (ch) {
+      GameUI.toast(ch.icon + ' Campaign started: ' + ch.title, 'milestone');
+      GameUI.updateHUD();
+    }
   },
 
   showRandomTip() {
