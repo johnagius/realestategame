@@ -1845,6 +1845,8 @@ h4 { font-size: 1rem; }
   pointer-events: none;
   width: 90%;
   max-width: 380px;
+  max-height: 50vh;
+  overflow: hidden;
 }
 
 .toast {
