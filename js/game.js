@@ -106,7 +106,7 @@ const GameEngine = {
 
     // Initialize AI families — Rothschilds get a head start as the opening rival
     this.state.aiFamilies = GameData.aiFamilies.map(ai => {
-      var rivalBoost = (ai.id === 'rothschild') ? 1.5 : 1;
+      var rivalBoost = (ai.id === 'rothschild') ? 1.15 : 1;
       var nw = Math.round(ai.startingWealth * rivalBoost);
       return {
         id: ai.id,

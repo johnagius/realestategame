@@ -151,7 +151,7 @@ const GameData = {
     {
       id: 'silva', name: 'The Silva Family', icon: '👨‍👩‍👧‍👦', tier: 'humble',
       description: 'Peasant farmers in 1750. Build a dynasty from the soil up.',
-      startingCash: 5000, difficulty: 'Hard',
+      startingCash: 8000, difficulty: 'Hard',
       motto: '"From nothing, we build everything."',
       color: '#7B6D4E'
     },
@@ -1125,7 +1125,7 @@ const GameData = {
     farm: {
       id: 'farm', name: 'Farm', icon: '🌾',
       description: 'Agricultural land. The backbone of pre-industrial wealth.',
-      basePriceRange: [100, 2000],
+      basePriceRange: [30000, 150000],
       baseRevenueYield: 0.06,
       riskFactor: 0.20,
       employeeRange: [2, 20]
@@ -1133,7 +1133,7 @@ const GameData = {
     tavern: {
       id: 'tavern', name: 'Tavern', icon: '🍺',
       description: 'A drinking house. Steady custom from locals and travellers.',
-      basePriceRange: [50, 500],
+      basePriceRange: [20000, 100000],
       baseRevenueYield: 0.10,
       riskFactor: 0.15,
       employeeRange: [2, 8]
@@ -1141,7 +1141,7 @@ const GameData = {
     market: {
       id: 'market', name: 'Trading Post', icon: '⚖️',
       description: 'Buy and sell goods. Profits depend on trade routes.',
-      basePriceRange: [200, 3000],
+      basePriceRange: [40000, 200000],
       baseRevenueYield: 0.09,
       riskFactor: 0.20,
       employeeRange: [2, 12]
@@ -1149,7 +1149,7 @@ const GameData = {
     workshop: {
       id: 'workshop', name: 'Workshop', icon: '🔨',
       description: 'Craftsmen producing goods by hand. Skilled labour.',
-      basePriceRange: [100, 1000],
+      basePriceRange: [25000, 120000],
       baseRevenueYield: 0.08,
       riskFactor: 0.10,
       employeeRange: [3, 15]
@@ -1157,7 +1157,7 @@ const GameData = {
     textile_mill: {
       id: 'textile_mill', name: 'Textile Mill', icon: '🧵',
       description: 'Mechanised cloth production. The first factories.',
-      basePriceRange: [5000, 50000],
+      basePriceRange: [80000, 400000],
       baseRevenueYield: 0.09,
       riskFactor: 0.15,
       employeeRange: [20, 200]
@@ -1165,7 +1165,7 @@ const GameData = {
     railway: {
       id: 'railway', name: 'Railway Company', icon: '🚂',
       description: 'Steel rails connecting cities. Enormous capital required.',
-      basePriceRange: [50000, 500000],
+      basePriceRange: [300000, 3000000],
       baseRevenueYield: 0.07,
       riskFactor: 0.25,
       employeeRange: [50, 500]
