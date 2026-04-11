@@ -820,26 +820,20 @@ const GameUI = {
   },
 
   renderDegradationInfo: function(p) {
-    // Show condition decay estimate
-    // Base: 0.5% chance per month to degrade, doubled if rented, worse if poor/derelict
-    var baseChance = 0.005;
-    if (p.isRented) baseChance *= 2;
-    if (p.condition === 'poor') baseChance *= 1.3;
-    if (p.condition === 'derelict') baseChance *= 0.5; // can't go lower
-    if (p.condition === 'excellent') baseChance *= 1.5; // degrades faster from top
-
-    // Tenant care factor
-    if (p.tenant && p.tenant.care) {
-      baseChance *= (2.0 - p.tenant.care); // care 0.95 → ×1.05, care 0.6 → ×1.4
-    }
-
-    var monthsEstimate = Math.round(1 / baseChance);
+    // Match the actual engine logic: annual check in January, 12% base chance
     if (p.condition === 'derelict') {
       return '<div class="degradation-info">Already at lowest condition</div>';
     }
-    var urgency = monthsEstimate < 12 ? 'degradation-warn' : monthsEstimate < 24 ? 'degradation-caution' : 'degradation-ok';
+    // Heritage city trait: never drops below Fair
+    var pCity = GameData.cities.find(function(c) { return c.id === p.cityId; });
+    if (pCity && pCity.trait === 'heritage_city' && (p.condition === 'fair' || p.condition === 'good')) {
+      var note = p.condition === 'fair' ? 'Heritage protected — cannot drop below Fair' : '12% chance to drop each January (protected above Fair)';
+      return '<div class="degradation-info degradation-ok">🏛️ ' + note + '</div>';
+    }
+    var urgency = (p.condition === 'poor') ? 'degradation-warn' : 'degradation-ok';
     return '<div class="degradation-info ' + urgency + '">' +
-      (p.isRented ? '📊 Est. ~' + monthsEstimate + ' months until condition drops (rented)' : '📊 Est. ~' + monthsEstimate + ' months until condition drops') +
+      '📊 12% chance to drop one level each January' +
+      (p.isRefurbishing ? ' (paused during refurbishment)' : '') +
     '</div>';
   },
 
