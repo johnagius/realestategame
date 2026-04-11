@@ -1167,9 +1167,13 @@ const GameEngine = {
     });
 
     // 9. New properties may appear on market
+    var ownedState = this.state;
     GameData.cities.forEach(city => {
       const market = this.state.marketProperties[city.id];
-      if (market.length < city.maxProperties && Math.random() < 0.3) {
+      // Count total properties in city (market + owned) to prevent overflow
+      var ownedInCity = ownedState.properties.filter(function(p) { return p.cityId === city.id; }).length;
+      var totalInCity = market.length + ownedInCity;
+      if (totalInCity < city.maxProperties && Math.random() < 0.3) {
         const types = Object.keys(GameData.propertyTypes);
         const type = types[Math.floor(Math.random() * types.length)];
         const newProp = GameData.generateProperty(city.id, type);
@@ -1235,9 +1239,15 @@ const GameEngine = {
 
     // 15. Check era transition + prestige
     results.eraChange = this.checkEraTransition();
-    if (this.state.year >= 2030 && !this.state.prestigeOffered) {
-      this.state.prestigeOffered = true;
+    // Re-offer prestige every January after 2030
+    if (this.state.year >= 2030 && this.state.monthIndex === 0 && !this.state.prestigeOffered) {
+      this.state.prestigeOffered = true; // reset to false in January (below)
       results.prestige = true;
+    }
+
+    // Reset prestige offer flag each January so it can re-appear yearly
+    if (this.state.year >= 2030 && this.state.monthIndex === 0 && !results.prestige) {
+      this.state.prestigeOffered = false;
     }
 
     // 15b. Process dynasty (aging, births, deaths, succession)
