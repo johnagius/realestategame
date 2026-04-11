@@ -344,6 +344,7 @@ const City3D = {
   _rng: null,
   _dragState: { active: false, prevX: 0, startX: 0 },
   _cityDef: null, // current city definition
+  _onBuildingClick: null, // callback(cell) when a building is clicked
 
   // Seeded RNG
   _mkRng: function(s) {
@@ -426,21 +427,25 @@ const City3D = {
     scene.add(selWire);
     this._selWire = selWire;
 
-    // Drag rotation
+    // Drag rotation — store refs for cleanup in destroy()
     var ds = this._dragState;
     var self = this;
     canvas.addEventListener('mousedown', function(e) { ds.active = true; ds.prevX = ds.startX = e.clientX; });
-    window.addEventListener('mouseup', function() { ds.active = false; });
-    window.addEventListener('mousemove', function(e) {
+    this._onMouseUp = function() { ds.active = false; };
+    this._onMouseMove = function(e) {
       if (ds.active && self._pivot) { self._pivot.rotation.y -= (e.clientX - ds.prevX) * 0.006; ds.prevX = e.clientX; }
-    });
+    };
+    window.addEventListener('mouseup', this._onMouseUp);
+    window.addEventListener('mousemove', this._onMouseMove);
 
     // Touch support
     canvas.addEventListener('touchstart', function(e) { if (e.touches.length === 1) { ds.active = true; ds.prevX = ds.startX = e.touches[0].clientX; } }, { passive: true });
-    window.addEventListener('touchend', function() { ds.active = false; });
-    window.addEventListener('touchmove', function(e) {
+    this._onTouchEnd = function() { ds.active = false; };
+    this._onTouchMove = function(e) {
       if (ds.active && e.touches.length === 1 && self._pivot) { self._pivot.rotation.y -= (e.touches[0].clientX - ds.prevX) * 0.006; ds.prevX = e.touches[0].clientX; }
-    }, { passive: true });
+    };
+    window.addEventListener('touchend', this._onTouchEnd);
+    window.addEventListener('touchmove', this._onTouchMove, { passive: true });
 
     // Click / tap selection
     var rc = new THREE.Raycaster(), mouse = new THREE.Vector2();
@@ -452,8 +457,11 @@ const City3D = {
       rc.setFromCamera(mouse, cam);
       var hits = rc.intersectObjects(pivot.children, true).filter(function(h) { return h.object.userData.cell; });
       if (hits.length) {
-        self._selCell = hits[0].object.userData.cell;
+        var cell = hits[0].object.userData.cell;
+        self._selCell = cell;
         selWire.visible = true;
+        // Fire click callback if registered
+        if (self._onBuildingClick) self._onBuildingClick(cell);
       } else {
         self._selCell = null;
         selWire.visible = false;
@@ -575,13 +583,19 @@ const City3D = {
         } else if (isLandmark) {
           var lmFn = cityDef.landmarks[t];
           if (typeof lmFn === 'function') {
-            var bg = lmFn.call(self);
-            bg.position.set(x, 0, z);
-            bg.traverse(function(m) { if (m.isMesh) m.userData.cell = cell; });
-            self._pivot.add(bg);
-            cell.bGrp = bg;
-            // Add landmark name to BNAMES
-            self.BNAMES[t] = t; // will be overridden by city def if provided
+            try {
+              var bg = lmFn.call(self);
+              bg.position.set(x, 0, z);
+              bg.traverse(function(m) { if (m.isMesh) m.userData.cell = cell; });
+              self._pivot.add(bg);
+              cell.bGrp = bg;
+              self.BNAMES[t] = t;
+            } catch(e) {
+              // Landmark failed to build — render ground tile instead
+              var fallback = self.flatPlane(self.TILE, self.TILE, self.M.GND);
+              fallback.position.set(x, 0, z);
+              self._pivot.add(fallback);
+            }
           }
         }
 
@@ -727,13 +741,18 @@ const City3D = {
   // ── Cleanup ──
   destroy: function() {
     this.stopAnimation();
+    // Remove all window-level event listeners
     if (this._onResize) { window.removeEventListener('resize', this._onResize); this._onResize = null; }
+    if (this._onMouseUp) { window.removeEventListener('mouseup', this._onMouseUp); this._onMouseUp = null; }
+    if (this._onMouseMove) { window.removeEventListener('mousemove', this._onMouseMove); this._onMouseMove = null; }
+    if (this._onTouchEnd) { window.removeEventListener('touchend', this._onTouchEnd); this._onTouchEnd = null; }
+    if (this._onTouchMove) { window.removeEventListener('touchmove', this._onTouchMove); this._onTouchMove = null; }
     if (this._renderer) this._renderer.dispose();
     if (this._canvas && this._canvas.parentNode) this._canvas.parentNode.removeChild(this._canvas);
     this._scene = null; this._cam = null; this._renderer = null;
     this._pivot = null; this._grid = null; this._canvas = null;
     this._container = null; this._selCell = null;
-    this._cityDef = null;
+    this._cityDef = null; this._onBuildingClick = null;
   },
 
   // ── Main entry point: render a city into a container ──
