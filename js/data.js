@@ -1089,6 +1089,13 @@ const GameData = {
       description: 'Fast approval, higher rates. No questions asked.',
       baseRate: 0.065, maxLoanPct: 0.5, termMonths: [6, 12, 24, 36],
       rateVariance: 0.01
+    },
+    {
+      id: 'starter_fund', name: 'Property Starter Fund', icon: '🌱',
+      description: 'Government-backed scheme for first-time investors. Low rate, long term.',
+      baseRate: 0.02, maxLoanPct: 0.85, termMonths: [120, 180, 240],
+      rateVariance: 0.002,
+      maxNetWorth: 50000 // only available to small players
     }
   ],
 

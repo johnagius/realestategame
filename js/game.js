@@ -1819,24 +1819,37 @@ const GameEngine = {
     const monthlyIncome = this.getMonthlyIncome();
     const totalRentEarned = this.state.totalRentEarned || 0;
 
-    // Loan capacity based on PROVEN income, not just net worth
-    // Must have earned some rent to prove you can service debt
-    // Starter allowance: 1% of net worth monthly if no income history yet
-    var incomeCapacity = Math.round(monthlyIncome * 0.4) - existingPayments;
-    var starterCapacity = totalRentEarned > 0 ? Math.round(netWorth * 0.015) - existingPayments : Math.round(netWorth * 0.005) - existingPayments;
-    var paymentCapacity = Math.max(0, Math.max(incomeCapacity, starterCapacity));
+    // Monthly payment capacity: percentage of rental income allocated to debt service
+    // Bootstrap (<3 properties): 90% — aggressive but necessary to enable growth from 1→2 properties
+    // Established (3+ properties): 50% — tighter discipline as portfolio scales
+    var propCount = this.state.properties ? this.state.properties.length : 0;
+    var debtRatio = propCount < 3 ? 0.9 : 0.5;
+    var paymentCapacity = Math.max(0, Math.round(monthlyIncome * debtRatio) - existingPayments);
 
-    // Max total debt: proportional to rent history (can't borrow 10x with no track record)
-    var maxTotalDebt = Math.max(
-      monthlyIncome * 60,                    // 5 years of current income
-      Math.min(netWorth * 0.5, totalRentEarned * 20) // or 50% NW capped by 20x rent history
-    );
+    // Max total debt: proportional to rent history (can't borrow big with no track record)
+    // Must have earned rent before qualifying for meaningful loans
+    var maxTotalDebt;
+    if (totalRentEarned <= 0) {
+      // No rent history: tiny starter loans only (enough for mitigation, not properties)
+      maxTotalDebt = Math.min(Math.round(netWorth * 0.15), monthlyIncome * 24);
+    } else {
+      // Has rent history: scale with proven income
+      // Bootstrap: small portfolios (<€20K NW) get higher LTV to enable growth
+      var ltvRatio = netWorth < 20000 ? 0.85 : 0.7;
+      maxTotalDebt = Math.min(
+        Math.round(netWorth * ltvRatio), // NW cap (higher for small players)
+        totalRentEarned * 20              // must earn 5% of loan in rent first
+      );
+      // Floor: at least 5 years of current monthly income
+      maxTotalDebt = Math.max(maxTotalDebt, monthlyIncome * 60);
+    }
     var availableDebtRoom = Math.max(0, maxTotalDebt - existingDebt);
 
     const offers = [];
 
     GameData.banks.forEach(bank => {
       if (bank.minNetWorth && netWorth < bank.minNetWorth) return;
+      if (bank.maxNetWorth && netWorth > bank.maxNetWorth) return;
 
       const maxLoan = Math.min(
         Math.round(netWorth * bank.maxLoanPct) - existingDebt,
