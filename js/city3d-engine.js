@@ -460,6 +460,20 @@ const City3D = {
       }
     });
 
+    // Window resize handler
+    var self2 = this;
+    this._onResize = function() {
+      if (!self2._container || !self2._renderer || !self2._cam) return;
+      var nW = self2._container.clientWidth, nH = self2._container.clientHeight;
+      if (nW < 1 || nH < 1) return;
+      var nA = nW / nH;
+      self2._cam.left = -CS * nA; self2._cam.right = CS * nA;
+      self2._cam.top = CS; self2._cam.bottom = -CS;
+      self2._cam.updateProjectionMatrix();
+      self2._renderer.setSize(nW, nH);
+    };
+    window.addEventListener('resize', this._onResize);
+
     this._rng = this._mkRng(31415);
     return true;
   },
@@ -713,6 +727,7 @@ const City3D = {
   // ── Cleanup ──
   destroy: function() {
     this.stopAnimation();
+    if (this._onResize) { window.removeEventListener('resize', this._onResize); this._onResize = null; }
     if (this._renderer) this._renderer.dispose();
     if (this._canvas && this._canvas.parentNode) this._canvas.parentNode.removeChild(this._canvas);
     this._scene = null; this._cam = null; this._renderer = null;
