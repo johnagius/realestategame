@@ -3332,110 +3332,197 @@ const GameEngine = {
   // ========== DECISION SYSTEM ==========
 
   generateDecision() {
-    // 40% chance of a decision each month (not every month — variable schedule)
+    // 40% chance of a decision each month
     if (Math.random() > 0.4) return null;
-    if (!this.state.properties) return null;
 
+    var s = this.state;
+    if (!s.properties) return null;
     var decisions = [];
     var nw = this.getNetWorth();
-    var era = this.getCurrentEra();
-    var year = this.state.year;
-    var cash = this.state.cash;
+    var cash = s.cash;
+    var props = s.properties;
+    var cycle = s.economicCycle || 'growth';
 
-    // TYPE 1: Rival bidding on property — outbid or lose it
-    if (this.state.aiFamilies && this.state.aiFamilies.length > 0) {
-      var rival = this.state.aiFamilies[Math.floor(Math.random() * this.state.aiFamilies.length)];
-      var cities = Object.keys(this.state.marketProperties);
-      var cityId = cities[Math.floor(Math.random() * cities.length)];
-      var cityMarket = this.state.marketProperties[cityId] || [];
-      if (cityMarket.length > 0) {
-        var prop = cityMarket[Math.floor(Math.random() * cityMarket.length)];
-        var premium = 1.1 + Math.random() * 0.2; // 10-30% above asking
-        decisions.push({
-          type: 'rival_bid',
-          title: rival.icon + ' ' + rival.name + ' Bidding War',
-          description: rival.name + ' want to buy ' + prop.name + '. Outbid them?',
-          choices: [
-            { label: 'Outbid (' + GameData.formatMoney(Math.round(prop.currentValue * premium)) + ')', action: 'outbid', data: { propId: prop.id, cityId: cityId, cost: Math.round(prop.currentValue * premium) } },
-            { label: 'Let them have it', action: 'pass' }
-          ]
-        });
-      }
-    }
+    // ---- PORTFOLIO-LINKED DECISIONS (emerge from what the player owns) ----
 
-    // TYPE 2: Investment opportunity (limited time)
-    if (cash > 0) {
-      var returnPct = 5 + Math.floor(Math.random() * 15);
-      var riskPct = Math.floor(Math.random() * 40) + 10;
-      var investAmt = Math.round(cash * (0.1 + Math.random() * 0.3));
-      var ventures = ['a spice shipment', 'a cotton plantation', 'a railway expansion', 'a mining venture',
-        'a new factory', 'a shipping company', 'a land development', 'a trading expedition'];
-      if (year > 1900) ventures = ['a tech startup', 'an oil field', 'a shopping mall', 'a hotel chain',
-        'a film studio', 'a telecom company', 'a pharmaceutical lab', 'a real estate fund'];
-      var venture = ventures[Math.floor(Math.random() * ventures.length)];
+    // DERELICT OPPORTUNITY: Player owns a poor/derelict property — neighbor wants to sell adjacent lot cheap
+    var derelicts = props.filter(function(p) { return p.condition === 'derelict' || p.condition === 'poor'; });
+    if (derelicts.length > 0) {
+      var dp = derelicts[Math.floor(Math.random() * derelicts.length)];
+      var city = GameData.cities.find(function(c) { return c.id === dp.cityId; });
+      var refurbCost = Math.round(dp.currentValue * 0.15);
       decisions.push({
-        type: 'investment_opportunity',
-        title: '💰 Investment Opportunity',
-        description: 'A contact offers you a stake in ' + venture + '. Potential ' + returnPct + '% return, but ' + riskPct + '% chance of total loss.',
+        type: 'derelict_dilemma',
+        title: '🏚️ Your ' + dp.name + ' Is Crumbling',
+        description: 'Neighbors are complaining about your ' + dp.condition + ' ' + dp.name + ' in ' + (city ? city.name : 'the city') + '. The council threatens a fine. Emergency patch it now or risk a penalty next month.',
         choices: [
-          { label: 'Invest ' + GameData.formatMoney(investAmt), action: 'invest', data: { amount: investAmt, returnPct: returnPct, riskPct: riskPct } },
-          { label: 'Too risky, pass', action: 'pass' }
+          { label: 'Emergency repair (' + GameData.formatMoney(refurbCost) + ')', action: 'emergency_repair', data: { propId: dp.id, cost: refurbCost } },
+          { label: 'Ignore the warning (30% chance of fine)', action: 'ignore_derelict', data: { propId: dp.id, fine: Math.round(dp.currentValue * 0.08) } }
         ]
       });
     }
 
-    // TYPE 3: Sell offer on owned property (AI makes you an offer)
-    if (this.state.properties.length > 0) {
-      var ownedProp = this.state.properties[Math.floor(Math.random() * this.state.properties.length)];
-      if (!ownedProp.isBuilding && !ownedProp.isRefurbishing) {
-        var offerMultiplier = 1.2 + Math.random() * 0.5; // 120-170% of current value
-        var offerAmount = Math.round(ownedProp.currentValue * offerMultiplier);
-        var buyer = this.state.aiFamilies ? this.state.aiFamilies[Math.floor(Math.random() * this.state.aiFamilies.length)] : { icon: '🏢', name: 'A foreign investor' };
+    // TENANT CRISIS: A rented property's tenant is causing problems
+    var rentedProps = props.filter(function(p) { return p.isRented && p.tenant; });
+    if (rentedProps.length > 0) {
+      var tp = rentedProps[Math.floor(Math.random() * rentedProps.length)];
+      var tCity = GameData.cities.find(function(c) { return c.id === tp.cityId; });
+      var tenantIcon = tp.tenant.icon || '👤';
+      var monthlyR = tp.monthlyRent || 0;
+      if (tp.tenant.reliability < 0.85) {
         decisions.push({
-          type: 'sell_offer',
-          title: buyer.icon + ' Offer to Buy',
-          description: buyer.name + ' offers ' + GameData.formatMoney(offerAmount) + ' for your ' + ownedProp.name + ' (worth ' + GameData.formatMoney(ownedProp.currentValue) + ').',
+          type: 'tenant_trouble',
+          title: tenantIcon + ' Tenant Trouble at ' + tp.name,
+          description: 'Your ' + (tp.tenant.type || 'tenant') + ' tenant in ' + (tCity ? tCity.name : 'the city') + ' has been late on rent 3 times. Evict them (lose 2 months rent) or renegotiate at -20% rent to keep them?',
           choices: [
-            { label: 'Accept offer (sell)', action: 'accept_sell', data: { propId: ownedProp.id, amount: offerAmount } },
-            { label: 'Decline — not for sale', action: 'pass' }
+            { label: 'Evict tenant (vacant for 2 months)', action: 'evict_tenant', data: { propId: tp.id, lostRent: monthlyR * 2 } },
+            { label: 'Renegotiate at -20% rent', action: 'renegotiate_rent', data: { propId: tp.id, newMult: 0.8 } }
+          ]
+        });
+      } else if (tp.tenant.monthsOccupied > 12) {
+        // Long-term tenant wants improvement
+        var upgradeCost = Math.round(monthlyR * 3);
+        decisions.push({
+          type: 'tenant_upgrade',
+          title: tenantIcon + ' Tenant Request at ' + tp.name,
+          description: 'Your loyal ' + (tp.tenant.type || '') + ' tenant in ' + (tCity ? tCity.name : 'the city') + ' (' + tp.tenant.monthsOccupied + ' months) asks for improvements. Invest ' + GameData.formatMoney(upgradeCost) + ' to keep them happy, or they may leave.',
+          choices: [
+            { label: 'Invest ' + GameData.formatMoney(upgradeCost) + ' (tenant stays, +10% rent)', action: 'upgrade_for_tenant', data: { propId: tp.id, cost: upgradeCost } },
+            { label: 'Decline (15% chance tenant leaves)', action: 'decline_upgrade', data: { propId: tp.id } }
           ]
         });
       }
     }
 
-    // TYPE 4: Political/tax event choice
-    if (Math.random() < 0.5) {
-      var taxChange = Math.random() < 0.5;
-      if (taxChange) {
+    // CITY DOMINANCE: Player owns 3+ properties in one city — monopoly opportunity
+    var cityCount = {};
+    props.forEach(function(p) { cityCount[p.cityId] = (cityCount[p.cityId] || 0) + 1; });
+    var dominantCities = Object.keys(cityCount).filter(function(cid) { return cityCount[cid] >= 3; });
+    if (dominantCities.length > 0) {
+      var dcId = dominantCities[Math.floor(Math.random() * dominantCities.length)];
+      var dc = GameData.cities.find(function(c) { return c.id === dcId; });
+      var boostCost = Math.round(nw * 0.03);
+      if (dc) {
         decisions.push({
-          type: 'political',
-          title: '📜 Government Policy Change',
-          description: 'New legislation proposed: lower property tax but higher transaction fees, or keep current rates?',
+          type: 'city_dominance',
+          title: '🏘️ Market Influence in ' + dc.name,
+          description: 'You own ' + cityCount[dcId] + ' properties in ' + dc.name + '. A local developer offers a partnership: invest ' + GameData.formatMoney(boostCost) + ' to redevelop the district. All your properties here would appreciate +5%.',
           choices: [
-            { label: 'Lobby for lower tax (-0.2% property tax, +2% transaction fee)', action: 'lobby_low_tax' },
-            { label: 'Support current system', action: 'pass' }
+            { label: 'Invest ' + GameData.formatMoney(boostCost) + ' (all ' + dc.name + ' properties +5%)', action: 'city_invest', data: { cityId: dcId, cost: boostCost } },
+            { label: 'Not interested', action: 'pass' }
           ]
         });
       }
     }
 
-    // TYPE 5: Philanthropy / reputation
-    if (nw > 1000 && Math.random() < 0.3) {
-      var donationAmt = Math.round(nw * 0.02);
+    // DEBT PRESSURE: Player has loans and cash is tight
+    var loans = s.loans || [];
+    var monthlyDebt = loans.reduce(function(sum, l) { return sum + (l.monthlyPayment || 0); }, 0);
+    if (monthlyDebt > 0 && cash < monthlyDebt * 3) {
+      var worstProp = props.slice().sort(function(a, b) { return a.currentValue - b.currentValue; })[0];
+      if (worstProp) {
+        var saleValue = Math.round(worstProp.currentValue * 0.85);
+        decisions.push({
+          type: 'debt_pressure',
+          title: '💳 Cash Flow Crisis',
+          description: 'Loan payments of ' + GameData.formatMoney(monthlyDebt) + '/month are squeezing you. Only ' + GameData.formatMoney(cash) + ' cash left. Consider a fire-sale of ' + worstProp.name + ' for ' + GameData.formatMoney(saleValue) + ' (15% below market).',
+          choices: [
+            { label: 'Fire-sale ' + worstProp.name + ' (+' + GameData.formatMoney(saleValue) + ')', action: 'accept_sell', data: { propId: worstProp.id, amount: saleValue } },
+            { label: 'Hold tight, ride it out', action: 'pass' }
+          ]
+        });
+      }
+    }
+
+    // RECESSION OPPORTUNITY: Market is in recession/depression and player has cash
+    if ((cycle === 'recession' || cycle === 'depression') && cash > 1000) {
+      var cheapCityId = null; var cheapProp = null;
+      var cityIds = Object.keys(s.marketProperties);
+      for (var i = 0; i < cityIds.length; i++) {
+        var mkt = s.marketProperties[cityIds[i]] || [];
+        if (mkt.length > 0 && this.isCityUnlocked(cityIds[i])) {
+          var cheapest = mkt.reduce(function(a, b) { return a.currentValue < b.currentValue ? a : b; });
+          if (!cheapProp || cheapest.currentValue < cheapProp.currentValue) {
+            cheapProp = cheapest; cheapCityId = cityIds[i];
+          }
+        }
+      }
+      if (cheapProp && cheapProp.currentValue < cash * 0.8) {
+        var cheapCity = GameData.cities.find(function(c) { return c.id === cheapCityId; });
+        decisions.push({
+          type: 'recession_buy',
+          title: '📉 ' + (cycle === 'depression' ? 'Depression' : 'Recession') + ' Bargain',
+          description: 'Markets are down. ' + cheapProp.name + ' in ' + (cheapCity ? cheapCity.name : 'the city') + ' is going for ' + GameData.formatMoney(cheapProp.currentValue) + ' — well below historical value. Buy the dip?',
+          choices: [
+            { label: 'Buy it now', action: 'outbid', data: { propId: cheapProp.id, cityId: cheapCityId, cost: cheapProp.currentValue } },
+            { label: 'Wait for lower prices', action: 'pass' }
+          ]
+        });
+      }
+    }
+
+    // VACANT PROPERTY: Player has unrented property — someone wants to rent at a premium
+    var vacantProps = props.filter(function(p) { return !p.isRented && !p.isRefurbishing && !p.isBuilding && p.condition !== 'derelict'; });
+    if (vacantProps.length > 0) {
+      var vp = vacantProps[Math.floor(Math.random() * vacantProps.length)];
+      var vCity = GameData.cities.find(function(c) { return c.id === vp.cityId; });
+      var premiumRent = Math.round((vp.monthlyRent || Math.round(vp.currentValue * 0.08 / 12)) * 1.3);
       decisions.push({
-        type: 'philanthropy',
-        title: '🎗️ Philanthropic Opportunity',
-        description: 'A charity requests ' + GameData.formatMoney(donationAmt) + ' to build a hospital. Your reputation would grow significantly.',
+        type: 'premium_tenant',
+        title: '🔑 Premium Tenant for ' + vp.name,
+        description: 'A corporate client offers to rent your vacant ' + vp.name + ' in ' + (vCity ? vCity.name : 'the city') + ' at ' + GameData.formatMoney(premiumRent) + '/mo (30% above market) — but demands a 12-month lease with no eviction.',
         choices: [
-          { label: 'Donate ' + GameData.formatMoney(donationAmt), action: 'donate', data: { amount: donationAmt } },
-          { label: 'Decline politely', action: 'pass' }
+          { label: 'Accept premium lease', action: 'premium_lease', data: { propId: vp.id, rent: premiumRent } },
+          { label: 'Wait for normal tenant', action: 'pass' }
         ]
       });
     }
 
-    // TYPE 6: Education — send a child to university
-    if (this.state.familyMembers) {
-      var children = this.state.familyMembers.filter(function(m) { return !m.isHead && m.age >= 16 && m.age <= 25 && !m.educated; });
+    // TRAIT-LINKED: City trait creates a unique decision
+    if (props.length > 0) {
+      var traitProp = props[Math.floor(Math.random() * props.length)];
+      var traitCity = GameData.cities.find(function(c) { return c.id === traitProp.cityId; });
+      if (traitCity && traitCity.trait === 'boom_bust' && Math.random() < 0.4) {
+        var flipGain = Math.round(traitProp.currentValue * 0.15);
+        decisions.push({
+          type: 'speculate',
+          title: '📈 Speculation Frenzy in ' + traitCity.name,
+          description: traitCity.name + '\'s volatile market is surging. A speculator offers ' + GameData.formatMoney(traitProp.currentValue + flipGain) + ' for your ' + traitProp.name + ' — ' + GameData.formatMoney(flipGain) + ' above market. But prices could keep rising...',
+          choices: [
+            { label: 'Cash out now (+' + GameData.formatMoney(flipGain) + ' profit)', action: 'accept_sell', data: { propId: traitProp.id, amount: traitProp.currentValue + flipGain } },
+            { label: 'Hold — bet on more upside', action: 'pass' }
+          ]
+        });
+      } else if (traitCity && traitCity.trait === 'redevelopment' && (traitProp.condition === 'poor' || traitProp.condition === 'fair') && Math.random() < 0.3) {
+        var grantAmt = Math.round(traitProp.currentValue * 0.12);
+        decisions.push({
+          type: 'redevelopment_grant',
+          title: '🏗️ Government Grant in ' + traitCity.name,
+          description: traitCity.name + '\'s redevelopment zone is offering grants. Your ' + traitProp.condition + ' ' + traitProp.name + ' qualifies for ' + GameData.formatMoney(grantAmt) + ' toward renovation — but you must begin refurbishment this month.',
+          choices: [
+            { label: 'Accept grant (+' + GameData.formatMoney(grantAmt) + ', must refurbish)', action: 'accept_grant', data: { propId: traitProp.id, grant: grantAmt } },
+            { label: 'Pass on the grant', action: 'pass' }
+          ]
+        });
+      } else if (traitCity && traitCity.trait === 'crime_pressure' && Math.random() < 0.3) {
+        var protCost = Math.round(traitProp.currentValue * 0.02);
+        decisions.push({
+          type: 'security_shakedown',
+          title: '🔓 Security Concern in ' + traitCity.name,
+          description: 'Break-ins have spiked near your ' + traitProp.name + ' in ' + traitCity.name + '. A security firm offers protection for ' + GameData.formatMoney(protCost) + '. Unprotected properties face higher crime risk this quarter.',
+          choices: [
+            { label: 'Hire security (' + GameData.formatMoney(protCost) + ')', action: 'hire_security', data: { propId: traitProp.id, cost: protCost } },
+            { label: 'Take the risk', action: 'pass' }
+          ]
+        });
+      }
+    }
+
+    // ---- DYNASTY DECISIONS (keep existing education, marriage, scandal) ----
+
+    // Education — send a child to university
+    if (s.familyMembers) {
+      var children = s.familyMembers.filter(function(m) { return !m.isHead && m.age >= 16 && m.age <= 25 && !m.educated; });
       if (children.length > 0 && cash > 0) {
         var child = children[0];
         var eduCost = Math.round(cash * 0.08);
@@ -3451,12 +3538,12 @@ const GameEngine = {
       }
     }
 
-    // TYPE 7: Marriage — marry into an AI family
-    if (this.state.familyMembers && this.state.aiFamilies) {
-      var eligibleChildren = this.state.familyMembers.filter(function(m) { return !m.isHead && m.age >= 18 && m.age <= 35 && !m.married; });
+    // Marriage — marry into an AI family
+    if (s.familyMembers && s.aiFamilies) {
+      var eligibleChildren = s.familyMembers.filter(function(m) { return !m.isHead && m.age >= 18 && m.age <= 35 && !m.married; });
       if (eligibleChildren.length > 0 && Math.random() < 0.3) {
         var spouse = eligibleChildren[0];
-        var aiFamily = this.state.aiFamilies[Math.floor(Math.random() * this.state.aiFamilies.length)];
+        var aiFamily = s.aiFamilies[Math.floor(Math.random() * s.aiFamilies.length)];
         var dowry = Math.round(aiFamily.netWorth * 0.05);
         decisions.push({
           type: 'marriage',
@@ -3470,9 +3557,24 @@ const GameEngine = {
       }
     }
 
-    // TYPE 8: Scandal
-    if (this.state.familyMembers && Math.random() < 0.2) {
-      var head = this.state.familyMembers.find(function(m) { return m.isHead; });
+    // Philanthropy — tied to reputation
+    if (nw > 1000 && (s.reputation || 50) < 70 && Math.random() < 0.3) {
+      var donationAmt = Math.round(nw * 0.02);
+      var donationCity = props.length > 0 ? GameData.cities.find(function(c) { return c.id === props[0].cityId; }) : null;
+      decisions.push({
+        type: 'philanthropy',
+        title: '🎗️ Charity Gala' + (donationCity ? ' in ' + donationCity.name : ''),
+        description: (donationCity ? donationCity.name + '\'s' : 'The') + ' community leaders invite you to fund a hospital wing. ' + GameData.formatMoney(donationAmt) + ' would boost your reputation significantly.' + ((s.reputation || 50) < 50 ? ' Your current reputation is hurting business — this would help.' : ''),
+        choices: [
+          { label: 'Donate ' + GameData.formatMoney(donationAmt) + ' (+8 reputation)', action: 'donate', data: { amount: donationAmt } },
+          { label: 'Decline politely', action: 'pass' }
+        ]
+      });
+    }
+
+    // Scandal — more likely with high reputation (more to lose)
+    if (s.familyMembers && Math.random() < ((s.reputation || 50) > 70 ? 0.25 : 0.1)) {
+      var head = s.familyMembers.find(function(m) { return m.isHead; });
       if (head) {
         var scandals = [
           { text: head.name + ' is caught in a gambling scandal! Pay hush money or face public shame.', cost: 0.05, repLoss: 12 },
@@ -3493,11 +3595,19 @@ const GameEngine = {
       }
     }
 
-    // Pick one decision (not all)
+    // ---- SELECTION: Prioritize portfolio-linked over generic ----
     if (decisions.length === 0) return null;
-    var chosen = decisions[Math.floor(Math.random() * decisions.length)];
 
-    // Store pending decision
+    // Weight portfolio-linked decisions higher
+    var portfolioTypes = ['derelict_dilemma','tenant_trouble','tenant_upgrade','city_dominance','debt_pressure','recession_buy','premium_tenant','speculate','redevelopment_grant','security_shakedown'];
+    var portfolio = decisions.filter(function(d) { return portfolioTypes.indexOf(d.type) >= 0; });
+    var chosen;
+    if (portfolio.length > 0 && Math.random() < 0.75) {
+      chosen = portfolio[Math.floor(Math.random() * portfolio.length)];
+    } else {
+      chosen = decisions[Math.floor(Math.random() * decisions.length)];
+    }
+
     this.state.pendingDecision = chosen;
     return chosen;
   },
@@ -3557,10 +3667,120 @@ const GameEngine = {
         }
         break;
       }
-      case 'lobby_low_tax': {
-        // Reduce property tax rate slightly, increase transaction costs
-        GameData.cities.forEach(c => { c.taxRate = Math.min(0.15, c.taxRate + 0.02); });
-        result.message = 'Property tax reduced, but transaction fees are now higher.';
+      case 'emergency_repair': {
+        var d = choiceData || decision.choices[0].data;
+        if (this.state.cash >= d.cost) {
+          this.state.cash -= d.cost;
+          var prop = this.state.properties.find(function(p) { return p.id === d.propId; });
+          if (prop) {
+            var cl = GameData.conditions[prop.condition] ? GameData.conditions[prop.condition].level : 0;
+            prop.condition = GameData.conditionOrder[Math.min(4, cl + 1)];
+            this.recalculateRent(prop);
+          }
+          result.message = '🔧 Emergency repair complete. Condition improved!';
+        } else { result.message = 'Not enough cash.'; result.success = false; }
+        break;
+      }
+      case 'ignore_derelict': {
+        var d = choiceData || decision.choices[0].data;
+        if (Math.random() < 0.3) {
+          this.state.cash -= Math.min(d.fine, this.state.cash);
+          result.message = '📋 Council fined you ' + GameData.formatMoney(d.fine) + ' for the property condition!';
+        } else {
+          result.message = 'No fine this time — but the property is still deteriorating.';
+        }
+        break;
+      }
+      case 'evict_tenant': {
+        var d = choiceData || decision.choices[0].data;
+        var prop = this.state.properties.find(function(p) { return p.id === d.propId; });
+        if (prop) { prop.isRented = false; prop.tenant = null; }
+        result.message = 'Tenant evicted. Property vacant — find a new tenant.';
+        break;
+      }
+      case 'renegotiate_rent': {
+        var d = choiceData || decision.choices[0].data;
+        var prop = this.state.properties.find(function(p) { return p.id === d.propId; });
+        if (prop) { prop.rentMultiplier = d.newMult; }
+        result.message = 'Rent renegotiated at -20%. Tenant stays for now.';
+        break;
+      }
+      case 'upgrade_for_tenant': {
+        var d = choiceData || decision.choices[0].data;
+        if (this.state.cash >= d.cost) {
+          this.state.cash -= d.cost;
+          var prop = this.state.properties.find(function(p) { return p.id === d.propId; });
+          if (prop) { prop.rentMultiplier = Math.min(1.3, (prop.rentMultiplier || 1.0) + 0.1); }
+          result.message = '🏠 Improvements made! Tenant happy, rent +10%.';
+        } else { result.message = 'Not enough cash.'; result.success = false; }
+        break;
+      }
+      case 'decline_upgrade': {
+        var d = choiceData || decision.choices[0].data;
+        if (Math.random() < 0.15) {
+          var prop = this.state.properties.find(function(p) { return p.id === d.propId; });
+          if (prop) { prop.isRented = false; prop.tenant = null; }
+          result.message = '😔 Tenant left due to unaddressed complaints.';
+        } else {
+          result.message = 'Tenant grumbles but stays — for now.';
+        }
+        break;
+      }
+      case 'city_invest': {
+        var d = choiceData || decision.choices[0].data;
+        if (this.state.cash >= d.cost) {
+          this.state.cash -= d.cost;
+          var self = this;
+          this.state.properties.forEach(function(p) {
+            if (p.cityId === d.cityId) {
+              p.currentValue = Math.round(p.currentValue * 1.05);
+              self.recalculateRent(p);
+            }
+          });
+          result.message = '🏘️ District redevelopment complete! All properties in the area appreciated +5%.';
+        } else { result.message = 'Not enough cash.'; result.success = false; }
+        break;
+      }
+      case 'premium_lease': {
+        var d = choiceData || decision.choices[0].data;
+        var prop = this.state.properties.find(function(p) { return p.id === d.propId; });
+        if (prop) {
+          prop.isRented = true;
+          prop.tenant = GameData.assignTenant(prop);
+          if (prop.tenant) { prop.tenant.type = 'Corporate'; prop.tenant.icon = '🏢'; prop.tenant.reliability = 0.96; prop.tenant.care = 0.90; }
+          prop.rentMultiplier = 1.3;
+          prop.monthlyRent = d.rent;
+        }
+        result.message = '🔑 Premium corporate lease signed! ' + GameData.formatMoney(d.rent) + '/month guaranteed.';
+        break;
+      }
+      case 'accept_grant': {
+        var d = choiceData || decision.choices[0].data;
+        this.state.cash += d.grant;
+        // Auto-start standard refurbishment
+        var prop = this.state.properties.find(function(p) { return p.id === d.propId; });
+        if (prop && !prop.isRefurbishing) {
+          var refResult = this.refurbishProperty(d.propId, 'standard');
+          if (refResult.success) {
+            result.message = '🏗️ Grant of ' + GameData.formatMoney(d.grant) + ' received! Refurbishment started.';
+          } else {
+            result.message = '🏗️ Grant of ' + GameData.formatMoney(d.grant) + ' received! (Start refurbishment manually.)';
+          }
+        } else {
+          result.message = '🏗️ Grant of ' + GameData.formatMoney(d.grant) + ' received!';
+        }
+        break;
+      }
+      case 'hire_security': {
+        var d = choiceData || decision.choices[0].data;
+        if (this.state.cash >= d.cost) {
+          this.state.cash -= d.cost;
+          // Apply security mitigation
+          if (!this.state.mitigations) this.state.mitigations = {};
+          if (!this.state.mitigations[d.propId]) this.state.mitigations[d.propId] = {};
+          this.state.mitigations[d.propId]['security_system'] = true;
+          result.message = '🔒 Security hired! Property protected against theft and vandalism.';
+        } else { result.message = 'Not enough cash.'; result.success = false; }
         break;
       }
       case 'donate': {
