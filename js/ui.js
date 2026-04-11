@@ -1718,6 +1718,10 @@ const GameUI = {
     dubai: function() { return typeof CityDef_Dubai !== 'undefined' ? CityDef_Dubai : null; },
     paris: function() { return typeof CityDef_Paris !== 'undefined' ? CityDef_Paris : null; },
     sydney: function() { return typeof CityDef_Sydney !== 'undefined' ? CityDef_Sydney : null; },
+    singapore: function() { return typeof CityDef_Singapore !== 'undefined' ? CityDef_Singapore : null; },
+    hong_kong: function() { return typeof CityDef_HongKong !== 'undefined' ? CityDef_HongKong : null; },
+    barcelona: function() { return typeof CityDef_Barcelona !== 'undefined' ? CityDef_Barcelona : null; },
+    rome: function() { return typeof CityDef_Rome !== 'undefined' ? CityDef_Rome : null; },
   },
 
   renderCityMap() {
