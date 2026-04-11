@@ -429,12 +429,14 @@ const GameEngine = {
     const option = GameData.buildOptions[buildOptionKey];
     if (!option) return { success: false, message: 'Invalid build option.' };
 
-    // Calculate build cost based on resulting property value
+    // Calculate build cost based on resulting property value (era-scaled)
     const city = GameData.cities.find(c => c.id === property.cityId);
+    const era = this.getCurrentEra();
+    const eraM = era.propertyMultiplier || 1;
     const resultType = GameData.propertyTypes[option.resultType];
     const [minP, maxP] = resultType.basePriceRange;
-    const estimatedValue = Math.round(((minP + maxP) / 2) * city.priceMultiplier / 1000) * 1000;
-    const buildCost = Math.round(estimatedValue * option.costPct);
+    const estimatedValue = Math.max(1, Math.round(((minP + maxP) / 2) * city.priceMultiplier * eraM));
+    const buildCost = Math.max(1, Math.round(estimatedValue * option.costPct));
 
     if (this.state.cash < buildCost) {
       return { success: false, message: `Not enough cash. Need ${GameData.formatMoney(buildCost)}.` };
@@ -1013,9 +1015,11 @@ const GameEngine = {
           const city = GameData.cities.find(c => c.id === p.cityId);
           const newType = GameData.propertyTypes[option.resultType];
 
-          // Transform property
+          // Transform property (era-scaled value)
+          const curEra = this.getCurrentEra();
+          const eraMP = curEra.propertyMultiplier || 1;
           const [minP, maxP] = newType.basePriceRange;
-          const newValue = Math.round(((minP + maxP) / 2) * city.priceMultiplier / 1000) * 1000;
+          const newValue = Math.max(1, Math.round(((minP + maxP) / 2) * city.priceMultiplier * eraMP));
 
           p.type = option.resultType;
           p.name = p.name.replace(/Land|Plot|Site|Lot/, option.name);
