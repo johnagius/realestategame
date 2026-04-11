@@ -108,7 +108,10 @@
     <div class="screen-header">
       <button id="btn-back-city" class="btn btn-ghost btn-back">← Back</button>
       <h2 id="city-title">City</h2>
-      <button id="btn-city-view-toggle" class="btn btn-ghost btn-small">🏙️ City View</button>
+      <div style="display:flex;gap:6px">
+        <button id="btn-city-insight" class="btn btn-ghost btn-small" onclick="GameUI.showCityInsight()">📊 Insight</button>
+        <button id="btn-city-view-toggle" class="btn btn-ghost btn-small">🏙️ City View</button>
+      </div>
     </div>
     <div id="city-info" class="city-info-bar"></div>
     <!-- City Map View (visual) -->

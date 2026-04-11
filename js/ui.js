@@ -1035,6 +1035,7 @@ const GameUI = {
       '<div class="settings-section">' +
         '<div class="settings-row"><div><div class="settings-label">Auto-Advance Time</div><div class="settings-description">Automatically advance months</div></div>' + this.renderSpeedControls() + '</div>' +
         '<div class="settings-row"><div><div class="settings-label">Sound Effects</div><div class="settings-description">' + (GameAudio.muted ? 'Muted' : 'On') + '</div></div><button class="btn btn-secondary btn-small" onclick="GameAudio.toggle();GameUI.renderSettings()">' + (GameAudio.muted ? '🔇 Unmute' : '🔊 Mute') + '</button></div>' +
+        '<div class="settings-row"><div><div class="settings-label">Investment Score</div><div class="settings-description">Show investment coefficient on city insight</div></div><button class="btn btn-secondary btn-small" onclick="GameEngine.state.hideInvestScore=!GameEngine.state.hideInvestScore;GameEngine.save();GameUI.renderSettings()">' + (GameEngine.state.hideInvestScore ? '👁️ Show' : '🙈 Hide') + '</button></div>' +
         '<div class="settings-row"><div><div class="settings-label">Save Game</div><div class="settings-description">Game saves automatically each month</div></div><button class="btn btn-primary btn-small" onclick="GameEngine.save(); GameUI.toast(\'Game saved!\', \'success\')">Save Now</button></div>' +
         '<div class="settings-row"><div><div class="settings-label">New Game</div><div class="settings-description">Start fresh with €500,000</div></div><button class="btn btn-danger btn-small" onclick="App.confirmNewGame()">Reset</button></div>' +
       '</div>' +
@@ -1714,6 +1715,51 @@ const GameUI = {
     });
 
     grid.innerHTML = html;
+  },
+
+  // ---- City Insight Panel ----
+  showCityInsight: function() {
+    var cityId = this.currentCity;
+    var city = GameData.cities.find(function(c) { return c.id === cityId; });
+    if (!city) return;
+    var disasters = GameEngine.getCityDisasterProfile(cityId);
+    var cycle = GameEngine.state.economicCycle || 'growth';
+    var market = GameEngine.state.marketProperties[cityId] || [];
+    var owned = GameEngine.state.properties.filter(function(p) { return p.cityId === cityId; });
+    var avgPrice = market.length > 0 ? Math.round(market.reduce(function(s,p){return s+p.currentValue;},0)/market.length) : 0;
+    // Investment Score
+    var yS=city.rentYield*100, gS=city.growthRate*50, tP=city.taxRate*40, iP=(city.inflationRate||0.02)*30, rP=disasters.length*5;
+    var cB={boom:3,growth:1.5,stagnation:0,recession:-2,depression:-4}[cycle]||0;
+    var score=Math.round((yS+gS-tP-iP-rP+cB)*10)/10;
+    var sCol=score>=6?'#2A9D8F':score>=4?'#D4A84B':'#E63946';
+    var sLbl=score>=7?'Excellent':score>=5?'Good':score>=3?'Fair':'Poor';
+    var disIcons={flood:'🌊',earthquake:'🌍',fire:'🔥',storm:'⛈️',theft:'🔓',sandstorm:'🏜️',drought:'☀️',vandalism:'🎨',burglary:'🚨'};
+    var h='<div style="max-height:70vh;overflow-y:auto">';
+    h+='<div class="finance-card" style="margin-bottom:10px"><div style="font-size:0.82rem;margin-bottom:6px"><strong>'+city.flag+' '+city.name+'</strong>, '+city.country+'</div><div style="font-size:0.75rem;color:var(--text-muted);line-height:1.5">'+city.description+'</div></div>';
+    if(!GameEngine.state.hideInvestScore){
+      h+='<div class="finance-card" style="margin-bottom:10px;text-align:center"><div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px">INVESTMENT SCORE</div><div style="font-size:2rem;font-weight:800;color:'+sCol+'">'+score.toFixed(1)+'</div><div style="font-size:0.75rem;font-weight:700;color:'+sCol+'">'+sLbl+'</div><div style="font-size:0.6rem;color:var(--text-muted);margin-top:6px;line-height:1.6">Yield +'+yS.toFixed(1)+' · Growth +'+gS.toFixed(1)+' · Tax -'+tP.toFixed(1)+' · Inflation -'+iP.toFixed(1)+' · Risk -'+rP+' · Cycle '+(cB>=0?'+':'')+cB+'</div></div>';
+    }
+    h+='<div class="finance-card" style="margin-bottom:10px"><div style="font-size:0.78rem;font-weight:700;margin-bottom:6px">📊 Economics</div>';
+    h+='<div class="finance-row"><span class="finance-row-label">Rent Yield</span><span class="finance-row-value">'+(city.rentYield*100).toFixed(1)+'%</span></div>';
+    h+='<div class="finance-row"><span class="finance-row-label">Annual Growth</span><span class="finance-row-value positive">'+(city.growthRate*100).toFixed(1)+'%</span></div>';
+    h+='<div class="finance-row"><span class="finance-row-label">Purchase Tax</span><span class="finance-row-value negative">'+Math.round(city.taxRate*100)+'%</span></div>';
+    h+='<div class="finance-row"><span class="finance-row-label">Inflation</span><span class="finance-row-value">'+((city.inflationRate||0.02)*100).toFixed(1)+'%</span></div>';
+    h+='<div class="finance-row"><span class="finance-row-label">Price Tier</span><span class="finance-row-value">'+city.priceMultiplier+'x</span></div>';
+    h+='<div class="finance-row"><span class="finance-row-label">Economic Cycle</span><span class="finance-row-value">'+cycle.charAt(0).toUpperCase()+cycle.slice(1)+'</span></div>';
+    h+='<div class="finance-row"><span class="finance-row-label">Avg Market Price</span><span class="finance-row-value">'+GameData.formatMoney(avgPrice)+'</span></div></div>';
+    h+='<div class="finance-card" style="margin-bottom:10px"><div style="font-size:0.78rem;font-weight:700;margin-bottom:6px">🏠 Market</div>';
+    h+='<div class="finance-row"><span class="finance-row-label">For Sale</span><span class="finance-row-value">'+market.length+'</span></div>';
+    h+='<div class="finance-row"><span class="finance-row-label">You Own</span><span class="finance-row-value">'+owned.length+'</span></div>';
+    h+='<div class="finance-row"><span class="finance-row-label">Max Properties</span><span class="finance-row-value">'+city.maxProperties+'</span></div></div>';
+    h+='<div class="finance-card" style="margin-bottom:10px"><div style="font-size:0.78rem;font-weight:700;margin-bottom:6px">⚠️ Risk Assessment</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">';
+    disasters.forEach(function(d){h+='<span style="background:rgba(230,57,70,0.08);border:1px solid rgba(230,57,70,0.2);border-radius:12px;padding:3px 10px;font-size:0.72rem">'+(disIcons[d]||'⚠️')+' '+d.charAt(0).toUpperCase()+d.slice(1)+'</span>';});
+    h+='</div><div style="font-size:0.65rem;color:var(--text-muted);line-height:1.5">Properties face '+disasters.length+' risk types. Mitigations reduce damage 50-90%. Poor condition = 1.3-1.8x more vulnerable.</div></div>';
+    h+='<div style="font-size:0.68rem;color:var(--text-muted);line-height:1.5;padding:6px;background:rgba(44,110,73,0.04);border-radius:6px"><strong>💡 Tip:</strong> ';
+    if(score>=6)h+='Strong fundamentals. High yield and growth offset costs.';
+    else if(score>=4)h+='Decent returns but watch costs. Tax and inflation erode gains.';
+    else h+='Challenging market. High costs relative to returns. Consider other cities.';
+    h+='</div></div>';
+    this.showModal(city.flag+' '+city.name+' — City Insight',h,'<button class="btn btn-ghost" onclick="GameUI.hideModal()">Close</button>');
   },
 
   // ---- Toggle city view ----
