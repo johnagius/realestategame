@@ -1522,13 +1522,19 @@ const GameUI = {
         GameAudio.fanfare();
         return;
       } else if (objR.type === 'expired') {
+        var rivalBoostText = objR.rivalBoost ? '<div class="finance-row"><span class="finance-row-label">' + objR.rivalBoost + '</span><span class="finance-row-value negative">+20% wealth boost</span></div>' : '';
         GameUI.showModal('⏱️ Time\'s Up',
           '<div style="text-align:center;padding:10px 0">' +
-            '<div style="font-size:2.5rem;margin-bottom:6px">🏙️</div>' +
-            '<div style="font-family:var(--font-heading);font-size:1rem;margin-bottom:8px;color:var(--text-dark)">24 months have passed</div>' +
-            '<div style="font-size:0.85rem;color:var(--text-dark);margin-bottom:12px">You didn\'t beat the Rothschilds this time — but your journey continues. Keep building to unlock new cities.</div>' +
+            '<div style="font-size:2.5rem;margin-bottom:6px">😤</div>' +
+            '<div style="font-family:var(--font-heading);font-size:1rem;margin-bottom:8px;color:var(--text-dark)">You failed the opening objective</div>' +
+            '<div style="font-size:0.85rem;color:var(--text-dark);margin-bottom:12px">Your rival has capitalised on your slow start. The market noticed.</div>' +
+            '<div class="finance-card">' +
+              '<div class="finance-row"><span class="finance-row-label">Reputation</span><span class="finance-row-value negative">-10</span></div>' +
+              rivalBoostText +
+            '</div>' +
+            '<div style="margin-top:10px;font-size:0.78rem;color:var(--text-muted)">Your journey continues — but the competition just got harder.</div>' +
           '</div>',
-          '<button class="btn btn-primary" onclick="GameUI.hideModal()">Continue</button>'
+          '<button class="btn btn-primary" onclick="GameUI.hideModal()">Keep Fighting</button>'
         );
         return;
       }

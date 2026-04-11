@@ -81,7 +81,7 @@ const GameEngine = {
       })(),
       // Progressive feature unlocking
       unlockedFeatures: {
-        bank: false,           // unlocks at 2 properties
+        bank: false,           // unlocks at 1 property
         businesses: false,     // unlocks at campaign tier 1
         investments: false,    // unlocks at campaign tier 2
         aiDiplomacy: false,    // unlocks at 5 properties
@@ -1040,7 +1040,9 @@ const GameEngine = {
             else traitFactor = 1.15;
           }
 
-          var actualRent = Math.round(adjustedRent * synergyFactor * rentCycleFactor * seasonFactor * traitFactor);
+          // Cap combined multiplier at 2.5x to prevent snowball
+          var combinedMult = Math.min(2.5, synergyFactor * rentCycleFactor * seasonFactor * traitFactor);
+          var actualRent = Math.round(adjustedRent * combinedMult);
           this.state.cash += actualRent;
           p.totalRentCollected += actualRent;
           results.rentIncome += actualRent;
@@ -1070,14 +1072,21 @@ const GameEngine = {
     });
 
     // 2b. Property tax (scales with portfolio size — wealth tax)
+    // Tax haven properties are exempt
     if (this.state.properties.length > 0) {
-      var portfolioValue = this.state.properties.reduce((s, p) => s + p.currentValue, 0);
-      // Base rate: 0.5% annual. Increases 0.1% for every 10 properties owned (up to 2.5%)
-      var taxRate = Math.min(0.025, 0.005 + Math.floor(this.state.properties.length / 10) * 0.001);
-      var monthlyTax = Math.round(portfolioValue * taxRate / 12);
-      this.state.cash -= monthlyTax;
-      results.propertyTax = monthlyTax;
-      results.expenses += monthlyTax;
+      var taxableProps = this.state.properties.filter(function(p) {
+        var c = GameData.cities.find(function(cc) { return cc.id === p.cityId; });
+        return !c || c.trait !== 'tax_haven';
+      });
+      if (taxableProps.length > 0) {
+        var portfolioValue = taxableProps.reduce(function(s, p) { return s + p.currentValue; }, 0);
+        // Base rate: 0.5% annual. Increases 0.1% for every 10 properties owned (up to 2.5%)
+        var taxRate = Math.min(0.025, 0.005 + Math.floor(this.state.properties.length / 10) * 0.001);
+        var monthlyTax = Math.round(portfolioValue * taxRate / 12);
+        this.state.cash -= monthlyTax;
+        results.propertyTax = monthlyTax;
+        results.expenses += monthlyTax;
+      }
     }
 
     // 3. Process refurbishments (with tier results)
@@ -3504,11 +3513,21 @@ const GameEngine = {
     // Count down
     obj.monthsLeft--;
     if (obj.monthsLeft <= 0) {
-      // Time's up — soft fail, don't block progress
+      // Time's up — meaningful consequences but not game-ending
       obj.active = false;
       obj.failed = true;
+      // Reputation hit — you failed your first public challenge
+      this.state.reputation = Math.max(0, (this.state.reputation || 50) - 10);
+      // Rival gets a boost — they capitalize on your weakness
+      var failRival = this.state.aiFamilies ? this.state.aiFamilies.find(function(ai) { return ai.id === obj.rivalId; }) : null;
+      if (failRival) {
+        failRival.netWorth = Math.round(failRival.netWorth * 1.2);
+        failRival.monthlyIncome = Math.round(failRival.monthlyIncome * 1.15);
+      }
       return {
-        type: 'expired'
+        type: 'expired',
+        repLoss: 10,
+        rivalBoost: failRival ? failRival.name : null
       };
     }
 
