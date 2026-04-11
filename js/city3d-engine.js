@@ -344,6 +344,7 @@ const City3D = {
   _rng: null,
   _dragState: { active: false, prevX: 0, startX: 0 },
   _cityDef: null, // current city definition
+  _onBuildingClick: null, // callback(cell) when a building is clicked
 
   // Seeded RNG
   _mkRng: function(s) {
@@ -452,8 +453,11 @@ const City3D = {
       rc.setFromCamera(mouse, cam);
       var hits = rc.intersectObjects(pivot.children, true).filter(function(h) { return h.object.userData.cell; });
       if (hits.length) {
-        self._selCell = hits[0].object.userData.cell;
+        var cell = hits[0].object.userData.cell;
+        self._selCell = cell;
         selWire.visible = true;
+        // Fire click callback if registered
+        if (self._onBuildingClick) self._onBuildingClick(cell);
       } else {
         self._selCell = null;
         selWire.visible = false;
