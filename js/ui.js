@@ -1727,6 +1727,11 @@ const GameUI = {
     toronto: function() { return typeof CityDef_Toronto !== 'undefined' ? CityDef_Toronto : null; },
     monaco: function() { return typeof CityDef_Monaco !== 'undefined' ? CityDef_Monaco : null; },
     shanghai: function() { return typeof CityDef_Shanghai !== 'undefined' ? CityDef_Shanghai : null; },
+    mumbai: function() { return typeof CityDef_Mumbai !== 'undefined' ? CityDef_Mumbai : null; },
+    sao_paulo: function() { return typeof CityDef_SaoPaulo !== 'undefined' ? CityDef_SaoPaulo : null; },
+    cape_town: function() { return typeof CityDef_CapeTown !== 'undefined' ? CityDef_CapeTown : null; },
+    los_angeles: function() { return typeof CityDef_LosAngeles !== 'undefined' ? CityDef_LosAngeles : null; },
+    miami: function() { return typeof CityDef_Miami !== 'undefined' ? CityDef_Miami : null; },
   },
 
   renderCityMap() {
