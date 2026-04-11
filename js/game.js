@@ -1817,17 +1817,31 @@ const GameEngine = {
     const existingDebt = (this.state.loans || []).reduce((s, l) => s + l.remainingBalance, 0);
     const existingPayments = (this.state.loans || []).reduce((s, l) => s + l.monthlyPayment, 0);
     const monthlyIncome = this.getMonthlyIncome();
-    // Debt-to-income cap: 40% of rental income, OR 2% of net worth monthly (whichever higher)
-    // This allows new players to bootstrap with small loans
-    const incomeCapacity = Math.round(monthlyIncome * 0.4) - existingPayments;
-    const worthCapacity = Math.round(netWorth * 0.02) - existingPayments;
-    const paymentCapacity = Math.max(0, Math.max(incomeCapacity, worthCapacity));
+    const totalRentEarned = this.state.totalRentEarned || 0;
+
+    // Loan capacity based on PROVEN income, not just net worth
+    // Must have earned some rent to prove you can service debt
+    // Starter allowance: 1% of net worth monthly if no income history yet
+    var incomeCapacity = Math.round(monthlyIncome * 0.4) - existingPayments;
+    var starterCapacity = totalRentEarned > 0 ? Math.round(netWorth * 0.015) - existingPayments : Math.round(netWorth * 0.005) - existingPayments;
+    var paymentCapacity = Math.max(0, Math.max(incomeCapacity, starterCapacity));
+
+    // Max total debt: proportional to rent history (can't borrow 10x with no track record)
+    var maxTotalDebt = Math.max(
+      monthlyIncome * 60,                    // 5 years of current income
+      Math.min(netWorth * 0.5, totalRentEarned * 20) // or 50% NW capped by 20x rent history
+    );
+    var availableDebtRoom = Math.max(0, maxTotalDebt - existingDebt);
+
     const offers = [];
 
     GameData.banks.forEach(bank => {
       if (bank.minNetWorth && netWorth < bank.minNetWorth) return;
 
-      const maxLoan = Math.round(netWorth * bank.maxLoanPct) - existingDebt;
+      const maxLoan = Math.min(
+        Math.round(netWorth * bank.maxLoanPct) - existingDebt,
+        availableDebtRoom
+      );
       if (maxLoan <= 0) return;
 
       const loanAmount = Math.min(amount, maxLoan);
