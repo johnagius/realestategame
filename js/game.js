@@ -1450,6 +1450,9 @@ const GameEngine = {
     // 16d. Check feature unlocks
     results.featureUnlocks = this.checkFeatureUnlocks();
 
+    // 16e. Check city unlock challenges
+    results.cityUnlocks = this.checkCityUnlocks();
+
     // 17. Track net worth
     this.state.networthHistory.push(this.getNetWorth());
     if (this.state.networthHistory.length > 120) {
@@ -3238,7 +3241,7 @@ const GameEngine = {
     var tier = this.state.campaignTier || 0;
     var objDone = this.state.openingObjective && (this.state.openingObjective.completed || !this.state.openingObjective.active);
 
-    if (!uf.bank && propCount >= 2) {
+    if (!uf.bank && propCount >= 1) {
       uf.bank = true;
       newlyUnlocked.push({ id: 'bank', icon: '🏦', message: 'Bank Unlocked! Take loans to grow your empire faster.' });
     }
@@ -3261,16 +3264,35 @@ const GameEngine = {
     return newlyUnlocked;
   },
 
-  // ========== CITY UNLOCKING ==========
+  // ========== CITY UNLOCKING (Challenge-based) ==========
 
-  // Cities to unlock at each campaign tier
-  cityUnlockSchedule: {
-    0: ['london'],                                       // start
-    1: ['paris', 'amsterdam'],                           // Established
-    2: ['berlin', 'rome', 'barcelona'],                  // Regional Power
-    3: ['new_york', 'dubai', 'mumbai', 'singapore', 'tokyo'], // National Empire
-    4: ['hong_kong', 'shanghai', 'sydney', 'los_angeles', 'miami', 'toronto', 'cape_town', 'sao_paulo', 'monaco'] // Global Dynasty — all remaining
-  },
+  // Each city has a unique unlock challenge — a mini-campaign step
+  cityUnlockChallenges: [
+    // Tier 1: Starter expansion (unlock after opening objective)
+    { cityId: 'paris', challenge: 'Own 3 properties', icon: '🗼', check: function(s, ge) { return s.properties.length >= 3; } },
+    { cityId: 'amsterdam', challenge: 'Earn €500 total rent', icon: '🌷', check: function(s) { return s.totalRentEarned >= 500; } },
+    // Tier 2: Growing empire
+    { cityId: 'berlin', challenge: 'Refurbish a property', icon: '🚪', check: function(s) { return s.properties.some(function(p) { return p.totalRentCollected > 0 && p.condition === 'good' || p.condition === 'excellent'; }); } },
+    { cityId: 'rome', challenge: 'Own properties in 2 cities', icon: '🏛️', check: function(s) { var c = {}; s.properties.forEach(function(p) { c[p.cityId] = 1; }); return Object.keys(c).length >= 2; } },
+    { cityId: 'barcelona', challenge: 'Reach €50K net worth', icon: '⛪', check: function(s, ge) { return ge.getNetWorth() >= 50000; } },
+    // Tier 3: Serious investor
+    { cityId: 'toronto', challenge: 'Own 8 properties', icon: '🗼', check: function(s) { return s.properties.length >= 8; } },
+    { cityId: 'los_angeles', challenge: 'Earn €5K total rent', icon: '🎬', check: function(s) { return s.totalRentEarned >= 5000; } },
+    { cityId: 'miami', challenge: 'Reach €200K net worth', icon: '🌴', check: function(s, ge) { return ge.getNetWorth() >= 200000; } },
+    { cityId: 'sydney', challenge: 'Own properties in 4 cities', icon: '🎭', check: function(s) { var c = {}; s.properties.forEach(function(p) { c[p.cityId] = 1; }); return Object.keys(c).length >= 4; } },
+    // Tier 4: Global player
+    { cityId: 'new_york', challenge: 'Reach €1M net worth', icon: '🗽', check: function(s, ge) { return ge.getNetWorth() >= 1000000; } },
+    { cityId: 'dubai', challenge: 'Own 15 properties', icon: '🏗️', check: function(s) { return s.properties.length >= 15; } },
+    { cityId: 'singapore', challenge: 'Earn €50K total rent', icon: '🦁', check: function(s) { return s.totalRentEarned >= 50000; } },
+    { cityId: 'tokyo', challenge: 'Own properties in 8 cities', icon: '⛩️', check: function(s) { var c = {}; s.properties.forEach(function(p) { c[p.cityId] = 1; }); return Object.keys(c).length >= 8; } },
+    { cityId: 'mumbai', challenge: 'Reach €5M net worth', icon: '🕌', check: function(s, ge) { return ge.getNetWorth() >= 5000000; } },
+    // Tier 5: Endgame
+    { cityId: 'shanghai', challenge: 'Own 30 properties', icon: '🏯', check: function(s) { return s.properties.length >= 30; } },
+    { cityId: 'hong_kong', challenge: 'Reach €50M net worth', icon: '🌉', check: function(s, ge) { return ge.getNetWorth() >= 50000000; } },
+    { cityId: 'cape_town', challenge: 'Earn €500K total rent', icon: '⛰️', check: function(s) { return s.totalRentEarned >= 500000; } },
+    { cityId: 'sao_paulo', challenge: 'Own properties in 12 cities', icon: '🎨', check: function(s) { var c = {}; s.properties.forEach(function(p) { c[p.cityId] = 1; }); return Object.keys(c).length >= 12; } },
+    { cityId: 'monaco', challenge: 'Reach €500M net worth', icon: '🎰', check: function(s, ge) { return ge.getNetWorth() >= 500000000; } }
+  ],
 
   isCityUnlocked(cityId) {
     if (!this.state.unlockedCities) return true; // old saves
@@ -3284,20 +3306,51 @@ const GameEngine = {
     }
   },
 
-  unlockCitiesForTier(tier) {
+  // Check all city unlock challenges and unlock any that are met
+  checkCityUnlocks() {
     var self = this;
+    var s = this.state;
     var newlyUnlocked = [];
-    // Unlock all cities for this tier and below
-    for (var t = 0; t <= tier; t++) {
-      var cities = this.cityUnlockSchedule[t] || [];
-      cities.forEach(function(id) {
-        if (!self.isCityUnlocked(id)) {
-          self.unlockCity(id);
-          newlyUnlocked.push(id);
-        }
-      });
-    }
+    this.cityUnlockChallenges.forEach(function(ch) {
+      if (!self.isCityUnlocked(ch.cityId) && ch.check(s, self)) {
+        self.unlockCity(ch.cityId);
+        var city = GameData.cities.find(function(c) { return c.id === ch.cityId; });
+        newlyUnlocked.push({
+          cityId: ch.cityId,
+          cityName: city ? city.name : ch.cityId,
+          cityFlag: city ? city.flag : '🌍',
+          challenge: ch.challenge,
+          icon: ch.icon
+        });
+      }
+    });
     return newlyUnlocked;
+  },
+
+  // Get the next locked city's challenge for display
+  getNextCityChallenge() {
+    var self = this;
+    for (var i = 0; i < this.cityUnlockChallenges.length; i++) {
+      var ch = this.cityUnlockChallenges[i];
+      if (!self.isCityUnlocked(ch.cityId)) {
+        var city = GameData.cities.find(function(c) { return c.id === ch.cityId; });
+        return {
+          cityId: ch.cityId,
+          cityName: city ? city.name : ch.cityId,
+          cityFlag: city ? city.flag : '🌍',
+          challenge: ch.challenge,
+          icon: ch.icon
+        };
+      }
+    }
+    return null; // all unlocked
+  },
+
+  // Legacy: still works for campaign tier completions as fallback
+  unlockCitiesForTier(tier) {
+    // No longer batch-unlocks — cities unlock via individual challenges now
+    // This just triggers a check
+    return this.checkCityUnlocks();
   },
 
   getLockedCities() {
@@ -3328,15 +3381,14 @@ const GameEngine = {
     if (propsOk && rivalOk) {
       obj.active = false;
       obj.completed = true;
-      // Reward: unlock next 2 cities + bonus cash
+      // Reward: bonus cash
       var reward = Math.max(500, Math.round(playerNW * 0.1));
       this.state.cash += reward;
       this.state.reputation = Math.min(100, (this.state.reputation || 50) + 5);
-      this.unlockCitiesForTier(1); // unlock Paris + Amsterdam
+      // Cities now unlock via individual challenges (checked in advanceMonth)
       return {
         type: 'completed',
-        reward: reward,
-        unlockedCities: ['paris', 'amsterdam']
+        reward: reward
       };
     }
 
@@ -3346,11 +3398,8 @@ const GameEngine = {
       // Time's up — soft fail, don't block progress
       obj.active = false;
       obj.failed = true;
-      // Still unlock cities so they aren't stuck
-      this.unlockCitiesForTier(1);
       return {
-        type: 'expired',
-        unlockedCities: ['paris', 'amsterdam']
+        type: 'expired'
       };
     }
 

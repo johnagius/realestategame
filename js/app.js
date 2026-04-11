@@ -45,7 +45,8 @@ const App = {
       if (target) {
         var cityId = target.getAttribute('data-city');
         if (!GameEngine.isCityUnlocked(cityId)) {
-          GameUI.toast('🔒 Complete campaign tiers to unlock this city', 'warning');
+          var ch = GameEngine.cityUnlockChallenges ? GameEngine.cityUnlockChallenges.find(function(c) { return c.cityId === cityId; }) : null;
+          GameUI.toast('🔒 ' + (ch ? ch.challenge + ' to unlock' : 'Keep progressing to unlock'), 'warning');
           return;
         }
         GameUI.currentCityTab = 'market';
@@ -68,7 +69,8 @@ const App = {
       if (card) {
         var cityId = card.getAttribute('data-city');
         if (!GameEngine.isCityUnlocked(cityId)) {
-          GameUI.toast('🔒 Complete campaign tiers to unlock this city', 'warning');
+          var ch = GameEngine.cityUnlockChallenges ? GameEngine.cityUnlockChallenges.find(function(c) { return c.cityId === cityId; }) : null;
+          GameUI.toast('🔒 ' + (ch ? ch.challenge + ' to unlock' : 'Keep progressing to unlock'), 'warning');
           return;
         }
         GameUI.currentCityTab = 'market';
@@ -258,7 +260,7 @@ const App = {
     var family = GameData.families.find(function(f) { return f.id === s.familyId; }) || { name: 'Your family' };
     var rival = s.aiFamilies ? s.aiFamilies.find(function(ai) { return ai.id === 'rothschild'; }) : null;
     var rivalName = rival ? rival.name : 'The Rothschilds';
-    var rivalNW = rival ? GameData.formatMoney(rival.netWorth) : '€7,500';
+    var rivalNW = rival ? GameData.formatMoney(rival.netWorth) : '€30,000';
     var cash = GameData.formatMoney(s.cash);
 
     GameUI.showModal('🎡 London, 1750',
