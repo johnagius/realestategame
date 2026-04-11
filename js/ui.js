@@ -1766,21 +1766,31 @@ const GameUI = {
       var def = defFn ? defFn() : null;
       if (def) {
         var container = document.getElementById('city-map');
-        // Don't re-render if same city is already showing
-        if (City3D._cityDef && City3D._cityDef.id === cityId) return;
+        // Gather actual properties for this city (market + owned)
+        var market = GameEngine.state.marketProperties[cityId] || [];
+        var owned = GameEngine.state.properties.filter(function(p) { return p.cityId === cityId; });
+        var allProps = market.concat(owned);
+
+        // Don't re-render if same city with same property count is already showing
+        if (City3D._cityDef && City3D._cityDef.id === cityId && City3D._properties && City3D._properties.length === allProps.length) return;
         container.innerHTML = '';
         container.style.background = '#060c1a';
         try {
-          City3D.renderCity(def, container);
+          City3D.renderCity(def, container, allProps);
         } catch(e) {
           container.innerHTML = '<div style="color:#c8a030;text-align:center;padding:40px;font-size:13px">3D city view unavailable</div>';
           return;
         }
-        // Wire building click → show info toast (3D scene is decorative, not tied to market)
+        // Wire building click → navigate to property detail if it's a real property
         City3D._onBuildingClick = function(cell) {
-          var typeName = City3D.BNAMES[cell.t] || cell.t;
-          var evInfo = cell.ev ? ' — ' + City3D.EVENTS[cell.ev].em + ' ' + City3D.EVENTS[cell.ev].n : '';
-          GameUI.toast(typeName + evInfo, 'info');
+          if (cell.propertyId) {
+            // Navigate to property detail
+            GameUI.showScreen('property', cell.propertyId);
+          } else {
+            // Landmark or empty — show info
+            var typeName = City3D.BNAMES[cell.t] || cell.t;
+            GameUI.toast(typeName, 'info');
+          }
         };
         return;
       }
