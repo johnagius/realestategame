@@ -267,14 +267,6 @@ const App = {
     if (!document.getElementById('floating-leaderboard').classList.contains('hidden')) {
       GameUI.renderFloatingLeaderboard();
     }
-    // Re-render current screen so it reflects state changes (refurb complete, etc.)
-    var screen = GameUI.currentScreen;
-    if (screen === 'property') GameUI.renderProperty();
-    else if (screen === 'city') GameUI.renderCityProperties();
-    else if (screen === 'portfolio') GameUI.renderPortfolio();
-    else if (screen === 'finances') GameUI.renderFinances();
-    else if (screen === 'bank') GameUI.renderBank();
-
     GameUI.showMonthResults(results);
 
     // Show AI interaction or decision card
@@ -310,8 +302,9 @@ const App = {
     // Rotate tips every few months
     if (GameEngine.state.month % 3 === 0) this.showRandomTip();
 
-    // Refresh current screen
+    // Refresh current screen so it reflects state changes (refurb complete, values, etc.)
     if (GameUI.currentScreen === 'map') GameUI.renderMap();
+    else if (GameUI.currentScreen === 'property') GameUI.renderProperty();
     else if (GameUI.currentScreen === 'city') GameUI.renderCity();
     else if (GameUI.currentScreen === 'portfolio') GameUI.renderPortfolio();
     else if (GameUI.currentScreen === 'finances') GameUI.renderFinances();

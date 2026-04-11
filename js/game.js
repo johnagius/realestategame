@@ -132,6 +132,26 @@ const GameEngine = {
         if (!this.state.mergerHistory) this.state.mergerHistory = [];
         if (!this.state.investments) this.state.investments = [];
         if (this.state.savingsBalance === undefined) this.state.savingsBalance = 0;
+        // Sprint 2+3 fields
+        if (!this.state.achievements) this.state.achievements = [];
+        if (!this.state.achievementNotified) this.state.achievementNotified = [];
+        if (!this.state.aiRelationships) this.state.aiRelationships = {};
+        if (this.state.autoAdvanceSpeed === undefined) this.state.autoAdvanceSpeed = 0;
+        if (!this.state.autoSellRules) this.state.autoSellRules = [];
+        if (this.state.consecutiveNegativeCash === undefined) this.state.consecutiveNegativeCash = 0;
+        if (this.state.prestigeLevel === undefined) this.state.prestigeLevel = 0;
+        if (!this.state.totalLegacyPoints) this.state.totalLegacyPoints = 0;
+        if (!this.state.prestigeHistory) this.state.prestigeHistory = [];
+        if (!this.state.marketPressure) this.state.marketPressure = {};
+        // Migrate old properties: ensure tenant + rentMultiplier fields exist
+        if (this.state.properties) {
+          this.state.properties.forEach(function(p) {
+            if (p.rentMultiplier === undefined) p.rentMultiplier = 1.0;
+            if (p.isRented && !p.tenant) {
+              p.tenant = GameData.assignTenant(p);
+            }
+          });
+        }
         return this.state;
       }
     } catch (e) {
