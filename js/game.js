@@ -456,6 +456,54 @@ const GameEngine = {
     };
   },
 
+  // ---- Demolish property → converts to land (keep ownership) ----
+  demolishProperty(propertyId) {
+    const property = this.state.properties.find(p => p.id === propertyId);
+    if (!property) return { success: false, message: 'Property not found.' };
+    if (!property.isOwned) return { success: false, message: 'You don\'t own this property.' };
+    if (property.type === 'land') return { success: false, message: 'Already land — nothing to demolish.' };
+    if (property.isBuilding) return { success: false, message: 'Cannot demolish during construction.' };
+    if (property.isRefurbishing) return { success: false, message: 'Cannot demolish during refurbishment.' };
+
+    // Demolition cost: 10% of current value
+    var demoCost = Math.round(property.currentValue * 0.10);
+    if (this.state.cash < demoCost) {
+      return { success: false, message: 'Not enough cash. Demolition costs ' + GameData.formatMoney(demoCost) + '.' };
+    }
+
+    var oldType = GameData.propertyTypes[property.type] ? GameData.propertyTypes[property.type].name : property.type;
+
+    // Execute demolition
+    this.state.cash -= demoCost;
+
+    // Land value is a fraction of the building value
+    var landValue = Math.round(property.currentValue * 0.3);
+
+    // Convert to land
+    property.type = 'land';
+    property.currentValue = landValue;
+    property.monthlyRent = 0;
+    property.isRented = false;
+    property.tenant = null;
+    property.rentMultiplier = 1.0;
+    property.condition = 'good';
+    property.monthlyMaintenance = Math.round(landValue * 0.005 / 12);
+    property.monthlyLicense = Math.round(landValue * 0.005 / 12);
+    property.name = property.district + ' Development Site';
+
+    // Clear mitigations
+    if (this.state.mitigations[property.id]) {
+      this.state.mitigations[property.id] = {};
+    }
+
+    this.save();
+    return {
+      success: true,
+      message: oldType + ' demolished for ' + GameData.formatMoney(demoCost) + '. You now own land worth ' + GameData.formatMoney(landValue) + '. Build something new or sell it.',
+      cost: demoCost
+    };
+  },
+
   // ---- Purchase mitigation for a property ----
   purchaseMitigation(propertyId, mitigationType) {
     const property = this.state.properties.find(p => p.id === propertyId);

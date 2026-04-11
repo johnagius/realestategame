@@ -659,7 +659,13 @@ const GameUI = {
         // Sell
         var agentFee = Math.round(p.currentValue * GameData.sellingFeeRate);
         var saleProceeds = p.currentValue - agentFee;
-        actionsHTML += '<button class="btn btn-danger btn-small mt-8" onclick="App.sellProperty(\'' + p.id + '\')">Sell — ' + GameData.formatMoney(saleProceeds) + ' (after ' + GameData.formatMoney(agentFee) + ' fee)</button>';
+        actionsHTML += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">';
+        actionsHTML += '<button class="btn btn-danger btn-small" style="flex:1" onclick="App.sellProperty(\'' + p.id + '\')">Sell — ' + GameData.formatMoney(saleProceeds) + '</button>';
+        if (p.type !== 'land') {
+          var demoCost = GameData.formatMoney(Math.round(p.currentValue * 0.10));
+          actionsHTML += '<button class="btn btn-ghost btn-small" style="flex:1" onclick="App.demolishProperty(\'' + p.id + '\')">🏗️ Demolish (' + demoCost + ')</button>';
+        }
+        actionsHTML += '</div>';
 
         // Auto-sell
         var autoRule = (GameEngine.state.autoSellRules || []).find(function(r) { return r.propertyId === p.id; });
