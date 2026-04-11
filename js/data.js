@@ -980,8 +980,15 @@ const GameData = {
     const count = 6 + Math.floor(Math.random() * 5); // 6-10 properties
     const properties = [];
 
-    // Guarantee 3 affordable starter properties so every family can buy something
-    var starterTypes = ['studio', 'studio', 'warehouse'];
+    // Guarantee 3 affordable starter properties — use era-appropriate types
+    var starterEra = 'pre_industrial';
+    if (typeof GameEngine !== 'undefined' && GameEngine.state) {
+      var se = this.eras.find(function(e) { return GameEngine.state.year >= e.years[0] && GameEngine.state.year <= e.years[1]; });
+      if (se) starterEra = se.id;
+    }
+    var starterTypes = (starterEra === 'pre_industrial') ? ['studio', 'studio', 'house'] :
+                       (starterEra === 'industrial_revolution') ? ['studio', 'house', 'warehouse'] :
+                       ['studio', 'studio', 'warehouse'];
     starterTypes.forEach(function(st, idx) {
       var prop = GameData.generateProperty(cityId, st);
       if (prop) {
@@ -1006,20 +1013,24 @@ const GameData = {
       }
     });
 
+    // Era-appropriate property types
+    var currentEraId = 'pre_industrial';
+    if (typeof GameEngine !== 'undefined' && GameEngine.state) {
+      var ce = this.eras.find(function(e) { return GameEngine.state.year >= e.years[0] && GameEngine.state.year <= e.years[1]; });
+      if (ce) currentEraId = ce.id;
+    }
+    var eraPropertyTypes = {
+      pre_industrial: ['land', 'studio', 'house', 'commercial', 'warehouse'],
+      industrial_revolution: ['land', 'studio', 'house', 'townhouse', 'commercial', 'warehouse'],
+      gilded_age: ['land', 'studio', 'apartment', 'townhouse', 'house', 'villa', 'commercial', 'warehouse'],
+      modern_era: ['land', 'studio', 'apartment', 'penthouse', 'townhouse', 'house', 'villa', 'mansion', 'commercial', 'warehouse'],
+      information_age: ['land', 'studio', 'apartment', 'penthouse', 'townhouse', 'house', 'villa', 'mansion', 'commercial', 'warehouse']
+    };
+    var allowedTypes = eraPropertyTypes[currentEraId] || Object.keys(this.propertyTypes);
+
     for (let i = properties.length; i < count + 3; i++) {
-      // Weighted type selection for remaining slots
-      const roll = Math.random();
-      let type;
-      if (roll < 0.05) type = 'land';
-      else if (roll < 0.15) type = 'studio';
-      else if (roll < 0.35) type = 'apartment';
-      else if (roll < 0.42) type = 'penthouse';
-      else if (roll < 0.52) type = 'townhouse';
-      else if (roll < 0.65) type = 'house';
-      else if (roll < 0.75) type = 'villa';
-      else if (roll < 0.80) type = 'mansion';
-      else if (roll < 0.92) type = 'commercial';
-      else type = 'warehouse';
+      // Weighted type selection for remaining slots (filtered by era)
+      var type = allowedTypes[Math.floor(Math.random() * allowedTypes.length)];
 
       const prop = this.generateProperty(cityId, type);
       if (prop) properties.push(prop);

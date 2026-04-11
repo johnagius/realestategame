@@ -735,7 +735,7 @@ const GameUI = {
           var era = GameEngine.getCurrentEra();
           var eraM = era.propertyMultiplier || 1;
           // Era-appropriate building types
-          var eraBuilds = { pre_industrial: ['house', 'warehouse'], industrial: ['house', 'townhouse', 'warehouse', 'commercial'], gilded: ['house', 'townhouse', 'apartment', 'villa', 'warehouse', 'commercial'], modern: ['house', 'townhouse', 'apartment', 'villa', 'warehouse', 'commercial'], information: ['house', 'townhouse', 'apartment', 'villa', 'warehouse', 'commercial'] };
+          var eraBuilds = { pre_industrial: ['house', 'warehouse'], industrial_revolution: ['house', 'townhouse', 'warehouse', 'commercial'], gilded_age: ['house', 'townhouse', 'apartment', 'villa', 'warehouse', 'commercial'], modern_era: ['house', 'townhouse', 'apartment', 'villa', 'warehouse', 'commercial'], information_age: ['house', 'townhouse', 'apartment', 'villa', 'warehouse', 'commercial'] };
           var allowed = eraBuilds[era.id] || Object.keys(GameData.buildOptions);
           actionsHTML += '<div class="action-info mb-8">Build on this land:</div>';
           var opts = GameData.buildOptions;
@@ -859,7 +859,8 @@ const GameUI = {
     html += '<div style="font-size:0.72rem;font-weight:700;margin-bottom:5px;color:var(--text-muted)">⚠️ Monthly Risk Factors</div>';
     html += '<div style="display:flex;flex-wrap:wrap;gap:4px">';
     disasters.forEach(function(d) {
-      var baseProb = (d === 'earthquake' || d === 'flood') ? 0.004 : (d === 'fire' || d === 'storm') ? 0.003 : 0.002;
+      var disasterDef = GameEngine.disasters[d] || {};
+      var baseProb = disasterDef.baseProbability || 0.002;
       var prob = baseProb * condMult;
       // Check if mitigated
       var mitigated = false;
@@ -1506,12 +1507,15 @@ const GameUI = {
     // Opening objective completion/expiry
     if (results.openingObjectiveResult) {
       var objR = results.openingObjectiveResult;
+      var objRivalId = (GameEngine.state.openingObjective || {}).rivalId || 'rothschild';
+      var objRival = (GameEngine.state.aiFamilies || []).find(function(a) { return a.id === objRivalId; });
+      var objRivalName = objRival ? objRival.name : 'your rival';
       if (objR.type === 'completed') {
         GameUI.showModal('⚔️ Objective Complete!',
           '<div style="text-align:center;padding:10px 0">' +
             '<div style="font-size:3rem;margin-bottom:6px">🏆</div>' +
-            '<div style="font-family:var(--font-heading);font-size:1.1rem;margin-bottom:8px;color:var(--primary-dark)">You have overtaken the Rothschilds!</div>' +
-            '<div style="font-size:0.85rem;color:var(--text-dark);margin-bottom:12px">Your family has proven its worth in London. Keep growing to unlock new cities — each has a unique challenge.</div>' +
+            '<div style="font-family:var(--font-heading);font-size:1.1rem;margin-bottom:8px;color:var(--primary-dark)">You have overtaken ' + objRivalName + '!</div>' +
+            '<div style="font-size:0.85rem;color:var(--text-dark);margin-bottom:12px">Your family has proven its worth in London. Keep growing to unlock new cities — each has a unique campaign.</div>' +
             '<div class="finance-card">' +
               '<div class="finance-row"><span class="finance-row-label">Cash Reward</span><span class="finance-row-value positive">+' + GameData.formatMoney(objR.reward) + '</span></div>' +
             '</div>' +

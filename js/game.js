@@ -1841,7 +1841,7 @@ const GameEngine = {
         const totalRepayment = monthlyPayment * term;
 
         // Skip if monthly payment exceeds remaining capacity
-        if (monthlyPayment > paymentCapacity && paymentCapacity > 0) return;
+        if (monthlyPayment > paymentCapacity) return;
 
         offers.push({
           bankId: bank.id,
@@ -2844,8 +2844,10 @@ const GameEngine = {
       case 'accept_buyout': {
         var propIdx = this.state.properties.findIndex(function(p){return p.id === data.propId;});
         if (propIdx >= 0) {
+          var soldPropId = this.state.properties[propIdx].id;
           this.state.cash += data.amount;
           this.state.properties.splice(propIdx, 1);
+          if (this.state.mitigations) delete this.state.mitigations[soldPropId];
           this.state.totalSaleRevenue += data.amount;
           this.state.totalPropertiesSold++;
           // Accepting a deal improves relationship
@@ -3487,7 +3489,8 @@ const GameEngine = {
     var obj = this.state.openingObjective;
     if (!obj || !obj.active) return null;
 
-    var propCount = this.state.properties.length;
+    // Count London properties only — the opening is about establishing in London
+    var propCount = this.state.properties.filter(function(p) { return p.cityId === 'london'; }).length;
     var rival = this.state.aiFamilies ? this.state.aiFamilies.find(function(ai) { return ai.id === obj.rivalId; }) : null;
     var playerNW = this.getNetWorth();
     var rivalNW = rival ? rival.netWorth : 0;
@@ -3538,7 +3541,7 @@ const GameEngine = {
     var obj = this.state.openingObjective;
     if (!obj || !obj.active) return null;
 
-    var propCount = this.state.properties.length;
+    var propCount = this.state.properties.filter(function(p) { return p.cityId === 'london'; }).length;
     var rival = this.state.aiFamilies ? this.state.aiFamilies.find(function(ai) { return ai.id === obj.rivalId; }) : null;
     var playerNW = this.getNetWorth();
     var rivalNW = rival ? rival.netWorth : 0;
@@ -3979,8 +3982,10 @@ const GameEngine = {
         if (prop) {
           prop.isRented = true;
           prop.tenant = GameData.assignTenant(prop);
-          if (prop.tenant) { prop.tenant.type = 'Corporate'; prop.tenant.icon = '🏢'; prop.tenant.reliability = 0.96; prop.tenant.care = 0.90; }
-          prop.rentMultiplier = 1.3;
+          if (prop.tenant) { prop.tenant.type = 'corporate'; prop.tenant.icon = '🏢'; prop.tenant.reliability = 0.96; prop.tenant.care = 0.90; }
+          // Premium lease sets higher base rent — don't also set rentMultiplier (would double-count)
+          prop.rentMultiplier = 1.0;
+          this.recalculateRent(prop);
           prop.monthlyRent = d.rent;
         }
         result.message = '🔑 Premium corporate lease signed! ' + GameData.formatMoney(d.rent) + '/month guaranteed.';
