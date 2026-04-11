@@ -53,14 +53,14 @@ const GameData = {
       id: 'pre_industrial', name: 'Pre-Industrial Era', years: [1750, 1799],
       icon: '🏰', color: '#8B7355',
       description: 'Land and agriculture dominate. Cities are small trading hubs.',
-      propertyMultiplier: 0.001, rentMultiplier: 1.0, businessTypes: ['farm', 'tavern', 'market', 'workshop'],
+      propertyMultiplier: 0.01, rentMultiplier: 1.0, businessTypes: ['farm', 'tavern', 'market', 'workshop'],
       features: { stocks: false, mergers: false, playerBanks: false, factories: false }
     },
     {
       id: 'industrial_revolution', name: 'Industrial Revolution', years: [1800, 1869],
       icon: '🏭', color: '#6B4423',
       description: 'Steam power transforms cities. Factories and railways emerge.',
-      propertyMultiplier: 0.005, rentMultiplier: 1.0, businessTypes: ['farm', 'tavern', 'market', 'workshop', 'factory', 'textile_mill', 'railway'],
+      propertyMultiplier: 0.03, rentMultiplier: 1.0, businessTypes: ['farm', 'tavern', 'market', 'workshop', 'factory', 'textile_mill', 'railway'],
       features: { stocks: true, mergers: false, playerBanks: false, factories: true }
     },
     {
@@ -151,21 +151,21 @@ const GameData = {
     {
       id: 'silva', name: 'The Silva Family', icon: '👨‍👩‍👧‍👦', tier: 'humble',
       description: 'Peasant farmers in 1750. Build a dynasty from the soil up.',
-      startingCash: 400, difficulty: 'Hard',
+      startingCash: 500, difficulty: 'Hard',
       motto: '"From nothing, we build everything."',
       color: '#7B6D4E'
     },
     {
       id: 'chen', name: 'The Chen Family', icon: '👨‍👩‍👦', tier: 'middle',
       description: 'Merchants with a small trading post. Ambition runs in the blood.',
-      startingCash: 800, difficulty: 'Normal',
+      startingCash: 1200, difficulty: 'Normal',
       motto: '"Patience and persistence pay dividends."',
       color: '#2C6E49'
     },
     {
       id: 'armstrong', name: 'The Armstrongs', icon: '👫', tier: 'wealthy',
       description: 'Minor aristocrats with land holdings. Grow the family fortune.',
-      startingCash: 2500, difficulty: 'Easy',
+      startingCash: 3000, difficulty: 'Easy',
       motto: '"Fortune favours the bold."',
       color: '#3D5A80'
     },
@@ -895,11 +895,11 @@ const GameData = {
     const rentMultiplier = typeDef.rentMultiplier || 0;
     const condPenalty = this.conditions[condition].rentPenalty;
     const annualRent = price * city.rentYield * rentMultiplier * condPenalty;
-    const monthlyRent = Math.round(annualRent / 12);
+    const monthlyRent = Math.max(typeDef.canRent ? 1 : 0, Math.round(annualRent / 12));
 
     // Maintenance
     const annualMaintenance = price * typeDef.maintenanceRate;
-    const monthlyMaintenance = Math.round(annualMaintenance / 12);
+    const monthlyMaintenance = Math.max(1, Math.round(annualMaintenance / 12));
 
     // Licensing fee — scale with property value (1% annually), not fixed
     const annualLicense = Math.round(price * 0.01);
