@@ -1,13 +1,17 @@
-const CACHE_NAME = 'property-empire-v1';
+const CACHE_NAME = 'property-empire-v3';
 const ASSETS = [
   '/',
   '/index.html',
   '/css/style.css',
+  '/js/intro.js',
   '/js/audio.js',
   '/js/data.js',
   '/js/game.js',
   '/js/graphics.js',
   '/js/imageloader.js',
+  '/js/mosaic.js',
+  '/js/city3d-engine.js',
+  '/js/cities/new_york.js',
   '/js/ui.js',
   '/js/app.js',
   '/manifest.json'
