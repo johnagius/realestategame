@@ -1716,6 +1716,7 @@ const GameUI = {
     london: function() { return typeof CityDef_London !== 'undefined' ? CityDef_London : null; },
     tokyo: function() { return typeof CityDef_Tokyo !== 'undefined' ? CityDef_Tokyo : null; },
     dubai: function() { return typeof CityDef_Dubai !== 'undefined' ? CityDef_Dubai : null; },
+    paris: function() { return typeof CityDef_Paris !== 'undefined' ? CityDef_Paris : null; },
   },
 
   renderCityMap() {
