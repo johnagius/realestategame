@@ -81,7 +81,7 @@ const GameEngine = {
       })(),
       // Progressive feature unlocking
       unlockedFeatures: {
-        bank: false,           // unlocks at 2 properties
+        bank: false,           // unlocks at 1 property
         businesses: false,     // unlocks at campaign tier 1
         investments: false,    // unlocks at campaign tier 2
         aiDiplomacy: false,    // unlocks at 5 properties
@@ -1040,7 +1040,9 @@ const GameEngine = {
             else traitFactor = 1.15;
           }
 
-          var actualRent = Math.round(adjustedRent * synergyFactor * rentCycleFactor * seasonFactor * traitFactor);
+          // Cap combined multiplier at 2.5x to prevent snowball
+          var combinedMult = Math.min(2.5, synergyFactor * rentCycleFactor * seasonFactor * traitFactor);
+          var actualRent = Math.round(adjustedRent * combinedMult);
           this.state.cash += actualRent;
           p.totalRentCollected += actualRent;
           results.rentIncome += actualRent;
@@ -1070,14 +1072,21 @@ const GameEngine = {
     });
 
     // 2b. Property tax (scales with portfolio size — wealth tax)
+    // Tax haven properties are exempt
     if (this.state.properties.length > 0) {
-      var portfolioValue = this.state.properties.reduce((s, p) => s + p.currentValue, 0);
-      // Base rate: 0.5% annual. Increases 0.1% for every 10 properties owned (up to 2.5%)
-      var taxRate = Math.min(0.025, 0.005 + Math.floor(this.state.properties.length / 10) * 0.001);
-      var monthlyTax = Math.round(portfolioValue * taxRate / 12);
-      this.state.cash -= monthlyTax;
-      results.propertyTax = monthlyTax;
-      results.expenses += monthlyTax;
+      var taxableProps = this.state.properties.filter(function(p) {
+        var c = GameData.cities.find(function(cc) { return cc.id === p.cityId; });
+        return !c || c.trait !== 'tax_haven';
+      });
+      if (taxableProps.length > 0) {
+        var portfolioValue = taxableProps.reduce(function(s, p) { return s + p.currentValue; }, 0);
+        // Base rate: 0.5% annual. Increases 0.1% for every 10 properties owned (up to 2.5%)
+        var taxRate = Math.min(0.025, 0.005 + Math.floor(this.state.properties.length / 10) * 0.001);
+        var monthlyTax = Math.round(portfolioValue * taxRate / 12);
+        this.state.cash -= monthlyTax;
+        results.propertyTax = monthlyTax;
+        results.expenses += monthlyTax;
+      }
     }
 
     // 3. Process refurbishments (with tier results)
@@ -1481,11 +1490,13 @@ const GameEngine = {
       ai.netWorth += income;
 
       // AI ACTUALLY BUYS from the market (removes properties you could buy)
-      // More aggressive AI buys more often (0.08 to 0.20 chance per month)
+      // AI only competes in cities the player has unlocked — fair, legible rivalry
       if (Math.random() < ai.aggressiveness * 0.22) {
-        var cities = Object.keys(state.marketProperties);
-        if (cities.length > 0) {
-          var cityId = cities[Math.floor(Math.random() * cities.length)];
+        var buyableCities = Object.keys(state.marketProperties).filter(function(cid) {
+          return !state.unlockedCities || state.unlockedCities.indexOf(cid) >= 0;
+        });
+        if (buyableCities.length > 0) {
+          var cityId = buyableCities[Math.floor(Math.random() * buyableCities.length)];
           var market = state.marketProperties[cityId];
           if (market && market.length > 1) {
             var affordable = market.filter(p => p.currentValue < ai.netWorth * 0.3);
@@ -1832,7 +1843,7 @@ const GameEngine = {
         const totalRepayment = monthlyPayment * term;
 
         // Skip if monthly payment exceeds remaining capacity
-        if (monthlyPayment > paymentCapacity && paymentCapacity > 0) return;
+        if (monthlyPayment > paymentCapacity) return;
 
         offers.push({
           bankId: bank.id,
@@ -2835,8 +2846,10 @@ const GameEngine = {
       case 'accept_buyout': {
         var propIdx = this.state.properties.findIndex(function(p){return p.id === data.propId;});
         if (propIdx >= 0) {
+          var soldPropId = this.state.properties[propIdx].id;
           this.state.cash += data.amount;
           this.state.properties.splice(propIdx, 1);
+          if (this.state.mitigations) delete this.state.mitigations[soldPropId];
           this.state.totalSaleRevenue += data.amount;
           this.state.totalPropertiesSold++;
           // Accepting a deal improves relationship
@@ -3226,8 +3239,7 @@ const GameEngine = {
         icon: progress.tierData.icon,
         reward: reward,
         repBonus: progress.tierData.repBonus,
-        nextTier: progress.tier < 5 ? this.campaignTiers[progress.tier] : null,
-        unlockedCities: newCities
+        nextTier: progress.tier < 5 ? this.campaignTiers[progress.tier] : null
       };
     }
     return null;
@@ -3478,7 +3490,8 @@ const GameEngine = {
     var obj = this.state.openingObjective;
     if (!obj || !obj.active) return null;
 
-    var propCount = this.state.properties.length;
+    // Count London properties only — the opening is about establishing in London
+    var propCount = this.state.properties.filter(function(p) { return p.cityId === 'london'; }).length;
     var rival = this.state.aiFamilies ? this.state.aiFamilies.find(function(ai) { return ai.id === obj.rivalId; }) : null;
     var playerNW = this.getNetWorth();
     var rivalNW = rival ? rival.netWorth : 0;
@@ -3504,11 +3517,21 @@ const GameEngine = {
     // Count down
     obj.monthsLeft--;
     if (obj.monthsLeft <= 0) {
-      // Time's up — soft fail, don't block progress
+      // Time's up — meaningful consequences but not game-ending
       obj.active = false;
       obj.failed = true;
+      // Reputation hit — you failed your first public challenge
+      this.state.reputation = Math.max(0, (this.state.reputation || 50) - 10);
+      // Rival gets a boost — they capitalize on your weakness
+      var failRival = this.state.aiFamilies ? this.state.aiFamilies.find(function(ai) { return ai.id === obj.rivalId; }) : null;
+      if (failRival) {
+        failRival.netWorth = Math.round(failRival.netWorth * 1.2);
+        failRival.monthlyIncome = Math.round(failRival.monthlyIncome * 1.15);
+      }
       return {
-        type: 'expired'
+        type: 'expired',
+        repLoss: 10,
+        rivalBoost: failRival ? failRival.name : null
       };
     }
 
@@ -3519,7 +3542,7 @@ const GameEngine = {
     var obj = this.state.openingObjective;
     if (!obj || !obj.active) return null;
 
-    var propCount = this.state.properties.length;
+    var propCount = this.state.properties.filter(function(p) { return p.cityId === 'london'; }).length;
     var rival = this.state.aiFamilies ? this.state.aiFamilies.find(function(ai) { return ai.id === obj.rivalId; }) : null;
     var playerNW = this.getNetWorth();
     var rivalNW = rival ? rival.netWorth : 0;
@@ -3587,8 +3610,8 @@ const GameEngine = {
             { label: 'Renegotiate at -20% rent', action: 'renegotiate_rent', data: { propId: tp.id, newMult: 0.8 } }
           ]
         });
-      } else if (tp.tenant.monthsOccupied > 12) {
-        // Long-term tenant wants improvement
+      } else if (tp.tenant.monthsOccupied > 24 && !tp._tenantUpgraded && Math.random() < 0.3) {
+        // Long-term tenant wants improvement — only once per property, 30% chance
         var upgradeCost = Math.round(monthlyR * 3);
         decisions.push({
           type: 'tenant_upgrade',
@@ -3923,8 +3946,13 @@ const GameEngine = {
         if (this.state.cash >= d.cost) {
           this.state.cash -= d.cost;
           var prop = this.state.properties.find(function(p) { return p.id === d.propId; });
-          if (prop) { prop.rentMultiplier = Math.min(1.3, (prop.rentMultiplier || 1.0) + 0.1); }
-          result.message = '🏠 Improvements made! Tenant happy, rent +10%.';
+          if (prop) {
+            // Improvement adds 10% to property value — rent follows naturally
+            prop.currentValue = Math.round(prop.currentValue * 1.10);
+            prop._tenantUpgraded = true; // prevent repeat decisions
+            this.recalculateRent(prop);
+          }
+          result.message = '🏠 Improvements made! Property value and rent increased by 10%.';
         } else { result.message = 'Not enough cash.'; result.success = false; }
         break;
       }
@@ -3960,8 +3988,10 @@ const GameEngine = {
         if (prop) {
           prop.isRented = true;
           prop.tenant = GameData.assignTenant(prop);
-          if (prop.tenant) { prop.tenant.type = 'Corporate'; prop.tenant.icon = '🏢'; prop.tenant.reliability = 0.96; prop.tenant.care = 0.90; }
-          prop.rentMultiplier = 1.3;
+          if (prop.tenant) { prop.tenant.type = 'corporate'; prop.tenant.icon = '🏢'; prop.tenant.reliability = 0.96; prop.tenant.care = 0.90; }
+          // Premium lease sets higher base rent — don't also set rentMultiplier (would double-count)
+          prop.rentMultiplier = 1.0;
+          this.recalculateRent(prop);
           prop.monthlyRent = d.rent;
         }
         result.message = '🔑 Premium corporate lease signed! ' + GameData.formatMoney(d.rent) + '/month guaranteed.';
