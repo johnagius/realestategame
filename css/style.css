@@ -808,11 +808,7 @@ h4 { font-size: 1rem; }
 }
 
 .screen-header h2 {
-  font-size: 1.1rem;
-}
-
-.screen-header h2 {
-  font-size: 1.3rem;
+  font-size: clamp(1rem, 2vw, 1.3rem);
 }
 
 .btn-back {
@@ -1237,7 +1233,7 @@ h4 { font-size: 1rem; }
 
 .compare-bar {
   position: fixed;
-  bottom: 60px;
+  bottom: calc(var(--nav-height) + 8px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -1984,20 +1980,50 @@ h4 { font-size: 1rem; }
 /* ---------- Responsive ---------- */
 /* Mobile: increase tiny HUD text for readability */
 @media (max-width: 480px) {
+  /* HUD */
+  #hud { padding: 0 8px; }
   .hud-label { font-size: 0.55rem; }
-  .hud-value { font-size: 0.85rem; }
-  .hud-ticker { font-size: 0.6rem; height: 22px; }
-  .nav-btn { font-size: 0.6rem; min-width: 50px; }
+  .hud-value { font-size: clamp(0.7rem, 1.8vw, 0.85rem); }
+  .hud-ticker { font-size: 0.6rem; height: 22px; padding: 0 8px; }
+  /* Nav */
+  .nav-btn { font-size: 0.55rem; min-width: 44px; padding: 4px 2px; }
   .nav-btn .nav-icon { font-size: 1rem; }
+  /* Screen headers */
   .screen-header h2 { font-size: 0.95rem; }
+  /* City screen */
+  .city-map { height: 220px; }
+  .city-info-chip { font-size: 0.65rem; padding: 3px 6px; }
+  .sort-bar { flex-direction: column; }
+  .sort-select { max-width: 100%; }
+  .filter-bar { flex-wrap: wrap; }
+  /* Property cards */
   .city-card-name { font-size: 0.9rem; }
   .property-card-name { font-size: 0.85rem; }
   .property-card-price { font-size: 0.95rem; }
   .card-grid { grid-template-columns: 1fr; gap: 6px; }
-  .decision-card { padding: 14px; }
+  /* Property detail */
+  .property-detail-hero { padding: 16px; }
+  .property-stats { grid-template-columns: 1fr 1fr; gap: 4px; }
+  .tenant-info { font-size: 0.75rem; }
+  .rent-adjust .btn-ghost { font-size: 0.65rem; padding: 4px 6px; }
+  /* Finance */
+  .forecast-header, .forecast-row { grid-template-columns: 32px 1fr 1fr 1fr; font-size: 0.65rem; }
+  /* Modals */
+  .modal { max-width: min(90vw, 420px); }
+  .compare-modal-content { padding: 10px; max-width: 95vw; }
+  .compare-table { font-size: 0.65rem; }
+  .compare-table td, .compare-table th { padding: 4px 3px; }
+  .decision-card { padding: 12px; }
   .decision-title { font-size: 0.95rem; }
   .decision-desc { font-size: 0.78rem; }
-  .city-map { height: 220px; }
+  /* Trophy case */
+  .trophy-case { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+  .trophy-icon { font-size: 1.1rem; }
+  .trophy-name { font-size: 0.55rem; }
+  /* Floating elements */
+  .floating-lb { width: min(90vw, 280px); }
+  .compare-bar { bottom: calc(var(--nav-height) + 8px); font-size: 0.7rem; padding: 6px 10px; }
+  .float-income-summary { font-size: 0.68rem; padding: 4px 10px; }
 }
 
 @media (min-width: 600px) {
