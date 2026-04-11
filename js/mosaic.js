@@ -192,9 +192,7 @@ const Mosaic = {
       .attr('fill','none').attr('stroke','rgba(80,140,200,.2)').attr('stroke-width',1);
 
     // ── LOAD TOPOJSON ──
-    console.log('Mosaic: Loading world map data...');
     d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(function(world) {
-      console.log('Mosaic: World data loaded, rendering...');
       var t0 = performance.now();
 
       var features = topojson.feature(world, world.objects.countries).features;
@@ -285,7 +283,6 @@ const Mosaic = {
       });
 
       self._rendered = true;
-      console.log('Mosaic: World map rendered in ' + Math.round(performance.now() - t0) + 'ms');
 
     }).catch(function(err) {
       console.error('Mosaic: Failed to load world map data:', err);
