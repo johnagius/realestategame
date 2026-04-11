@@ -251,7 +251,7 @@ const GameEngine = {
     property.currentValue = offerValue; // Update to purchase price
     property.monthPurchased = this.state.month;
     property.totalRentCollected = 0;
-    property.totalExpensesPaid = purchaseTax;
+    property.totalExpensesPaid = 0; // tracks ongoing maintenance/license only, not purchase tax
 
     // Initialize mitigations for this property
     this.state.mitigations[property.id] = {};
