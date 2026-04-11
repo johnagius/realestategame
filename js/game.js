@@ -1490,11 +1490,13 @@ const GameEngine = {
       ai.netWorth += income;
 
       // AI ACTUALLY BUYS from the market (removes properties you could buy)
-      // More aggressive AI buys more often (0.08 to 0.20 chance per month)
+      // AI only competes in cities the player has unlocked — fair, legible rivalry
       if (Math.random() < ai.aggressiveness * 0.22) {
-        var cities = Object.keys(state.marketProperties);
-        if (cities.length > 0) {
-          var cityId = cities[Math.floor(Math.random() * cities.length)];
+        var buyableCities = Object.keys(state.marketProperties).filter(function(cid) {
+          return !state.unlockedCities || state.unlockedCities.indexOf(cid) >= 0;
+        });
+        if (buyableCities.length > 0) {
+          var cityId = buyableCities[Math.floor(Math.random() * buyableCities.length)];
           var market = state.marketProperties[cityId];
           if (market && market.length > 1) {
             var affordable = market.filter(p => p.currentValue < ai.netWorth * 0.3);
@@ -3237,8 +3239,7 @@ const GameEngine = {
         icon: progress.tierData.icon,
         reward: reward,
         repBonus: progress.tierData.repBonus,
-        nextTier: progress.tier < 5 ? this.campaignTiers[progress.tier] : null,
-        unlockedCities: newCities
+        nextTier: progress.tier < 5 ? this.campaignTiers[progress.tier] : null
       };
     }
     return null;
