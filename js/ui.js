@@ -244,8 +244,20 @@ const GameUI = {
             '</div>' +
           '</div>';
         if (locked) {
-          html += '<div style="text-align:center;padding:12px 0;font-size:0.75rem;color:var(--text-muted)">' +
-            '🔒 Complete campaign tiers to unlock</div>';
+          var ch = GameEngine.cityUnlockChallenges ? GameEngine.cityUnlockChallenges.find(function(c) { return c.cityId === city.id; }) : null;
+          var challengeText = ch ? ch.challenge : 'Keep progressing to unlock';
+          // Show rival info for rivalry challenges
+          var rivalInfo = '';
+          if (ch && ch.rivalId && GameEngine.state.aiFamilies) {
+            var rival = GameEngine.state.aiFamilies.find(function(a) { return a.id === ch.rivalId; });
+            if (rival) {
+              rivalInfo = '<div style="font-size:0.68rem;margin-top:4px;color:var(--text-muted)">' +
+                rival.icon + ' ' + rival.name + ': ' + GameData.formatMoneyShort(rival.netWorth) +
+                (rival.propertyCount ? ' · ' + rival.propertyCount + ' properties' : '') + '</div>';
+            }
+          }
+          html += '<div style="text-align:center;padding:10px 0;font-size:0.75rem;color:var(--text-muted)">' +
+            '🔒 ' + challengeText + rivalInfo + '</div>';
         } else {
           var trait = city.trait ? GameData.cityTraits[city.trait] : null;
           html += '<div class="city-card-stats">' +
@@ -1454,6 +1466,17 @@ const GameUI = {
       if (!isAutoPlaying) GameAudio.fanfare();
     }
 
+    // City unlock celebrations
+    if (results.cityUnlocks && results.cityUnlocks.length > 0) {
+      results.cityUnlocks.forEach(function(cu) {
+        GameUI.toast(cu.cityFlag + ' ' + cu.cityName + ' Unlocked! (' + cu.challenge + ')', 'milestone');
+      });
+      if (!isAutoPlaying) {
+        GameUI.animateConfetti();
+        GameAudio.fanfare();
+      }
+    }
+
     // Campaign tier completion
     if (results.campaignTierCompleted) {
       var ct = results.campaignTierCompleted;
@@ -1482,39 +1505,26 @@ const GameUI = {
     if (results.openingObjectiveResult) {
       var objR = results.openingObjectiveResult;
       if (objR.type === 'completed') {
-        var cityNames = objR.unlockedCities.map(function(id) {
-          var c = GameData.cities.find(function(cc) { return cc.id === id; });
-          return c ? c.flag + ' ' + c.name : id;
-        }).join(', ');
         GameUI.showModal('⚔️ Objective Complete!',
           '<div style="text-align:center;padding:10px 0">' +
             '<div style="font-size:3rem;margin-bottom:6px">🏆</div>' +
             '<div style="font-family:var(--font-heading);font-size:1.1rem;margin-bottom:8px;color:var(--primary-dark)">You have overtaken the Rothschilds!</div>' +
-            '<div style="font-size:0.85rem;color:var(--text-dark);margin-bottom:12px">Your family has proven its worth in London. The world awaits.</div>' +
+            '<div style="font-size:0.85rem;color:var(--text-dark);margin-bottom:12px">Your family has proven its worth in London. Keep growing to unlock new cities — each has a unique challenge.</div>' +
             '<div class="finance-card">' +
               '<div class="finance-row"><span class="finance-row-label">Cash Reward</span><span class="finance-row-value positive">+' + GameData.formatMoney(objR.reward) + '</span></div>' +
-              '<div class="finance-row"><span class="finance-row-label">Cities Unlocked</span><span class="finance-row-value">' + cityNames + '</span></div>' +
             '</div>' +
-            '<div style="margin-top:10px;font-size:0.78rem;color:var(--text-muted)">New markets are now open for investment. Expand your empire!</div>' +
           '</div>',
-          '<button class="btn btn-primary" onclick="GameUI.hideModal()">Expand Your Empire</button>'
+          '<button class="btn btn-primary" onclick="GameUI.hideModal()">Continue Your Empire</button>'
         );
         GameUI.animateConfetti();
         GameAudio.fanfare();
         return;
       } else if (objR.type === 'expired') {
-        var cityNames2 = objR.unlockedCities.map(function(id) {
-          var c = GameData.cities.find(function(cc) { return cc.id === id; });
-          return c ? c.flag + ' ' + c.name : id;
-        }).join(', ');
         GameUI.showModal('⏱️ Time\'s Up',
           '<div style="text-align:center;padding:10px 0">' +
             '<div style="font-size:2.5rem;margin-bottom:6px">🏙️</div>' +
             '<div style="font-family:var(--font-heading);font-size:1rem;margin-bottom:8px;color:var(--text-dark)">24 months have passed</div>' +
-            '<div style="font-size:0.85rem;color:var(--text-dark);margin-bottom:12px">You didn\'t beat the Rothschilds this time — but the journey continues. New cities have opened their markets to you.</div>' +
-            '<div class="finance-card">' +
-              '<div class="finance-row"><span class="finance-row-label">Cities Unlocked</span><span class="finance-row-value">' + cityNames2 + '</span></div>' +
-            '</div>' +
+            '<div style="font-size:0.85rem;color:var(--text-dark);margin-bottom:12px">You didn\'t beat the Rothschilds this time — but your journey continues. Keep building to unlock new cities.</div>' +
           '</div>',
           '<button class="btn btn-primary" onclick="GameUI.hideModal()">Continue</button>'
         );

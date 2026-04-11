@@ -53,28 +53,28 @@ const GameData = {
       id: 'pre_industrial', name: 'Pre-Industrial Era', years: [1750, 1799],
       icon: '🏰', color: '#8B7355',
       description: 'Land and agriculture dominate. Cities are small trading hubs.',
-      propertyMultiplier: 0.01, rentMultiplier: 1.0, businessTypes: ['farm', 'tavern', 'market', 'workshop'],
+      propertyMultiplier: 0.05, rentMultiplier: 1.0, businessTypes: ['farm', 'tavern', 'market', 'workshop'],
       features: { stocks: false, mergers: false, playerBanks: false, factories: false }
     },
     {
       id: 'industrial_revolution', name: 'Industrial Revolution', years: [1800, 1869],
       icon: '🏭', color: '#6B4423',
       description: 'Steam power transforms cities. Factories and railways emerge.',
-      propertyMultiplier: 0.03, rentMultiplier: 1.0, businessTypes: ['farm', 'tavern', 'market', 'workshop', 'factory', 'textile_mill', 'railway'],
+      propertyMultiplier: 0.12, rentMultiplier: 1.0, businessTypes: ['farm', 'tavern', 'market', 'workshop', 'factory', 'textile_mill', 'railway'],
       features: { stocks: true, mergers: false, playerBanks: false, factories: true }
     },
     {
       id: 'gilded_age', name: 'The Gilded Age', years: [1870, 1929],
       icon: '🎩', color: '#DAA520',
       description: 'Robber barons and tycoons. Banks, steel, and oil reshape the world.',
-      propertyMultiplier: 0.03, rentMultiplier: 1.0, businessTypes: ['market', 'factory', 'textile_mill', 'railway', 'steel_works', 'oil_company', 'department_store', 'hotel'],
+      propertyMultiplier: 0.25, rentMultiplier: 1.0, businessTypes: ['market', 'factory', 'textile_mill', 'railway', 'steel_works', 'oil_company', 'department_store', 'hotel'],
       features: { stocks: true, mergers: true, playerBanks: true, factories: true }
     },
     {
       id: 'modern_era', name: 'Modern Era', years: [1930, 1979],
       icon: '🏙️', color: '#4682B4',
       description: 'Suburbs, highways, and consumer culture. Real estate booms.',
-      propertyMultiplier: 0.2, rentMultiplier: 1.0, businessTypes: ['factory', 'hotel', 'department_store', 'supermarket', 'restaurant', 'oil_company', 'auto_dealer', 'airline'],
+      propertyMultiplier: 0.5, rentMultiplier: 1.0, businessTypes: ['factory', 'hotel', 'department_store', 'supermarket', 'restaurant', 'oil_company', 'auto_dealer', 'airline'],
       features: { stocks: true, mergers: true, playerBanks: true, factories: true }
     },
     {
@@ -151,28 +151,28 @@ const GameData = {
     {
       id: 'silva', name: 'The Silva Family', icon: '👨‍👩‍👧‍👦', tier: 'humble',
       description: 'Peasant farmers in 1750. Build a dynasty from the soil up.',
-      startingCash: 500, difficulty: 'Hard',
+      startingCash: 8000, difficulty: 'Hard',
       motto: '"From nothing, we build everything."',
       color: '#7B6D4E'
     },
     {
       id: 'chen', name: 'The Chen Family', icon: '👨‍👩‍👦', tier: 'middle',
       description: 'Merchants with a small trading post. Ambition runs in the blood.',
-      startingCash: 1200, difficulty: 'Normal',
+      startingCash: 12000, difficulty: 'Normal',
       motto: '"Patience and persistence pay dividends."',
       color: '#2C6E49'
     },
     {
       id: 'armstrong', name: 'The Armstrongs', icon: '👫', tier: 'wealthy',
       description: 'Minor aristocrats with land holdings. Grow the family fortune.',
-      startingCash: 3000, difficulty: 'Easy',
+      startingCash: 25000, difficulty: 'Easy',
       motto: '"Fortune favours the bold."',
       color: '#3D5A80'
     },
     {
       id: 'vanderbilt', name: 'The Vanderbilts', icon: '🎩', tier: 'elite',
       description: 'Wealthy colonial merchants. An empire awaits.',
-      startingCash: 10000, difficulty: 'Sandbox',
+      startingCash: 80000, difficulty: 'Sandbox',
       motto: '"We don\'t play the market — we ARE the market."',
       color: '#D4A84B'
     }
@@ -181,22 +181,22 @@ const GameData = {
   // ---- AI Competitor Families ----
   aiFamilies: [
     { id: 'rothschild', name: 'The Rothschilds', icon: '🏛️', color: '#1B4D33',
-      aggressiveness: 0.7, riskTolerance: 0.5, startingWealth: 5000,
+      aggressiveness: 0.7, riskTolerance: 0.5, startingWealth: 20000,
       motto: 'European banking dynasty since 1744.' },
     { id: 'wong', name: 'The Wong Dynasty', icon: '🐉', color: '#C41E3A',
-      aggressiveness: 0.8, riskTolerance: 0.6, startingWealth: 3500,
+      aggressiveness: 0.8, riskTolerance: 0.6, startingWealth: 15000,
       motto: 'Silk Road merchants and traders.' },
     { id: 'al_rashid', name: 'The Al-Rashids', icon: '🕌', color: '#DAA520',
-      aggressiveness: 0.6, riskTolerance: 0.4, startingWealth: 20000,
+      aggressiveness: 0.6, riskTolerance: 0.4, startingWealth: 60000,
       motto: 'Arabian trade route masters.' },
     { id: 'petrov', name: 'The Petrovs', icon: '🐻', color: '#4169E1',
-      aggressiveness: 0.9, riskTolerance: 0.8, startingWealth: 3000,
+      aggressiveness: 0.9, riskTolerance: 0.8, startingWealth: 12000,
       motto: 'Russian fur trade magnates.' },
     { id: 'martinez', name: 'The Bourbon-Martinez', icon: '⚜️', color: '#E07A5F',
-      aggressiveness: 0.5, riskTolerance: 0.3, startingWealth: 2000,
+      aggressiveness: 0.5, riskTolerance: 0.3, startingWealth: 8000,
       motto: 'Colonial landowners.' },
     { id: 'okonkwo', name: 'The Okonkwos', icon: '🌍', color: '#2A9D8F',
-      aggressiveness: 0.65, riskTolerance: 0.5, startingWealth: 1000,
+      aggressiveness: 0.65, riskTolerance: 0.5, startingWealth: 5000,
       motto: 'West African trade pioneers.' }
   ],
 
@@ -1125,7 +1125,7 @@ const GameData = {
     farm: {
       id: 'farm', name: 'Farm', icon: '🌾',
       description: 'Agricultural land. The backbone of pre-industrial wealth.',
-      basePriceRange: [100, 2000],
+      basePriceRange: [30000, 150000],
       baseRevenueYield: 0.06,
       riskFactor: 0.20,
       employeeRange: [2, 20]
@@ -1133,7 +1133,7 @@ const GameData = {
     tavern: {
       id: 'tavern', name: 'Tavern', icon: '🍺',
       description: 'A drinking house. Steady custom from locals and travellers.',
-      basePriceRange: [50, 500],
+      basePriceRange: [20000, 100000],
       baseRevenueYield: 0.10,
       riskFactor: 0.15,
       employeeRange: [2, 8]
@@ -1141,7 +1141,7 @@ const GameData = {
     market: {
       id: 'market', name: 'Trading Post', icon: '⚖️',
       description: 'Buy and sell goods. Profits depend on trade routes.',
-      basePriceRange: [200, 3000],
+      basePriceRange: [40000, 200000],
       baseRevenueYield: 0.09,
       riskFactor: 0.20,
       employeeRange: [2, 12]
@@ -1149,7 +1149,7 @@ const GameData = {
     workshop: {
       id: 'workshop', name: 'Workshop', icon: '🔨',
       description: 'Craftsmen producing goods by hand. Skilled labour.',
-      basePriceRange: [100, 1000],
+      basePriceRange: [25000, 120000],
       baseRevenueYield: 0.08,
       riskFactor: 0.10,
       employeeRange: [3, 15]
@@ -1157,7 +1157,7 @@ const GameData = {
     textile_mill: {
       id: 'textile_mill', name: 'Textile Mill', icon: '🧵',
       description: 'Mechanised cloth production. The first factories.',
-      basePriceRange: [5000, 50000],
+      basePriceRange: [80000, 400000],
       baseRevenueYield: 0.09,
       riskFactor: 0.15,
       employeeRange: [20, 200]
@@ -1165,7 +1165,7 @@ const GameData = {
     railway: {
       id: 'railway', name: 'Railway Company', icon: '🚂',
       description: 'Steel rails connecting cities. Enormous capital required.',
-      basePriceRange: [50000, 500000],
+      basePriceRange: [300000, 3000000],
       baseRevenueYield: 0.07,
       riskFactor: 0.25,
       employeeRange: [50, 500]
