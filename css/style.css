@@ -686,6 +686,12 @@ h4 { font-size: 1rem; }
   font-size: 0.8rem;
   border-radius: var(--radius-sm);
 }
+.buy-btn {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  line-height: 1.3;
+}
 
 .btn-advance {
   font-size: 0.82rem;
@@ -2014,6 +2020,7 @@ h4 { font-size: 1rem; }
   .compare-table { font-size: 0.65rem; }
   .compare-table td, .compare-table th { padding: 4px 3px; }
   .decision-card { padding: 12px; }
+  .buy-btn { font-size: 0.7rem; padding: 6px 4px; flex: 1; min-width: 0; }
   .decision-title { font-size: 0.95rem; }
   .decision-desc { font-size: 0.78rem; }
   /* Trophy case */

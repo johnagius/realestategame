@@ -583,10 +583,10 @@ const GameUI = {
       var tax = Math.round(p.currentValue * city.taxRate);
       var asking = p.currentValue;
       actionsHTML += '<div class="action-info mb-8">Asking: ' + GameData.formatMoney(asking) + ' + ' + Math.round(city.taxRate*100) + '% tax</div>';
-      actionsHTML += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
-      actionsHTML += '<button class="btn btn-ghost btn-small" style="flex:1" onclick="App.buyProperty(\'' + p.id + '\', \'' + p.cityId + '\', 0.85)">Lowball 85%<br><span style="font-size:0.65rem;opacity:0.7">~30% accepted</span></button>';
-      actionsHTML += '<button class="btn btn-secondary btn-small" style="flex:1" onclick="App.buyProperty(\'' + p.id + '\', \'' + p.cityId + '\', 0.93)">Negotiate 93%<br><span style="font-size:0.65rem;opacity:0.7">~65% accepted</span></button>';
-      actionsHTML += '<button class="btn btn-primary btn-small" style="flex:1" onclick="App.buyProperty(\'' + p.id + '\', \'' + p.cityId + '\', 1.0)">Full Price<br><span style="font-size:0.65rem">' + GameData.formatMoney(asking + tax) + '</span></button>';
+      actionsHTML += '<div style="display:flex;gap:4px;flex-wrap:wrap">';
+      actionsHTML += '<button class="btn btn-ghost btn-small buy-btn" onclick="App.buyProperty(\'' + p.id + '\', \'' + p.cityId + '\', 0.85)">85%<br><span style="font-size:0.6rem;opacity:0.7">~30% chance</span></button>';
+      actionsHTML += '<button class="btn btn-secondary btn-small buy-btn" onclick="App.buyProperty(\'' + p.id + '\', \'' + p.cityId + '\', 0.93)">93%<br><span style="font-size:0.6rem;opacity:0.7">~65% chance</span></button>';
+      actionsHTML += '<button class="btn btn-primary btn-small buy-btn" onclick="App.buyProperty(\'' + p.id + '\', \'' + p.cityId + '\', 1.0)">Full Price<br><span style="font-size:0.6rem">' + GameData.formatMoney(asking + tax) + '</span></button>';
       actionsHTML += '</div>';
     } else {
       if (p.isBuilding) {
