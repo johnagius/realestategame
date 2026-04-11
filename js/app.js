@@ -44,6 +44,10 @@ const App = {
       var target = e.target.closest('[data-city]');
       if (target) {
         var cityId = target.getAttribute('data-city');
+        if (!GameEngine.isCityUnlocked(cityId)) {
+          GameUI.toast('🔒 Complete campaign tiers to unlock this city', 'warning');
+          return;
+        }
         GameUI.currentCityTab = 'market';
         document.querySelectorAll('.tab-btn').forEach(function(t) { t.classList.remove('active'); });
         document.querySelector('.tab-btn[data-tab="market"]').classList.add('active');
@@ -63,6 +67,10 @@ const App = {
       var card = e.target.closest('.city-card');
       if (card) {
         var cityId = card.getAttribute('data-city');
+        if (!GameEngine.isCityUnlocked(cityId)) {
+          GameUI.toast('🔒 Complete campaign tiers to unlock this city', 'warning');
+          return;
+        }
         GameUI.currentCityTab = 'market';
         document.querySelectorAll('.tab-btn').forEach(function(t) { t.classList.remove('active'); });
         document.querySelector('.tab-btn[data-tab="market"]').classList.add('active');
@@ -208,7 +216,7 @@ const App = {
 
   selectFamily(familyId) {
     GameEngine.newGame(familyId);
-    this.enterGame();
+    this.enterGame(true);
   },
 
   continueGame() {
@@ -224,7 +232,7 @@ const App = {
     }
   },
 
-  enterGame() {
+  enterGame(isNewGame) {
     // Stop intro animation
     if (typeof IntroScene !== 'undefined') IntroScene.stop();
     document.getElementById('screen-splash').classList.remove('active');
@@ -235,11 +243,51 @@ const App = {
     // Generate initial goals
     GameEngine.generateGoals();
     GameUI.updateHUD();
-    GameUI.showScreen('map');
-    // Start tutorial for new players
-    if (!GameEngine.state.tutorialDone) {
-      this.startTutorial();
+
+    if (isNewGame && !GameEngine.state.tutorialDone) {
+      // New game: drop into London directly, show narrative intro
+      GameUI.showScreen('city', 'london');
+      this.showOpeningNarrative();
+    } else {
+      GameUI.showScreen('map');
     }
+  },
+
+  showOpeningNarrative() {
+    var s = GameEngine.state;
+    var family = GameData.families.find(function(f) { return f.id === s.familyId; }) || { name: 'Your family' };
+    var rival = s.aiFamilies ? s.aiFamilies.find(function(ai) { return ai.id === 'rothschild'; }) : null;
+    var rivalName = rival ? rival.name : 'The Rothschilds';
+    var rivalNW = rival ? GameData.formatMoney(rival.netWorth) : '€7,500';
+    var cash = GameData.formatMoney(s.cash);
+
+    GameUI.showModal('🎡 London, 1750',
+      '<div style="text-align:center;padding:6px 0">' +
+        '<div style="font-size:2.5rem;margin-bottom:8px">🏰</div>' +
+        '<div style="font-family:var(--font-heading);font-size:1rem;margin-bottom:10px;color:var(--primary-dark)">' + family.name + '</div>' +
+        '<div style="font-size:0.82rem;line-height:1.7;color:var(--text-dark);text-align:left;max-width:340px;margin:0 auto">' +
+          'You have arrived in <strong>London</strong> with <strong>' + cash + '</strong> to your name. ' +
+          'The property market is ripe with opportunity — but you are not alone.' +
+          '<div style="margin:12px 0;padding:10px;background:rgba(27,77,51,0.06);border-radius:8px;border-left:3px solid #1B4D33">' +
+            '<span style="font-size:1.2rem">' + (rival ? rival.icon : '🏛️') + '</span> ' +
+            '<strong>' + rivalName + '</strong> already have a foothold here, ' +
+            'with <strong>' + rivalNW + '</strong> in assets. They are watching.' +
+          '</div>' +
+          'You have <strong>24 months</strong> to prove your family belongs:' +
+          '<div style="margin:10px 0;padding:8px 12px;background:rgba(44,110,73,0.06);border-radius:8px">' +
+            '<div style="font-weight:700;color:var(--primary-dark);margin-bottom:4px">Your Objective</div>' +
+            '<div>🏠 Buy <strong>3 properties</strong> in London</div>' +
+            '<div>💰 Surpass <strong>' + rivalName + '</strong> in net worth</div>' +
+            '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:6px">⏱️ Deadline: 24 months</div>' +
+          '</div>' +
+          '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:8px">' +
+            '<strong>Tip:</strong> Browse the market, buy affordable properties, and rent them out for income. Click "Next Month" to advance time.' +
+          '</div>' +
+        '</div>' +
+      '</div>',
+      '<button class="btn btn-primary" onclick="GameUI.hideModal();GameEngine.state.tutorialDone=true;GameEngine.save()">Begin</button>'
+    );
+    if (typeof GameAudio !== 'undefined') GameAudio.fanfare();
   },
 
   showRandomTip() {

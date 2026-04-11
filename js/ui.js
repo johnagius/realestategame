@@ -76,20 +76,30 @@ const GameUI = {
       }
       goalEl.innerHTML = cycleLabel + ' ' + (s.economicCycle || 'growth') + ' | ' + goalText;
     }
-    // Campaign progress indicator
+    // Campaign / opening objective progress indicator
     var campaignEl = document.getElementById('hud-campaign');
-    if (campaignEl && GameEngine.getCampaignProgress) {
-      var cp = GameEngine.getCampaignProgress();
+    if (campaignEl) {
       campaignEl.classList.remove('hidden');
       var cpTextEl = document.getElementById('hud-campaign-text');
       if (cpTextEl) {
-        if (cp.completed) {
-          cpTextEl.innerHTML = '👑 <strong>All Campaign Tiers Complete!</strong>';
-        } else {
-          var nextHint = cp.unmet[0] ? cp.unmet[0].label : '';
-          cpTextEl.innerHTML = cp.tierData.icon + ' <strong>' + cp.tierData.name + '</strong> · ' +
-            cp.metCount + '/' + cp.totalCount + ' complete' +
-            (nextHint ? ' · <span style="color:var(--text-muted)">Next: ' + nextHint + '</span>' : '');
+        // Opening objective takes priority while active
+        var objProgress = GameEngine.getOpeningObjectiveProgress ? GameEngine.getOpeningObjectiveProgress() : null;
+        if (objProgress) {
+          var propsCheck = objProgress.propsComplete ? '✅' : '⬜';
+          var rivalCheck = objProgress.rivalComplete ? '✅' : '⬜';
+          cpTextEl.innerHTML = '⏱️ <strong>' + objProgress.monthsLeft + ' months left</strong> · ' +
+            propsCheck + ' ' + objProgress.properties + '/' + objProgress.targetProperties + ' properties · ' +
+            rivalCheck + ' vs ' + objProgress.rivalIcon + ' ' + GameData.formatMoneyShort(objProgress.rivalNW);
+        } else if (GameEngine.getCampaignProgress) {
+          var cp = GameEngine.getCampaignProgress();
+          if (cp.completed) {
+            cpTextEl.innerHTML = '👑 <strong>All Campaign Tiers Complete!</strong>';
+          } else {
+            var nextHint = cp.unmet[0] ? cp.unmet[0].label : '';
+            cpTextEl.innerHTML = cp.tierData.icon + ' <strong>' + cp.tierData.name + '</strong> · ' +
+              cp.metCount + '/' + cp.totalCount + ' complete' +
+              (nextHint ? ' · <span style="color:var(--text-muted)">Next: ' + nextHint + '</span>' : '');
+          }
         }
       }
     }
@@ -217,7 +227,8 @@ const GameUI = {
       var html = '';
       cities.forEach(function(city, i) {
         var lm = GameData.cityLandmarks[city.id] || {};
-        html += '<div class="city-card" data-tier="' + city.tier + '" data-city="' + city.id + '" style="position:relative">' +
+        var locked = !GameEngine.isCityUnlocked(city.id);
+        html += '<div class="city-card' + (locked ? ' city-locked' : '') + '" data-tier="' + city.tier + '" data-city="' + city.id + '" style="position:relative">' +
           '<div class="city-invest-badge" data-stat="investScore"></div>' +
           '<div class="city-card-header">' +
             '<span class="city-flag">' + (lm.landmark || city.flag) + '</span>' +
@@ -225,19 +236,24 @@ const GameUI = {
               '<div class="city-card-name">' + city.name + '</div>' +
               '<div class="city-card-country">' + city.country + '</div>' +
             '</div>' +
-          '</div>' +
-          '<div class="city-card-stats">' +
-            '<div class="city-stat"><span class="city-stat-value" data-stat="available"></span><span class="city-stat-label">For Sale</span></div>' +
-            '<div class="city-stat"><span class="city-stat-value" data-stat="owned"></span><span class="city-stat-label">Owned</span></div>' +
-            '<div class="city-stat"><span class="city-stat-value" data-stat="avgPrice"></span><span class="city-stat-label">Avg Price</span></div>' +
-          '</div>' +
-          '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">' +
-            '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px" data-stat="tax"></span>' +
-            '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px" data-stat="growth"></span>' +
-            '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px" data-stat="yield"></span>' +
-            '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px" data-stat="inflation"></span>' +
-          '</div>' +
-        '</div>';
+          '</div>';
+        if (locked) {
+          html += '<div style="text-align:center;padding:12px 0;font-size:0.75rem;color:var(--text-muted)">' +
+            '🔒 Complete campaign tiers to unlock</div>';
+        } else {
+          html += '<div class="city-card-stats">' +
+              '<div class="city-stat"><span class="city-stat-value" data-stat="available"></span><span class="city-stat-label">For Sale</span></div>' +
+              '<div class="city-stat"><span class="city-stat-value" data-stat="owned"></span><span class="city-stat-label">Owned</span></div>' +
+              '<div class="city-stat"><span class="city-stat-value" data-stat="avgPrice"></span><span class="city-stat-label">Avg Price</span></div>' +
+            '</div>' +
+            '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">' +
+              '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px" data-stat="tax"></span>' +
+              '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px" data-stat="growth"></span>' +
+              '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px" data-stat="yield"></span>' +
+              '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px" data-stat="inflation"></span>' +
+            '</div>';
+        }
+        html += '</div>';
       });
       grid.innerHTML = html;
     }
@@ -1439,6 +1455,50 @@ const GameUI = {
       return;
     }
 
+    // Opening objective completion/expiry
+    if (results.openingObjectiveResult) {
+      var objR = results.openingObjectiveResult;
+      if (objR.type === 'completed') {
+        var cityNames = objR.unlockedCities.map(function(id) {
+          var c = GameData.cities.find(function(cc) { return cc.id === id; });
+          return c ? c.flag + ' ' + c.name : id;
+        }).join(', ');
+        GameUI.showModal('⚔️ Objective Complete!',
+          '<div style="text-align:center;padding:10px 0">' +
+            '<div style="font-size:3rem;margin-bottom:6px">🏆</div>' +
+            '<div style="font-family:var(--font-heading);font-size:1.1rem;margin-bottom:8px;color:var(--primary-dark)">You have overtaken the Rothschilds!</div>' +
+            '<div style="font-size:0.85rem;color:var(--text-dark);margin-bottom:12px">Your family has proven its worth in London. The world awaits.</div>' +
+            '<div class="finance-card">' +
+              '<div class="finance-row"><span class="finance-row-label">Cash Reward</span><span class="finance-row-value positive">+' + GameData.formatMoney(objR.reward) + '</span></div>' +
+              '<div class="finance-row"><span class="finance-row-label">Cities Unlocked</span><span class="finance-row-value">' + cityNames + '</span></div>' +
+            '</div>' +
+            '<div style="margin-top:10px;font-size:0.78rem;color:var(--text-muted)">New markets are now open for investment. Expand your empire!</div>' +
+          '</div>',
+          '<button class="btn btn-primary" onclick="GameUI.hideModal()">Expand Your Empire</button>'
+        );
+        GameUI.animateConfetti();
+        GameAudio.fanfare();
+        return;
+      } else if (objR.type === 'expired') {
+        var cityNames2 = objR.unlockedCities.map(function(id) {
+          var c = GameData.cities.find(function(cc) { return cc.id === id; });
+          return c ? c.flag + ' ' + c.name : id;
+        }).join(', ');
+        GameUI.showModal('⏱️ Time\'s Up',
+          '<div style="text-align:center;padding:10px 0">' +
+            '<div style="font-size:2.5rem;margin-bottom:6px">🏙️</div>' +
+            '<div style="font-family:var(--font-heading);font-size:1rem;margin-bottom:8px;color:var(--text-dark)">24 months have passed</div>' +
+            '<div style="font-size:0.85rem;color:var(--text-dark);margin-bottom:12px">You didn\'t beat the Rothschilds this time — but the journey continues. New cities have opened their markets to you.</div>' +
+            '<div class="finance-card">' +
+              '<div class="finance-row"><span class="finance-row-label">Cities Unlocked</span><span class="finance-row-value">' + cityNames2 + '</span></div>' +
+            '</div>' +
+          '</div>',
+          '<button class="btn btn-primary" onclick="GameUI.hideModal()">Continue</button>'
+        );
+        return;
+      }
+    }
+
     // Basic summary toast - skip during fast auto-play to reduce noise
     if (!isAutoPlaying || speed === 1) {
       if (!hasDisasters && !hasEvents && !(results.milestones && results.milestones.length)) {
@@ -1569,16 +1629,18 @@ const GameUI = {
       { name: (s.familyIcon || '👤') + ' ' + (s.familyName || 'You'), nw: playerNW, isPlayer: true }
     ];
     s.aiFamilies.forEach(function(ai) {
-      all.push({ name: ai.icon + ' ' + ai.name, nw: ai.netWorth, isPlayer: false });
+      all.push({ name: ai.icon + ' ' + ai.name, nw: ai.netWorth, isPlayer: false, aiId: ai.id });
     });
     all.sort(function(a, b) { return b.nw - a.nw; });
 
     var html = '';
+    var rivalId = (s.openingObjective && s.openingObjective.active) ? s.openingObjective.rivalId : null;
     all.forEach(function(f, i) {
       var medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
-      html += '<div class="lb-row' + (f.isPlayer ? ' lb-player' : '') + '">' +
+      var isRival = f.aiId === rivalId;
+      html += '<div class="lb-row' + (f.isPlayer ? ' lb-player' : '') + (isRival ? ' lb-rival' : '') + '">' +
         '<span class="lb-rank">' + medal + '</span>' +
-        '<span class="lb-name">' + f.name + '</span>' +
+        '<span class="lb-name">' + f.name + (isRival ? ' ⚔️' : '') + '</span>' +
         '<span class="lb-value">' + GameData.formatMoneyShort(f.nw) + '</span>' +
       '</div>';
     });
@@ -1617,16 +1679,17 @@ const GameUI = {
     GameData.cities.forEach(function(city) {
       var coords = GameData.cityCoords[city.id];
       if (!coords) return;
+      var locked = !GameEngine.isCityUnlocked(city.id);
       var summary = GameEngine.getCitySummary(city.id);
       var hasOwned = summary.owned > 0;
       var lx = coords.lx || 10, ly = coords.ly || 0;
       var needsLeader = Math.abs(lx) > 15 || Math.abs(ly) > 15;
-      var labelText = city.name + (hasOwned ? ' (' + summary.owned + ')' : '');
+      var labelText = locked ? '🔒' : city.name + (hasOwned ? ' (' + summary.owned + ')' : '');
 
       pinsHTML += '<div class="map-pin-group" data-city="' + city.id + '">';
       // Dot at the city position
       pinsHTML += '<div class="map-pin-dot-wrap" data-city="' + city.id + '" style="left:' + coords.x + '%;top:' + coords.y + '%">' +
-        '<div class="map-pin-dot' + (hasOwned ? ' owned' : '') + '"></div>' +
+        '<div class="map-pin-dot' + (hasOwned ? ' owned' : '') + (locked ? ' locked' : '') + '"></div>' +
       '</div>';
       // Leader line (SVG overlay positioned between dot and label)
       if (needsLeader) {

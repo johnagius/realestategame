@@ -64,7 +64,18 @@ const GameEngine = {
       achievementNotified: [], // ids already shown as toast
       // Campaign goals
       campaignTier: 0,       // current tier (0=none completed, 1-5)
-      campaignCompleted: []  // array of completed tier numbers
+      campaignCompleted: [],  // array of completed tier numbers
+      // Focused start: unlocked cities + opening objective
+      unlockedCities: ['london'],  // start with London only
+      openingObjective: {
+        active: true,
+        deadline: 24,        // 24 months to complete
+        monthsLeft: 24,
+        targetProperties: 3,
+        rivalId: 'rothschild',
+        completed: false,
+        failed: false
+      }
     };
 
     // Generate initial market for all cities
@@ -85,20 +96,24 @@ const GameEngine = {
       }
     });
 
-    // Initialize AI families
-    this.state.aiFamilies = GameData.aiFamilies.map(ai => ({
-      id: ai.id,
-      name: ai.name,
-      icon: ai.icon,
-      color: ai.color,
-      aggressiveness: ai.aggressiveness,
-      riskTolerance: ai.riskTolerance,
-      netWorth: ai.startingWealth,
-      propertyCount: Math.floor(ai.startingWealth / 500000),
-      monthlyIncome: Math.round(ai.startingWealth * 0.004),
-      history: [ai.startingWealth],
-      rank: 0
-    }));
+    // Initialize AI families — Rothschilds get a head start as the opening rival
+    this.state.aiFamilies = GameData.aiFamilies.map(ai => {
+      var rivalBoost = (ai.id === 'rothschild') ? 1.5 : 1;
+      var nw = Math.round(ai.startingWealth * rivalBoost);
+      return {
+        id: ai.id,
+        name: ai.name,
+        icon: ai.icon,
+        color: ai.color,
+        aggressiveness: ai.aggressiveness,
+        riskTolerance: ai.riskTolerance,
+        netWorth: nw,
+        propertyCount: Math.floor(nw / 500000),
+        monthlyIncome: Math.round(nw * 0.004),
+        history: [nw],
+        rank: 0
+      };
+    });
 
     // Milestones / goals
     this.state.milestones = [];
@@ -148,6 +163,13 @@ const GameEngine = {
         if (!this.state.marketPressure) this.state.marketPressure = {};
         if (!this.state.campaignTier) this.state.campaignTier = 0;
         if (!this.state.campaignCompleted) this.state.campaignCompleted = [];
+        // Old saves: unlock all cities (they already had full access)
+        if (!this.state.unlockedCities) {
+          this.state.unlockedCities = GameData.cities.map(function(c) { return c.id; });
+        }
+        if (!this.state.openingObjective) {
+          this.state.openingObjective = { active: false, completed: true, failed: false };
+        }
         // Migrate old properties: ensure tenant + rentMultiplier fields exist
         if (this.state.properties) {
           this.state.properties.forEach(function(p) {
@@ -1319,6 +1341,9 @@ const GameEngine = {
 
     // 16b. Check campaign goals
     results.campaignTierCompleted = this.checkCampaignGoals();
+
+    // 16c. Check opening objective
+    results.openingObjectiveResult = this.checkOpeningObjective();
 
     // 17. Track net worth
     this.state.networthHistory.push(this.getNetWorth());
@@ -3081,16 +3106,137 @@ const GameEngine = {
       var reward = Math.max(1000, Math.round(nw * progress.tierData.rewardPct));
       s.cash += reward;
       s.reputation = Math.min(100, (s.reputation || 50) + progress.tierData.repBonus);
+      // Unlock cities for this tier
+      var newCities = this.unlockCitiesForTier(progress.tier);
       return {
         tier: progress.tier,
         name: progress.tierData.name,
         icon: progress.tierData.icon,
         reward: reward,
         repBonus: progress.tierData.repBonus,
-        nextTier: progress.tier < 5 ? this.campaignTiers[progress.tier] : null
+        nextTier: progress.tier < 5 ? this.campaignTiers[progress.tier] : null,
+        unlockedCities: newCities
       };
     }
     return null;
+  },
+
+  // ========== CITY UNLOCKING ==========
+
+  // Cities to unlock at each campaign tier
+  cityUnlockSchedule: {
+    0: ['london'],                                       // start
+    1: ['paris', 'amsterdam'],                           // Established
+    2: ['berlin', 'rome', 'barcelona'],                  // Regional Power
+    3: ['new_york', 'dubai', 'mumbai', 'singapore', 'tokyo'], // National Empire
+    4: ['hong_kong', 'shanghai', 'sydney', 'los_angeles', 'miami', 'toronto', 'cape_town', 'sao_paulo', 'monaco'] // Global Dynasty — all remaining
+  },
+
+  isCityUnlocked(cityId) {
+    if (!this.state.unlockedCities) return true; // old saves
+    return this.state.unlockedCities.indexOf(cityId) >= 0;
+  },
+
+  unlockCity(cityId) {
+    if (!this.state.unlockedCities) this.state.unlockedCities = ['london'];
+    if (this.state.unlockedCities.indexOf(cityId) < 0) {
+      this.state.unlockedCities.push(cityId);
+    }
+  },
+
+  unlockCitiesForTier(tier) {
+    var self = this;
+    var newlyUnlocked = [];
+    // Unlock all cities for this tier and below
+    for (var t = 0; t <= tier; t++) {
+      var cities = this.cityUnlockSchedule[t] || [];
+      cities.forEach(function(id) {
+        if (!self.isCityUnlocked(id)) {
+          self.unlockCity(id);
+          newlyUnlocked.push(id);
+        }
+      });
+    }
+    return newlyUnlocked;
+  },
+
+  getLockedCities() {
+    var self = this;
+    return GameData.cities.filter(function(c) { return !self.isCityUnlocked(c.id); });
+  },
+
+  getUnlockedCities() {
+    var self = this;
+    return GameData.cities.filter(function(c) { return self.isCityUnlocked(c.id); });
+  },
+
+  // ========== OPENING OBJECTIVE ==========
+
+  checkOpeningObjective() {
+    var obj = this.state.openingObjective;
+    if (!obj || !obj.active) return null;
+
+    var propCount = this.state.properties.length;
+    var rival = this.state.aiFamilies ? this.state.aiFamilies.find(function(ai) { return ai.id === obj.rivalId; }) : null;
+    var playerNW = this.getNetWorth();
+    var rivalNW = rival ? rival.netWorth : 0;
+
+    // Check completion: 3 properties AND net worth > rival
+    var propsOk = propCount >= obj.targetProperties;
+    var rivalOk = playerNW > rivalNW;
+
+    if (propsOk && rivalOk) {
+      obj.active = false;
+      obj.completed = true;
+      // Reward: unlock next 2 cities + bonus cash
+      var reward = Math.max(500, Math.round(playerNW * 0.1));
+      this.state.cash += reward;
+      this.state.reputation = Math.min(100, (this.state.reputation || 50) + 5);
+      this.unlockCitiesForTier(1); // unlock Paris + Amsterdam
+      return {
+        type: 'completed',
+        reward: reward,
+        unlockedCities: ['paris', 'amsterdam']
+      };
+    }
+
+    // Count down
+    obj.monthsLeft--;
+    if (obj.monthsLeft <= 0) {
+      // Time's up — soft fail, don't block progress
+      obj.active = false;
+      obj.failed = true;
+      // Still unlock cities so they aren't stuck
+      this.unlockCitiesForTier(1);
+      return {
+        type: 'expired',
+        unlockedCities: ['paris', 'amsterdam']
+      };
+    }
+
+    return null;
+  },
+
+  getOpeningObjectiveProgress() {
+    var obj = this.state.openingObjective;
+    if (!obj || !obj.active) return null;
+
+    var propCount = this.state.properties.length;
+    var rival = this.state.aiFamilies ? this.state.aiFamilies.find(function(ai) { return ai.id === obj.rivalId; }) : null;
+    var playerNW = this.getNetWorth();
+    var rivalNW = rival ? rival.netWorth : 0;
+
+    return {
+      monthsLeft: obj.monthsLeft,
+      properties: propCount,
+      targetProperties: obj.targetProperties,
+      playerNW: playerNW,
+      rivalNW: rivalNW,
+      rivalName: rival ? rival.name : 'The Rothschilds',
+      rivalIcon: rival ? rival.icon : '🏛️',
+      propsComplete: propCount >= obj.targetProperties,
+      rivalComplete: playerNW > rivalNW
+    };
   },
 
   // ========== DECISION SYSTEM ==========

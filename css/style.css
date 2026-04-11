@@ -964,6 +964,32 @@ h4 { font-size: 1rem; }
   box-shadow: 0 1px 4px rgba(0,0,0,0.15);
 }
 
+/* Locked city card */
+.city-card.city-locked {
+  opacity: 0.4;
+  filter: grayscale(0.7);
+  cursor: not-allowed;
+}
+.city-card.city-locked:hover {
+  transform: none;
+  box-shadow: 0 2px 8px var(--shadow);
+  border-color: var(--border);
+}
+
+/* Locked map pin */
+.map-pin-dot.locked {
+  background: #999 !important;
+  width: 5px !important;
+  height: 5px !important;
+  opacity: 0.4;
+}
+
+/* Rival highlight in leaderboard */
+.lb-row.lb-rival {
+  background: rgba(27,77,51,0.08);
+  border-left: 2px solid #1B4D33;
+}
+
 .city-card-stats {
   display: flex;
   justify-content: space-between;
