@@ -51,9 +51,11 @@ const App = {
       }
     });
 
-    // City search
+    // City search (debounced — avoid re-rendering pins on every keystroke)
+    var searchTimer = null;
     document.getElementById('city-search').addEventListener('input', function() {
-      GameUI.renderMap();
+      if (searchTimer) clearTimeout(searchTimer);
+      searchTimer = setTimeout(function() { GameUI.renderMap(); }, 250);
     });
 
     // City grid clicks (event delegation)

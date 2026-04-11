@@ -1254,7 +1254,7 @@ const GameEngine = {
     results.dynasty = this.processDynasty();
 
     // 16. Simulate AI families
-    this.simulateAIFamilies();
+    this.simulateAIFamilies(results);
 
     // 16. Check milestones
     results.milestones = this.checkMilestones();
@@ -1273,7 +1273,7 @@ const GameEngine = {
   },
 
   // ---- Simulate AI families ----
-  simulateAIFamilies() {
+  simulateAIFamilies(results) {
     if (!this.state.aiFamilies) return;
     var state = this.state;
 
