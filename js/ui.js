@@ -17,6 +17,7 @@ const GameUI = {
   portfolioSort: 'value-desc',
   portfolioCityFilter: 'all',
   compareList: [], // array of property IDs (max 3)
+  portfolioPage: 0,
   mapView: true,
   autoTimer: null,
 
@@ -146,8 +147,13 @@ const GameUI = {
   // ---- Toast notification ----
   toast(message, type) {
     type = type || 'info';
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
+    // Suppress non-critical toasts during fast auto-play (speed >= 2)
+    var speed = (typeof GameEngine !== 'undefined' && GameEngine.state) ? (GameEngine.state.autoAdvanceSpeed || 0) : 0;
+    if (speed >= 2 && type !== 'error') return;
+    var container = document.getElementById('toast-container');
+    // Cap visible toasts at 5
+    while (container.children.length >= 5) container.removeChild(container.firstChild);
+    var toast = document.createElement('div');
     toast.className = 'toast ' + type;
     toast.textContent = message;
     container.appendChild(toast);
@@ -782,7 +788,26 @@ const GameUI = {
     }
 
     empty.style.display = 'none';
-    list.innerHTML = props.map(function(p, i) { return GameUI.renderPropertyCard(p, i); }).join('');
+
+    // Paginate portfolio
+    var total = props.length;
+    var ps = this.PAGE_SIZE;
+    var maxPage = Math.max(0, Math.ceil(total / ps) - 1);
+    if (this.portfolioPage > maxPage) this.portfolioPage = maxPage;
+    var start = this.portfolioPage * ps;
+    var pageProps = props.slice(start, start + ps);
+
+    var html = pageProps.map(function(p, i) { return GameUI.renderPropertyCard(p, start + i); }).join('');
+
+    if (total > ps) {
+      html += '<div style="grid-column:1/-1;display:flex;justify-content:center;gap:8px;padding:8px 0;align-items:center">';
+      html += '<button class="btn btn-ghost btn-small" onclick="GameUI.portfolioPage=Math.max(0,GameUI.portfolioPage-1);GameUI.renderPortfolio()" ' + (this.portfolioPage <= 0 ? 'disabled' : '') + '>← Prev</button>';
+      html += '<span style="font-size:0.75rem;font-weight:700;color:var(--text-muted)">' + (this.portfolioPage + 1) + ' / ' + (maxPage + 1) + ' (' + total + ' total)</span>';
+      html += '<button class="btn btn-ghost btn-small" onclick="GameUI.portfolioPage=Math.min(' + maxPage + ',GameUI.portfolioPage+1);GameUI.renderPortfolio()" ' + (this.portfolioPage >= maxPage ? 'disabled' : '') + '>Next →</button>';
+      html += '</div>';
+    }
+
+    list.innerHTML = html;
   },
 
   // ---- Render Finances ----
@@ -960,7 +985,7 @@ const GameUI = {
     // Build trophy case
     var unlocked = GameEngine.state.achievements || [];
     var total = GameData.achievements.length;
-    var trophyHTML = '<div class="trophy-case">';
+    var trophyHTML = '';
     GameData.achievements.forEach(function(a) {
       var done = unlocked.indexOf(a.id) >= 0;
       trophyHTML += '<div class="trophy-badge' + (done ? ' unlocked' : '') + '" title="' + a.desc + (done ? ' (Unlocked!)' : '') + '">' +
@@ -968,7 +993,6 @@ const GameUI = {
         '<span class="trophy-name">' + a.name + '</span>' +
       '</div>';
     });
-    trophyHTML += '</div>';
 
     content.innerHTML =
       '<div class="settings-section">' +
@@ -978,8 +1002,8 @@ const GameUI = {
         '<div class="settings-row"><div><div class="settings-label">New Game</div><div class="settings-description">Start fresh with €500,000</div></div><button class="btn btn-danger btn-small" onclick="App.confirmNewGame()">Reset</button></div>' +
       '</div>' +
       '<div class="settings-section">' +
-        '<div class="finance-section-title">🏆 Achievements (' + unlocked.length + '/' + total + ')</div>' +
-        trophyHTML +
+        '<div class="finance-section-title" style="cursor:pointer" onclick="var el=document.getElementById(\'trophy-grid\');el.style.display=el.style.display===\'none\'?\'grid\':\'none\'">🏆 Achievements (' + unlocked.length + '/' + total + ') ▾</div>' +
+        '<div class="trophy-case" id="trophy-grid" style="display:none">' + trophyHTML + '</div>' +
       '</div>' +
       '<div class="settings-section">' +
         '<div class="settings-row"><div><div class="settings-label">Property Empire</div><div class="settings-description">v2.0 — Build your real estate fortune</div></div></div>' +
@@ -1375,13 +1399,16 @@ const GameUI = {
     var mapContainer = document.getElementById('world-map');
 
     if (!this._mapLoaded) {
-      // Use pixel mosaic renderer (Eikon-style dense blocks)
-      if (typeof Mosaic !== 'undefined') {
+      if (typeof Mosaic !== 'undefined' && !Mosaic._rendered) {
         Mosaic.renderWorldMap(svg);
-      } else {
+      } else if (typeof Mosaic === 'undefined') {
         GameGraphics.renderWorldMap(svg);
       }
-      this._mapLoaded = true;
+      // Only mark loaded after Mosaic confirms render (async D3 sets _rendered in .then)
+      // For sync fallback (GameGraphics), mark immediately
+      if (typeof Mosaic === 'undefined' || Mosaic._rendered) {
+        this._mapLoaded = true;
+      }
     }
 
     // Render city pins with leader lines to avoid overlapping labels
@@ -1474,7 +1501,7 @@ const GameUI = {
         '<strong>Buy Investments ▾</strong>' +
         '<span style="font-size:0.7rem;color:var(--text-muted)">' + GameEngine.getAvailableInvestments().length + ' available</span>' +
       '</div>' +
-      '<div id="inv-list" style="display:none;max-height:250px;overflow-y:auto">';
+      '<div id="inv-list" style="display:none">';
     var available = GameEngine.getAvailableInvestments();
     available.forEach(function(inv) {
       var typeColor = inv.type === 'bond' ? '#3D5A80' : inv.type === 'commodity' ? '#D4A84B' : '#2C6E49';

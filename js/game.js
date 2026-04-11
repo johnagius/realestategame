@@ -351,7 +351,7 @@ const GameEngine = {
   evictTenant(propertyId) {
     const property = this.state.properties.find(p => p.id === propertyId);
     if (!property || !property.isRented) return { success: false, message: 'No tenant to evict.' };
-    var evictionCost = Math.round(property.monthlyRent * (property.rentMultiplier || 1));
+    var evictionCost = Math.max(500, Math.round(property.monthlyRent * (property.rentMultiplier || 1)));
     this.state.cash -= evictionCost;
     property.isRented = false;
     property.tenant = null;

@@ -339,6 +339,9 @@ const App = {
     var result = GameEngine.sellProperty(propertyId);
     if (result.success) {
       GameUI.toast(result.message, result.profit >= 0 ? 'success' : 'warning');
+      // Remove sold property from compare list
+      var cIdx = GameUI.compareList.indexOf(propertyId);
+      if (cIdx >= 0) { GameUI.compareList.splice(cIdx, 1); GameUI.updateCompareBar(); }
       GameUI.updateHUD();
       if (GameUI.currentCity) {
         GameUI.showScreen('city');
