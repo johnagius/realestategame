@@ -110,26 +110,6 @@ const City3D = {
     return mesh;
   },
 
-  addWindows: function(g, bw, bh, bd, floors, wpf, startY) {
-    var M = this.M;
-    var wm = Math.random() > 0.35 ? M.WIN : M.WINLIT;
-    var fh = bh / floors, ws = Math.min(2.8, fh * 0.5), wd = 0.22;
-    startY = startY || 0;
-    for (var f = 0; f < floors; f++) {
-      var fy = startY + fh * (f + 0.5);
-      for (var i = 0; i < wpf; i++) {
-        var u = (i + 1) / (wpf + 1), wx = -bw / 2 + u * bw;
-        g.add(this.bx(ws, fh * 0.52, wd, wm, false).tap(function(a) { a.position.set(wx, fy, -bd / 2 - 0.12); }));
-        g.add(this.bx(ws, fh * 0.52, wd, wm, false).tap(function(b) { b.position.set(wx, fy, bd / 2 + 0.12); }));
-      }
-      for (var i = 0; i < wpf; i++) {
-        var u = (i + 1) / (wpf + 1), wz = -bd / 2 + u * bd;
-        g.add(this.bx(wd, fh * 0.52, ws, wm, false).tap(function(a) { a.position.set(-bw / 2 - 0.12, fy, wz); }));
-        g.add(this.bx(wd, fh * 0.52, ws, wm, false).tap(function(b) { b.position.set(bw / 2 + 0.12, fy, wz); }));
-      }
-    }
-  },
-
   // Sprite label
   makeLabel: function(text) {
     var cv = document.createElement('canvas');
@@ -343,5 +323,409 @@ const City3D = {
     EARTHQUAKE: { c: '#c09050', n: 'Earthquake', em: '🌍', d: [3000, 7000] },
     RENOVATION: { c: '#e0a020', n: 'Renovation', em: '🏗',  d: [12000, 25000] },
     BURGLARY:   { c: '#a040f0', n: 'Burglary',   em: '🚨', d: [5000, 10000] },
+  },
+
+  // ========== PART 2: Scene, Grid, Events, Animation ==========
+
+  TILE: 28,
+  _scene: null,
+  _cam: null,
+  _renderer: null,
+  _pivot: null,
+  _grid: null,
+  _animId: null,
+  _container: null,
+  _canvas: null,
+  _selCell: null,
+  _selWire: null,
+  _evLog: [],
+  _nxtE: 6000,
+  _nxtSD: 16000,
+  _rng: null,
+  _dragState: { active: false, prevX: 0, startX: 0 },
+  _cityDef: null, // current city definition
+
+  // Seeded RNG
+  _mkRng: function(s) {
+    var sd = s;
+    return function() { sd = ((sd * 1664525) + 1013904223) & 0xffffffff; return (sd >>> 0) / 0xffffffff; };
+  },
+
+  // ── Scene setup ──
+  initScene: function(container) {
+    if (typeof THREE === 'undefined') { console.warn('Three.js not loaded'); return false; }
+    this.initMaterials();
+
+    var VW = container.clientWidth || 800;
+    var VH = container.clientHeight || 500;
+
+    // Scene
+    var scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x060c1a);
+    scene.fog = new THREE.Fog(0x060c1a, 340, 680);
+    this._scene = scene;
+
+    // Camera — isometric orthographic
+    var asp = VW / VH, CS = 108;
+    var cam = new THREE.OrthographicCamera(-CS * asp, CS * asp, CS, -CS, 1, 1500);
+    cam.position.set(200, 168, 200);
+    cam.lookAt(0, 8, 0);
+    this._cam = cam;
+
+    // Renderer
+    var canvas = document.createElement('canvas');
+    canvas.style.cssText = 'display:block;width:100%;height:100%;';
+    container.appendChild(canvas);
+    this._canvas = canvas;
+    this._container = container;
+
+    var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    renderer.setSize(VW, VH);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    this._renderer = renderer;
+
+    // Lights
+    scene.add(new THREE.AmbientLight(0x2a2438, 1.1));
+    var sun = new THREE.DirectionalLight(0xfff0e0, 1.9);
+    sun.position.set(130, 220, 90);
+    sun.castShadow = true;
+    sun.shadow.camera.left = -260; sun.shadow.camera.right = 260;
+    sun.shadow.camera.top = 260; sun.shadow.camera.bottom = -260;
+    sun.shadow.camera.far = 700;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.bias = -0.001;
+    scene.add(sun);
+    this._sun = sun;
+    scene.add(new THREE.HemisphereLight(0x182840, 0x201808, 0.72));
+
+    // Stars
+    var sp = [];
+    for (var i = 0; i < 1200; i++) {
+      var t = Math.random() * Math.PI * 2, p = Math.acos(2 * Math.random() - 1), r = 640 + Math.random() * 140;
+      sp.push(r * Math.sin(p) * Math.cos(t), r * Math.cos(p), r * Math.sin(p) * Math.sin(t));
+    }
+    var sg = new THREE.BufferGeometry();
+    sg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(sp), 3));
+    scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xddeeff, size: 1.4, sizeAttenuation: false })));
+
+    // Pivot for rotation
+    var pivot = new THREE.Group();
+    scene.add(pivot);
+    this._pivot = pivot;
+
+    // Selection wireframe
+    var selWire = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshBasicMaterial({ color: 0xffd700, wireframe: true, transparent: true, opacity: 0.9 })
+    );
+    selWire.visible = false;
+    scene.add(selWire);
+    this._selWire = selWire;
+
+    // Drag rotation
+    var ds = this._dragState;
+    var self = this;
+    canvas.addEventListener('mousedown', function(e) { ds.active = true; ds.prevX = ds.startX = e.clientX; });
+    window.addEventListener('mouseup', function() { ds.active = false; });
+    window.addEventListener('mousemove', function(e) {
+      if (ds.active && self._pivot) { self._pivot.rotation.y -= (e.clientX - ds.prevX) * 0.006; ds.prevX = e.clientX; }
+    });
+
+    // Touch support
+    canvas.addEventListener('touchstart', function(e) { if (e.touches.length === 1) { ds.active = true; ds.prevX = ds.startX = e.touches[0].clientX; } }, { passive: true });
+    window.addEventListener('touchend', function() { ds.active = false; });
+    window.addEventListener('touchmove', function(e) {
+      if (ds.active && e.touches.length === 1 && self._pivot) { self._pivot.rotation.y -= (e.touches[0].clientX - ds.prevX) * 0.006; ds.prevX = e.touches[0].clientX; }
+    }, { passive: true });
+
+    // Click / tap selection
+    var rc = new THREE.Raycaster(), mouse = new THREE.Vector2();
+    canvas.addEventListener('click', function(e) {
+      if (Math.abs(e.clientX - ds.startX) > 6) return;
+      var rect = canvas.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      rc.setFromCamera(mouse, cam);
+      var hits = rc.intersectObjects(pivot.children, true).filter(function(h) { return h.object.userData.cell; });
+      if (hits.length) {
+        self._selCell = hits[0].object.userData.cell;
+        selWire.visible = true;
+      } else {
+        self._selCell = null;
+        selWire.visible = false;
+      }
+    });
+
+    this._rng = this._mkRng(31415);
+    return true;
+  },
+
+  // ── Tile factory ──
+  makeTile: function(t, r, c) {
+    var g = new THREE.Group(), T = this.TILE, M = this.M;
+    switch (t) {
+      case 'W': g.add(this.flatPlane(T, T, M.WATER)); break;
+      case 'HB': g.add(this.flatPlane(T, T, M.HARBOR)); break;
+      case 'RD': {
+        var rp = this.flatPlane(T, T, M.ROAD); rp.position.y = 0.04; g.add(rp);
+        // Sidewalks
+        var self = this;
+        [[-T / 2 + 1.75], [T / 2 - 1.75]].forEach(function(a) {
+          var sw = self.bx(3.5, 0.22, T, M.SIDEW); sw.position.set(a[0], 0.11, 0); g.add(sw);
+          var sw2 = self.bx(T, 0.22, 3.5, M.SIDEW); sw2.position.set(0, 0.11, a[0]); g.add(sw2);
+        });
+        // Lane markings
+        var lv = this.flatPlane(1.2, T * 0.82, M.LANE); lv.position.y = 0.1; g.add(lv);
+        var lh = this.flatPlane(T * 0.82, 1.2, M.LANE); lh.position.y = 0.1; g.add(lh);
+        // Street lamp
+        var pole = this.cy(0.22, 0.22, 9, 6, M.CONC); pole.position.set(T * 0.32, 4.5, T * 0.32); g.add(pole);
+        var armB = this.bx(3.8, 0.24, 0.24, M.CONC, false); armB.position.set(T * 0.32 + 1.9, 9, T * 0.32); g.add(armB);
+        var bulb = new THREE.PointLight(0xffe8a0, 0.88, 36); bulb.position.set(T * 0.32 + 3.8, 9.3, T * 0.32); g.add(bulb);
+        // Power pole (every other intersection)
+        if ((r + c) % 2 === 0) {
+          var pp = this.cy(0.28, 0.28, 14, 6, M.HOt); pp.position.set(-T * 0.34, 7, -T * 0.34); g.add(pp);
+          var cr = this.bx(9, 0.4, 0.4, M.HOt, false); cr.position.set(-T * 0.34, 12, -T * 0.34); g.add(cr);
+          var wire = this.bx(18, 0.1, 0.1, M.WINOFF, false); wire.position.set(-T * 0.34, 12, -T * 0.34); g.add(wire);
+        }
+        break;
+      }
+      case 'CP': {
+        var pp = this.flatPlane(T, T, M.PARK); pp.position.y = 0.05; g.add(pp);
+        var pv = this.bx(2.8, 0.16, T * 0.88, M.SIDEW); pv.position.set(T * 0.06, 0.08, 0); g.add(pv);
+        var self = this;
+        [[-7, -7], [6, -7], [6, 6], [-7, 6]].forEach(function(a) {
+          var trunk = self.cy(0.4, 0.55, 5, 6, M.HOt); trunk.position.set(a[0], 2.5, a[1]); g.add(trunk);
+          var lv2 = self.sphr(4.8, 7, M.PARKD); lv2.position.set(a[0], 7.5, a[1]); g.add(lv2);
+          var lv3 = self.sphr(3.2, 6, M.PARKL); lv3.position.set(a[0] + 1.2, 9.8, a[1] + 0.8); g.add(lv3);
+        });
+        var bench = this.bx(4.5, 0.38, 1.2, M.CONC); bench.position.set(2, 0.38, -T * 0.3); g.add(bench);
+        break;
+      }
+      case 'CT': {
+        g.add(this.flatPlane(T, T, (r + c) % 2 === 0 ? M.COUNTRY : M.COUNTRYD));
+        for (var i = -2; i <= 2; i++) { var row = this.bx(T * 0.88, 0.38, 1.2, M.COUNTRYD); row.position.set(0, 0.19, i * 4.8); g.add(row); }
+        var fence = this.bx(T * 0.9, 0.38, 0.2, M.HOt); fence.position.set(0, 0.38, -T * 0.42); g.add(fence);
+        for (var i = -3; i <= 3; i++) { var post = this.bx(0.38, 1.8, 0.2, M.HOt); post.position.set(i * (T / 7), 1, -T * 0.42); g.add(post); }
+        if ((r * 3 + c * 5) % 4 === 0) {
+          var trunk = this.cy(0.5, 0.6, 7, 7, M.HOt); trunk.position.set(-8, 3.5, -7); g.add(trunk);
+          var lv2 = this.sphr(5.5, 7, M.PARKD); lv2.position.set(-8, 9.5, -7); g.add(lv2);
+        }
+        break;
+      }
+      default: g.add(this.flatPlane(T, T, M.GND)); break;
+    }
+    return g;
+  },
+
+  // ── Build the full grid from a city definition ──
+  buildCity: function(cityDef) {
+    if (!this._pivot) return;
+    this._cityDef = cityDef;
+
+    var layout = cityDef.layout;
+    var GH = layout.length, GW = layout[0].length;
+    var T = this.TILE;
+    var OX = -(GW - 1) * T / 2, OZ = -(GH - 1) * T / 2;
+    var grid = [];
+    var self = this;
+    var rng = this._rng;
+
+    layout.forEach(function(row, r) {
+      grid[r] = [];
+      row.forEach(function(t, c) {
+        var x = OX + c * T, z = OZ + r * T;
+
+        // Place tile
+        var tg = self.makeTile(t, r, c);
+        tg.position.set(x, 0, z);
+        self._pivot.add(tg);
+
+        var cell = { t: t, ev: null, evEnd: 0, sp: 1, demo: false, r: r, c: c, x: x, z: z, bGrp: null, evMesh: null, evLight: null };
+
+        // Place building if tile is a building type
+        var isBuilding = self.BLDG_TYPES.has(t);
+        // Also check if it's a landmark key
+        var isLandmark = cityDef.landmarks && cityDef.landmarks[t];
+
+        if (isBuilding) {
+          var seed = rng();
+          var bg = self.buildByType(t, seed);
+          bg.position.set(x, 0, z);
+          bg.traverse(function(m) { if (m.isMesh) m.userData.cell = cell; });
+          self._pivot.add(bg);
+          cell.bGrp = bg;
+        } else if (isLandmark) {
+          var lmFn = cityDef.landmarks[t];
+          if (typeof lmFn === 'function') {
+            var bg = lmFn.call(self);
+            bg.position.set(x, 0, z);
+            bg.traverse(function(m) { if (m.isMesh) m.userData.cell = cell; });
+            self._pivot.add(bg);
+            cell.bGrp = bg;
+            // Add landmark name to BNAMES
+            self.BNAMES[t] = t; // will be overridden by city def if provided
+          }
+        }
+
+        grid[r][c] = cell;
+      });
+    });
+
+    // Merge landmark names from city def
+    if (cityDef.landmarkNames) {
+      for (var k in cityDef.landmarkNames) {
+        this.BNAMES[k] = cityDef.landmarkNames[k];
+      }
+    }
+
+    this._grid = grid;
+    this._evLog = [];
+    this._nxtE = 6000;
+    this._nxtSD = 16000;
+  },
+
+  // ── Event system ──
+  _addLog: function(txt, col) {
+    this._evLog.unshift({ txt: txt, col: col });
+    if (this._evLog.length > 5) this._evLog.pop();
+  },
+
+  _clearEvFX: function(cell) {
+    if (cell.evMesh) { this._pivot.remove(cell.evMesh); cell.evMesh = null; }
+    if (cell.evLight) { this._scene.remove(cell.evLight); cell.evLight = null; }
+  },
+
+  triggerEvent: function(ts) {
+    var grid = this._grid;
+    if (!grid) return;
+    var self = this;
+    var bl = grid.flat().filter(function(c) { return (self.BLDG_TYPES.has(c.t) || (self._cityDef && self._cityDef.landmarks && self._cityDef.landmarks[c.t])) && !c.demo && c.bGrp; });
+    if (!bl.length) return;
+
+    var cell = bl[Math.floor(Math.random() * bl.length)];
+    var keys = Object.keys(this.EVENTS);
+    var ev = keys[Math.floor(Math.random() * keys.length)];
+    this._clearEvFX(cell);
+    cell.ev = ev;
+    var d = this.EVENTS[ev].d;
+    cell.evEnd = ts + d[0] + Math.random() * (d[1] - d[0]);
+
+    if (cell.bGrp) {
+      var bb = new THREE.Box3().setFromObject(cell.bGrp);
+      var sz = new THREE.Vector3(); bb.getSize(sz);
+
+      if (ev === 'FIRE') {
+        var fl = new THREE.PointLight(0xff5500, 3, 75);
+        fl.position.set(cell.x, sz.y * 0.65, cell.z);
+        this._scene.add(fl); cell.evLight = fl;
+      } else if (ev === 'BURGLARY' || ev === 'STORM') {
+        var pl = new THREE.PointLight(ev === 'BURGLARY' ? 0x6010ff : 0x4060e0, 1.8, 60);
+        pl.position.set(cell.x, sz.y + 8, cell.z);
+        this._scene.add(pl); cell.evLight = pl;
+      } else if (ev === 'RENOVATION') {
+        var sg = new THREE.Group();
+        var sw = sz.x + 2, sd2 = sz.z + 2, sh = sz.y;
+        var M = this.M;
+        [[-sw / 2, -sd2 / 2], [sw / 2, -sd2 / 2], [sw / 2, sd2 / 2], [-sw / 2, sd2 / 2]].forEach(function(a) {
+          var pp = self.cy(0.26, 0.26, sh, 4, M.SCAFFOLD);
+          pp.position.set(cell.x + a[0], sh / 2, cell.z + a[1]); sg.add(pp);
+        });
+        for (var lv = 0; lv < Math.ceil(sh / 10); lv++) {
+          var y = lv * 10 + 5;
+          var h1 = self.bx(sw, 0.28, 0.28, M.SCAFFOLD, false); h1.position.set(cell.x, y, cell.z - sd2 / 2); sg.add(h1);
+          var h2 = self.bx(sw, 0.28, 0.28, M.SCAFFOLD, false); h2.position.set(cell.x, y, cell.z + sd2 / 2); sg.add(h2);
+          var h3 = self.bx(0.28, 0.28, sd2, M.SCAFFOLD, false); h3.position.set(cell.x - sw / 2, y, cell.z); sg.add(h3);
+          var h4 = self.bx(0.28, 0.28, sd2, M.SCAFFOLD, false); h4.position.set(cell.x + sw / 2, y, cell.z); sg.add(h4);
+        }
+        this._pivot.add(sg); cell.evMesh = sg;
+      } else if (ev === 'FLOOD') {
+        var T = this.TILE;
+        var fm = this.bx(T * 0.86, 0.55, T * 0.86, this.M.FLOOD_FX);
+        fm.position.set(cell.x, 1.5, cell.z);
+        this._pivot.add(fm); cell.evMesh = fm;
+      }
+    }
+
+    this._addLog(this.EVENTS[ev].em + ' ' + this.EVENTS[ev].n + ' → ' + (this.BNAMES[cell.t] || cell.t), this.EVENTS[ev].c);
+  },
+
+  // ── Animation loop ──
+  startAnimation: function() {
+    var self = this;
+    if (this._animId) cancelAnimationFrame(this._animId);
+
+    function animate(ts) {
+      self._animId = requestAnimationFrame(animate);
+      if (!self._grid) return;
+
+      // Update events + building animations
+      self._grid.flat().forEach(function(cell) {
+        if (cell.ev && ts > cell.evEnd) { self._clearEvFX(cell); cell.ev = null; }
+        if (cell.ev === 'FIRE' && cell.evLight) cell.evLight.intensity = 2.4 + Math.sin(ts * 0.016) * 0.8 + Math.random() * 0.5;
+        if (cell.ev === 'BURGLARY' && cell.evLight) cell.evLight.color.setHex(Math.floor(ts / 500) % 2 ? 0xff1010 : 0x1010ff);
+        if (cell.ev === 'EARTHQUAKE' && cell.bGrp) {
+          cell.bGrp.position.x = cell.x + Math.sin(ts * 0.055) * 1.5;
+          cell.bGrp.position.z = cell.z + Math.cos(ts * 0.04) * 0.9;
+        } else if (cell.bGrp) {
+          cell.bGrp.position.x = cell.x;
+          cell.bGrp.position.z = cell.z;
+        }
+        if (cell.ev === 'FLOOD' && cell.evMesh) cell.evMesh.position.y = 1.5 + Math.sin(ts * 0.0014) * 1.4;
+        // Construction animation (scale up from 0)
+        if (!cell.demo && cell.sp < 1 && cell.bGrp) { cell.sp = Math.min(1, cell.sp + 0.006); cell.bGrp.scale.y = cell.sp; }
+        // Demolition animation (scale down to 0)
+        if (cell.demo && cell.bGrp) {
+          cell.sp = Math.max(0, cell.sp - 0.007);
+          cell.bGrp.scale.y = cell.sp;
+          if (cell.sp <= 0) { self._pivot.remove(cell.bGrp); cell.bGrp = null; cell.demo = false; cell.t = 'EMPTY'; cell.sp = 1; self._clearEvFX(cell); }
+        }
+      });
+
+      // Periodic events
+      if (ts >= self._nxtE) { self.triggerEvent(ts); self._nxtE = ts + 4500 + Math.random() * 5000; }
+
+      // Update selection wireframe
+      if (self._selCell && self._selCell.bGrp) {
+        var bb = new THREE.Box3().setFromObject(self._selCell.bGrp);
+        var sz = new THREE.Vector3(), ctr = new THREE.Vector3();
+        bb.getSize(sz); bb.getCenter(ctr);
+        self._selWire.position.copy(ctr);
+        self._selWire.scale.set(sz.x + 1.5, sz.y + 1.5, sz.z + 1.5);
+      }
+
+      // Sun variation
+      if (self._sun) self._sun.intensity = 1.6 + Math.sin(ts * 0.0001) * 0.3;
+
+      self._renderer.render(self._scene, self._cam);
+    }
+
+    requestAnimationFrame(animate);
+  },
+
+  stopAnimation: function() {
+    if (this._animId) { cancelAnimationFrame(this._animId); this._animId = null; }
+  },
+
+  // ── Cleanup ──
+  destroy: function() {
+    this.stopAnimation();
+    if (this._renderer) this._renderer.dispose();
+    if (this._canvas && this._canvas.parentNode) this._canvas.parentNode.removeChild(this._canvas);
+    this._scene = null; this._cam = null; this._renderer = null;
+    this._pivot = null; this._grid = null; this._canvas = null;
+    this._container = null; this._selCell = null;
+    this._cityDef = null;
+  },
+
+  // ── Main entry point: render a city into a container ──
+  renderCity: function(cityDef, container) {
+    this.destroy();
+    if (!this.initScene(container)) return;
+    this.buildCity(cityDef);
+    this.startAnimation();
   },
 };
