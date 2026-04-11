@@ -1766,33 +1766,29 @@ const GameUI = {
       var def = defFn ? defFn() : null;
       if (def) {
         var container = document.getElementById('city-map');
-        // Don't re-render if same city is already showing
-        if (City3D._cityDef && City3D._cityDef.id === cityId) return;
+        // Gather actual properties for this city (market + owned)
+        var market = GameEngine.state.marketProperties[cityId] || [];
+        var owned = GameEngine.state.properties.filter(function(p) { return p.cityId === cityId; });
+        var allProps = market.concat(owned);
+
+        // Don't re-render if same city with same property count is already showing
+        if (City3D._cityDef && City3D._cityDef.id === cityId && City3D._properties && City3D._properties.length === allProps.length) return;
         container.innerHTML = '';
         container.style.background = '#060c1a';
         try {
-          City3D.renderCity(def, container);
+          City3D.renderCity(def, container, allProps);
         } catch(e) {
           container.innerHTML = '<div style="color:#c8a030;text-align:center;padding:40px;font-size:13px">3D city view unavailable</div>';
           return;
         }
-        // Wire building click → filter property list + show toast
+        // Wire building click → navigate to property detail if it's a real property
         City3D._onBuildingClick = function(cell) {
-          var typeName = City3D.BNAMES[cell.t] || cell.t;
-          // Map 3D tile type to game property type for filtering
-          var typeMap = { HO:'house', ST:'studio', AP:'apartment', PH:'penthouse',
-            TH:'townhouse', VI:'villa', MN:'mansion', CM:'commercial', WR:'warehouse', SK:'commercial' };
-          var gameType = typeMap[cell.t];
-          if (gameType) {
-            // Set filter to this type and re-render property list
-            GameUI.cityTypeFilter = gameType;
-            var sel = document.getElementById('city-type-filter');
-            if (sel) sel.value = gameType;
-            GameUI.cityPage = 0;
-            GameUI.renderCityProperties();
-            GameUI.toast(typeName + ' — showing matching properties below', 'info');
+          if (cell.propertyId) {
+            // Navigate to property detail
+            GameUI.showScreen('property', cell.propertyId);
           } else {
-            // Landmark — just show info
+            // Landmark or empty — show info
+            var typeName = City3D.BNAMES[cell.t] || cell.t;
             GameUI.toast(typeName, 'info');
           }
         };

@@ -325,6 +325,11 @@ const City3D = {
     BURGLARY:   { c: '#a040f0', n: 'Burglary',   em: '🚨', d: [5000, 10000] },
   },
 
+  // Map game property type → 3D building key
+  PROP_TO_3D: { house:'HO', studio:'ST', apartment:'AP', penthouse:'PH',
+    townhouse:'TH', villa:'VI', mansion:'MN', commercial:'CM', warehouse:'WR',
+    land:'CT', skyscraper:'SK' },
+
   // ========== PART 2: Scene, Grid, Events, Animation ==========
 
   TILE: 28,
@@ -547,9 +552,11 @@ const City3D = {
   },
 
   // ── Build the full grid from a city definition ──
-  buildCity: function(cityDef) {
+  // properties: array of game property objects to place on building slots
+  buildCity: function(cityDef, properties) {
     if (!this._pivot) return;
     this._cityDef = cityDef;
+    this._properties = properties || [];
 
     var layout = cityDef.layout;
     var GH = layout.length, GW = layout[0].length;
@@ -559,26 +566,54 @@ const City3D = {
     var self = this;
     var rng = this._rng;
 
+    // Collect building slot positions from layout ('B' tiles or any BLDG_TYPE)
+    var buildingSlots = [];
+    layout.forEach(function(row, r) {
+      row.forEach(function(t, c) {
+        if (t === 'B' || self.BLDG_TYPES.has(t)) buildingSlots.push({ r: r, c: c, origType: t });
+      });
+    });
+
+    // Assign actual properties to building slots
+    var propQueue = (properties || []).slice(); // copy
+    var slotAssignments = {}; // "r,c" → property
+    buildingSlots.forEach(function(slot, i) {
+      if (i < propQueue.length) {
+        slotAssignments[slot.r + ',' + slot.c] = propQueue[i];
+      }
+    });
+
     layout.forEach(function(row, r) {
       grid[r] = [];
       row.forEach(function(t, c) {
         var x = OX + c * T, z = OZ + r * T;
+        var assignedProp = slotAssignments[r + ',' + c];
 
-        // Place tile
-        var tg = self.makeTile(t, r, c);
+        // Determine what to render: assigned property, landmark, or terrain
+        var tileType = t;
+        if (assignedProp) {
+          // This slot has a real property — use its type for the 3D building
+          tileType = self.PROP_TO_3D[assignedProp.type] || t;
+        } else if (t === 'B' || (self.BLDG_TYPES.has(t) && !assignedProp)) {
+          // Empty building slot — render as road
+          tileType = 'RD';
+        }
+
+        // Place terrain tile (road for building slots, or original terrain type)
+        var terrainType = (self.BLDG_TYPES.has(tileType) || (cityDef.landmarks && cityDef.landmarks[tileType])) ? 'RD' : tileType;
+        var tg = self.makeTile(terrainType, r, c);
         tg.position.set(x, 0, z);
         self._pivot.add(tg);
 
-        var cell = { t: t, ev: null, evEnd: 0, sp: 1, demo: false, r: r, c: c, x: x, z: z, bGrp: null, evMesh: null, evLight: null };
+        var cell = { t: tileType, ev: null, evEnd: 0, sp: 1, demo: false, r: r, c: c, x: x, z: z, bGrp: null, evMesh: null, evLight: null, propertyId: assignedProp ? assignedProp.id : null, property: assignedProp || null };
 
-        // Place building if tile is a building type
-        var isBuilding = self.BLDG_TYPES.has(t);
-        // Also check if it's a landmark key
-        var isLandmark = cityDef.landmarks && cityDef.landmarks[t];
+        // Place building
+        var isLandmark = cityDef.landmarks && cityDef.landmarks[tileType];
 
-        if (isBuilding) {
+        if (assignedProp || self.BLDG_TYPES.has(tileType)) {
+          var buildKey = assignedProp ? (self.PROP_TO_3D[assignedProp.type] || 'ST') : tileType;
           var seed = rng();
-          var bg = self.buildByType(t, seed);
+          var bg = self.buildByType(buildKey, seed);
           bg.position.set(x, 0, z);
           bg.traverse(function(m) { if (m.isMesh) m.userData.cell = cell; });
           self._pivot.add(bg);
@@ -772,10 +807,11 @@ const City3D = {
   },
 
   // ── Main entry point: render a city into a container ──
-  renderCity: function(cityDef, container) {
+  // properties: optional array of game property objects to show as buildings
+  renderCity: function(cityDef, container, properties) {
     this.destroy();
     if (!this.initScene(container)) return;
-    this.buildCity(cityDef);
+    this.buildCity(cityDef, properties);
     this.startAnimation();
   },
 };
