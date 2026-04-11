@@ -1722,6 +1722,11 @@ const GameUI = {
     hong_kong: function() { return typeof CityDef_HongKong !== 'undefined' ? CityDef_HongKong : null; },
     barcelona: function() { return typeof CityDef_Barcelona !== 'undefined' ? CityDef_Barcelona : null; },
     rome: function() { return typeof CityDef_Rome !== 'undefined' ? CityDef_Rome : null; },
+    berlin: function() { return typeof CityDef_Berlin !== 'undefined' ? CityDef_Berlin : null; },
+    amsterdam: function() { return typeof CityDef_Amsterdam !== 'undefined' ? CityDef_Amsterdam : null; },
+    toronto: function() { return typeof CityDef_Toronto !== 'undefined' ? CityDef_Toronto : null; },
+    monaco: function() { return typeof CityDef_Monaco !== 'undefined' ? CityDef_Monaco : null; },
+    shanghai: function() { return typeof CityDef_Shanghai !== 'undefined' ? CityDef_Shanghai : null; },
   },
 
   renderCityMap() {
