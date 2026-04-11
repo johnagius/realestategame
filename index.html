@@ -70,6 +70,11 @@
     <span id="hud-goal-text">🎯 Goal: —</span>
   </div>
 
+  <!-- ==================== CAMPAIGN PROGRESS ==================== -->
+  <div id="hud-campaign" class="hud-campaign hidden">
+    <span id="hud-campaign-text"></span>
+  </div>
+
   <!-- ==================== FLOATING LEADERBOARD ==================== -->
   <div id="floating-leaderboard" class="floating-lb hidden">
     <div class="floating-lb-header">
@@ -96,8 +101,14 @@
     </div>
     <!-- Grid View -->
     <div id="cities-list-view" style="display:none">
-      <div class="search-bar">
-        <input type="text" id="city-search" placeholder="Search cities..." class="search-input">
+      <div class="search-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="text" id="city-search" placeholder="Search cities..." class="search-input" style="flex:1;min-width:140px">
+        <select id="cities-sort" class="sort-select" onchange="GameUI._citiesSort=this.value;GameUI._lastSearch=null;GameUI.renderMap()">
+          <option value="default">Sort: Default</option>
+          <option value="score">Sort: Investment Score</option>
+          <option value="yield">Sort: Rent Yield</option>
+          <option value="growth">Sort: Growth Rate</option>
+        </select>
       </div>
       <div id="cities-grid" class="card-grid"></div>
     </div>

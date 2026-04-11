@@ -76,6 +76,23 @@ const GameUI = {
       }
       goalEl.innerHTML = cycleLabel + ' ' + (s.economicCycle || 'growth') + ' | ' + goalText;
     }
+    // Campaign progress indicator
+    var campaignEl = document.getElementById('hud-campaign');
+    if (campaignEl && GameEngine.getCampaignProgress) {
+      var cp = GameEngine.getCampaignProgress();
+      campaignEl.classList.remove('hidden');
+      var cpTextEl = document.getElementById('hud-campaign-text');
+      if (cpTextEl) {
+        if (cp.completed) {
+          cpTextEl.innerHTML = '👑 <strong>All Campaign Tiers Complete!</strong>';
+        } else {
+          var nextHint = cp.unmet[0] ? cp.unmet[0].label : '';
+          cpTextEl.innerHTML = cp.tierData.icon + ' <strong>' + cp.tierData.name + '</strong> · ' +
+            cp.metCount + '/' + cp.totalCount + ' complete' +
+            (nextHint ? ' · <span style="color:var(--text-muted)">Next: ' + nextHint + '</span>' : '');
+        }
+      }
+    }
   },
 
   // Show floating income/expense summary near HUD
@@ -167,23 +184,41 @@ const GameUI = {
 
     const grid = document.getElementById('cities-grid');
     const search = document.getElementById('city-search').value.toLowerCase();
-    let cities = GameData.cities;
+    let cities = GameData.cities.slice(); // copy so we can sort
     if (search) {
       cities = cities.filter(function(c) {
         return c.name.toLowerCase().includes(search) || c.country.toLowerCase().includes(search);
       });
     }
 
-    // Only rebuild DOM on first render or search change — otherwise just update values
+    // Sort cities based on selected sort option
+    var sortMode = this._citiesSort || 'default';
+    if (sortMode === 'score') {
+      var cycle = GameEngine.state.economicCycle || 'growth';
+      var cB = {boom:3, growth:1.5, stagnation:0, recession:-2, depression:-4}[cycle] || 0;
+      cities.sort(function(a, b) {
+        var sa = a.rentYield*100 + a.growthRate*50 - a.taxRate*40 - (a.inflationRate||0.02)*30 - GameEngine.getCityDisasterProfile(a.id).length*1.5 + cB;
+        var sb = b.rentYield*100 + b.growthRate*50 - b.taxRate*40 - (b.inflationRate||0.02)*30 - GameEngine.getCityDisasterProfile(b.id).length*1.5 + cB;
+        return sb - sa;
+      });
+    } else if (sortMode === 'yield') {
+      cities.sort(function(a, b) { return b.rentYield - a.rentYield; });
+    } else if (sortMode === 'growth') {
+      cities.sort(function(a, b) { return b.growthRate - a.growthRate; });
+    }
+
+    // Only rebuild DOM on first render or search/sort change — otherwise just update values
     var existing = grid.querySelectorAll('.city-card');
-    var needsRebuild = existing.length !== cities.length || this._lastSearch !== search;
-    this._lastSearch = search;
+    var sortKey = sortMode + search;
+    var needsRebuild = existing.length !== cities.length || this._lastSearch !== sortKey;
+    this._lastSearch = sortKey;
 
     if (needsRebuild) {
       var html = '';
       cities.forEach(function(city, i) {
         var lm = GameData.cityLandmarks[city.id] || {};
-        html += '<div class="city-card" data-tier="' + city.tier + '" data-city="' + city.id + '">' +
+        html += '<div class="city-card" data-tier="' + city.tier + '" data-city="' + city.id + '" style="position:relative">' +
+          '<div class="city-invest-badge" data-stat="investScore"></div>' +
           '<div class="city-card-header">' +
             '<span class="city-flag">' + (lm.landmark || city.flag) + '</span>' +
             '<div>' +
@@ -216,6 +251,15 @@ const GameUI = {
       var summary = GameEngine.getCitySummary(cityId);
       var inflRate = city.inflationRate !== undefined ? city.inflationRate : 0.02;
 
+      // Compute investment score for this city
+      var disasters = GameEngine.getCityDisasterProfile(cityId);
+      var cycle = GameEngine.state.economicCycle || 'growth';
+      var _yS = city.rentYield * 100, _gS = city.growthRate * 50, _tP = city.taxRate * 40;
+      var _iP = inflRate * 30, _rP = disasters.length * 1.5;
+      var _cB = {boom:3, growth:1.5, stagnation:0, recession:-2, depression:-4}[cycle] || 0;
+      var investScore = Math.round((_yS + _gS - _tP - _iP - _rP + _cB) * 10) / 10;
+      card.setAttribute('data-invest-score', investScore);
+
       var els = card.querySelectorAll('[data-stat]');
       els.forEach(function(el) {
         var stat = el.getAttribute('data-stat');
@@ -226,6 +270,13 @@ const GameUI = {
         else if (stat === 'growth') el.textContent = '📈 ' + (city.growthRate * 100).toFixed(1) + '%';
         else if (stat === 'yield') el.textContent = '🏠 ' + (city.rentYield * 100).toFixed(1) + '%';
         else if (stat === 'inflation') el.textContent = '💹 ' + (inflRate * 100).toFixed(1) + '%';
+        else if (stat === 'investScore') {
+          var sCol = investScore >= 6 ? '#2A9D8F' : investScore >= 4 ? '#D4A84B' : investScore >= 3 ? '#888' : '#E63946';
+          var sLbl = investScore >= 7 ? 'Excellent' : investScore >= 5 ? 'Good' : investScore >= 3 ? 'Fair' : 'Poor';
+          el.textContent = investScore.toFixed(1);
+          el.style.background = sCol;
+          el.title = sLbl + ' investment score';
+        }
       });
     });
   },
@@ -1126,6 +1177,22 @@ const GameUI = {
     // Prestige — end of game
     if (results.prestige) {
       var stats = GameEngine.getPrestigeStats();
+      var rating = GameEngine.getLegacyRating();
+
+      // Grade color
+      var gradeCol = rating.grade === 'S' ? '#D4A84B' : rating.grade === 'A' ? '#2A9D8F' : rating.grade === 'B' ? '#2C6E49' : '#888';
+
+      // Campaign progress
+      var campaignHTML = '<div style="margin-top:10px;text-align:left"><strong>Campaign Progress (' + rating.tiersCompleted + '/' + rating.totalTiers + ' tiers)</strong>';
+      GameEngine.campaignTiers.forEach(function(t) {
+        var done = rating.tiersCompleted >= t.tier;
+        campaignHTML += '<div style="font-size:0.75rem;padding:3px 0;opacity:' + (done ? '1' : '0.5') + '">' +
+          (done ? '✅' : '⬜') + ' ' + t.icon + ' <strong>' + t.name + '</strong> — ' +
+          t.requirements.map(function(r){ return r.label; }).join(', ') + '</div>';
+      });
+      campaignHTML += '</div>';
+
+      // Prestige unlocks
       var unlocksHTML = '';
       if (stats.unlocks.length > 0) {
         unlocksHTML = '<div style="margin-top:10px;text-align:left"><strong>Prestige ' + stats.nextLevel + ' Unlocks:</strong>';
@@ -1134,6 +1201,8 @@ const GameUI = {
         });
         unlocksHTML += '</div>';
       }
+
+      // Previous runs
       var historyHTML = '';
       var history = GameEngine.state.prestigeHistory || [];
       if (history.length > 0) {
@@ -1143,10 +1212,29 @@ const GameUI = {
         });
         historyHTML += '</div>';
       }
-      this.showModal('🏆 The Year 2030 — Your Legacy',
+
+      // Dynamic title based on grade
+      var modalTitle = rating.grade === 'S' ? '👑 Legendary Dynasty!' :
+        rating.grade === 'A' ? '🏆 A Great Dynasty!' :
+        rating.grade === 'B' ? '🏛️ Dynasty Complete' :
+        '🏛️ The Year 2030 — Your Legacy';
+
+      var newGameLabel = (rating.grade === 'S' || rating.grade === 'A')
+        ? '✨ Begin New Legacy (Prestige ' + stats.nextLevel + ')'
+        : '🔄 New Game+ (Prestige ' + stats.nextLevel + ')';
+
+      this.showModal(modalTitle,
         '<div style="text-align:center;padding:8px 0">' +
-          '<div style="font-size:3rem;margin-bottom:8px">🏛️</div>' +
-          '<div style="font-family:var(--font-heading);font-size:1.1rem;margin-bottom:12px">Your dynasty spans ' + stats.generation + ' generations</div>' +
+          // Letter grade
+          '<div class="legacy-grade" style="font-size:4rem;font-weight:900;color:' + gradeCol + ';line-height:1;margin-bottom:2px">' + rating.grade + '</div>' +
+          '<div style="font-size:0.9rem;font-weight:700;color:' + gradeCol + ';margin-bottom:4px">' + rating.title + '</div>' +
+          '<div style="font-family:var(--font-heading);font-size:0.85rem;margin-bottom:12px;color:var(--text-muted)">Your dynasty spans ' + stats.generation + ' generations</div>' +
+          // Score bar
+          '<div style="background:rgba(0,0,0,0.06);border-radius:8px;height:10px;margin:0 auto 12px;max-width:200px;overflow:hidden">' +
+            '<div style="background:' + gradeCol + ';height:100%;width:' + rating.score + '%;border-radius:8px;transition:width 0.5s"></div>' +
+          '</div>' +
+          '<div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:10px">Legacy Score: ' + rating.score + '/100</div>' +
+          // Stats
           '<div class="finance-card">' +
             '<div class="finance-row"><span class="finance-row-label">Final Net Worth</span><span class="finance-row-value">' + GameData.formatMoney(stats.netWorth) + '</span></div>' +
             '<div class="finance-row"><span class="finance-row-label">Properties</span><span class="finance-row-value">' + stats.properties + '</span></div>' +
@@ -1159,13 +1247,15 @@ const GameUI = {
           '<div style="margin-top:8px;font-size:0.82rem;font-weight:700">' +
             'Next run bonuses: <span class="positive">+' + Math.round((stats.cashBonus-1)*100) + '% cash</span>, <span class="positive">+' + stats.repBonus + ' reputation</span>' +
           '</div>' +
+          campaignHTML +
           unlocksHTML +
           historyHTML +
         '</div>',
-        '<button class="btn btn-primary" onclick="App.startPrestige()">🔄 New Game+ (Prestige ' + stats.nextLevel + ')</button>' +
+        '<button class="btn btn-primary" onclick="App.startPrestige()">' + newGameLabel + '</button>' +
         '<button class="btn btn-accent" onclick="App.sharePrestige()">📷 Share Legacy</button>' +
         '<button class="btn btn-ghost" onclick="GameUI.hideModal()">Keep Playing</button>'
       );
+      if (rating.grade === 'S' || rating.grade === 'A') GameUI.animateConfetti();
       GameAudio.fanfare();
       return;
     }
@@ -1323,6 +1413,30 @@ const GameUI = {
       });
       GameUI.animateConfetti();
       GameAudio.fanfare();
+    }
+
+    // Campaign tier completion
+    if (results.campaignTierCompleted) {
+      var ct = results.campaignTierCompleted;
+      var nextText = ct.nextTier
+        ? '<div style="margin-top:12px;font-size:0.82rem;color:var(--text-muted)">Next: <strong>' + ct.nextTier.icon + ' ' + ct.nextTier.name + '</strong></div>' +
+          '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px">' + ct.nextTier.requirements.map(function(r){ return r.label; }).join(' · ') + '</div>'
+        : '<div style="margin-top:12px;font-size:1rem;font-weight:800;color:var(--gold)">You have completed all campaign tiers!</div>';
+      GameUI.showModal(ct.icon + ' Campaign Tier ' + ct.tier + ' Complete!',
+        '<div style="text-align:center;padding:10px 0">' +
+          '<div style="font-size:2.5rem;margin-bottom:6px">' + ct.icon + '</div>' +
+          '<div style="font-family:var(--font-heading);font-size:1.2rem;margin-bottom:8px;color:var(--primary-dark)">' + ct.name + '</div>' +
+          '<div class="finance-card" style="margin-top:10px">' +
+            '<div class="finance-row"><span class="finance-row-label">Cash Reward</span><span class="finance-row-value positive">+' + GameData.formatMoney(ct.reward) + '</span></div>' +
+            '<div class="finance-row"><span class="finance-row-label">Reputation</span><span class="finance-row-value positive">+' + ct.repBonus + '</span></div>' +
+          '</div>' +
+          nextText +
+        '</div>',
+        '<button class="btn btn-primary" onclick="GameUI.hideModal()">Continue</button>'
+      );
+      GameUI.animateConfetti();
+      GameAudio.fanfare();
+      return;
     }
 
     // Basic summary toast - skip during fast auto-play to reduce noise
@@ -1777,7 +1891,7 @@ const GameUI = {
     var owned = GameEngine.state.properties.filter(function(p) { return p.cityId === cityId; });
     var avgPrice = market.length > 0 ? Math.round(market.reduce(function(s,p){return s+p.currentValue;},0)/market.length) : 0;
     // Investment Score
-    var yS=city.rentYield*100, gS=city.growthRate*50, tP=city.taxRate*40, iP=(city.inflationRate||0.02)*30, rP=disasters.length*5;
+    var yS=city.rentYield*100, gS=city.growthRate*50, tP=city.taxRate*40, iP=(city.inflationRate||0.02)*30, rP=disasters.length*1.5;
     var cB={boom:3,growth:1.5,stagnation:0,recession:-2,depression:-4}[cycle]||0;
     var score=Math.round((yS+gS-tP-iP-rP+cB)*10)/10;
     var sCol=score>=6?'#2A9D8F':score>=4?'#D4A84B':'#E63946';
