@@ -241,11 +241,13 @@ const GameUI = {
           html += '<div style="text-align:center;padding:12px 0;font-size:0.75rem;color:var(--text-muted)">' +
             '🔒 Complete campaign tiers to unlock</div>';
         } else {
+          var trait = city.trait ? GameData.cityTraits[city.trait] : null;
           html += '<div class="city-card-stats">' +
               '<div class="city-stat"><span class="city-stat-value" data-stat="available"></span><span class="city-stat-label">For Sale</span></div>' +
               '<div class="city-stat"><span class="city-stat-value" data-stat="owned"></span><span class="city-stat-label">Owned</span></div>' +
               '<div class="city-stat"><span class="city-stat-value" data-stat="avgPrice"></span><span class="city-stat-label">Avg Price</span></div>' +
             '</div>' +
+            (trait ? '<div class="city-trait-chip" style="background:' + trait.color + '15;border:1px solid ' + trait.color + '30;color:' + trait.color + '" title="' + trait.desc + '">' + trait.icon + ' ' + trait.name + '</div>' : '') +
             '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">' +
               '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px" data-stat="tax"></span>' +
               '<span class="city-info-chip" style="font-size:0.6rem;padding:2px 6px" data-stat="growth"></span>' +
@@ -1962,6 +1964,13 @@ const GameUI = {
     var disIcons={flood:'🌊',earthquake:'🌍',fire:'🔥',storm:'⛈️',theft:'🔓',sandstorm:'🏜️',drought:'☀️',vandalism:'🎨',burglary:'🚨'};
     var h='<div style="max-height:70vh;overflow-y:auto">';
     h+='<div class="finance-card" style="margin-bottom:10px"><div style="font-size:0.82rem;margin-bottom:6px"><strong>'+city.flag+' '+city.name+'</strong>, '+city.country+'</div><div style="font-size:0.75rem;color:var(--text-muted);line-height:1.5">'+city.description+'</div></div>';
+    // City trait
+    var insightTrait = city.trait ? GameData.cityTraits[city.trait] : null;
+    if (insightTrait) {
+      h+='<div class="finance-card" style="margin-bottom:10px;border-left:3px solid '+insightTrait.color+'">' +
+        '<div style="font-size:0.78rem;font-weight:700;margin-bottom:4px">'+insightTrait.icon+' '+insightTrait.name+'</div>' +
+        '<div style="font-size:0.72rem;color:var(--text-dark);line-height:1.5">'+insightTrait.desc+'</div></div>';
+    }
     if(!GameEngine.state.hideInvestScore){
       h+='<div class="finance-card" style="margin-bottom:10px;text-align:center"><div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px">INVESTMENT SCORE</div><div style="font-size:2rem;font-weight:800;color:'+sCol+'">'+score.toFixed(1)+'</div><div style="font-size:0.75rem;font-weight:700;color:'+sCol+'">'+sLbl+'</div><div style="font-size:0.6rem;color:var(--text-muted);margin-top:6px;line-height:1.6">Yield +'+yS.toFixed(1)+' · Growth +'+gS.toFixed(1)+' · Tax -'+tP.toFixed(1)+' · Inflation -'+iP.toFixed(1)+' · Risk -'+rP+' · Cycle '+(cB>=0?'+':'')+cB+'</div></div>';
     }

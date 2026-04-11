@@ -257,8 +257,18 @@ const GameEngine = {
       }
     }
 
-    const purchaseTax = Math.round(offerValue * city.taxRate);
-    const totalCost = offerValue + purchaseTax;
+    // City trait purchase modifiers
+    var traitSurcharge = 0;
+    if (city.trait === 'tax_haven') {
+      // No property tax, but 15% demand premium on price
+      traitSurcharge = Math.round(offerValue * 0.15);
+    } else if (city.trait === 'foreign_buyer') {
+      // Extra 8% foreign buyer surcharge
+      traitSurcharge = Math.round(offerValue * 0.08);
+    }
+
+    const purchaseTax = city.trait === 'tax_haven' ? 0 : Math.round(offerValue * city.taxRate);
+    const totalCost = offerValue + purchaseTax + traitSurcharge;
 
     if (this.state.cash < totalCost) {
       return { success: false, message: `Not enough cash. Need ${GameData.formatMoney(totalCost)} (incl. ${GameData.formatMoney(purchaseTax)} tax).` };
@@ -419,6 +429,16 @@ const GameEngine = {
     );
     if (grantEvent) {
       cost = Math.round(cost * 0.7);
+    }
+
+    // City trait: redevelopment — 30% cheaper refurbishment
+    var refCity = GameData.cities.find(function(c) { return c.id === property.cityId; });
+    if (refCity && refCity.trait === 'redevelopment') {
+      cost = Math.round(cost * 0.7);
+    }
+    // City trait: heritage_city — refurbishment takes 2x longer
+    if (refCity && refCity.trait === 'heritage_city') {
+      months = months * 2;
     }
 
     if (this.state.cash < cost) {
@@ -659,6 +679,14 @@ const GameEngine = {
       });
     }
 
+    // City trait: crime_pressure — insurance costs 25% less
+    if (city && city.trait === 'crime_pressure') {
+      options.forEach(function(opt) {
+        opt.cost = Math.round(opt.cost * 0.75);
+        opt.monthlyUpkeep = Math.round(opt.monthlyUpkeep * 0.75);
+      });
+    }
+
     return options;
   },
 
@@ -781,6 +809,13 @@ const GameEngine = {
       // Poor condition increases risk
       if (property.condition === 'poor') probability *= 1.3;
       if (property.condition === 'derelict') probability *= 1.8;
+
+      // City trait: crime_pressure — 2x theft/vandalism risk for uninsured
+      var cCity = GameData.cities.find(function(c) { return c.id === property.cityId; });
+      if (cCity && cCity.trait === 'crime_pressure' && (disasterType === 'theft' || disasterType === 'vandalism')) {
+        var hasInsurance = propMitigations['insurance_basic'] || propMitigations['insurance_premium'] || propMitigations['security_system'];
+        if (!hasInsurance) probability *= 2;
+      }
 
       // Roll for disaster
       if (Math.random() < probability) {
@@ -956,11 +991,40 @@ const GameEngine = {
             results.tenantProblems.push({ property: p.name, type: 'dispute', loss: legalFee + adjustedRent, tenant: tenant ? tenant.icon : '' });
           }
         } else {
-          // Normal rent collection with diminishing returns + cycle effect + rent adjustment + seasonality
+          // Normal rent collection with diminishing returns + cycle effect + rent adjustment + seasonality + city traits
           var seasonFactor = 1.0;
           if (isSummer && touristCities[p.cityId]) seasonFactor = 1.12;
           else if (isWinter && northernCities[p.cityId]) seasonFactor = 0.92;
-          var actualRent = Math.round(adjustedRent * synergyFactor * rentCycleFactor * seasonFactor);
+
+          // City trait rent modifiers
+          var traitFactor = 1.0;
+          var pCity = GameData.cities.find(function(c) { return c.id === p.cityId; });
+          var trait = pCity ? pCity.trait : null;
+          if (trait === 'tourism_boom') {
+            // Stronger seasonality: summer +25%, winter -15%
+            if (isSummer) traitFactor = 1.25 / (touristCities[p.cityId] ? 1.12 : 1.0); // override base tourism
+            else if (isWinter) traitFactor = 0.85 / (northernCities[p.cityId] ? 0.92 : 1.0);
+          } else if (trait === 'rent_control') {
+            // Cap rent at base — rentMultiplier adjustments above 1.0 are halved
+            if (rentMult > 1.0) traitFactor = 1.0 - (rentMult - 1.0) * 0.5 / rentMult;
+          } else if (trait === 'elite_enclave') {
+            // Non-luxury property types get -40% rent
+            var luxTypes = { villa:1, penthouse:1, mansion:1 };
+            if (!luxTypes[p.type]) traitFactor = 0.6;
+          } else if (trait === 'tech_hub') {
+            // Studios and apartments get +20% rent
+            if (p.type === 'studio' || p.type === 'apartment') traitFactor = 1.2;
+          } else if (trait === 'density_premium') {
+            // +3% rent per owned property in this city, max +30%
+            var cityOwned = this.state.properties.filter(function(pp) { return pp.cityId === p.cityId; }).length;
+            traitFactor = 1 + Math.min(0.30, cityOwned * 0.03);
+          } else if (trait === 'monsoon_market') {
+            // Jul-Sep rent halved, other months +15%
+            if (monthIdx >= 6 && monthIdx <= 8) traitFactor = 0.5;
+            else traitFactor = 1.15;
+          }
+
+          var actualRent = Math.round(adjustedRent * synergyFactor * rentCycleFactor * seasonFactor * traitFactor);
           this.state.cash += actualRent;
           p.totalRentCollected += actualRent;
           results.rentIncome += actualRent;
@@ -1071,10 +1135,16 @@ const GameEngine = {
           if (Math.random() < 0.12) {
             var curLevel = GameData.conditions[p.condition].level;
             if (curLevel > 0) {
-              p.condition = GameData.conditionOrder[curLevel - 1];
-              this.recalculateRent(p);
-              if (!results.degraded) results.degraded = [];
-              results.degraded.push(p);
+              var newLevel = curLevel - 1;
+              // heritage_city trait: properties never drop below Fair (level 2)
+              var dCity = GameData.cities.find(function(c) { return c.id === p.cityId; });
+              if (dCity && dCity.trait === 'heritage_city' && newLevel < 2) newLevel = 2;
+              if (newLevel < curLevel) {
+                p.condition = GameData.conditionOrder[newLevel];
+                this.recalculateRent(p);
+                if (!results.degraded) results.degraded = [];
+                results.degraded.push(p);
+              }
             }
           }
         }
@@ -1165,13 +1235,28 @@ const GameEngine = {
         const city = GameData.cities.find(c => c.id === p.cityId);
         const monthlyInflation = (city.inflationRate || 0.02) / 12;
         const pressure = this.state.marketPressure[city.id] || 0;
-        const randomFactor = (Math.random() - 0.5) * 0.015;
+        var randomFactor = (Math.random() - 0.5) * 0.015;
         // CAP + economic cycle
         const maxMonthlyGrowth = 0.0017;
         const realGrowth = Math.min(maxMonthlyGrowth, city.growthRate / 12);
         const cycleGrowth = cycleEffect.growth || 0;
         var prestigeBonus = this.state.prestigeAppreciationBonus || 0;
-        const change = (realGrowth + monthlyInflation + pressure + randomFactor + cycleGrowth) * (1 + prestigeBonus);
+
+        // City trait appreciation modifiers
+        var traitAppreciation = 0;
+        var cityTrait = city.trait;
+        if (cityTrait === 'redevelopment') {
+          // Poor/derelict properties appreciate 2x faster
+          if (p.condition === 'poor' || p.condition === 'derelict') traitAppreciation = realGrowth; // doubles growth
+        } else if (cityTrait === 'boom_bust') {
+          // 3x price volatility
+          randomFactor *= 3;
+        } else if (cityTrait === 'foreign_buyer') {
+          // +1.5% annual extra appreciation = +0.00125/month
+          traitAppreciation = 0.00125;
+        }
+
+        const change = (realGrowth + monthlyInflation + pressure + randomFactor + cycleGrowth + traitAppreciation) * (1 + prestigeBonus);
         p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + change)));
         p.appreciation = ((p.currentValue - p.purchasePrice) / p.purchasePrice) * 100;
         this.recalculateRent(p);
@@ -1185,10 +1270,15 @@ const GameEngine = {
       const pressure = this.state.marketPressure[cityId] || 0;
       const maxMonthlyGrowth = 0.0017;
       const realGrowth = Math.min(maxMonthlyGrowth, city.growthRate / 12);
+      var mTrait = city.trait;
       this.state.marketProperties[cityId].forEach(p => {
-        const randomFactor = (Math.random() - 0.5) * 0.015;
+        var randomFactor = (Math.random() - 0.5) * 0.015;
         var cGrowth = cycleEffect.growth || 0;
-        p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + realGrowth + monthlyInflation + pressure + randomFactor + cGrowth)));
+        var mTraitBonus = 0;
+        if (mTrait === 'boom_bust') randomFactor *= 3;
+        if (mTrait === 'foreign_buyer') mTraitBonus = 0.00125;
+        if (mTrait === 'redevelopment' && (p.condition === 'poor' || p.condition === 'derelict')) mTraitBonus = realGrowth;
+        p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + realGrowth + monthlyInflation + pressure + randomFactor + cGrowth + mTraitBonus)));
         this.recalculateRent(p);
       });
     });

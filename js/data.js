@@ -225,126 +225,163 @@ const GameData = {
   },
 
   // ---- 20 World Cities ----
+  // ---- City Trait Definitions ----
+  // Each trait is a unique mechanic that makes a city strategically distinct
+  cityTraits: {
+    rent_control:    { id: 'rent_control', name: 'Rent Control', icon: '📜', desc: 'Rent increases capped at 2% per year. Stable income but limited upside.', color: '#4169E1' },
+    tourism_boom:    { id: 'tourism_boom', name: 'Tourism Hotspot', icon: '🏖️', desc: 'Summer rent +25%, winter rent -15%. Volatile but lucrative seasonality.', color: '#E07A5F' },
+    redevelopment:   { id: 'redevelopment', name: 'Redevelopment Zone', icon: '🏗️', desc: 'Poor/derelict properties appreciate 2x faster. Renovation costs -30%.', color: '#2A9D8F' },
+    elite_enclave:   { id: 'elite_enclave', name: 'Elite Enclave', icon: '💎', desc: 'Only Villas/Penthouses/Mansions earn full rent. Other types get -40%.', color: '#D4A84B' },
+    crime_pressure:  { id: 'crime_pressure', name: 'Crime Pressure', icon: '🔓', desc: 'Uninsured properties face 2x theft/vandalism risk. Insurance costs -25%.', color: '#E63946' },
+    tax_haven:       { id: 'tax_haven', name: 'Tax Haven', icon: '🏦', desc: 'No property tax. But purchase prices are 15% higher (demand premium).', color: '#2C6E49' },
+    tech_hub:        { id: 'tech_hub', name: 'Tech Hub', icon: '💻', desc: 'Studios and apartments yield +20% rent (young professional demand).', color: '#6C63FF' },
+    heritage_city:   { id: 'heritage_city', name: 'Heritage Protected', icon: '🏛️', desc: 'Properties never drop below Fair condition. But refurbishment takes 2x longer.', color: '#8B4513' },
+    boom_bust:       { id: 'boom_bust', name: 'Boom & Bust', icon: '📈', desc: 'Price swings are 3x more volatile. High risk, high reward speculation.', color: '#FF6B35' },
+    density_premium: { id: 'density_premium', name: 'Density Premium', icon: '🏙️', desc: 'Rent +3% for each property you own in this city (max +30%). Rewards concentration.', color: '#1B4D33' },
+    foreign_buyer:   { id: 'foreign_buyer', name: 'Foreign Buyer Tax', icon: '🛃', desc: 'Extra 8% purchase surcharge. But properties appreciate 1.5% faster annually.', color: '#C41E3A' },
+    monsoon_market:  { id: 'monsoon_market', name: 'Monsoon Market', icon: '🌧️', desc: 'Rent halved during monsoon season (Jul-Sep). Other months +15% to compensate.', color: '#4682B4' }
+  },
+
   cities: [
     {
       id: 'new_york', name: 'New York', country: 'United States', flag: '🇺🇸',
       description: 'The city that never sleeps. Premium real estate with sky-high demand.',
       priceMultiplier: 2.2, rentYield: 0.08, taxRate: 0.08, growthRate: 0.03,
-      inflationRate: 0.025, tier: 1, maxProperties: 15
+      inflationRate: 0.025, tier: 1, maxProperties: 15,
+      trait: 'rent_control'
     },
     {
       id: 'london', name: 'London', country: 'United Kingdom', flag: '🇬🇧',
       description: 'Historic and prestigious. A global hub for luxury property.',
       priceMultiplier: 2.0, rentYield: 0.075, taxRate: 0.07, growthRate: 0.025,
-      inflationRate: 0.022, tier: 1, maxProperties: 15
+      inflationRate: 0.022, tier: 1, maxProperties: 15,
+      trait: 'foreign_buyer'
     },
     {
       id: 'paris', name: 'Paris', country: 'France', flag: '🇫🇷',
       description: 'The City of Light. Elegant apartments and charming townhouses.',
       priceMultiplier: 1.7, rentYield: 0.07, taxRate: 0.08, growthRate: 0.02,
-      inflationRate: 0.020, tier: 1, maxProperties: 14
+      inflationRate: 0.020, tier: 1, maxProperties: 14,
+      trait: 'heritage_city'
     },
     {
       id: 'tokyo', name: 'Tokyo', country: 'Japan', flag: '🇯🇵',
       description: 'Ultra-modern metropolis. High density, high returns.',
       priceMultiplier: 1.8, rentYield: 0.08, taxRate: 0.06, growthRate: 0.02,
-      inflationRate: 0.015, tier: 1, maxProperties: 14
+      inflationRate: 0.015, tier: 1, maxProperties: 14,
+      trait: 'density_premium'
     },
     {
       id: 'dubai', name: 'Dubai', country: 'UAE', flag: '🇦🇪',
       description: 'Luxury paradise with zero income tax. Bold architecture.',
       priceMultiplier: 1.5, rentYield: 0.10, taxRate: 0.04, growthRate: 0.04,
-      inflationRate: 0.030, tier: 1, maxProperties: 14
+      inflationRate: 0.030, tier: 1, maxProperties: 14,
+      trait: 'tax_haven'
     },
     {
       id: 'singapore', name: 'Singapore', country: 'Singapore', flag: '🇸🇬',
       description: 'Compact city-state with premium property at a premium.',
       priceMultiplier: 1.8, rentYield: 0.07, taxRate: 0.07, growthRate: 0.025,
-      inflationRate: 0.018, tier: 2, maxProperties: 12
+      inflationRate: 0.018, tier: 2, maxProperties: 12,
+      trait: 'foreign_buyer'
     },
     {
       id: 'hong_kong', name: 'Hong Kong', country: 'China', flag: '🇭🇰',
       description: 'One of the world\'s most expensive property markets.',
       priceMultiplier: 2.5, rentYield: 0.11, taxRate: 0.06, growthRate: 0.02,
-      inflationRate: 0.020, tier: 1, maxProperties: 12
+      inflationRate: 0.020, tier: 1, maxProperties: 12,
+      trait: 'boom_bust'
     },
     {
       id: 'sydney', name: 'Sydney', country: 'Australia', flag: '🇦🇺',
       description: 'Harbour city with stunning coastal properties.',
       priceMultiplier: 1.6, rentYield: 0.08, taxRate: 0.07, growthRate: 0.03,
-      inflationRate: 0.028, tier: 2, maxProperties: 13
+      inflationRate: 0.028, tier: 2, maxProperties: 13,
+      trait: 'tourism_boom'
     },
     {
       id: 'los_angeles', name: 'Los Angeles', country: 'United States', flag: '🇺🇸',
       description: 'Hollywood glamour meets beachfront living.',
       priceMultiplier: 1.5, rentYield: 0.08, taxRate: 0.07, growthRate: 0.03,
-      inflationRate: 0.026, tier: 2, maxProperties: 14
+      inflationRate: 0.026, tier: 2, maxProperties: 14,
+      trait: 'tech_hub'
     },
     {
       id: 'miami', name: 'Miami', country: 'United States', flag: '🇺🇸',
       description: 'Tropical vibes with booming luxury condo market.',
       priceMultiplier: 1.3, rentYield: 0.09, taxRate: 0.06, growthRate: 0.035,
-      inflationRate: 0.028, tier: 2, maxProperties: 14
+      inflationRate: 0.028, tier: 2, maxProperties: 14,
+      trait: 'tourism_boom'
     },
     {
       id: 'barcelona', name: 'Barcelona', country: 'Spain', flag: '🇪🇸',
       description: 'Mediterranean charm with strong tourism demand.',
       priceMultiplier: 1.2, rentYield: 0.09, taxRate: 0.08, growthRate: 0.025,
-      inflationRate: 0.024, tier: 2, maxProperties: 13
+      inflationRate: 0.024, tier: 2, maxProperties: 13,
+      trait: 'tourism_boom'
     },
     {
       id: 'rome', name: 'Rome', country: 'Italy', flag: '🇮🇹',
       description: 'The Eternal City. Historic properties with timeless appeal.',
       priceMultiplier: 1.0, rentYield: 0.085, taxRate: 0.09, growthRate: 0.015,
-      inflationRate: 0.022, tier: 2, maxProperties: 13
+      inflationRate: 0.022, tier: 2, maxProperties: 13,
+      trait: 'heritage_city'
     },
     {
       id: 'berlin', name: 'Berlin', country: 'Germany', flag: '🇩🇪',
       description: 'Affordable and hip. Rapid gentrification creates opportunity.',
       priceMultiplier: 1.0, rentYield: 0.09, taxRate: 0.07, growthRate: 0.035,
-      inflationRate: 0.020, tier: 3, maxProperties: 14
+      inflationRate: 0.020, tier: 3, maxProperties: 14,
+      trait: 'redevelopment'
     },
     {
       id: 'amsterdam', name: 'Amsterdam', country: 'Netherlands', flag: '🇳🇱',
       description: 'Canal houses and modern living. Tight supply, high demand.',
       priceMultiplier: 1.3, rentYield: 0.08, taxRate: 0.08, growthRate: 0.02,
-      inflationRate: 0.019, tier: 2, maxProperties: 12
+      inflationRate: 0.019, tier: 2, maxProperties: 12,
+      trait: 'rent_control'
     },
     {
       id: 'toronto', name: 'Toronto', country: 'Canada', flag: '🇨🇦',
       description: 'North America\'s fastest growing city. Condo boom.',
       priceMultiplier: 1.3, rentYield: 0.085, taxRate: 0.06, growthRate: 0.03,
-      inflationRate: 0.025, tier: 2, maxProperties: 14
+      inflationRate: 0.025, tier: 2, maxProperties: 14,
+      trait: 'foreign_buyer'
     },
     {
       id: 'monaco', name: 'Monaco', country: 'Monaco', flag: '🇲🇨',
       description: 'The world\'s most exclusive address. Ultra-luxury only.',
       priceMultiplier: 3.0, rentYield: 0.05, taxRate: 0.03, growthRate: 0.02,
-      inflationRate: 0.012, tier: 1, maxProperties: 8
+      inflationRate: 0.012, tier: 1, maxProperties: 8,
+      trait: 'elite_enclave'
     },
     {
       id: 'shanghai', name: 'Shanghai', country: 'China', flag: '🇨🇳',
       description: 'Financial powerhouse with explosive growth potential.',
       priceMultiplier: 1.2, rentYield: 0.08, taxRate: 0.06, growthRate: 0.04,
-      inflationRate: 0.025, tier: 2, maxProperties: 15
+      inflationRate: 0.025, tier: 2, maxProperties: 15,
+      trait: 'boom_bust'
     },
     {
       id: 'mumbai', name: 'Mumbai', country: 'India', flag: '🇮🇳',
       description: 'Bollywood capital. Extreme density, extreme opportunity.',
       priceMultiplier: 0.7, rentYield: 0.10, taxRate: 0.07, growthRate: 0.05,
-      inflationRate: 0.055, tier: 3, maxProperties: 15
+      inflationRate: 0.055, tier: 3, maxProperties: 15,
+      trait: 'monsoon_market'
     },
     {
       id: 'sao_paulo', name: 'São Paulo', country: 'Brazil', flag: '🇧🇷',
       description: 'South America\'s financial hub. Affordable entry, high growth.',
       priceMultiplier: 0.6, rentYield: 0.11, taxRate: 0.06, growthRate: 0.045,
-      inflationRate: 0.050, tier: 3, maxProperties: 15
+      inflationRate: 0.050, tier: 3, maxProperties: 15,
+      trait: 'crime_pressure'
     },
     {
       id: 'cape_town', name: 'Cape Town', country: 'South Africa', flag: '🇿🇦',
       description: 'Stunning scenery with bargain properties. High growth potential.',
       priceMultiplier: 0.5, rentYield: 0.12, taxRate: 0.05, growthRate: 0.05,
-      inflationRate: 0.048, tier: 3, maxProperties: 14
+      inflationRate: 0.048, tier: 3, maxProperties: 14,
+      trait: 'redevelopment'
     }
   ],
 
