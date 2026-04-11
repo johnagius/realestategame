@@ -1776,25 +1776,11 @@ const GameUI = {
           container.innerHTML = '<div style="color:#c8a030;text-align:center;padding:40px;font-size:13px">3D city view unavailable</div>';
           return;
         }
-        // Wire building click → filter property list + show toast
+        // Wire building click → show info toast (3D scene is decorative, not tied to market)
         City3D._onBuildingClick = function(cell) {
           var typeName = City3D.BNAMES[cell.t] || cell.t;
-          // Map 3D tile type to game property type for filtering
-          var typeMap = { HO:'house', ST:'studio', AP:'apartment', PH:'penthouse',
-            TH:'townhouse', VI:'villa', MN:'mansion', CM:'commercial', WR:'warehouse', SK:'commercial' };
-          var gameType = typeMap[cell.t];
-          if (gameType) {
-            // Set filter to this type and re-render property list
-            GameUI.cityTypeFilter = gameType;
-            var sel = document.getElementById('city-type-filter');
-            if (sel) sel.value = gameType;
-            GameUI.cityPage = 0;
-            GameUI.renderCityProperties();
-            GameUI.toast(typeName + ' — showing matching properties below', 'info');
-          } else {
-            // Landmark — just show info
-            GameUI.toast(typeName, 'info');
-          }
+          var evInfo = cell.ev ? ' — ' + City3D.EVENTS[cell.ev].em + ' ' + City3D.EVENTS[cell.ev].n : '';
+          GameUI.toast(typeName + evInfo, 'info');
         };
         return;
       }
