@@ -980,8 +980,34 @@ const GameData = {
     const count = 6 + Math.floor(Math.random() * 5); // 6-10 properties
     const properties = [];
 
-    for (let i = 0; i < count; i++) {
-      // Weighted type selection
+    // Guarantee 3 affordable starter properties so every family can buy something
+    var starterTypes = ['studio', 'studio', 'warehouse'];
+    starterTypes.forEach(function(st, idx) {
+      var prop = GameData.generateProperty(cityId, st);
+      if (prop) {
+        // First starter property: force to cheapest end of price range so it's always affordable
+        if (idx === 0) {
+          var td = GameData.propertyTypes[st];
+          var cheapPrice = Math.max(1, Math.round(td.basePriceRange[0] * city.priceMultiplier * (GameData.eras[0] || {propertyMultiplier:1}).propertyMultiplier));
+          // Use current era if available
+          if (typeof GameEngine !== 'undefined' && GameEngine.state) {
+            var currentEra = GameData.eras.find(function(e) { return GameEngine.state.year >= e.years[0] && GameEngine.state.year <= e.years[1]; }) || GameData.eras[0];
+            cheapPrice = Math.max(1, Math.round(td.basePriceRange[0] * city.priceMultiplier * currentEra.propertyMultiplier));
+          }
+          prop.currentValue = cheapPrice;
+          prop.purchasePrice = cheapPrice;
+          // Recalculate rent for the new price
+          var condPenalty = GameData.conditions[prop.condition] ? GameData.conditions[prop.condition].rentPenalty : 1;
+          prop.monthlyRent = Math.max(1, Math.round(cheapPrice * city.rentYield * (td.rentMultiplier || 1) * condPenalty / 12));
+          prop.monthlyMaintenance = Math.max(1, Math.round(cheapPrice * td.maintenanceRate / 12));
+          prop.monthlyLicense = Math.round(cheapPrice * 0.01 / 12);
+        }
+        properties.push(prop);
+      }
+    });
+
+    for (let i = properties.length; i < count + 3; i++) {
+      // Weighted type selection for remaining slots
       const roll = Math.random();
       let type;
       if (roll < 0.05) type = 'land';
