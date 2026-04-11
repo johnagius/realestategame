@@ -260,7 +260,11 @@ const App = {
     GameUI.setTip(tips[Math.floor(Math.random() * tips.length)]);
   },
 
+  _advancing: false,
+
   advanceMonth() {
+    if (this._advancing) return; // prevent double execution
+    this._advancing = true;
     var results = GameEngine.advanceMonth();
     GameUI.updateHUD();
     // Update floating leaderboard if open
@@ -310,6 +314,7 @@ const App = {
     else if (GameUI.currentScreen === 'finances') GameUI.renderFinances();
     else if (GameUI.currentScreen === 'bank') GameUI.renderBank();
     else if (GameUI.currentScreen === 'settings') GameUI.renderSettings();
+    this._advancing = false;
   },
 
   buyProperty(propertyId, cityId, offerPct) {
