@@ -61,7 +61,10 @@ const GameEngine = {
       autoAdvanceSpeed: 0,  // 0=off, 1=slow, 2=medium, 3=fast
       // Achievements
       achievements: [],     // array of unlocked achievement ids
-      achievementNotified: [] // ids already shown as toast
+      achievementNotified: [], // ids already shown as toast
+      // Campaign goals
+      campaignTier: 0,       // current tier (0=none completed, 1-5)
+      campaignCompleted: []  // array of completed tier numbers
     };
 
     // Generate initial market for all cities
@@ -143,6 +146,8 @@ const GameEngine = {
         if (!this.state.totalLegacyPoints) this.state.totalLegacyPoints = 0;
         if (!this.state.prestigeHistory) this.state.prestigeHistory = [];
         if (!this.state.marketPressure) this.state.marketPressure = {};
+        if (!this.state.campaignTier) this.state.campaignTier = 0;
+        if (!this.state.campaignCompleted) this.state.campaignCompleted = [];
         // Migrate old properties: ensure tenant + rentMultiplier fields exist
         if (this.state.properties) {
           this.state.properties.forEach(function(p) {
@@ -1312,6 +1317,9 @@ const GameEngine = {
     // 16. Check milestones
     results.milestones = this.checkMilestones();
 
+    // 16b. Check campaign goals
+    results.campaignTierCompleted = this.checkCampaignGoals();
+
     // 17. Track net worth
     this.state.networthHistory.push(this.getNetWorth());
     if (this.state.networthHistory.length > 120) {
@@ -2364,6 +2372,43 @@ const GameEngine = {
     return this.state.investments.reduce((sum, inv) => sum + (inv.currentUnitPrice * inv.units), 0);
   },
 
+  // ========== LEGACY RATING ==========
+
+  getLegacyRating() {
+    var s = this.state;
+    var tiersCompleted = s.campaignTier || 0;
+    var nw = this.getNetWorth();
+    var gen = s.generation || 1;
+    var rank = s.playerRank || 99;
+    var achievementCount = (s.achievements || []).length;
+    var totalAchievements = GameData.achievements ? GameData.achievements.length : 30;
+    var rep = s.reputation || 50;
+
+    // Score based on campaign tiers (60 pts max) + bonus factors (40 pts max)
+    var score = tiersCompleted * 12; // 0-60 pts from campaign
+    score += Math.min(10, Math.floor(achievementCount / totalAchievements * 10)); // 0-10 from achievements
+    score += Math.min(10, rank === 1 ? 10 : rank <= 3 ? 6 : rank <= 5 ? 3 : 0); // 0-10 from rank
+    score += Math.min(10, gen >= 5 ? 10 : gen >= 3 ? 6 : gen >= 2 ? 3 : 0); // 0-10 from dynasty
+    score += Math.min(10, rep >= 90 ? 10 : rep >= 70 ? 6 : rep >= 50 ? 3 : 0); // 0-10 from reputation
+
+    var grade, title;
+    if (score >= 90) { grade = 'S'; title = 'Legendary Dynasty'; }
+    else if (score >= 75) { grade = 'A'; title = 'Great Dynasty'; }
+    else if (score >= 55) { grade = 'B'; title = 'Successful Dynasty'; }
+    else if (score >= 35) { grade = 'C'; title = 'Modest Dynasty'; }
+    else if (score >= 15) { grade = 'D'; title = 'Struggling Dynasty'; }
+    else { grade = 'F'; title = 'Fledgling Dynasty'; }
+
+    return {
+      score: score,
+      maxScore: 100,
+      grade: grade,
+      title: title,
+      tiersCompleted: tiersCompleted,
+      totalTiers: 5
+    };
+  },
+
   // ========== PRESTIGE / NEW GAME+ ==========
 
   getPrestigeStats() {
@@ -2925,6 +2970,127 @@ const GameEngine = {
     }
 
     return achieved;
+  },
+
+  // ========== CAMPAIGN GOALS ==========
+
+  campaignTiers: [
+    {
+      tier: 1, name: 'Established', icon: '🏠',
+      requirements: [
+        { type: 'networth', target: 1000000, label: 'Net worth €1M' },
+        { type: 'properties', target: 5, label: 'Own 5 properties' },
+        { type: 'cities', target: 2, label: 'Invest in 2 cities' }
+      ],
+      rewardPct: 0.05, repBonus: 5
+    },
+    {
+      tier: 2, name: 'Regional Power', icon: '🏘️',
+      requirements: [
+        { type: 'networth', target: 10000000, label: 'Net worth €10M' },
+        { type: 'properties', target: 15, label: 'Own 15 properties' },
+        { type: 'cities', target: 5, label: 'Invest in 5 cities' }
+      ],
+      rewardPct: 0.04, repBonus: 8
+    },
+    {
+      tier: 3, name: 'National Empire', icon: '🏰',
+      requirements: [
+        { type: 'networth', target: 100000000, label: 'Net worth €100M' },
+        { type: 'properties', target: 30, label: 'Own 30 properties' },
+        { type: 'cities', target: 10, label: 'Invest in 10 cities' },
+        { type: 'rank', target: 3, label: 'Reach rank #3' }
+      ],
+      rewardPct: 0.03, repBonus: 10
+    },
+    {
+      tier: 4, name: 'Global Dynasty', icon: '🌍',
+      requirements: [
+        { type: 'networth', target: 1000000000, label: 'Net worth €1B' },
+        { type: 'properties', target: 50, label: 'Own 50 properties' },
+        { type: 'cities', target: 15, label: 'Invest in 15 cities' },
+        { type: 'rank', target: 1, label: 'Reach rank #1' }
+      ],
+      rewardPct: 0.02, repBonus: 12
+    },
+    {
+      tier: 5, name: 'Legendary Estate', icon: '👑',
+      requirements: [
+        { type: 'networth', target: 10000000000, label: 'Net worth €10B' },
+        { type: 'properties', target: 75, label: 'Own 75 properties' },
+        { type: 'cities', target: 20, label: 'All 20 cities' },
+        { type: 'generations', target: 3, label: '3+ generations' },
+        { type: 'rank', target: 1, label: 'Rank #1' }
+      ],
+      rewardPct: 0.015, repBonus: 15
+    }
+  ],
+
+  getCampaignProgress() {
+    var s = this.state;
+    var currentTier = s.campaignTier || 0;
+    if (currentTier >= 5) return { completed: true, tier: 5, tierData: this.campaignTiers[4], met: [], unmet: [], metCount: 0, totalCount: 0 };
+
+    var tierData = this.campaignTiers[currentTier];
+    var nw = this.getNetWorth();
+    var propCount = s.properties.length;
+    var cityCount = new Set(s.properties.map(function(p) { return p.cityId; })).size;
+    var rank = s.playerRank || 99;
+    var gen = s.generation || 1;
+
+    var met = [];
+    var unmet = [];
+    tierData.requirements.forEach(function(req) {
+      var current = 0;
+      if (req.type === 'networth') current = nw;
+      else if (req.type === 'properties') current = propCount;
+      else if (req.type === 'cities') current = cityCount;
+      else if (req.type === 'rank') current = rank <= req.target ? req.target : rank;
+      else if (req.type === 'generations') current = gen;
+
+      var isMet = false;
+      if (req.type === 'rank') isMet = rank <= req.target;
+      else isMet = current >= req.target;
+
+      if (isMet) met.push(req);
+      else unmet.push(req);
+    });
+
+    return {
+      completed: false,
+      tier: currentTier + 1,
+      tierData: tierData,
+      met: met,
+      unmet: unmet,
+      metCount: met.length,
+      totalCount: tierData.requirements.length
+    };
+  },
+
+  checkCampaignGoals() {
+    var progress = this.getCampaignProgress();
+    if (progress.completed) return null;
+    if (progress.unmet.length === 0) {
+      // All requirements met — advance tier
+      var s = this.state;
+      s.campaignTier = progress.tier;
+      if (!s.campaignCompleted) s.campaignCompleted = [];
+      s.campaignCompleted.push(progress.tier);
+      // Reward
+      var nw = this.getNetWorth();
+      var reward = Math.max(1000, Math.round(nw * progress.tierData.rewardPct));
+      s.cash += reward;
+      s.reputation = Math.min(100, (s.reputation || 50) + progress.tierData.repBonus);
+      return {
+        tier: progress.tier,
+        name: progress.tierData.name,
+        icon: progress.tierData.icon,
+        reward: reward,
+        repBonus: progress.tierData.repBonus,
+        nextTier: progress.tier < 5 ? this.campaignTiers[progress.tier] : null
+      };
+    }
+    return null;
   },
 
   // ========== DECISION SYSTEM ==========
