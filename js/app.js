@@ -894,7 +894,7 @@ const App = {
   // ---- Decision Resolution ----
   resolveDecision(action, data) {
     // Check if this is an AI interaction or regular decision
-    var isAI = action === 'accept_buyout' || action === 'reject_threat' || action === 'accept_alliance' || (action === 'decline' && data);
+    var isAI = action === 'accept_buyout' || action === 'reject_buyout' || action === 'block_buyout' || action === 'reject_threat' || action === 'accept_alliance' || (action === 'decline' && data);
     var result;
     if (isAI) {
       result = GameEngine.resolveAIInteraction(action, data || {});
