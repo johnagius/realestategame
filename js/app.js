@@ -308,6 +308,25 @@ const App = {
     var cityName = city ? city.flag + ' ' + city.name : cityId;
     var trait = city && city.trait ? GameData.cityTraits[city.trait] : null;
 
+    // Calculate difficulty based on position in campaign list (earlier = easier)
+    var idx = GameEngine.cityUnlockChallenges.indexOf(ch);
+    var totalCampaigns = GameEngine.cityUnlockChallenges.length;
+    var diffPct = idx / totalCampaigns;
+    var diffLabel, diffColor;
+    if (diffPct < 0.25) { diffLabel = 'Early Game'; diffColor = '#2A9D8F'; }
+    else if (diffPct < 0.5) { diffLabel = 'Mid Game'; diffColor = '#D4A84B'; }
+    else if (diffPct < 0.75) { diffLabel = 'Late Game'; diffColor = '#E07A5F'; }
+    else { diffLabel = 'Endgame'; diffColor = '#E63946'; }
+
+    // Check if player can realistically complete this now
+    var canComplete = ch.check(GameEngine.state, GameEngine);
+    var warningHTML = '';
+    if (!canComplete && diffPct > 0.5) {
+      warningHTML = '<div style="margin-top:8px;font-size:0.72rem;color:#E63946;padding:6px;background:rgba(230,57,70,0.06);border-radius:6px">' +
+        '⚠️ This is a <strong>' + diffLabel + '</strong> campaign. Consider completing easier campaigns first to build your wealth.</div>';
+    }
+    var trait = city && city.trait ? GameData.cityTraits[city.trait] : null;
+
     // Show rival info if applicable
     var rivalHTML = '';
     if (ch.rivalId && GameEngine.state.aiFamilies) {
@@ -332,8 +351,9 @@ const App = {
     }
 
     var traitHTML = trait ? '<div style="font-size:0.72rem;margin-top:6px;padding:4px 8px;display:inline-block;border-radius:8px;background:' + trait.color + '15;color:' + trait.color + ';border:1px solid ' + trait.color + '30">' + trait.icon + ' ' + trait.name + '</div>' : '';
+    var diffBadge = '<span style="font-size:0.65rem;padding:2px 8px;border-radius:10px;background:' + diffColor + '20;color:' + diffColor + ';font-weight:700;margin-left:6px">' + diffLabel + '</span>';
 
-    GameUI.showModal(ch.icon + ' ' + ch.title,
+    GameUI.showModal(ch.icon + ' ' + ch.title + diffBadge,
       '<div style="text-align:center;padding:6px 0">' +
         '<div style="font-size:1.8rem;margin-bottom:6px">' + (city ? (GameData.cityLandmarks[cityId] || {}).landmark || city.flag : '🌍') + '</div>' +
         '<div style="font-family:var(--font-heading);font-size:1rem;color:var(--primary-dark)">' + cityName + '</div>' +
@@ -345,6 +365,7 @@ const App = {
             '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:6px">' + ch.description + '</div>' +
           '</div>' +
           rivalHTML +
+          warningHTML +
           switchWarning +
         '</div>' +
       '</div>',
