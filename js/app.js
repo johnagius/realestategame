@@ -605,10 +605,11 @@ const App = {
     // Sort by total cost (cheapest first)
     offers.sort(function(a, b) { return a.totalRepayment - b.totalRepayment; });
 
-    var html = '<p style="margin-bottom:8px">Loan offers for <strong>' + GameData.formatMoney(amount) + '</strong>:</p>';
+    var actualAmt = offers[0] ? offers[0].amount : amount;
+    var html = '<p style="margin-bottom:8px">Loan offers' + (actualAmt < amount ? ' (approved: <strong>' + GameData.formatMoney(actualAmt) + '</strong> of ' + GameData.formatMoney(amount) + ' requested)' : ' for <strong>' + GameData.formatMoney(amount) + '</strong>') + ':</p>';
     html += '<table class="compare-table" style="margin-bottom:8px"><thead><tr><th>Bank</th><th>Term</th><th>APR</th><th>Monthly</th><th>Total Cost</th><th></th></tr></thead><tbody>';
     offers.forEach(function(o, i) {
-      var interestCost = o.totalRepayment - amount;
+      var interestCost = o.totalRepayment - o.amount; // use actual approved amount, not requested
       var cheapest = i === 0 ? ' style="background:rgba(44,110,73,0.06)"' : '';
       html += '<tr' + cheapest + '>' +
         '<td style="font-weight:700;white-space:nowrap">' + o.bankIcon + ' ' + (o.bankName || '') + '</td>' +
