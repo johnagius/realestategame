@@ -1127,11 +1127,15 @@ const GameEngine = {
         return !c || c.trait !== 'tax_haven';
       });
       if (taxableProps.length > 0) {
-        var portfolioValue = taxableProps.reduce(function(s, p) { return s + p.currentValue; }, 0);
+        // Tax shelter: shell companies reduce tax by 60% on sheltered properties
+        var unsheltered = taxableProps.filter(function(p) { return !p.taxShelter; });
+        var sheltered = taxableProps.filter(function(p) { return p.taxShelter; });
+        var unshelteredValue = unsheltered.reduce(function(s, p) { return s + p.currentValue; }, 0);
+        var shelteredValue = sheltered.reduce(function(s, p) { return s + p.currentValue; }, 0);
         // Base rate: 0.5% annual. Increases 0.1% for every 10 properties owned (up to 2.5%)
         var taxRate = Math.min(0.025, 0.005 + Math.floor(this.state.properties.length / 10) * 0.001);
-        // PROPERTY TAX: 0.5% base + 0.1% per 10 properties, annual, applied monthly. Tax haven exempt.
-        var monthlyTax = Math.round(portfolioValue * taxRate / 12);
+        // Sheltered properties pay 40% of normal rate
+        var monthlyTax = Math.round((unshelteredValue * taxRate + shelteredValue * taxRate * 0.4) / 12);
         this.state.cash -= monthlyTax;
         results.propertyTax = monthlyTax;
         results.expenses += monthlyTax;
@@ -2670,6 +2674,21 @@ const GameEngine = {
   getInvestmentValue() {
     if (!this.state.investments) return 0;
     return this.state.investments.reduce((sum, inv) => sum + (inv.currentUnitPrice * inv.units), 0);
+  },
+
+  // ========== TAX SHELTERS (Shell Companies) ==========
+
+  setupTaxShelter(propertyId) {
+    var prop = this.state.properties.find(function(p) { return p.id === propertyId; });
+    if (!prop) return { success: false, message: 'Property not found.' };
+    if (prop.taxShelter) return { success: false, message: 'Already has a shell company.' };
+    // Cost: 3% of property value (min €300, max €8000)
+    var cost = Math.max(300, Math.min(8000, Math.round(prop.currentValue * 0.03)));
+    if (this.state.cash < cost) return { success: false, message: 'Need ' + GameData.formatMoney(cost) + ' to set up shell company.' };
+    this.state.cash -= cost;
+    prop.taxShelter = true;
+    this.save();
+    return { success: true, message: '🏢 Shell company set up for ' + prop.name + '! Property tax reduced 60%. Cost: ' + GameData.formatMoney(cost), cost: cost };
   },
 
   // ========== PROPERTY MANAGERS ==========

@@ -698,6 +698,18 @@ const App = {
     }
   },
 
+  // ---- Tax Shelters ----
+  setupTaxShelter(propertyId) {
+    var result = GameEngine.setupTaxShelter(propertyId);
+    if (result.success) {
+      GameUI.toast(result.message, 'success');
+      GameUI.updateHUD();
+      GameUI.renderProperty(propertyId);
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+  },
+
   // ---- Property Managers ----
   showManagerHire(cityId) {
     var rep = GameEngine.state.reputation || 50;

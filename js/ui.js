@@ -809,6 +809,13 @@ const GameUI = {
           actionsHTML += '<button class="btn btn-ghost btn-small" style="flex:1" onclick="App.demolishProperty(\'' + p.id + '\')">🏗️ Demolish (' + demoCost + ')</button>';
         }
         actionsHTML += '</div>';
+        // Tax shelter option
+        if (!p.taxShelter) {
+          var shelterCost = Math.max(300, Math.min(8000, Math.round(p.currentValue * 0.03)));
+          actionsHTML += '<button class="btn btn-secondary btn-small" style="width:100%;margin-top:6px;font-size:0.72rem" onclick="App.setupTaxShelter(\'' + p.id + '\')">🏢 Shell Company — ' + GameData.formatMoney(shelterCost) + ' (−60% tax)</button>';
+        } else {
+          actionsHTML += '<div style="margin-top:6px;font-size:0.7rem;color:var(--primary);font-weight:600">🏢 Shell company active — 60% tax reduction</div>';
+        }
 
         // Auto-sell
         var autoRule = (GameEngine.state.autoSellRules || []).find(function(r) { return r.propertyId === p.id; });
