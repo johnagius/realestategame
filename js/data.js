@@ -480,11 +480,13 @@ const GameData = {
 
   // ---- Conditions ----
   conditions: {
-    derelict:   { level: 0, name: 'Derelict',   color: '#E63946', rentPenalty: 0,    refurbCostPct: 0.35 },
-    poor:       { level: 1, name: 'Poor',        color: '#F4A261', rentPenalty: 0.3,  refurbCostPct: 0.20 },
-    fair:       { level: 2, name: 'Fair',        color: '#E9C46A', rentPenalty: 0.7,  refurbCostPct: 0.12 },
-    good:       { level: 3, name: 'Good',        color: '#2A9D8F', rentPenalty: 1.0,  refurbCostPct: 0.08 },
-    excellent:  { level: 4, name: 'Excellent',   color: '#2C6E49', rentPenalty: 1.15, refurbCostPct: 0 }
+    // Refurb costs halved from original — renovation should pay off in ~2 years not 5
+    // Rent penalties widened — bigger gap between conditions makes renovation more rewarding
+    derelict:   { level: 0, name: 'Derelict',   color: '#E63946', rentPenalty: 0,    refurbCostPct: 0.15 },
+    poor:       { level: 1, name: 'Poor',        color: '#F4A261', rentPenalty: 0.25, refurbCostPct: 0.10 },
+    fair:       { level: 2, name: 'Fair',        color: '#E9C46A', rentPenalty: 0.60, refurbCostPct: 0.06 },
+    good:       { level: 3, name: 'Good',        color: '#2A9D8F', rentPenalty: 1.0,  refurbCostPct: 0.04 },
+    excellent:  { level: 4, name: 'Excellent',   color: '#2C6E49', rentPenalty: 1.25, refurbCostPct: 0 }
   },
 
   conditionOrder: ['derelict', 'poor', 'fair', 'good', 'excellent'],
