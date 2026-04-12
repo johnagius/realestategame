@@ -399,7 +399,6 @@ const App = {
     if (ch) {
       GameUI.toast(ch.icon + ' Campaign started: ' + ch.title, 'milestone');
     } else {
-      GameUI.toast('Campaign started for ' + cityId, 'info');
       // Force-set if startCityCampaign returned null (edge case)
       if (!GameEngine.state.activeCampaign) {
         var challenge = GameEngine.cityUnlockChallenges.find(function(c) { return c.cityId === cityId; });
@@ -408,6 +407,23 @@ const App = {
           if (challenge.setup) challenge.setup(GameEngine.state);
           GameEngine.save();
         }
+      }
+    }
+    // If objective is already met, complete the campaign immediately
+    if (GameEngine.state.activeCampaign) {
+      var unlocks = GameEngine.checkCityUnlocks();
+      if (unlocks.length > 0) {
+        var cu = unlocks[0];
+        GameUI.showModal(cu.icon + ' Campaign Complete!',
+          '<div style="text-align:center;padding:10px 0">' +
+            '<div style="font-size:2.5rem;margin-bottom:6px">' + cu.cityFlag + '</div>' +
+            '<div style="font-family:var(--font-heading);font-size:1.1rem;margin-bottom:4px;color:var(--primary-dark)">' + cu.cityName + ' Unlocked!</div>' +
+            '<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:10px">' + (cu.title || cu.challenge) + '</div>' +
+          '</div>',
+          '<button class="btn btn-primary" onclick="GameUI.hideModal();GameUI._lastSearch=null;GameUI.renderMap();GameUI.updateHUD()">Explore ' + cu.cityName + '</button>'
+        );
+        GameUI.animateConfetti();
+        GameAudio.fanfare();
       }
     }
     GameUI.updateHUD();

@@ -1195,28 +1195,44 @@ const GameUI = {
       '</div>';
 
       // Wealth over time chart (player vs top AI)
-      var playerHist = s.networthHistory;
+      var playerHist = s.networthHistory || [];
       var topAI = s.aiFamilies.reduce(function(best, ai) { return ai.netWorth > best.netWorth ? ai : best; }, s.aiFamilies[0]);
-      if (topAI && topAI.history && playerHist.length > 1) {
-        var allVals = playerHist.concat(topAI.history);
+      if (topAI && playerHist.length > 1) {
+        var aiHist = topAI.history || [];
+        // Downsample to ~40 bars max for readability
+        var maxBars = 40;
+        var step = Math.max(1, Math.ceil(playerHist.length / maxBars));
+        var sampledPlayer = [];
+        var sampledAI = [];
+        for (var ci = 0; ci < playerHist.length; ci += step) {
+          sampledPlayer.push(playerHist[ci]);
+          sampledAI.push(aiHist[ci] || 0);
+        }
+        var allVals = sampledPlayer.concat(sampledAI);
         var chartMax = Math.max.apply(null, allVals) || 1;
+        var pColor = s.familyColor || '#2C6E49';
+        var aColor = topAI.color || '#888';
 
         content.innerHTML += '<div class="finance-section">' +
           '<div class="finance-section-title">📈 Wealth Over Time</div>' +
           '<div class="finance-card">' +
-            '<div style="display:flex;gap:12px;margin-bottom:8px;font-size:0.7rem;font-weight:700">' +
-              '<span style="color:' + (s.familyColor || '#2C6E49') + '">● ' + (s.familyName || 'You') + '</span>' +
-              '<span style="color:' + topAI.color + '">● ' + topAI.name + '</span>' +
+            '<div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.7rem;font-weight:700">' +
+              '<span style="color:' + pColor + '">● ' + (s.familyName || 'You') + ' · ' + GameData.formatMoneyShort(playerHist[playerHist.length-1]) + '</span>' +
+              '<span style="color:' + aColor + '">● ' + topAI.name + ' · ' + GameData.formatMoneyShort(topAI.netWorth) + '</span>' +
             '</div>' +
-            '<div style="position:relative;height:120px;display:flex;align-items:flex-end;gap:1px">' +
-              playerHist.map(function(v, i) {
+            '<div style="position:relative;height:120px;display:flex;align-items:flex-end;gap:2px">' +
+              sampledPlayer.map(function(v, i) {
                 var pPct = Math.max(2, (v / chartMax) * 100);
-                var aiVal = topAI.history[i] || 0;
-                var aPct = Math.max(2, (aiVal / chartMax) * 100);
-                return '<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:1px">' +
-                  '<div style="height:' + pPct + '%;background:' + (s.familyColor || '#2C6E49') + ';border-radius:2px 2px 0 0;min-height:2px;opacity:0.7"></div>' +
+                var aPct = Math.max(2, (sampledAI[i] / chartMax) * 100);
+                return '<div style="flex:1;display:flex;gap:1px;align-items:flex-end">' +
+                  '<div style="flex:1;height:' + pPct + '%;background:' + pColor + ';border-radius:2px 2px 0 0;min-height:2px;opacity:0.8"></div>' +
+                  '<div style="flex:1;height:' + aPct + '%;background:' + aColor + ';border-radius:2px 2px 0 0;min-height:2px;opacity:0.5"></div>' +
                 '</div>';
               }).join('') +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-between;font-size:0.6rem;color:var(--text-muted);margin-top:4px">' +
+              '<span>' + (playerHist.length > 12 ? (playerHist.length) + ' months ago' : 'Start') + '</span>' +
+              '<span>Now</span>' +
             '</div>' +
           '</div>' +
         '</div>';
@@ -1307,7 +1323,7 @@ const GameUI = {
         '<div class="trophy-case" id="trophy-grid" style="display:none">' + trophyHTML + '</div>' +
       '</div>' +
       '<div class="settings-section">' +
-        '<div class="settings-row"><div><div class="settings-label">Property Empire</div><div class="settings-description">v7.0 — Build your real estate fortune</div></div></div>' +
+        '<div class="settings-row"><div><div class="settings-label">Property Empire</div><div class="settings-description">v7.2 — Build your real estate fortune</div></div></div>' +
         '<div class="settings-row"><div><div class="settings-label">Month</div><div class="settings-description">' + GameEngine.getDateString() + ' (Month ' + GameEngine.state.month + ')</div></div></div>' +
       '</div>';
   },
@@ -1989,6 +2005,20 @@ const GameUI = {
       html += '<div class="finance-section"><div class="finance-card text-center">' +
         '<p style="margin-bottom:10px;font-weight:700">You have enough capital to open your own bank!</p>' +
         '<button class="btn btn-primary" onclick="App.openBank()">🏦 Open a Bank</button>' +
+      '</div></div>';
+    } else if (!era.features.playerBanks) {
+      var bankEra = GameData.eras.find(function(e) { return e.features.playerBanks; });
+      html += '<div class="finance-section"><div class="finance-card" style="text-align:center;opacity:0.7">' +
+        '<div style="font-size:1.5rem;margin-bottom:4px">🏦</div>' +
+        '<div style="font-weight:700;margin-bottom:4px">Open Your Own Bank</div>' +
+        '<div style="font-size:0.72rem;color:var(--text-muted)">Unlocks in the ' + (bankEra ? bankEra.icon + ' ' + bankEra.name + ' (' + bankEra.years[0] + '+)' : 'next era') + '</div>' +
+      '</div></div>';
+    } else if (era.features.playerBanks && !GameEngine.canOpenBank()) {
+      var threshold = era.id === 'gilded_age' ? 500000 : era.id === 'modern_era' ? 5000000 : 10000000;
+      html += '<div class="finance-section"><div class="finance-card" style="text-align:center;opacity:0.7">' +
+        '<div style="font-size:1.5rem;margin-bottom:4px">🏦</div>' +
+        '<div style="font-weight:700;margin-bottom:4px">Open Your Own Bank</div>' +
+        '<div style="font-size:0.72rem;color:var(--text-muted)">Requires ' + GameData.formatMoney(threshold) + ' net worth (you have ' + GameData.formatMoney(GameEngine.getNetWorth()) + ')</div>' +
       '</div></div>';
     }
 
