@@ -1005,7 +1005,9 @@ const GameUI = {
         '<div class="finance-card">' +
           '<div class="finance-row"><span class="finance-row-label">Rental Income</span><span class="finance-row-value positive">+' + GameData.formatMoney(stats.monthlyIncome) + '</span></div>' +
           '<div class="finance-row"><span class="finance-row-label">Maintenance & Fees</span><span class="finance-row-value negative">-' + GameData.formatMoney(stats.monthlyExpenses) + '</span></div>' +
-          '<div class="finance-row finance-total"><span class="finance-row-label">Net Cashflow</span><span class="finance-row-value ' + (stats.monthlyCashflow >= 0 ? 'positive' : 'negative') + '">' + GameData.formatMoney(stats.monthlyCashflow) + '</span></div>' +
+          (stats.monthlyLoanPayments > 0 ? '<div class="finance-row"><span class="finance-row-label">Loan Payments</span><span class="finance-row-value negative">-' + GameData.formatMoney(stats.monthlyLoanPayments) + '</span></div>' : '') +
+          (stats.monthlyDividends > 0 ? '<div class="finance-row"><span class="finance-row-label">Business Dividends</span><span class="finance-row-value positive">+' + GameData.formatMoney(stats.monthlyDividends) + '</span></div>' : '') +
+          '<div class="finance-row finance-total"><span class="finance-row-label">Net Cashflow</span><span class="finance-row-value ' + ((stats.monthlyCashflow - stats.monthlyLoanPayments + stats.monthlyDividends) >= 0 ? 'positive' : 'negative') + '">' + GameData.formatMoney(stats.monthlyCashflow - stats.monthlyLoanPayments + stats.monthlyDividends) + '</span></div>' +
         '</div>' +
       '</div>' +
 
