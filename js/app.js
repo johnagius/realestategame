@@ -458,7 +458,8 @@ const App = {
       if (ai.type === 'buyout_offer') {
         aiDecision.choices = [
           { label: 'Accept offer — sell for ' + GameData.formatMoney(ai.data.amount), action: 'accept_buyout', data: ai.data },
-          { label: 'Decline — not for sale', action: 'reject_buyout', data: ai.data }
+          { label: 'Decline — not for sale', action: 'reject_buyout', data: ai.data },
+          { label: 'Block all offers from this family', action: 'block_buyout', data: ai.data }
         ];
       } else if (ai.type === 'threat') {
         aiDecision.choices = [

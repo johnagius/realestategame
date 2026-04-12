@@ -2781,6 +2781,12 @@ const GameEngine = {
         this.state.cash += coupon;
         totalReturn += coupon;
       }
+      // Stocks pay quarterly dividends (every 3 months)
+      if (inv.type === 'stock' && this.state.monthIndex % 3 === 0) {
+        const dividend = Math.round(inv.currentUnitPrice * inv.units * inv.annualYield / 4);
+        this.state.cash += dividend;
+        totalReturn += dividend;
+      }
     });
 
     return totalReturn;
@@ -3174,10 +3180,11 @@ const GameEngine = {
 
     var ai = this.state.aiFamilies[Math.floor(Math.random() * this.state.aiFamilies.length)];
     var rel = this.getRelationship(ai.name);
+    var blocked = this.state.blockedFamilies || [];
     var interactions = [];
 
-    // Buyout offer: AI wants to buy one of your properties
-    if (this.state.properties.length > 0) {
+    // Buyout offer: AI wants to buy one of your properties (skip if blocked)
+    if (this.state.properties.length > 0 && blocked.indexOf(ai.id) < 0) {
       var prop = this.state.properties[Math.floor(Math.random() * this.state.properties.length)];
       if (!prop.isBuilding && !prop.isRefurbishing) {
         // Better relationship = better offers
@@ -3253,6 +3260,17 @@ const GameEngine = {
         // Rejecting a buyout slightly annoys them
         this.adjustRelationship(aiId, -5);
         result.message = 'You declined. They seem disappointed.';
+        break;
+      }
+      case 'block_buyout': {
+        // Block this family from making offers + reject
+        this.adjustRelationship(aiId, -5);
+        if (!this.state.blockedFamilies) this.state.blockedFamilies = [];
+        var familyObj = (this.state.aiFamilies || []).find(function(a) { return a.name === aiId || a.id === aiId; });
+        var blockId = familyObj ? familyObj.id : aiId;
+        if (this.state.blockedFamilies.indexOf(blockId) < 0) this.state.blockedFamilies.push(blockId);
+        this.save();
+        result.message = 'Blocked. ' + aiId + ' won\'t bother you with offers again.';
         break;
       }
       case 'reject_threat': {

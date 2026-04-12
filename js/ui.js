@@ -1307,7 +1307,7 @@ const GameUI = {
         '<div class="trophy-case" id="trophy-grid" style="display:none">' + trophyHTML + '</div>' +
       '</div>' +
       '<div class="settings-section">' +
-        '<div class="settings-row"><div><div class="settings-label">Property Empire</div><div class="settings-description">v6.9 — Build your real estate fortune</div></div></div>' +
+        '<div class="settings-row"><div><div class="settings-label">Property Empire</div><div class="settings-description">v7.0 — Build your real estate fortune</div></div></div>' +
         '<div class="settings-row"><div><div class="settings-label">Month</div><div class="settings-description">' + GameEngine.getDateString() + ' (Month ' + GameEngine.state.month + ')</div></div></div>' +
       '</div>';
   },
@@ -1924,7 +1924,11 @@ const GameUI = {
         html += '<div class="active-loan">' +
           '<div class="loan-info">' +
             '<div class="loan-info-bank">' + inv.icon + ' ' + inv.name + '</div>' +
-            '<div class="loan-info-detail">' + inv.units + ' units · ' + GameData.formatMoney(currentVal) + ' <span class="' + (gain >= 0 ? 'text-success' : 'text-danger') + '">(' + (gain >= 0 ? '+' : '') + gainPct + '%)</span></div>' +
+            '<div class="loan-info-detail">' + inv.units + ' units · ' + GameData.formatMoney(currentVal) + ' <span class="' + (gain >= 0 ? 'text-success' : 'text-danger') + '">(' + (gain >= 0 ? '+' : '') + gainPct + '%)</span>' +
+              (inv.type === 'bond' ? ' · coupon ' + GameData.formatMoney(Math.round(inv.currentUnitPrice * inv.units * inv.annualYield / 12)) + '/mo' :
+               inv.type === 'stock' ? ' · div ~' + GameData.formatMoney(Math.round(inv.currentUnitPrice * inv.units * inv.annualYield / 4)) + '/qtr' :
+               ' · appreciation only') +
+            '</div>' +
           '</div>' +
           '<div style="display:flex;gap:4px">' +
             '<button class="btn btn-small btn-primary" onclick="App.buyInvestment(\'' + inv.id + '\', 1)">+1</button>' +
@@ -1948,7 +1952,11 @@ const GameUI = {
       html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.04);font-size:0.78rem">' +
         '<div style="flex:1;min-width:0">' +
           '<span style="font-weight:700">' + inv.icon + ' ' + inv.name + '</span>' +
-          '<div style="font-size:0.65rem;color:var(--text-muted)">' + GameData.formatMoney(inv.unitPrice) + ' · ' + (inv.annualYield * 100).toFixed(1) + '% yield · ' + (inv.risk * 100).toFixed(0) + '% risk</div>' +
+          '<div style="font-size:0.65rem;color:var(--text-muted)">' + GameData.formatMoney(inv.unitPrice) +
+            (inv.type === 'commodity' ? ' · ' + (inv.annualYield * 100).toFixed(1) + '% growth (sell to profit)' :
+             inv.type === 'stock' ? ' · ' + (inv.annualYield * 100).toFixed(1) + '% dividend (quarterly)' :
+             ' · ' + (inv.annualYield * 100).toFixed(1) + '% coupon (monthly)') +
+            ' · ' + (inv.risk * 100).toFixed(0) + '% risk</div>' +
         '</div>' +
         '<div style="display:flex;gap:3px;flex-shrink:0">' +
           '<button class="btn btn-small btn-secondary" style="padding:3px 8px;font-size:0.7rem" onclick="App.buyInvestment(\'' + inv.id + '\', 1)">1</button>' +
@@ -2145,11 +2153,16 @@ const GameUI = {
         html += '<button class="btn btn-danger btn-small" style="flex:1" onclick="App.sellStake(\'' + biz.id + '\')">Sell</button>';
         html += '</div>';
       } else if (biz.availableStake >= 5) {
-        html += '<div style="display:flex;gap:6px">';
-        html += '<button class="btn btn-secondary btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 5)">Buy 5% · ' + GameData.formatMoneyShort(Math.round(biz.totalValue * 0.05)) + '</button>';
-        html += '<button class="btn btn-primary btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 10)">Buy 10% · ' + GameData.formatMoneyShort(Math.round(biz.totalValue * 0.10)) + '</button>';
-        if (biz.availableStake >= 25) {
-          html += '<button class="btn btn-accent btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 25)">25%</button>';
+        // Calculate max affordable stake (in 5% increments)
+        var maxAffordPct = Math.min(biz.availableStake, Math.floor(GameEngine.state.cash / (biz.totalValue * 0.05)) * 5);
+        maxAffordPct = Math.max(0, Math.min(100, maxAffordPct));
+        html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+        html += '<button class="btn btn-secondary btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 10)">Buy 10% · ' + GameData.formatMoneyShort(Math.round(biz.totalValue * 0.10)) + '</button>';
+        if (maxAffordPct >= 25 && biz.availableStake >= 25) {
+          html += '<button class="btn btn-primary btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 25)">25% · ' + GameData.formatMoneyShort(Math.round(biz.totalValue * 0.25)) + '</button>';
+        }
+        if (maxAffordPct >= 10) {
+          html += '<button class="btn btn-accent btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', ' + maxAffordPct + ')">Buy Max ' + maxAffordPct + '% · ' + GameData.formatMoneyShort(Math.round(biz.totalValue * maxAffordPct / 100)) + '</button>';
         }
         html += '</div>';
       } else {
