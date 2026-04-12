@@ -1271,10 +1271,14 @@ const GameEngine = {
     // Track buying/selling pressure per city
     if (!this.state.marketPressure) this.state.marketPressure = {};
 
-    // Slowly drift inflation rates each month (small random walk)
+    // Slowly drift inflation rates each month (small random walk, tightly bounded)
     GameData.cities.forEach(city => {
-      const drift = (Math.random() - 0.5) * 0.002; // +/- 0.1% drift
-      city.inflationRate = Math.max(0.005, Math.min(0.08, (city.inflationRate || 0.02) + drift));
+      const drift = (Math.random() - 0.5) * 0.001; // +/- 0.05% drift (halved)
+      if (!city._baseInflation) city._baseInflation = city.inflationRate;
+      // Cap drift to ±50% of base rate — prevents runaway inflation destroying investment scores
+      var minInfl = city._baseInflation * 0.5;
+      var maxInfl = city._baseInflation * 1.5;
+      city.inflationRate = Math.max(minInfl, Math.min(maxInfl, (city.inflationRate || 0.02) + drift));
     });
 
     // Calculate supply/demand pressure per city
