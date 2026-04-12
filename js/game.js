@@ -2714,12 +2714,17 @@ const GameEngine = {
           self._log('manager', 'auto-rent', 0, mgr.name + ' rented ' + p.name);
         }
 
-        // 2. Auto refurbish if condition drops to poor or derelict
-        if (mgrSettings.autoRefurb && !p.isRefurbishing && (p.condition === 'poor' || p.condition === 'derelict')) {
-          var tier = mgr.trait === 'handyman' ? 'budget' : 'standard';
-          var refurbResult = self.refurbishProperty(p.id, tier);
-          if (refurbResult.success) {
-            self._log('manager', 'auto-refurb', 0, mgr.name + ' started ' + tier + ' refurb on ' + p.name);
+        // 2. Auto refurbish — good managers maintain at Fair, all fix Poor/Derelict
+        if (mgrSettings.autoRefurb && !p.isRefurbishing && !p.isBuilding) {
+          var needsRefurb = (p.condition === 'poor' || p.condition === 'derelict');
+          // High quality managers also refurb Fair → Good (preventive maintenance)
+          if (!needsRefurb && mgr.quality >= 0.7 && p.condition === 'fair') needsRefurb = true;
+          if (needsRefurb) {
+            var tier = mgr.trait === 'handyman' ? 'budget' : (mgr.quality >= 0.8 ? 'standard' : 'budget');
+            var refurbResult = self.refurbishProperty(p.id, tier);
+            if (refurbResult.success) {
+              self._log('manager', 'auto-refurb', 0, mgr.name + ' started ' + tier + ' refurb on ' + p.name + ' (was ' + p.condition + ')');
+            }
           }
         }
 
