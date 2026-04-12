@@ -4233,11 +4233,14 @@ const GameEngine = {
     }
 
     // ---- SELECTION: Filter out unaffordable decisions, prioritize portfolio-linked ----
-    // Remove decisions where the action costs more than the player has
+    var currentCash = this.state.cash;
     decisions = decisions.filter(function(d) {
       if (!d.choices || !d.choices[0] || !d.choices[0].data) return true;
       var cost = d.choices[0].data.cost || d.choices[0].data.amount || 0;
-      if (cost > 0 && cost > cash) return false; // can't afford this action
+      if (cost > 0 && cost > currentCash) {
+        console.log('[ENGINE] Filtered unaffordable decision: ' + d.type + ' cost=€' + cost + ' cash=€' + currentCash);
+        return false;
+      }
       return true;
     });
     if (decisions.length === 0) return null;
