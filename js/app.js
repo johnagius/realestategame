@@ -459,7 +459,12 @@ const App = {
       aiDecision._isAI = true;
       GameUI.showDecision(aiDecision);
     } else if (results.decision) {
-      GameUI.showDecision(results.decision);
+      // Manager auto-handled decisions show as toast, not decision card
+      if (results.decision._managerHandled) {
+        GameUI.toast('👔 ' + results.decision.message, 'success');
+      } else {
+        GameUI.showDecision(results.decision);
+      }
     }
 
     // Rotate tips every few months

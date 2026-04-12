@@ -4086,8 +4086,73 @@ const GameEngine = {
       chosen = decisions[Math.floor(Math.random() * decisions.length)];
     }
 
+    // Manager auto-decision: if a manager covers this property's city, handle it automatically
+    var autoResult = this.tryManagerAutoDecision(chosen);
+    if (autoResult) {
+      // Manager handled it — don't show to player, return auto-result for toast
+      return { _managerHandled: true, message: autoResult };
+    }
+
     this.state.pendingDecision = chosen;
     return chosen;
+  },
+
+  // Manager auto-handles decisions for properties in managed cities
+  tryManagerAutoDecision(decision) {
+    if (!decision || !this.state.managers) return null;
+
+    // Find which city this decision relates to
+    var propId = decision.choices && decision.choices[0] && decision.choices[0].data ? decision.choices[0].data.propId : null;
+    var cityId = decision.choices && decision.choices[0] && decision.choices[0].data ? decision.choices[0].data.cityId : null;
+    if (propId && !cityId) {
+      var prop = this.state.properties.find(function(p) { return p.id === propId; });
+      if (prop) cityId = prop.cityId;
+    }
+    if (!cityId) return null;
+
+    var mgr = this.state.managers[cityId];
+    if (!mgr) return null;
+
+    var type = decision.type;
+    var data = decision.choices[0] ? decision.choices[0].data : {};
+
+    // Investment opportunities (city_dominance, redevelopment_grant)
+    if (type === 'city_dominance' && data.cost && this.state.cash >= data.cost) {
+      var result = this.resolveDecision('city_invest', data);
+      return mgr.icon + ' ' + mgr.name + ' invested ' + GameData.formatMoney(data.cost) + ' in district redevelopment (+5%)';
+    }
+    if (type === 'redevelopment_grant') {
+      var result = this.resolveDecision('accept_grant', data);
+      return mgr.icon + ' ' + mgr.name + ' accepted redevelopment grant of ' + GameData.formatMoney(data.grant);
+    }
+
+    // Tenant decisions
+    if (type === 'tenant_upgrade' && data.cost && this.state.cash >= data.cost) {
+      var result = this.resolveDecision('upgrade_for_tenant', data);
+      return mgr.icon + ' ' + mgr.name + ' upgraded property for tenant (+10% value)';
+    }
+    if (type === 'tenant_trouble') {
+      // Good managers renegotiate, bad ones evict
+      if (mgr.quality >= 0.7) {
+        var result = this.resolveDecision('renegotiate_rent', data);
+        return mgr.icon + ' ' + mgr.name + ' renegotiated rent with difficult tenant';
+      } else {
+        var result = this.resolveDecision('evict_tenant', data);
+        return mgr.icon + ' ' + mgr.name + ' evicted problematic tenant';
+      }
+    }
+
+    // Emergency repairs (derelict_dilemma)
+    if (type === 'derelict_dilemma' && data.cost && this.state.cash >= data.cost) {
+      var result = this.resolveDecision('emergency_repair', data);
+      return mgr.icon + ' ' + mgr.name + ' ordered emergency repairs (' + GameData.formatMoney(data.cost) + ')';
+    }
+    if (type === 'security_shakedown' && data.cost && this.state.cash >= data.cost) {
+      var result = this.resolveDecision('hire_security', data);
+      return mgr.icon + ' ' + mgr.name + ' hired security for your property';
+    }
+
+    return null; // Manager can't handle this decision type
   },
 
   resolveDecision(choiceAction, choiceData) {
