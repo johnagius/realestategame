@@ -1253,6 +1253,12 @@ const GameUI = {
         '<div class="settings-row"><div><div class="settings-label">New Game</div><div class="settings-description">Start fresh with €500,000</div></div><button class="btn btn-danger btn-small" onclick="App.confirmNewGame()">Reset</button></div>' +
       '</div>' +
       '<div class="settings-section">' +
+        '<div class="finance-section-title">📊 Debug Recording</div>' +
+        '<div class="settings-row"><div><div class="settings-label">Record Game Events</div><div class="settings-description">' + (GameEngine.recording ? 'Recording... (' + GameEngine.log.length + ' events)' : 'Track every transaction for analysis') + '</div></div>' +
+          '<button class="btn btn-' + (GameEngine.recording ? 'danger' : 'secondary') + ' btn-small" onclick="if(GameEngine.recording){GameEngine.stopRecording();}else{GameEngine.startRecording();}GameUI.renderSettings()">' + (GameEngine.recording ? '⏹ Stop' : '⏺ Record') + '</button></div>' +
+        (GameEngine.log.length > 0 ? '<div class="settings-row"><div><div class="settings-label">Export Recording</div><div class="settings-description">' + GameEngine.log.length + ' events · ' + (GameEngine.state ? GameEngine.state.month : 0) + ' months</div></div><button class="btn btn-primary btn-small" onclick="GameEngine.exportRecording();GameUI.toast(\'Recording exported!\',\'success\')">📥 Export JSON</button></div>' : '') +
+      '</div>' +
+      '<div class="settings-section">' +
         '<div class="finance-section-title" style="cursor:pointer" onclick="var el=document.getElementById(\'trophy-grid\');el.style.display=el.style.display===\'none\'?\'grid\':\'none\'">🏆 Achievements (' + unlocked.length + '/' + total + ') ▾</div>' +
         '<div class="trophy-case" id="trophy-grid" style="display:none">' + trophyHTML + '</div>' +
       '</div>' +

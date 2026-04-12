@@ -5,27 +5,81 @@
    ======================================== */
 
 const GameEngine = {
-  debug: false,  // set true to log all economy events
-  log: [],       // structured log of every cash/value change
+  debug: false,    // set true for console logging
+  recording: false, // set true to record all events for export
+  log: [],          // structured log of every economy event
 
-  // Log an economy event for debugging/simulation
+  // Log an economy event — always records when recording=true
   _log(category, action, amount, detail) {
-    if (!this.debug) return;
+    if (!this.debug && !this.recording) return;
     var entry = {
       month: this.state ? this.state.month : 0,
       year: this.state ? this.state.year : 0,
-      cash: this.state ? this.state.cash : 0,
-      nw: this.state ? this.getNetWorth() : 0,
-      category: category,   // 'rent', 'expense', 'loan', 'buy', 'sell', 'disaster', 'decision', 'ai', 'tax'
-      action: action,       // what happened
-      amount: amount,       // +/- change
-      detail: detail || ''  // extra context
+      cash: this.state ? Math.round(this.state.cash) : 0,
+      nw: this.state ? Math.round(this.getNetWorth()) : 0,
+      props: this.state ? this.state.properties.length : 0,
+      category: category,
+      action: action,
+      amount: Math.round(amount),
+      detail: detail || '',
+      ts: Date.now()
     };
     this.log.push(entry);
-    if (typeof console !== 'undefined') {
+    // Cap log size at 50K entries to prevent memory issues
+    if (this.log.length > 50000) this.log = this.log.slice(-40000);
+    if (this.debug && typeof console !== 'undefined') {
       var sign = amount >= 0 ? '+' : '';
       console.log('[M' + entry.month + ' Y' + entry.year + '] ' + category + '.' + action + ': ' + sign + amount + ' | cash=' + entry.cash + ' | ' + detail);
     }
+  },
+
+  // Export full game recording as downloadable JSON
+  exportRecording() {
+    var data = {
+      exported: new Date().toISOString(),
+      version: 'v5.3',
+      family: this.state ? this.state.familyName : 'unknown',
+      familyId: this.state ? this.state.familyId : 'unknown',
+      monthsPlayed: this.state ? this.state.month : 0,
+      currentYear: this.state ? this.state.year : 0,
+      finalCash: this.state ? Math.round(this.state.cash) : 0,
+      finalNW: this.state ? Math.round(this.getNetWorth()) : 0,
+      properties: this.state ? this.state.properties.length : 0,
+      totalRentEarned: this.state ? Math.round(this.state.totalRentEarned || 0) : 0,
+      totalExpensesPaid: this.state ? Math.round(this.state.totalExpensesPaid || 0) : 0,
+      loans: this.state ? (this.state.loans || []).length : 0,
+      citiesUnlocked: this.state ? (this.state.unlockedCities || []).length : 0,
+      campaignTier: this.state ? (this.state.campaignTier || 0) : 0,
+      events: this.log.length,
+      log: this.log
+    };
+    var json = JSON.stringify(data, null, 2);
+    // Trigger download
+    if (typeof document !== 'undefined') {
+      var blob = new Blob([json], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'property-empire-recording-' + (this.state ? this.state.year : 'unknown') + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    return data;
+  },
+
+  // Start recording
+  startRecording() {
+    this.recording = true;
+    this.log = [];
+    this._log('system', 'recording_started', 0, 'Recording all game events');
+  },
+
+  // Stop recording
+  stopRecording() {
+    this._log('system', 'recording_stopped', 0, this.log.length + ' events recorded');
+    this.recording = false;
   },
 
   // ---- Game State ----
