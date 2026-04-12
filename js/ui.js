@@ -958,6 +958,29 @@ const GameUI = {
         '</div>' +
       '</div>';
 
+    // Managers section in portfolio
+    var managers = GameEngine.state.managers || {};
+    var ownedCityIds = {};
+    props.forEach(function(p) { ownedCityIds[p.cityId] = (ownedCityIds[p.cityId]||0) + 1; });
+    var mgrHTML = '';
+    Object.keys(ownedCityIds).forEach(function(cid) {
+      var city = GameData.cities.find(function(c) { return c.id === cid; });
+      var mgr = managers[cid];
+      if (mgr) {
+        mgrHTML += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.72rem">' +
+          '<span>' + (city?city.flag:'') + ' ' + (city?city.name:cid) + ': ' + mgr.icon + ' ' + mgr.name + ' (' + Math.round(mgr.fee*100) + '%)</span>' +
+          '<button class="btn btn-ghost btn-small" style="font-size:0.6rem;padding:1px 6px" onclick="App.fireManager(\'' + cid + '\');GameUI.renderPortfolio()">Dismiss</button></div>';
+      } else {
+        mgrHTML += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.72rem">' +
+          '<span>' + (city?city.flag:'') + ' ' + (city?city.name:cid) + ': <span style="color:var(--text-muted)">No manager</span></span>' +
+          '<button class="btn btn-secondary btn-small" style="font-size:0.6rem;padding:1px 6px" onclick="App.showManagerHire(\'' + cid + '\')">Hire</button></div>';
+      }
+    });
+    if (mgrHTML) {
+      summary.innerHTML += '<div style="margin-top:8px;padding:8px 10px;background:rgba(44,110,73,0.04);border-radius:8px;border:1px solid rgba(44,110,73,0.1)">' +
+        '<div style="font-size:0.7rem;font-weight:700;margin-bottom:4px">👔 Property Managers</div>' + mgrHTML + '</div>';
+    }
+
     // Populate city filter dropdown with owned cities
     var cityFilterEl = document.getElementById('portfolio-city-filter');
     if (cityFilterEl) {
