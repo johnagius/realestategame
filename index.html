@@ -334,7 +334,25 @@
   <script src="js/app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(function(){});
+      navigator.serviceWorker.register('sw.js').then(function(reg) {
+        // Check for updates every 5 minutes while playing
+        setInterval(function() { reg.update(); }, 5 * 60 * 1000);
+        // When new SW is found, activate it and reload
+        reg.addEventListener('updatefound', function() {
+          var newWorker = reg.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', function() {
+              if (newWorker.state === 'activated') {
+                // New version available — reload to get fresh code
+                if (typeof GameUI !== 'undefined') {
+                  GameUI.toast('🔄 Game updated! Reloading...', 'info');
+                }
+                setTimeout(function() { window.location.reload(); }, 1500);
+              }
+            });
+          }
+        });
+      }).catch(function(){});
     }
   </script>
 </body>
