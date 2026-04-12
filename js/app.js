@@ -247,6 +247,8 @@ const App = {
     document.getElementById('hud-goals').classList.remove('hidden');
     // Generate initial goals
     GameEngine.generateGoals();
+    // Auto-start recording for debugging
+    if (!GameEngine.recording) GameEngine.startRecording();
     GameUI.updateHUD();
 
     if (isNewGame && !GameEngine.state.tutorialDone) {
