@@ -975,6 +975,13 @@ h4 { font-size: 1rem; }
   line-height: 1.3;
 }
 
+/* Active campaign city — highlighted as current target */
+.city-card.city-active-campaign {
+  border: 2px solid var(--primary);
+  box-shadow: 0 0 12px rgba(44,110,73,0.2);
+  background: linear-gradient(135deg, rgba(44,110,73,0.04) 0%, rgba(212,168,75,0.04) 100%);
+}
+
 /* Locked city card */
 .city-card.city-locked {
   opacity: 0.4;

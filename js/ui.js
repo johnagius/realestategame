@@ -243,7 +243,8 @@ const GameUI = {
       cities.forEach(function(city, i) {
         var lm = GameData.cityLandmarks[city.id] || {};
         var locked = !GameEngine.isCityUnlocked(city.id);
-        html += '<div class="city-card' + (locked ? ' city-locked' : '') + '" data-tier="' + city.tier + '" data-city="' + city.id + '" style="position:relative">' +
+        var isActive = GameEngine.state.activeCampaign && GameEngine.state.activeCampaign.cityId === city.id;
+        html += '<div class="city-card' + (locked && !isActive ? ' city-locked' : '') + (isActive ? ' city-active-campaign' : '') + '" data-tier="' + city.tier + '" data-city="' + city.id + '" style="position:relative">' +
           '<div class="city-invest-badge" data-stat="investScore"></div>' +
           '<div class="city-card-header">' +
             '<span class="city-flag">' + (lm.landmark || city.flag) + '</span>' +
@@ -254,7 +255,6 @@ const GameUI = {
           '</div>';
         if (locked) {
           var ch = GameEngine.cityUnlockChallenges ? GameEngine.cityUnlockChallenges.find(function(c) { return c.cityId === city.id; }) : null;
-          var isActive = GameEngine.state.activeCampaign && GameEngine.state.activeCampaign.cityId === city.id;
           var statusIcon = isActive ? '⚔️' : '🔒';
           var statusText = ch ? (isActive ? '<strong style="color:var(--primary)">' + ch.title + '</strong><br>' + ch.challenge : ch.title) : 'Click to start campaign';
           html += '<div style="text-align:center;padding:10px 0;font-size:0.72rem;color:var(--text-muted)">' +
