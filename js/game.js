@@ -6,7 +6,7 @@
 
 const GameEngine = {
   debug: false,    // set true for console logging
-  recording: false, // set true to record all events for export
+  recording: true,  // always on — records all events for export
   log: [],          // structured log of every economy event
 
   // Log an economy event — always records when recording=true
@@ -223,6 +223,9 @@ const GameEngine = {
     this.state.socialTier = 'Commoner';
 
     this.save();
+    // Always start recording on new game
+    this.recording = true;
+    this.log = [];
     return this.state;
   },
 
@@ -285,6 +288,10 @@ const GameEngine = {
             }
           });
         }
+        // Always start recording on game load
+        this.recording = true;
+        this.log = [];
+        console.log('[ENGINE] Game loaded — recording started, month=' + this.state.month + ' year=' + this.state.year);
         return this.state;
       }
     } catch (e) {
@@ -1018,6 +1025,8 @@ const GameEngine = {
 
   // ---- Advance one month ----
   advanceMonth() {
+    console.log('[ENGINE] advanceMonth START — month=' + (this.state ? this.state.month : '?') + ' year=' + (this.state ? this.state.year : '?'));
+    try {
     const results = {
       month: 0,
       year: 0,
@@ -1607,15 +1616,44 @@ const GameEngine = {
     this.state.monthlyIncome = results.rentIncome;
     this.state.monthlyExpenses = results.expenses;
 
-    // MONTHLY SUMMARY LOG: snapshot of all key metrics after processing
+    // MONTHLY SUMMARY LOG: snapshot of all key metrics + market data
+    var marketSummary = {};
+    var self = this;
+    (this.state.unlockedCities || ['london']).forEach(function(cid) {
+      var mkt = self.state.marketProperties[cid] || [];
+      var rentable = mkt.filter(function(p) { return p.monthlyRent > 0; });
+      var cheapest = rentable.length > 0 ? rentable.reduce(function(a,b){return a.currentValue<b.currentValue?a:b;}).currentValue : 0;
+      var avgPrice = mkt.length > 0 ? Math.round(mkt.reduce(function(s,p){return s+p.currentValue;},0)/mkt.length) : 0;
+      marketSummary[cid] = { count: mkt.length, cheapest: cheapest, avg: avgPrice };
+    });
+
     this._log('summary', 'month_end', results.rentIncome - results.expenses,
       'rent=' + results.rentIncome + ' exp=' + results.expenses + ' tax=' + (results.propertyTax||0) +
-      ' loans=' + (results.loanPayments||0) + ' divs=' + (results.dividends||0) +
-      ' props=' + this.state.properties.length + ' nw=' + this.getNetWorth() +
-      ' cash=' + this.state.cash + ' cycle=' + this.state.economicCycle);
+      ' loans=' + (results.loanPayments||0) + ' divs=' + (results.dividends||0) + ' mgrFees=' + (results.managerFees||0) +
+      ' props=' + this.state.properties.length + ' nw=' + Math.round(this.getNetWorth()) +
+      ' cash=' + Math.round(this.state.cash) + ' cycle=' + this.state.economicCycle +
+      ' market=' + JSON.stringify(marketSummary));
+
+    // Log each owned property status
+    this.state.properties.forEach(function(p) {
+      self._log('property', 'status', p.monthlyRent, p.name + ' val=' + Math.round(p.currentValue) + ' cond=' + p.condition + ' rented=' + p.isRented + (p.taxShelter ? ' sheltered' : ''));
+    });
+
+    // Log AI family standings
+    if (this.state.aiFamilies) {
+      this.state.aiFamilies.forEach(function(ai) {
+        self._log('ai', 'status', Math.round(ai.netWorth), ai.name + ' props=' + ai.propertyCount + ' income=' + Math.round(ai.monthlyIncome));
+      });
+    }
 
     this.save();
+    console.log('[ENGINE] advanceMonth END — month=' + this.state.month + ' cash=' + Math.round(this.state.cash) + ' props=' + this.state.properties.length);
     return results;
+    } catch(err) {
+      console.error('[ENGINE] advanceMonth CRASHED:', err.message, err.stack);
+      this._log('error', 'crash', 0, err.message);
+      return { rentIncome:0, expenses:0, disasters:[], events:[], completedRefurbishments:[], completedBuilds:[], newProperties:[], propertyChanges:[] };
+    }
   },
 
   // ---- Simulate AI families ----
