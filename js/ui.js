@@ -92,8 +92,13 @@ const GameUI = {
             rivalCheck + ' vs ' + objProgress.rivalIcon + ' ' + GameData.formatMoneyShort(objProgress.rivalNW);
         } else if (GameEngine.getActiveCampaign && GameEngine.getActiveCampaign()) {
           var ac = GameEngine.getActiveCampaign();
-          cpTextEl.innerHTML = ac.icon + ' <strong>' + ac.title + '</strong> · ' + ac.challenge +
-            ' <span style="color:var(--text-muted)">(' + ac.monthsActive + 'mo)</span>';
+          var progText = '';
+          if (ac.progress) {
+            var pct = ac.progress.target > 0 ? Math.min(100, Math.round(ac.progress.current / ac.progress.target * 100)) : 0;
+            var pCol = pct >= 100 ? '#2A9D8F' : pct >= 50 ? '#D4A84B' : '#E63946';
+            progText = ' · <strong style="color:' + pCol + '">' + ac.progress.label + '</strong>';
+          }
+          cpTextEl.innerHTML = ac.icon + ' <strong>' + ac.title + '</strong>' + progText;
         } else if (GameEngine.getCampaignProgress) {
           var cp = GameEngine.getCampaignProgress();
           if (cp.completed) {
