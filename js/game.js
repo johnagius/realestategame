@@ -55,6 +55,8 @@ const GameEngine = {
       log: this.log
     };
     var json = JSON.stringify(data, null, 2);
+    // Persist log before download
+    try { localStorage.setItem('propertyEmpire_log', JSON.stringify(this.log)); } catch(e) {}
     // Trigger download
     if (typeof document !== 'undefined') {
       var blob = new Blob([json], { type: 'application/json' });
@@ -288,10 +290,13 @@ const GameEngine = {
             }
           });
         }
-        // Always start recording on game load
+        // Always start recording on game load — restore previous log if exists
         this.recording = true;
-        this.log = [];
-        console.log('[ENGINE] Game loaded — recording started, month=' + this.state.month + ' year=' + this.state.year);
+        try {
+          var savedLog = localStorage.getItem('propertyEmpire_log');
+          this.log = savedLog ? JSON.parse(savedLog) : [];
+        } catch(e) { this.log = []; }
+        console.log('[ENGINE] Game loaded — recording resumed with ' + this.log.length + ' events, month=' + this.state.month + ' year=' + this.state.year);
         return this.state;
       }
     } catch (e) {
@@ -308,6 +313,10 @@ const GameEngine = {
   save() {
     try {
       localStorage.setItem('propertyEmpire_save', JSON.stringify(this.state));
+      // Persist recording log (save every 12 months to reduce writes)
+      if (this.recording && this.log.length > 0 && this.state && this.state.month % 12 === 0) {
+        localStorage.setItem('propertyEmpire_log', JSON.stringify(this.log));
+      }
     } catch (e) {
       console.error('Failed to save:', e);
     }
@@ -2845,8 +2854,8 @@ const GameEngine = {
         var propMits = self.state.mitigations[p.id] || {};
         var mitOptions = self.getMitigationOptions(p);
         mitOptions.forEach(function(mit) {
-          // Skip if already owned OR if buying would push cash below €200
-          if (propMits[mit.id] || self.state.cash < mit.cost + 200) return;
+          // Skip if already owned OR if buying would push cash below €50
+          if (propMits[mit.id] || self.state.cash < mit.cost + 50) return;
           // Don't buy basic insurance if premium exists (or vice versa)
           if (mit.id === 'insurance_basic' && propMits['insurance_premium']) return;
           if (mit.id === 'insurance_premium' && propMits['insurance_basic']) return;
