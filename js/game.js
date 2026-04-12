@@ -1294,52 +1294,48 @@ const GameEngine = {
     this.state.properties.forEach(p => {
       if (!p.isBuilding) {
         const city = GameData.cities.find(c => c.id === p.cityId);
-        const monthlyInflation = (city.inflationRate || 0.02) / 12;
         const pressure = this.state.marketPressure[city.id] || 0;
-        var randomFactor = (Math.random() - 0.5) * 0.015;
-        // CAP + economic cycle
-        const maxMonthlyGrowth = 0.0017;
+        var randomFactor = (Math.random() - 0.5) * 0.008; // reduced from 0.015 — less noise
+        // Growth rate already includes inflation — don't add it separately
+        const maxMonthlyGrowth = 0.003; // ~3.6% annual cap
         const realGrowth = Math.min(maxMonthlyGrowth, city.growthRate / 12);
-        const cycleGrowth = cycleEffect.growth || 0;
+        // Cycle effect: smaller bonus/penalty to prevent runaway
+        const cycleGrowth = (cycleEffect.growth || 0) * 0.5;
         var prestigeBonus = this.state.prestigeAppreciationBonus || 0;
 
         // City trait appreciation modifiers
         var traitAppreciation = 0;
         var cityTrait = city.trait;
         if (cityTrait === 'redevelopment') {
-          // Poor/derelict properties appreciate 2x faster
-          if (p.condition === 'poor' || p.condition === 'derelict') traitAppreciation = realGrowth; // doubles growth
+          if (p.condition === 'poor' || p.condition === 'derelict') traitAppreciation = realGrowth;
         } else if (cityTrait === 'boom_bust') {
-          // 3x price volatility
           randomFactor *= 3;
         } else if (cityTrait === 'foreign_buyer') {
-          // +1.5% annual extra appreciation = +0.00125/month
-          traitAppreciation = 0.00125;
+          traitAppreciation = 0.0008; // ~1% annual extra
         }
 
-        const change = (realGrowth + monthlyInflation + pressure + randomFactor + cycleGrowth + traitAppreciation) * (1 + prestigeBonus);
+        const change = (realGrowth + pressure + randomFactor + cycleGrowth + traitAppreciation) * (1 + prestigeBonus);
         p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + change)));
         p.appreciation = ((p.currentValue - p.purchasePrice) / p.purchasePrice) * 100;
         this.recalculateRent(p);
       }
     });
 
-    // Also fluctuate market properties
+    // Also fluctuate market properties (same formula as owned)
     Object.keys(this.state.marketProperties).forEach(cityId => {
       const city = GameData.cities.find(c => c.id === cityId);
-      const monthlyInflation = (city.inflationRate || 0.02) / 12;
       const pressure = this.state.marketPressure[cityId] || 0;
-      const maxMonthlyGrowth = 0.0017;
+      const maxMonthlyGrowth = 0.003;
       const realGrowth = Math.min(maxMonthlyGrowth, city.growthRate / 12);
       var mTrait = city.trait;
       this.state.marketProperties[cityId].forEach(p => {
-        var randomFactor = (Math.random() - 0.5) * 0.015;
-        var cGrowth = cycleEffect.growth || 0;
+        var randomFactor = (Math.random() - 0.5) * 0.008;
+        var cGrowth = (cycleEffect.growth || 0) * 0.5;
         var mTraitBonus = 0;
         if (mTrait === 'boom_bust') randomFactor *= 3;
-        if (mTrait === 'foreign_buyer') mTraitBonus = 0.00125;
+        if (mTrait === 'foreign_buyer') mTraitBonus = 0.0008;
         if (mTrait === 'redevelopment' && (p.condition === 'poor' || p.condition === 'derelict')) mTraitBonus = realGrowth;
-        p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + realGrowth + monthlyInflation + pressure + randomFactor + cGrowth + mTraitBonus)));
+        p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + realGrowth + pressure + randomFactor + cGrowth + mTraitBonus)));
         this.recalculateRent(p);
       });
     });
@@ -1715,8 +1711,8 @@ const GameEngine = {
           p.currentValue = Math.round(p.currentValue * (1 + drop));
           this.recalculateRent(p);
         });
-        // City growth rate also takes a temporary hit
-        city.growthRate = Math.max(-0.02, city.growthRate - 0.015);
+        // City growth rate takes a small temporary hit (recovers via inflation drift)
+        city.growthRate = Math.max(0, city.growthRate - 0.003);
         break;
       }
 

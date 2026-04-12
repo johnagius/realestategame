@@ -616,14 +616,14 @@ const GameData = {
 
   // ---- Random Events ----
   events: [
-    // EVENT BALANCE: positive expected monthly value ≈ +0.5%, negative ≈ -0.3%
-    // Net events should ADD value over time, not destroy it
+    // EVENT BALANCE: tuned so net effect is mildly positive (~2%/yr)
+    // Crashes are multiplicative (compound worse than gains), so positive events must be stronger
     {
       id: 'market_boom',
       title: 'Market Boom!',
       icon: '📈',
       description: 'Economic growth drives property values up across {city}.',
-      effect: { type: 'city_value_change', value: 0.08 },
+      effect: { type: 'city_value_change', value: 0.10 },
       probability: 0.05       // 5% — booms are common
     },
     {
@@ -631,56 +631,56 @@ const GameData = {
       title: 'Market Downturn',
       icon: '📉',
       description: 'Economic uncertainty hits {city}\'s property market. Values dip.',
-      effect: { type: 'city_value_change', value: -0.05 },  // reduced from -8% to -5%
-      probability: 0.03       // reduced from 4% to 3%
+      effect: { type: 'city_value_change', value: -0.03 },
+      probability: 0.03
     },
     {
       id: 'market_crash',
       title: 'Market Crash!',
       icon: '💥',
-      description: 'Panic selling triggers a severe crash in {city}. Property values plummet!',
-      effect: { type: 'city_crash', value: -0.12 },  // reduced from -20% to -12%
-      probability: 0.006      // halved from 1.2%
+      description: 'Panic selling triggers a crash in {city}. Property values drop.',
+      effect: { type: 'city_crash', value: -0.06 },
+      probability: 0.005
     },
     {
       id: 'global_recession',
       title: 'Global Recession!',
       icon: '🌍💥',
-      description: 'A worldwide economic recession hammers all markets. Values drop sharply everywhere.',
-      effect: { type: 'global_crash', value: -0.08 },  // reduced from -15% to -8%
-      probability: 0.003      // halved from 0.6%
+      description: 'A worldwide economic slowdown hits all markets.',
+      effect: { type: 'global_crash', value: -0.04 },
+      probability: 0.003
     },
     {
       id: 'housing_bubble_burst',
       title: 'Housing Bubble Burst!',
       icon: '🫧',
-      description: 'The property bubble in {city} has burst! Prices drop as buyers retreat.',
-      effect: { type: 'city_crash', value: -0.15 },  // reduced from -30% to -15%
-      probability: 0.003      // reduced from 0.5%
+      description: 'The property bubble in {city} deflates. Prices correct.',
+      effect: { type: 'city_crash', value: -0.08 },
+      probability: 0.003
     },
     {
       id: 'business_sector_crash',
       title: 'Business Sector Crash',
       icon: '📊',
-      description: 'Corporate failures cascade through {city}. Businesses lose major value.',
-      effect: { type: 'city_business_crash', value: -0.15 },  // reduced from -25%
-      probability: 0.008      // reduced from 1.5%
+      description: 'Corporate failures affect {city}. Businesses lose value.',
+      effect: { type: 'city_business_crash', value: -0.10 },
+      probability: 0.006
     },
     {
       id: 'currency_crisis',
       title: 'Currency Crisis',
       icon: '💱',
-      description: 'Currency devaluation in {city}\'s region. Foreign investors pull out.',
-      effect: { type: 'city_crash', value: -0.08 },  // reduced from -12%
-      probability: 0.008      // reduced from 1.5%
+      description: 'Currency issues in {city}\'s region. Some investors pull out.',
+      effect: { type: 'city_crash', value: -0.04 },
+      probability: 0.006
     },
     {
       id: 'banking_crisis',
       title: 'Banking Crisis',
       icon: '🏦💥',
-      description: 'Banking sector collapses in {city}. Credit dries up, market freezes.',
-      effect: { type: 'city_crash', value: -0.10 },  // reduced from -18%
-      probability: 0.005      // reduced from 0.8%
+      description: 'Banking problems in {city}. Credit tightens.',
+      effect: { type: 'city_crash', value: -0.05 },
+      probability: 0.004
     },
     {
       id: 'tourism_surge',
