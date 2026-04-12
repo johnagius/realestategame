@@ -297,6 +297,18 @@ const GameEngine = {
           this.log = savedLog ? JSON.parse(savedLog) : [];
         } catch(e) { this.log = []; }
         console.log('[ENGINE] Game loaded — recording resumed with ' + this.log.length + ' events, month=' + this.state.month + ' year=' + this.state.year);
+        // Fix: remove duplicate insurance (basic+premium on same property)
+        if (this.state.mitigations) {
+          var fixed = 0;
+          Object.keys(this.state.mitigations).forEach(function(pid) {
+            var m = GameEngine.state.mitigations[pid];
+            if (m && m['insurance_basic'] && m['insurance_premium']) {
+              delete m['insurance_basic']; // keep premium, remove basic
+              fixed++;
+            }
+          });
+          if (fixed > 0) console.log('[ENGINE] Fixed ' + fixed + ' properties with duplicate insurance');
+        }
         return this.state;
       }
     } catch (e) {
@@ -2856,9 +2868,19 @@ const GameEngine = {
         mitOptions.forEach(function(mit) {
           // Skip if already owned OR if buying would push cash below €50
           if (propMits[mit.id] || self.state.cash < mit.cost + 50) return;
-          // Don't buy basic insurance if premium exists (or vice versa)
-          if (mit.id === 'insurance_basic' && propMits['insurance_premium']) return;
-          if (mit.id === 'insurance_premium' && propMits['insurance_basic']) return;
+          // Insurance logic: only one type allowed
+          if (mit.id === 'insurance_basic') {
+            if (propMits['insurance_premium']) return; // already have better
+            if (mgr.quality >= 0.8) return; // premium manager will buy premium instead
+          }
+          if (mit.id === 'insurance_premium') {
+            if (mgr.quality < 0.8) return; // not qualified for premium
+            // If has basic, remove it first (upgrade)
+            if (propMits['insurance_basic']) {
+              delete self.state.mitigations[p.id]['insurance_basic'];
+              propMits['insurance_basic'] = false;
+            }
+          }
           // Buy if: manager quality > 0.7 OR city has had recent disasters
           var shouldBuy = mgr.quality >= 0.7;
           if (!shouldBuy) {
@@ -2868,9 +2890,6 @@ const GameEngine = {
             if (recentDisasters.length > 0) shouldBuy = true;
           }
           if (shouldBuy) {
-            // Premium manager buys premium insurance, others buy basic
-            if (mit.id === 'insurance_basic' && mgr.quality >= 0.8) return; // skip basic, will buy premium
-            if (mit.id === 'insurance_premium' && mgr.quality < 0.8) return; // skip premium, buy basic
             self.state.cash -= mit.cost;
             if (!self.state.mitigations[p.id]) self.state.mitigations[p.id] = {};
             self.state.mitigations[p.id][mit.id] = true;
