@@ -90,6 +90,9 @@ const GameUI = {
           cpTextEl.innerHTML = '⏱️ <strong>' + objProgress.monthsLeft + ' months left</strong> · ' +
             propsCheck + ' ' + objProgress.properties + '/' + objProgress.targetProperties + ' properties · ' +
             rivalCheck + ' vs ' + objProgress.rivalIcon + ' ' + GameData.formatMoneyShort(objProgress.rivalNW);
+        } else if (!GameEngine.state.activeCampaign && GameEngine.getLockedCities && GameEngine.getLockedCities().length > 0) {
+          // No active campaign but locked cities exist — prompt player
+          cpTextEl.innerHTML = '🔒 <strong>Tap a locked city</strong> to start a campaign and unlock it!';
         } else if (GameEngine.getActiveCampaign && GameEngine.getActiveCampaign()) {
           var ac = GameEngine.getActiveCampaign();
           var progText = '';
