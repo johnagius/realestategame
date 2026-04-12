@@ -158,7 +158,7 @@ const GameData = {
     {
       id: 'chen', name: 'The Chen Family', icon: '👨‍👩‍👦', tier: 'middle',
       description: 'Merchants with a small trading post. Ambition runs in the blood.',
-      startingCash: 12000, difficulty: 'Normal',
+      startingCash: 14000, difficulty: 'Normal',
       motto: '"Patience and persistence pay dividends."',
       color: '#2C6E49'
     },
@@ -990,17 +990,18 @@ const GameData = {
       var se = this.eras.find(function(e) { return GameEngine.state.year >= e.years[0] && GameEngine.state.year <= e.years[1]; });
       if (se) starterEra = se.id;
     }
-    var starterTypes = (starterEra === 'pre_industrial') ? ['studio', 'studio', 'house'] :
-                       (starterEra === 'industrial_revolution') ? ['studio', 'house', 'warehouse'] :
-                       ['studio', 'studio', 'warehouse'];
+    // 4 guaranteed starters: 3 cheap studios (so Armstrong can buy 3 day 1) + 1 bigger property
+    var starterTypes = (starterEra === 'pre_industrial') ? ['studio', 'studio', 'studio', 'house'] :
+                       (starterEra === 'industrial_revolution') ? ['studio', 'studio', 'studio', 'warehouse'] :
+                       ['studio', 'studio', 'studio', 'warehouse'];
     starterTypes.forEach(function(st, idx) {
       var prop = GameData.generateProperty(cityId, st);
       if (prop) {
         // All starter properties: force Good condition so they're immediately profitable
         prop.condition = 'good';
 
-        // First starter property: force to cheapest end of price range so it's always affordable
-        if (idx === 0) {
+        // First 3 starter properties: force to cheapest end of price range so they're always affordable
+        if (idx < 3) {
           var td = GameData.propertyTypes[st];
           var cheapPrice = Math.max(1, Math.round(td.basePriceRange[0] * city.priceMultiplier * (GameData.eras[0] || {propertyMultiplier:1}).propertyMultiplier));
           // Use current era if available
