@@ -333,6 +333,19 @@ const App = {
 
     var traitHTML = trait ? '<div style="font-size:0.72rem;margin-top:6px;padding:4px 8px;display:inline-block;border-radius:8px;background:' + trait.color + '15;color:' + trait.color + ';border:1px solid ' + trait.color + '30">' + trait.icon + ' ' + trait.name + '</div>' : '';
 
+    // Campaign readiness indicator
+    var cp = GameEngine.getCityUnlockProgress(cityId);
+    var pctWidth = Math.round(cp.progress * 100);
+    var readinessHTML = '<div style="margin:10px 0 4px;padding:10px;background:' + cp.color + '0a;border-radius:8px;border:1px solid ' + cp.color + '25">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+        '<span style="font-size:0.72rem;font-weight:700;color:' + cp.color + '">' + cp.label + '</span>' +
+        '<span style="font-size:0.68rem;color:#888">' + pctWidth + '% progress</span>' +
+      '</div>' +
+      '<div style="background:#e8e0d4;border-radius:4px;height:6px;overflow:hidden">' +
+        '<div style="width:' + pctWidth + '%;height:100%;background:' + cp.color + ';border-radius:4px;transition:width 0.3s"></div>' +
+      '</div>' +
+    '</div>';
+
     GameUI.showModal(ch.icon + ' ' + ch.title,
       '<div style="text-align:center;padding:6px 0">' +
         '<div style="font-size:1.8rem;margin-bottom:6px">' + (city ? (GameData.cityLandmarks[cityId] || {}).landmark || city.flag : '🌍') + '</div>' +
@@ -344,6 +357,7 @@ const App = {
             '<div>' + ch.challenge + '</div>' +
             '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:6px">' + ch.description + '</div>' +
           '</div>' +
+          readinessHTML +
           rivalHTML +
           switchWarning +
         '</div>' +
