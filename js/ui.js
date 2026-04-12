@@ -124,20 +124,23 @@ const GameUI = {
   },
 
   // Show floating income/expense summary near HUD
-  showFloatingIncome: function(income, expenses) {
+  showFloatingIncome: function(income, expenses, lifetime) {
+    lifetime = lifetime || 2500;
     var net = income - expenses;
+    // Remove any existing floating summary so they don't stack
+    var old = document.querySelector('.float-income-summary');
+    if (old) old.remove();
     // Create floating element
     var el = document.createElement('div');
     el.className = 'float-income-summary';
+    el.style.animationDuration = (lifetime / 1000).toFixed(1) + 's';
     el.innerHTML = '<span class="positive">+' + GameData.formatMoney(income) + '</span>';
     if (expenses > 0) el.innerHTML += ' <span class="negative">-' + GameData.formatMoney(expenses) + '</span>';
     el.innerHTML += ' = <strong class="' + (net >= 0 ? 'positive' : 'negative') + '">' + (net >= 0 ? '+' : '') + GameData.formatMoney(net) + '</strong>';
     document.body.appendChild(el);
-    // Position at top center, below HUD
     el.style.left = '50%';
     el.style.top = '52px';
-    // Remove after animation
-    setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 2500);
+    setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, lifetime);
   },
 
   // ---- Visual Feedback Animations ----
@@ -1304,7 +1307,7 @@ const GameUI = {
         '<div class="trophy-case" id="trophy-grid" style="display:none">' + trophyHTML + '</div>' +
       '</div>' +
       '<div class="settings-section">' +
-        '<div class="settings-row"><div><div class="settings-label">Property Empire</div><div class="settings-description">v6.7 — Build your real estate fortune</div></div></div>' +
+        '<div class="settings-row"><div><div class="settings-label">Property Empire</div><div class="settings-description">v6.8 — Build your real estate fortune</div></div></div>' +
         '<div class="settings-row"><div><div class="settings-label">Month</div><div class="settings-description">' + GameEngine.getDateString() + ' (Month ' + GameEngine.state.month + ')</div></div></div>' +
       '</div>';
   },
@@ -1319,7 +1322,10 @@ const GameUI = {
 
     // Show floating rent income (always, even during auto-play)
     if (results.rentIncome > 0) {
-      this.showFloatingIncome(results.rentIncome, results.expenses);
+      var speed = (GameEngine.state && GameEngine.state.autoAdvanceSpeed) || 0;
+      // Scale animation lifetime to game speed so they don't overlap
+      var lifetime = speed >= 3 ? 700 : speed >= 2 ? 1400 : 2500;
+      this.showFloatingIncome(results.rentIncome, results.expenses, lifetime);
       if (!isAutoPlaying) GameAudio.coin();
     }
 
@@ -1420,17 +1426,25 @@ const GameUI = {
       return;
     }
 
-    // Historical events — show as major decision card
+    // Historical events — show as major decision card (don't return — let toasts below still fire)
     if (results.historicalEvent) {
       this.showHistoricalEvent(results.historicalEvent);
-      return; // Pause everything for this major event
     }
 
-    // Era transitions
+    // Era transitions — significant moment, show as modal instead of tiny ticker
     if (results.eraChange) {
       var era = results.eraChange.newEra;
-      this.showEventPopup(era.icon, 'New Era: ' + era.name, era.description, '', 'positive');
-      return;
+      if (!results.historicalEvent) {
+        this.showModal(era.icon + ' New Era: ' + era.name,
+          '<div style="text-align:center;padding:12px 0">' +
+            '<div style="font-size:2.5rem;margin-bottom:8px">' + era.icon + '</div>' +
+            '<div style="font-size:0.85rem;color:var(--text-dark);line-height:1.6">' + era.description + '</div>' +
+            '<div style="margin-top:10px;font-size:0.72rem;color:var(--text-muted)">New property types and businesses are now available.</div>' +
+          '</div>',
+          '<button class="btn btn-primary" onclick="GameUI.hideModal()">Onward!</button>'
+        );
+        GameAudio.fanfare();
+      }
     }
 
     // Show disasters as event popups
@@ -1538,14 +1552,6 @@ const GameUI = {
       }
     }
 
-    // Floating income/expense numbers (only at slow speed or manual)
-    if (!isAutoPlaying || speed <= 1) {
-      if (results.rentIncome > 0) { GameUI.animateIncome(results.rentIncome); GameAudio.coin(); }
-      if (results.expenses > 0) {
-        setTimeout(function() { GameUI.animateExpense(results.expenses); }, 400);
-      }
-    }
-
     // Goals achieved — with confetti!
     if (results.goalsAchieved && results.goalsAchieved.length > 0) {
       results.goalsAchieved.forEach(function(g) {
@@ -1598,7 +1604,6 @@ const GameUI = {
       );
       GameUI.animateConfetti();
       GameAudio.fanfare();
-      return; // pause for the modal
     }
 
     // Campaign tier completion
@@ -1622,7 +1627,6 @@ const GameUI = {
       );
       GameUI.animateConfetti();
       GameAudio.fanfare();
-      return;
     }
 
     // Opening objective completion/expiry
@@ -1645,7 +1649,6 @@ const GameUI = {
         );
         GameUI.animateConfetti();
         GameAudio.fanfare();
-        return;
       } else if (objR.type === 'expired') {
         var rivalBoostText = objR.rivalBoost ? '<div class="finance-row"><span class="finance-row-label">' + objR.rivalBoost + '</span><span class="finance-row-value negative">+20% wealth boost</span></div>' : '';
         GameUI.showModal('⏱️ Time\'s Up',
@@ -1661,12 +1664,12 @@ const GameUI = {
           '</div>',
           '<button class="btn btn-primary" onclick="GameUI.hideModal()">Keep Fighting</button>'
         );
-        return;
       }
     }
 
-    // Basic summary toast - skip during fast auto-play to reduce noise
-    if (!isAutoPlaying || speed === 1) {
+    // Basic summary toast - skip during fast auto-play or when modal events already fired
+    var hadBigEvent = results.historicalEvent || results.eraChange || (results.cityUnlocks && results.cityUnlocks.length > 0) || results.campaignTierCompleted || results.openingObjectiveResult;
+    if (!hadBigEvent && (!isAutoPlaying || speed === 1)) {
       if (!hasDisasters && !hasEvents && !(results.milestones && results.milestones.length)) {
         var net = results.rentIncome - results.expenses;
         if (results.rentIncome > 0 && !isAutoPlaying) {

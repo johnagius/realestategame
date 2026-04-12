@@ -439,7 +439,8 @@ const GameEngine = {
     return {
       success: true,
       message: `Purchased ${property.name} for ${GameData.formatMoney(property.currentValue)} (+${GameData.formatMoney(purchaseTax)} tax).`,
-      property
+      property,
+      cost: totalCost
     };
   },
 

@@ -499,10 +499,33 @@ const App = {
   buyProperty(propertyId, cityId, offerPct) {
     var result = GameEngine.buyProperty(propertyId, cityId, offerPct);
     if (result.success) {
-      GameUI.toast(result.message, 'success');
-      GameAudio.purchase();
+      // Show expense fly-out from cash display
+      var cost = result.cost || 0;
+      if (cost > 0) GameUI.animateExpense(cost);
       GameUI.updateHUD();
+      GameAudio.purchase();
+      // Navigate to owned property detail
       GameUI.showScreen('property', propertyId);
+      // Stamp "YOURS" on the property card after render
+      setTimeout(function() {
+        var hero = document.querySelector('.property-detail-hero');
+        if (hero && !hero.querySelector('.stamp-badge')) {
+          var stamp = document.createElement('div');
+          stamp.className = 'stamp-badge';
+          stamp.textContent = 'YOURS';
+          hero.style.position = 'relative';
+          hero.appendChild(stamp);
+          setTimeout(function() { if (stamp.parentNode) stamp.remove(); }, 2000);
+        }
+      }, 100);
+      // Confetti for first ever purchase — a milestone moment
+      if (GameEngine.state.totalPropertiesBought <= 1) {
+        GameUI.animateConfetti();
+        GameAudio.fanfare();
+        GameUI.toast('🎉 Your first property! You\'re on your way.', 'milestone');
+      } else {
+        GameUI.toast(result.message, 'success');
+      }
     } else {
       GameUI.toast(result.message, 'error');
     }
@@ -522,7 +545,17 @@ const App = {
     GameUI.hideModal();
     var result = GameEngine.sellProperty(propertyId);
     if (result.success) {
-      GameUI.toast(result.message, result.profit >= 0 ? 'success' : 'warning');
+      // Show profit/loss as floating number
+      if (result.profit > 0) {
+        GameUI.animateIncome(result.profit);
+        GameAudio.coin();
+        GameUI.toast('💰 Sold for ' + GameData.formatMoney(result.profit) + ' profit!', 'milestone');
+      } else if (result.profit < 0) {
+        GameUI.animateExpense(Math.abs(result.profit));
+        GameUI.toast(result.message, 'warning');
+      } else {
+        GameUI.toast(result.message, 'success');
+      }
       // Remove sold property from compare list
       var cIdx = GameUI.compareList.indexOf(propertyId);
       if (cIdx >= 0) { GameUI.compareList.splice(cIdx, 1); GameUI.updateCompareBar(); }
