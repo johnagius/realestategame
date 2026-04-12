@@ -256,7 +256,27 @@ const GameUI = {
         if (locked) {
           var ch = GameEngine.cityUnlockChallenges ? GameEngine.cityUnlockChallenges.find(function(c) { return c.cityId === city.id; }) : null;
           var statusIcon = isActive ? '⚔️' : '🔒';
-          var statusText = ch ? (isActive ? '<strong style="color:var(--primary)">' + ch.title + '</strong><br>' + ch.challenge : ch.title) : 'Click to start campaign';
+          // Show progress on active campaign, or challenge name + difficulty for inactive
+          var statusText = '';
+          if (ch) {
+            if (isActive && ch.progress) {
+              var prog = ch.progress(GameEngine.state, GameEngine);
+              var pct = prog.target > 0 ? Math.min(100, Math.round(prog.current / prog.target * 100)) : 0;
+              var pCol = pct >= 100 ? '#2A9D8F' : pct >= 50 ? '#D4A84B' : '#E63946';
+              statusText = '<strong style="color:var(--primary)">' + ch.title + '</strong><br>' +
+                '<span style="color:' + pCol + ';font-weight:700">' + prog.label + '</span>';
+            } else if (isActive) {
+              statusText = '<strong style="color:var(--primary)">' + ch.title + '</strong><br>' + ch.challenge;
+            } else {
+              // Show campaign name + what it requires
+              var idx = GameEngine.cityUnlockChallenges.indexOf(ch);
+              var diffPct = idx / GameEngine.cityUnlockChallenges.length;
+              var diffLabel = diffPct < 0.25 ? 'Early' : diffPct < 0.5 ? 'Mid' : diffPct < 0.75 ? 'Late' : 'Endgame';
+              statusText = ch.title + '<br><span style="font-size:0.62rem">' + diffLabel + ' · ' + ch.challenge + '</span>';
+            }
+          } else {
+            statusText = 'Click to start campaign';
+          }
           html += '<div style="text-align:center;padding:10px 0;font-size:0.72rem;color:var(--text-muted)">' +
             statusIcon + ' ' + statusText + '</div>';
         } else {

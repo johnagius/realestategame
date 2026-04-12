@@ -1407,16 +1407,24 @@ const GameEngine = {
       }
     });
 
-    // 9. New properties may appear on market
+    // 9. New properties may appear on market — weighted toward affordable types
     var ownedState = this.state;
+    var currentEraId = this.getCurrentEra().id;
+    var eraTypes = {
+      pre_industrial: ['studio','studio','studio','house','commercial','warehouse','land'],
+      industrial_revolution: ['studio','studio','house','townhouse','commercial','warehouse','land'],
+      gilded_age: ['studio','apartment','apartment','townhouse','house','villa','commercial','warehouse'],
+      modern_era: ['studio','apartment','apartment','penthouse','townhouse','house','villa','mansion','commercial','warehouse'],
+      information_age: ['studio','apartment','apartment','penthouse','townhouse','house','villa','mansion','commercial','warehouse']
+    };
+    var spawnTypes = eraTypes[currentEraId] || Object.keys(GameData.propertyTypes);
     GameData.cities.forEach(city => {
       const market = this.state.marketProperties[city.id];
-      // Count total properties in city (market + owned) to prevent overflow
       var ownedInCity = ownedState.properties.filter(function(p) { return p.cityId === city.id; }).length;
       var totalInCity = market.length + ownedInCity;
       if (totalInCity < city.maxProperties && Math.random() < 0.3) {
-        const types = Object.keys(GameData.propertyTypes);
-        const type = types[Math.floor(Math.random() * types.length)];
+        // Weighted: 3x chance of studios in spawn pool ensures affordable options
+        const type = spawnTypes[Math.floor(Math.random() * spawnTypes.length)];
         const newProp = GameData.generateProperty(city.id, type);
         if (newProp) {
           market.push(newProp);
