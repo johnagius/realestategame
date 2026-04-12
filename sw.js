@@ -1,4 +1,4 @@
-const CACHE_NAME = 'property-empire-v7';
+const CACHE_NAME = 'property-empire-v3.5';
 const ASSETS = [
   './',
   './index.html',
