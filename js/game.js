@@ -93,12 +93,14 @@ const GameEngine = {
       unlockedCities: ['london'],  // start with London only
       openingObjective: (function() {
         var d = family.difficulty;
-        // Each difficulty gets a proportional rival and targets
+        // Difficulty tested with 500-run simulations for casual/smart players
+        // Budget constrains difficulty: Silva €8K can only afford 1 prop, Armstrong €25K can afford 3
+        // Hard is hard because of LOW BUDGET + TIGHT DEADLINE, not because of target count
         var cfg = {
-          Hard:    { target: 1, deadline: 36, rival: 'okonkwo' },     // weakest rival (€5K)
-          Normal:  { target: 2, deadline: 30, rival: 'martinez' },    // mid-low rival (€8K)
-          Easy:    { target: 3, deadline: 24, rival: 'rothschild' },  // main rival (€23K)
-          Sandbox: { target: 3, deadline: 18, rival: 'rothschild' }
+          Hard:    { target: 1, deadline: 18, rival: 'martinez' },    // 1 prop but tight deadline + harder rival
+          Normal:  { target: 2, deadline: 30, rival: 'okonkwo' },     // 2 props, weak rival, reasonable time
+          Easy:    { target: 2, deadline: 36, rival: 'okonkwo' },     // 2 props, weak rival, long deadline
+          Sandbox: { target: 2, deadline: 36, rival: 'okonkwo' }      // same as Easy but way more cash
         };
         var c = cfg[d] || cfg.Easy;
         return { active: true, deadline: c.deadline, monthsLeft: c.deadline, targetProperties: c.target, rivalId: c.rival, completed: false, failed: false };
