@@ -4223,7 +4223,14 @@ const GameEngine = {
       }
     }
 
-    // ---- SELECTION: Prioritize portfolio-linked over generic ----
+    // ---- SELECTION: Filter out unaffordable decisions, prioritize portfolio-linked ----
+    // Remove decisions where the action costs more than the player has
+    decisions = decisions.filter(function(d) {
+      if (!d.choices || !d.choices[0] || !d.choices[0].data) return true;
+      var cost = d.choices[0].data.cost || d.choices[0].data.amount || 0;
+      if (cost > 0 && cost > cash) return false; // can't afford this action
+      return true;
+    });
     if (decisions.length === 0) return null;
 
     // Weight portfolio-linked decisions higher
