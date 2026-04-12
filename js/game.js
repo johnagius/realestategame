@@ -1850,6 +1850,44 @@ const GameEngine = {
 
   // ========== BANKING & LOANS ==========
 
+  // Get the player's maximum borrowing capacity for UI display
+  getLoanCapacity() {
+    var netWorth = this.getNetWorth();
+    var monthlyIncome = this.getMonthlyIncome();
+    var totalRentEarned = this.state.totalRentEarned || 0;
+    var existingDebt = (this.state.loans || []).reduce(function(s, l) { return s + l.remainingBalance; }, 0);
+    var existingPayments = (this.state.loans || []).reduce(function(s, l) { return s + l.monthlyPayment; }, 0);
+    var monthsPlayed = Math.max(1, this.state.month || 1);
+    var historicalAvgIncome = totalRentEarned > 0 ? Math.round(totalRentEarned / monthsPlayed) : 0;
+    var effectiveIncome = Math.max(monthlyIncome, historicalAvgIncome);
+    var propCount = this.state.properties ? this.state.properties.length : 0;
+    var debtRatio = propCount < 3 ? 0.9 : 0.5;
+    var paymentCap = Math.max(0, Math.round(effectiveIncome * debtRatio) - existingPayments);
+
+    var maxTotalDebt;
+    if (totalRentEarned <= 0) {
+      maxTotalDebt = Math.min(Math.round(netWorth * 0.15), effectiveIncome * 24);
+    } else {
+      var ltvRatio = netWorth < 20000 ? 0.85 : 0.7;
+      maxTotalDebt = Math.min(Math.round(netWorth * ltvRatio), totalRentEarned * 30);
+      maxTotalDebt = Math.max(maxTotalDebt, effectiveIncome * 60);
+    }
+    var debtRoom = Math.max(0, maxTotalDebt - existingDebt);
+
+    // Max loan from payment capacity (longest available term at lowest rate)
+    var bestRate = 0.02 / 12; // starter fund rate
+    var bestTerm = 240;
+    var maxFromPayment = paymentCap > 0 ? Math.round(paymentCap * (Math.pow(1 + bestRate, bestTerm) - 1) / (bestRate * Math.pow(1 + bestRate, bestTerm))) : 0;
+
+    return {
+      maxLoan: Math.min(debtRoom, maxFromPayment),
+      debtRoom: debtRoom,
+      paymentCap: paymentCap,
+      maxFromPayment: maxFromPayment,
+      effectiveIncome: effectiveIncome
+    };
+  },
+
   getLoanOffers(amount) {
     const netWorth = this.getNetWorth();
     const existingDebt = (this.state.loans || []).reduce((s, l) => s + l.remainingBalance, 0);
