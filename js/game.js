@@ -4278,8 +4278,13 @@ const GameEngine = {
     var autoResult = this.tryManagerAutoDecision(chosen);
     if (autoResult) {
       // Manager handled it — don't show to player, return auto-result for toast
+      this._log('decision', 'manager_auto', 0, chosen.type + ': ' + autoResult);
       return { _managerHandled: true, message: autoResult };
     }
+
+    // Log the decision shown to the player (for recording analysis)
+    var decCost = (chosen.choices && chosen.choices[0] && chosen.choices[0].data) ? (chosen.choices[0].data.cost || chosen.choices[0].data.amount || 0) : 0;
+    this._log('decision', 'shown', -decCost, chosen.type + ': ' + chosen.title + ' | ' + (chosen.choices[0] ? chosen.choices[0].label : '') + ' | cash=' + Math.round(this.state.cash));
 
     this.state.pendingDecision = chosen;
     return chosen;
@@ -4349,6 +4354,7 @@ const GameEngine = {
     var decision = this.state.pendingDecision;
     if (!decision) return { success: false, message: 'No pending decision.' };
 
+    this._log('decision', 'resolved', 0, choiceAction + ' | ' + (decision ? decision.type : 'unknown'));
     this.state.pendingDecision = null;
     var result = { success: true, message: '' };
 

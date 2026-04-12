@@ -1782,8 +1782,9 @@ const GameUI = {
   toggleMapView() {
     this.mapView = !this.mapView;
     document.getElementById('world-map-container').style.display = this.mapView ? 'block' : 'none';
-    document.getElementById('cities-list-view').style.display = this.mapView ? 'none' : '';
-    document.getElementById('btn-map-toggle').textContent = this.mapView ? '📋 List' : '🗺️ Map';
+    // List always visible — toggle only hides/shows the map
+    document.getElementById('cities-list-view').style.display = '';
+    document.getElementById('btn-map-toggle').textContent = this.mapView ? '🗺️ Hide Map' : '🗺️ Show Map';
   },
 
   // ---- Render World Map ----

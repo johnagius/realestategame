@@ -35,7 +35,7 @@
         <h3 style="color:#FFF;margin-bottom:12px;font-family:var(--font-heading)">Choose Your Dynasty</h3>
         <div id="family-cards"></div>
       </div>
-      <p class="splash-version">v6.2</p>
+      <p class="splash-version">v6.3</p>
     </div>
   </div>
 
@@ -100,8 +100,8 @@
         <div id="world-map-pins"></div>
       </div>
     </div>
-    <!-- Grid View -->
-    <div id="cities-list-view" style="display:none">
+    <!-- Grid View (always shown below map) -->
+    <div id="cities-list-view">
       <div class="search-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <input type="text" id="city-search" placeholder="Search cities..." class="search-input" style="flex:1;min-width:140px">
         <select id="cities-sort" class="sort-select" onchange="GameUI._citiesSort=this.value;GameUI._lastSearch=null;GameUI.renderMap()">
@@ -258,7 +258,7 @@
       <span class="nav-icon">⚙️</span>
       <span class="nav-label">More</span>
     </button>
-    <span id="game-version" style="position:absolute;bottom:2px;right:8px;font-size:0.55rem;color:rgba(44,110,73,0.5);pointer-events:none;font-weight:600">v6.2</span>
+    <span id="game-version" style="position:absolute;bottom:2px;right:8px;font-size:0.55rem;color:rgba(44,110,73,0.5);pointer-events:none;font-weight:600">v6.3</span>
   </nav>
 
   <!-- ==================== TUTORIAL OVERLAY ==================== -->
