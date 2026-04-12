@@ -372,15 +372,22 @@ const GameUI = {
       '<div class="city-info-chip">💹 Inflation: <strong>' + (inflationRate * 100).toFixed(1) + '%</strong></div>' +
       '<div class="city-info-chip">🏠 Yield: <strong>' + (city.rentYield * 100).toFixed(1) + '%</strong></div>';
 
-    // Manager display
-    var mgr = (GameEngine.state.managers || {})[city.id];
-    if (mgr) {
-      info.innerHTML += '<div style="margin-top:6px;padding:6px 10px;background:rgba(44,110,73,0.06);border-radius:8px;font-size:0.72rem;display:flex;justify-content:space-between;align-items:center">' +
-        '<span>' + mgr.icon + ' <strong>' + mgr.name + '</strong> · ' + Math.round(mgr.fee*100) + '% fee · Quality ' + Math.round(mgr.quality*100) + '%</span>' +
-        '<button class="btn btn-ghost btn-small" style="font-size:0.65rem;padding:2px 8px" onclick="App.fireManager(\'' + city.id + '\')">Dismiss</button>' +
-      '</div>';
-    } else if (GameEngine.state.properties.some(function(p){return p.cityId===city.id;})) {
-      info.innerHTML += '<div style="margin-top:6px"><button class="btn btn-secondary btn-small" style="font-size:0.7rem" onclick="App.showManagerHire(\'' + city.id + '\')">👔 Hire Property Manager</button></div>';
+    // Manager display — shown below tabs, always visible
+    var mgrBar = document.getElementById('city-manager-bar');
+    if (mgrBar) {
+      var mgr = (GameEngine.state.managers || {})[city.id];
+      var hasProps = GameEngine.state.properties.some(function(p){return p.cityId===city.id;});
+      if (mgr) {
+        mgrBar.style.display = '';
+        mgrBar.innerHTML = '<div style="padding:6px 10px;margin:0 8px 6px;background:rgba(44,110,73,0.06);border-radius:8px;font-size:0.72rem;display:flex;justify-content:space-between;align-items:center">' +
+          '<span>👔 ' + mgr.icon + ' <strong>' + mgr.name + '</strong> · ' + Math.round(mgr.fee*100) + '% fee · Q' + Math.round(mgr.quality*100) + '%</span>' +
+          '<button class="btn btn-ghost btn-small" style="font-size:0.62rem;padding:2px 6px" onclick="App.fireManager(\'' + city.id + '\')">Dismiss</button></div>';
+      } else if (hasProps) {
+        mgrBar.style.display = '';
+        mgrBar.innerHTML = '<div style="padding:4px 10px;margin:0 8px 6px;text-align:center"><button class="btn btn-secondary btn-small" style="font-size:0.7rem;width:100%" onclick="App.showManagerHire(\'' + city.id + '\')">👔 Hire Property Manager</button></div>';
+      } else {
+        mgrBar.style.display = 'none';
+      }
     }
 
     // Auto-show 3D city view if definition exists
