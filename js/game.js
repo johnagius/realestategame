@@ -2845,23 +2845,28 @@ const GameEngine = {
         var propMits = self.state.mitigations[p.id] || {};
         var mitOptions = self.getMitigationOptions(p);
         mitOptions.forEach(function(mit) {
-          if (!propMits[mit.id] && self.state.cash >= mit.cost) {
-            // Buy if: manager quality > 0.7 (experienced enough to assess risk)
-            // or if property has been hit by a disaster of this type
-            var shouldBuy = mgr.quality >= 0.7;
-            // Check disaster history for this property's city
-            if (!shouldBuy) {
-              var recentDisasters = (self.state.disasterHistory || []).filter(function(d) {
-                return d.cityId === p.cityId && (self.state.month - d.month) < 24;
-              });
-              if (recentDisasters.length > 0) shouldBuy = true;
-            }
-            if (shouldBuy) {
-              self.state.cash -= mit.cost;
-              if (!self.state.mitigations[p.id]) self.state.mitigations[p.id] = {};
-              self.state.mitigations[p.id][mit.id] = true;
-              self._log('manager', 'auto-mitigation', -mit.cost, mgr.name + ' bought ' + mit.name + ' for ' + p.name);
-            }
+          // Skip if already owned OR if buying would push cash below €200
+          if (propMits[mit.id] || self.state.cash < mit.cost + 200) return;
+          // Don't buy basic insurance if premium exists (or vice versa)
+          if (mit.id === 'insurance_basic' && propMits['insurance_premium']) return;
+          if (mit.id === 'insurance_premium' && propMits['insurance_basic']) return;
+          // Buy if: manager quality > 0.7 OR city has had recent disasters
+          var shouldBuy = mgr.quality >= 0.7;
+          if (!shouldBuy) {
+            var recentDisasters = (self.state.disasterHistory || []).filter(function(d) {
+              return d.cityId === p.cityId && (self.state.month - d.month) < 24;
+            });
+            if (recentDisasters.length > 0) shouldBuy = true;
+          }
+          if (shouldBuy) {
+            // Premium manager buys premium insurance, others buy basic
+            if (mit.id === 'insurance_basic' && mgr.quality >= 0.8) return; // skip basic, will buy premium
+            if (mit.id === 'insurance_premium' && mgr.quality < 0.8) return; // skip premium, buy basic
+            self.state.cash -= mit.cost;
+            if (!self.state.mitigations[p.id]) self.state.mitigations[p.id] = {};
+            self.state.mitigations[p.id][mit.id] = true;
+            propMits[mit.id] = true; // update local cache
+            self._log('manager', 'auto-mitigation', -mit.cost, mgr.name + ' bought ' + mit.name + ' for ' + p.name);
           }
         });
         } // end autoMitigation

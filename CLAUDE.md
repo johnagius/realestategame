@@ -7,7 +7,11 @@ Update these 3 places:
 2. `index.html` — nav bar `<span id="game-version"...>vX.Y</span>`
 3. `sw.js` — cache name `const CACHE_NAME = 'property-empire-vX.Y';`
 
-Current version: v3.7
+Current version: v5.6
+
+## Game Recording Analysis
+**ALWAYS check for the latest game recording JSON file in the repo root.**
+Look for files matching `property-empire-recording-*.json` — the higher the number in the filename, the newer the recording. Analyze these recordings to find bugs, balance issues, and exploits before the user has to report them.
 
 ## Deployment
 - Push to `main` branch deploys to GitHub Pages automatically
