@@ -1474,7 +1474,7 @@ const GameUI = {
           '<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:10px">' + (cu.title || cu.challenge) + '</div>' +
           '<div style="font-size:0.82rem;color:var(--text-dark)">A new market awaits. Click ' + cu.cityName + ' on the map to explore its properties.</div>' +
         '</div>',
-        '<button class="btn btn-primary" onclick="GameUI.hideModal()">Continue</button>'
+        '<button class="btn btn-primary" onclick="GameUI.hideModal();GameUI._lastSearch=null;GameUI.renderMap();GameUI.renderWorldMap();GameUI.updateHUD()">Explore ' + cu.cityName + '</button>'
       );
       GameUI.animateConfetti();
       GameAudio.fanfare();

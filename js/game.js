@@ -212,6 +212,14 @@ const GameEngine = {
           this.state.unlockedFeatures = { bank: true, businesses: true, investments: true, aiDiplomacy: true, fullLeaderboard: true };
         }
         if (this.state.activeCampaign === undefined) this.state.activeCampaign = null;
+        // Reset city economic data to base values (fixes drifted inflation/growth from old saves)
+        GameData.cities.forEach(function(city) {
+          var base = GameData.cities.find(function(c) { return c.id === city.id; });
+          if (base) {
+            city._baseInflation = base.inflationRate;
+            city._baseGrowth = base.growthRate;
+          }
+        });
         // Migrate old properties: ensure tenant + rentMultiplier fields exist
         if (this.state.properties) {
           this.state.properties.forEach(function(p) {
