@@ -693,6 +693,59 @@ const App = {
     }
   },
 
+  // ---- Property Managers ----
+  showManagerHire(cityId) {
+    var rep = GameEngine.state.reputation || 50;
+    var managers = GameData.getAvailableManagers(cityId, rep);
+    if (managers.length === 0) {
+      GameUI.toast('No managers available. Build your reputation.', 'warning');
+      return;
+    }
+    var city = GameData.cities.find(function(c) { return c.id === cityId; });
+    var html = '<div style="max-height:60vh;overflow-y:auto">';
+    managers.forEach(function(m) {
+      var locked = rep < m.minReputation;
+      html += '<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;' + (locked ? 'opacity:0.5' : '') + '">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+          '<span style="font-weight:700">' + m.icon + ' ' + m.name + '</span>' +
+          '<span style="font-size:0.65rem;color:var(--text-muted)">Quality: ' + Math.round(m.quality * 100) + '%</span>' +
+        '</div>' +
+        '<div style="font-size:0.75rem;color:var(--text-dark);margin-bottom:6px">' + m.desc + '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:0.72rem;margin-bottom:8px">' +
+          '<div>Fee: <strong>' + Math.round(m.fee * 100) + '% of rent</strong></div>' +
+          '<div>Hire: <strong>' + GameData.formatMoney(m.hireCost) + '</strong></div>' +
+          '<div>Trait: <strong>' + m.trait + '</strong></div>' +
+          '<div>Min rep: <strong>' + m.minReputation + '</strong></div>' +
+        '</div>' +
+        (locked ? '<div style="font-size:0.7rem;color:#E63946">🔒 Reputation ' + m.minReputation + ' required (yours: ' + rep + ')</div>' :
+          '<button class="btn btn-primary btn-small" style="width:100%" onclick="App.hireManager(\'' + cityId + '\',\'' + m.id + '\')">Hire ' + m.name + '</button>') +
+      '</div>';
+    });
+    html += '</div>';
+    GameUI.showModal('👔 Hire Property Manager — ' + (city ? city.name : ''), html, '');
+  },
+
+  hireManager(cityId, managerId) {
+    GameUI.hideModal();
+    var result = GameEngine.hireManager(cityId, managerId);
+    if (result.success) {
+      GameUI.toast(result.message, 'success');
+      GameUI.renderCity();
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+  },
+
+  fireManager(cityId) {
+    var result = GameEngine.fireManager(cityId);
+    if (result.success) {
+      GameUI.toast(result.message, 'info');
+      GameUI.renderCity();
+    } else {
+      GameUI.toast(result.message, 'error');
+    }
+  },
+
   // ---- Business Stakes ----
   buyStake(businessId, cityId, stakePct) {
     var result = GameEngine.buyStake(businessId, cityId, stakePct);
