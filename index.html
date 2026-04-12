@@ -100,8 +100,8 @@
         <div id="world-map-pins"></div>
       </div>
     </div>
-    <!-- Grid View -->
-    <div id="cities-list-view" style="display:none">
+    <!-- Grid View (always shown below map) -->
+    <div id="cities-list-view">
       <div class="search-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <input type="text" id="city-search" placeholder="Search cities..." class="search-input" style="flex:1;min-width:140px">
         <select id="cities-sort" class="sort-select" onchange="GameUI._citiesSort=this.value;GameUI._lastSearch=null;GameUI.renderMap()">
@@ -137,6 +137,7 @@
         <button class="tab-btn" data-tab="owned">🔑 My Properties</button>
         <button class="tab-btn" data-tab="businesses">💼 Businesses</button>
       </div>
+      <div id="city-manager-bar" style="display:none"></div>
       <div id="city-sort-bar" class="sort-bar">
         <select id="city-sort" class="sort-select" onchange="GameUI.citySort=this.value;GameUI.cityPage=0;GameUI.renderCityProperties()">
           <option value="price-asc">Price ↑</option>
@@ -335,7 +336,25 @@
   <script src="js/app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(function(){});
+      navigator.serviceWorker.register('sw.js').then(function(reg) {
+        // Check for updates every 5 minutes while playing
+        setInterval(function() { reg.update(); }, 5 * 60 * 1000);
+        // When new SW is found, activate it and reload
+        reg.addEventListener('updatefound', function() {
+          var newWorker = reg.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', function() {
+              if (newWorker.state === 'activated') {
+                // New version available — reload to get fresh code
+                if (typeof GameUI !== 'undefined') {
+                  GameUI.toast('🔄 Game updated to latest version! Reloading...', 'milestone');
+                }
+                setTimeout(function() { window.location.reload(); }, 1500);
+              }
+            });
+          }
+        });
+      }).catch(function(){});
     }
   </script>
 </body>
