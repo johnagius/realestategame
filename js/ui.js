@@ -759,10 +759,10 @@ const GameUI = {
         if (typeDef.canRefurbish && p.condition !== 'excellent') {
           var baseCost = Math.round(p.currentValue * condDef.refurbCostPct);
           actionsHTML += '<div class="action-info mb-8">🔨 Renovation Options:</div>';
-          actionsHTML += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
-          actionsHTML += '<button class="btn btn-ghost btn-small" style="flex:1;min-width:90px;font-size:0.72rem;padding:8px 4px" onclick="App.refurbishProperty(\'' + p.id + '\', \'budget\')">Budget<br>' + GameData.formatMoney(Math.round(baseCost*0.6)) + '<br><span style="font-size:0.58rem;opacity:0.6">+1 cond, 80%</span></button>';
-          actionsHTML += '<button class="btn btn-accent btn-small" style="flex:1;min-width:90px;font-size:0.72rem;padding:8px 4px" onclick="App.refurbishProperty(\'' + p.id + '\', \'standard\')">Standard<br>' + GameData.formatMoney(baseCost) + '<br><span style="font-size:0.58rem;opacity:0.7">+1 cond, +12%</span></button>';
-          actionsHTML += '<button class="btn btn-primary btn-small" style="flex:1;min-width:90px;font-size:0.72rem;padding:8px 4px" onclick="App.refurbishProperty(\'' + p.id + '\', \'luxury\')">Luxury<br>' + GameData.formatMoney(Math.round(baseCost*2)) + '<br><span style="font-size:0.58rem;opacity:0.7">+2 cond, +25%</span></button>';
+          actionsHTML += '<div style="display:flex;flex-direction:column;gap:6px">';
+          actionsHTML += '<button class="btn btn-ghost btn-small" style="width:100%;text-align:left;padding:8px 12px;font-size:0.75rem;display:flex;justify-content:space-between;align-items:center" onclick="App.refurbishProperty(\'' + p.id + '\', \'budget\')"><span>🔧 Budget · +1 cond · 80% chance</span><strong>' + GameData.formatMoney(Math.round(baseCost*0.6)) + '</strong></button>';
+          actionsHTML += '<button class="btn btn-accent btn-small" style="width:100%;text-align:left;padding:8px 12px;font-size:0.75rem;display:flex;justify-content:space-between;align-items:center" onclick="App.refurbishProperty(\'' + p.id + '\', \'standard\')"><span>🔨 Standard · +1 cond · +12% value</span><strong>' + GameData.formatMoney(baseCost) + '</strong></button>';
+          actionsHTML += '<button class="btn btn-primary btn-small" style="width:100%;text-align:left;padding:8px 12px;font-size:0.75rem;display:flex;justify-content:space-between;align-items:center" onclick="App.refurbishProperty(\'' + p.id + '\', \'luxury\')"><span>⭐ Luxury · +2 cond · +25% value</span><strong>' + GameData.formatMoney(Math.round(baseCost*2)) + '</strong></button>';
           actionsHTML += '</div>';
         }
 
