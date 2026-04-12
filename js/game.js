@@ -5,27 +5,84 @@
    ======================================== */
 
 const GameEngine = {
-  debug: false,  // set true to log all economy events
-  log: [],       // structured log of every cash/value change
+  debug: false,    // set true for console logging
+  recording: true,  // always on — records all events for export
+  log: [],          // structured log of every economy event
 
-  // Log an economy event for debugging/simulation
+  // Log an economy event — always records when recording=true
   _log(category, action, amount, detail) {
-    if (!this.debug) return;
+    if (!this.debug && !this.recording) return;
+    var nw = this.state ? Math.round(this.getNetWorth()) : 0;
     var entry = {
       month: this.state ? this.state.month : 0,
       year: this.state ? this.state.year : 0,
-      cash: this.state ? this.state.cash : 0,
-      nw: this.state ? this.getNetWorth() : 0,
-      category: category,   // 'rent', 'expense', 'loan', 'buy', 'sell', 'disaster', 'decision', 'ai', 'tax'
-      action: action,       // what happened
-      amount: amount,       // +/- change
-      detail: detail || ''  // extra context
+      cash: this.state ? Math.round(this.state.cash) : 0,
+      nw: nw,
+      props: this.state ? this.state.properties.length : 0,
+      category: category,
+      action: action,
+      amount: Math.round(amount),
+      detail: detail || '',
+      ts: Date.now()
     };
     this.log.push(entry);
-    if (typeof console !== 'undefined') {
+    // Cap log size at 50K entries to prevent memory issues
+    if (this.log.length > 50000) this.log = this.log.slice(-40000);
+    if (this.debug && typeof console !== 'undefined') {
       var sign = amount >= 0 ? '+' : '';
       console.log('[M' + entry.month + ' Y' + entry.year + '] ' + category + '.' + action + ': ' + sign + amount + ' | cash=' + entry.cash + ' | ' + detail);
     }
+  },
+
+  // Export full game recording as downloadable JSON
+  exportRecording() {
+    var data = {
+      exported: new Date().toISOString(),
+      version: 'v5.3',
+      family: this.state ? this.state.familyName : 'unknown',
+      familyId: this.state ? this.state.familyId : 'unknown',
+      monthsPlayed: this.state ? this.state.month : 0,
+      currentYear: this.state ? this.state.year : 0,
+      finalCash: this.state ? Math.round(this.state.cash) : 0,
+      finalNW: this.state ? Math.round(this.getNetWorth()) : 0,
+      properties: this.state ? this.state.properties.length : 0,
+      totalRentEarned: this.state ? Math.round(this.state.totalRentEarned || 0) : 0,
+      totalExpensesPaid: this.state ? Math.round(this.state.totalExpensesPaid || 0) : 0,
+      loans: this.state ? (this.state.loans || []).length : 0,
+      citiesUnlocked: this.state ? (this.state.unlockedCities || []).length : 0,
+      campaignTier: this.state ? (this.state.campaignTier || 0) : 0,
+      events: this.log.length,
+      log: this.log
+    };
+    var json = JSON.stringify(data, null, 2);
+    // Persist log before download
+    try { localStorage.setItem('propertyEmpire_log', JSON.stringify(this.log)); } catch(e) {}
+    // Trigger download
+    if (typeof document !== 'undefined') {
+      var blob = new Blob([json], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'property-empire-recording-' + (this.state ? this.state.year : 'unknown') + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    return data;
+  },
+
+  // Start recording
+  startRecording() {
+    this.recording = true;
+    this.log = [];
+    this._log('system', 'recording_started', 0, 'Recording all game events');
+  },
+
+  // Stop recording
+  stopRecording() {
+    this._log('system', 'recording_stopped', 0, this.log.length + ' events recorded');
+    this.recording = false;
   },
 
   // ---- Game State ----
@@ -93,12 +150,14 @@ const GameEngine = {
       unlockedCities: ['london'],  // start with London only
       openingObjective: (function() {
         var d = family.difficulty;
-        // Each difficulty gets a proportional rival and targets
+        // Difficulty tested with 500-run simulations for casual/smart players
+        // Budget constrains difficulty: Silva €8K can only afford 1 prop, Armstrong €25K can afford 3
+        // Hard is hard because of LOW BUDGET + TIGHT DEADLINE, not because of target count
         var cfg = {
-          Hard:    { target: 1, deadline: 36, rival: 'okonkwo' },     // weakest rival (€5K)
-          Normal:  { target: 2, deadline: 30, rival: 'martinez' },    // mid-low rival (€8K)
-          Easy:    { target: 3, deadline: 24, rival: 'rothschild' },  // main rival (€23K)
-          Sandbox: { target: 3, deadline: 18, rival: 'rothschild' }
+          Hard:    { target: 1, deadline: 18, rival: 'martinez' },    // 1 prop but tight deadline + harder rival
+          Normal:  { target: 2, deadline: 30, rival: 'okonkwo' },     // 2 props, weak rival, reasonable time
+          Easy:    { target: 2, deadline: 36, rival: 'okonkwo' },     // 2 props, weak rival, long deadline
+          Sandbox: { target: 2, deadline: 36, rival: 'okonkwo' }      // same as Easy but way more cash
         };
         var c = cfg[d] || cfg.Easy;
         return { active: true, deadline: c.deadline, monthsLeft: c.deadline, targetProperties: c.target, rivalId: c.rival, completed: false, failed: false };
@@ -166,6 +225,9 @@ const GameEngine = {
     this.state.socialTier = 'Commoner';
 
     this.save();
+    // Always start recording on new game
+    this.recording = true;
+    this.log = [];
     return this.state;
   },
 
@@ -210,6 +272,15 @@ const GameEngine = {
           this.state.unlockedFeatures = { bank: true, businesses: true, investments: true, aiDiplomacy: true, fullLeaderboard: true };
         }
         if (this.state.activeCampaign === undefined) this.state.activeCampaign = null;
+        if (!this.state.managers) this.state.managers = {};
+        // Reset city economic data to base values (fixes drifted inflation/growth from old saves)
+        GameData.cities.forEach(function(city) {
+          var base = GameData.cities.find(function(c) { return c.id === city.id; });
+          if (base) {
+            city._baseInflation = base.inflationRate;
+            city._baseGrowth = base.growthRate;
+          }
+        });
         // Migrate old properties: ensure tenant + rentMultiplier fields exist
         if (this.state.properties) {
           this.state.properties.forEach(function(p) {
@@ -218,6 +289,25 @@ const GameEngine = {
               p.tenant = GameData.assignTenant(p);
             }
           });
+        }
+        // Always start recording on game load — restore previous log if exists
+        this.recording = true;
+        try {
+          var savedLog = localStorage.getItem('propertyEmpire_log');
+          this.log = savedLog ? JSON.parse(savedLog) : [];
+        } catch(e) { this.log = []; }
+        console.log('[ENGINE] Game loaded — recording resumed with ' + this.log.length + ' events, month=' + this.state.month + ' year=' + this.state.year);
+        // Fix: remove duplicate insurance (basic+premium on same property)
+        if (this.state.mitigations) {
+          var fixed = 0;
+          Object.keys(this.state.mitigations).forEach(function(pid) {
+            var m = GameEngine.state.mitigations[pid];
+            if (m && m['insurance_basic'] && m['insurance_premium']) {
+              delete m['insurance_basic']; // keep premium, remove basic
+              fixed++;
+            }
+          });
+          if (fixed > 0) console.log('[ENGINE] Fixed ' + fixed + ' properties with duplicate insurance');
         }
         return this.state;
       }
@@ -235,6 +325,10 @@ const GameEngine = {
   save() {
     try {
       localStorage.setItem('propertyEmpire_save', JSON.stringify(this.state));
+      // Persist recording log (save every 12 months to reduce writes)
+      if (this.recording && this.log.length > 0 && this.state && this.state.month % 12 === 0) {
+        localStorage.setItem('propertyEmpire_log', JSON.stringify(this.log));
+      }
     } catch (e) {
       console.error('Failed to save:', e);
     }
@@ -952,6 +1046,8 @@ const GameEngine = {
 
   // ---- Advance one month ----
   advanceMonth() {
+    console.log('[ENGINE] advanceMonth START — month=' + (this.state ? this.state.month : '?') + ' year=' + (this.state ? this.state.year : '?'));
+    try {
     const results = {
       month: 0,
       year: 0,
@@ -1011,6 +1107,9 @@ const GameEngine = {
 
         // Tenant problem chance: base 3% modified by reliability (higher = fewer problems)
         var problemChance = 0.03 * (2 - reliability); // reliability 1.0 → 3%, reliability 0.7 → 3.9%
+        // Manager reduces tenant problems based on quality
+        var cityMgr = (this.state.managers || {})[p.cityId];
+        if (cityMgr) problemChance *= (1 - cityMgr.quality * 0.5); // quality 0.9 → 55% reduction
         if (Math.random() < problemChance) {
           var problemRoll = Math.random();
           if (problemRoll < 0.35) {
@@ -1113,15 +1212,19 @@ const GameEngine = {
         return !c || c.trait !== 'tax_haven';
       });
       if (taxableProps.length > 0) {
-        var portfolioValue = taxableProps.reduce(function(s, p) { return s + p.currentValue; }, 0);
+        // Tax shelter: shell companies reduce tax by 60% on sheltered properties
+        var unsheltered = taxableProps.filter(function(p) { return !p.taxShelter; });
+        var sheltered = taxableProps.filter(function(p) { return p.taxShelter; });
+        var unshelteredValue = unsheltered.reduce(function(s, p) { return s + p.currentValue; }, 0);
+        var shelteredValue = sheltered.reduce(function(s, p) { return s + p.currentValue; }, 0);
         // Base rate: 0.5% annual. Increases 0.1% for every 10 properties owned (up to 2.5%)
         var taxRate = Math.min(0.025, 0.005 + Math.floor(this.state.properties.length / 10) * 0.001);
-        // PROPERTY TAX: 0.5% base + 0.1% per 10 properties, annual, applied monthly. Tax haven exempt.
-        var monthlyTax = Math.round(portfolioValue * taxRate / 12);
+        // Sheltered properties pay 40% of normal rate
+        var monthlyTax = Math.round((unshelteredValue * taxRate + shelteredValue * taxRate * 0.4) / 12);
         this.state.cash -= monthlyTax;
         results.propertyTax = monthlyTax;
         results.expenses += monthlyTax;
-        this._log('tax', 'property', -monthlyTax, 'rate=' + (taxRate*100).toFixed(1) + '% on ' + taxableProps.length + ' taxable props worth ' + portfolioValue);
+        this._log('tax', 'property', -monthlyTax, 'rate=' + (taxRate*100).toFixed(1) + '% on ' + taxableProps.length + ' props (unsheltered=' + unshelteredValue + ' sheltered=' + shelteredValue + ')');
       }
     }
 
@@ -1269,10 +1372,14 @@ const GameEngine = {
     // Track buying/selling pressure per city
     if (!this.state.marketPressure) this.state.marketPressure = {};
 
-    // Slowly drift inflation rates each month (small random walk)
+    // Slowly drift inflation rates each month (small random walk, tightly bounded)
     GameData.cities.forEach(city => {
-      const drift = (Math.random() - 0.5) * 0.002; // +/- 0.1% drift
-      city.inflationRate = Math.max(0.005, Math.min(0.08, (city.inflationRate || 0.02) + drift));
+      const drift = (Math.random() - 0.5) * 0.001; // +/- 0.05% drift (halved)
+      if (!city._baseInflation) city._baseInflation = city.inflationRate;
+      // Cap drift to ±50% of base rate — prevents runaway inflation destroying investment scores
+      var minInfl = city._baseInflation * 0.5;
+      var maxInfl = city._baseInflation * 1.5;
+      city.inflationRate = Math.max(minInfl, Math.min(maxInfl, (city.inflationRate || 0.02) + drift));
     });
 
     // Calculate supply/demand pressure per city
@@ -1294,52 +1401,48 @@ const GameEngine = {
     this.state.properties.forEach(p => {
       if (!p.isBuilding) {
         const city = GameData.cities.find(c => c.id === p.cityId);
-        const monthlyInflation = (city.inflationRate || 0.02) / 12;
         const pressure = this.state.marketPressure[city.id] || 0;
-        var randomFactor = (Math.random() - 0.5) * 0.015;
-        // CAP + economic cycle
-        const maxMonthlyGrowth = 0.0017;
+        var randomFactor = (Math.random() - 0.5) * 0.008; // reduced from 0.015 — less noise
+        // Growth rate already includes inflation — don't add it separately
+        const maxMonthlyGrowth = 0.003; // ~3.6% annual cap
         const realGrowth = Math.min(maxMonthlyGrowth, city.growthRate / 12);
-        const cycleGrowth = cycleEffect.growth || 0;
+        // Cycle effect: smaller bonus/penalty to prevent runaway
+        const cycleGrowth = (cycleEffect.growth || 0) * 0.5;
         var prestigeBonus = this.state.prestigeAppreciationBonus || 0;
 
         // City trait appreciation modifiers
         var traitAppreciation = 0;
         var cityTrait = city.trait;
         if (cityTrait === 'redevelopment') {
-          // Poor/derelict properties appreciate 2x faster
-          if (p.condition === 'poor' || p.condition === 'derelict') traitAppreciation = realGrowth; // doubles growth
+          if (p.condition === 'poor' || p.condition === 'derelict') traitAppreciation = realGrowth;
         } else if (cityTrait === 'boom_bust') {
-          // 3x price volatility
           randomFactor *= 3;
         } else if (cityTrait === 'foreign_buyer') {
-          // +1.5% annual extra appreciation = +0.00125/month
-          traitAppreciation = 0.00125;
+          traitAppreciation = 0.0008; // ~1% annual extra
         }
 
-        const change = (realGrowth + monthlyInflation + pressure + randomFactor + cycleGrowth + traitAppreciation) * (1 + prestigeBonus);
+        const change = (realGrowth + pressure + randomFactor + cycleGrowth + traitAppreciation) * (1 + prestigeBonus);
         p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + change)));
         p.appreciation = ((p.currentValue - p.purchasePrice) / p.purchasePrice) * 100;
         this.recalculateRent(p);
       }
     });
 
-    // Also fluctuate market properties
+    // Also fluctuate market properties (same formula as owned)
     Object.keys(this.state.marketProperties).forEach(cityId => {
       const city = GameData.cities.find(c => c.id === cityId);
-      const monthlyInflation = (city.inflationRate || 0.02) / 12;
       const pressure = this.state.marketPressure[cityId] || 0;
-      const maxMonthlyGrowth = 0.0017;
+      const maxMonthlyGrowth = 0.003;
       const realGrowth = Math.min(maxMonthlyGrowth, city.growthRate / 12);
       var mTrait = city.trait;
       this.state.marketProperties[cityId].forEach(p => {
-        var randomFactor = (Math.random() - 0.5) * 0.015;
-        var cGrowth = cycleEffect.growth || 0;
+        var randomFactor = (Math.random() - 0.5) * 0.008;
+        var cGrowth = (cycleEffect.growth || 0) * 0.5;
         var mTraitBonus = 0;
         if (mTrait === 'boom_bust') randomFactor *= 3;
-        if (mTrait === 'foreign_buyer') mTraitBonus = 0.00125;
+        if (mTrait === 'foreign_buyer') mTraitBonus = 0.0008;
         if (mTrait === 'redevelopment' && (p.condition === 'poor' || p.condition === 'derelict')) mTraitBonus = realGrowth;
-        p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + realGrowth + monthlyInflation + pressure + randomFactor + cGrowth + mTraitBonus)));
+        p.currentValue = Math.max(1, Math.round(p.currentValue * (1 + realGrowth + pressure + randomFactor + cGrowth + mTraitBonus)));
         this.recalculateRent(p);
       });
     });
@@ -1397,17 +1500,36 @@ const GameEngine = {
       }
     });
 
-    // 9. New properties may appear on market
+    // 9. New properties may appear on market — weighted toward affordable types
     var ownedState = this.state;
+    var currentEraId = this.getCurrentEra().id;
+    var eraTypes = {
+      pre_industrial: ['studio','studio','studio','house','commercial','warehouse','land'],
+      industrial_revolution: ['studio','studio','house','townhouse','commercial','warehouse','land'],
+      gilded_age: ['studio','apartment','apartment','townhouse','house','villa','commercial','warehouse'],
+      modern_era: ['studio','apartment','apartment','penthouse','townhouse','house','villa','mansion','commercial','warehouse'],
+      information_age: ['studio','apartment','apartment','penthouse','townhouse','house','villa','mansion','commercial','warehouse']
+    };
+    var spawnTypes = eraTypes[currentEraId] || Object.keys(GameData.propertyTypes);
     GameData.cities.forEach(city => {
       const market = this.state.marketProperties[city.id];
-      // Count total properties in city (market + owned) to prevent overflow
       var ownedInCity = ownedState.properties.filter(function(p) { return p.cityId === city.id; }).length;
       var totalInCity = market.length + ownedInCity;
+      // Guarantee at least 1 affordable studio always exists in unlocked city markets
+      var hasAffordable = market.some(function(p) { return p.monthlyRent > 0 && p.currentValue < 10000; });
+      if (!hasAffordable && totalInCity < city.maxProperties && this.isCityUnlocked(city.id)) {
+        var studioP = GameData.generateProperty(city.id, 'studio');
+        if (studioP) {
+          studioP.condition = 'good';
+          GameEngine.recalculateRent(studioP);
+          market.push(studioP);
+          results.newProperties.push({ cityId: city.id, property: studioP });
+        }
+      }
+      // Normal spawn: 30% chance per month, weighted toward affordable types
       if (totalInCity < city.maxProperties && Math.random() < 0.3) {
-        const types = Object.keys(GameData.propertyTypes);
-        const type = types[Math.floor(Math.random() * types.length)];
-        const newProp = GameData.generateProperty(city.id, type);
+        var type = spawnTypes[Math.floor(Math.random() * spawnTypes.length)];
+        var newProp = GameData.generateProperty(city.id, type);
         if (newProp) {
           market.push(newProp);
           results.newProperties.push({ cityId: city.id, property: newProp });
@@ -1418,6 +1540,10 @@ const GameEngine = {
     // 10. Process loan payments
     results.loanPayments = this.processLoanPayments();
     results.expenses += results.loanPayments;
+
+    // 10b. Process property managers (auto-rent, auto-refurb, collect fees)
+    results.managerFees = this.processManagers(results);
+    results.expenses += results.managerFees;
 
     // 11. Process businesses & collect dividends
     results.dividends = this.processBusinesses();
@@ -1511,15 +1637,44 @@ const GameEngine = {
     this.state.monthlyIncome = results.rentIncome;
     this.state.monthlyExpenses = results.expenses;
 
-    // MONTHLY SUMMARY LOG: snapshot of all key metrics after processing
+    // MONTHLY SUMMARY LOG: snapshot of all key metrics + market data
+    var marketSummary = {};
+    var self = this;
+    (this.state.unlockedCities || ['london']).forEach(function(cid) {
+      var mkt = self.state.marketProperties[cid] || [];
+      var rentable = mkt.filter(function(p) { return p.monthlyRent > 0; });
+      var cheapest = rentable.length > 0 ? rentable.reduce(function(a,b){return a.currentValue<b.currentValue?a:b;}).currentValue : 0;
+      var avgPrice = mkt.length > 0 ? Math.round(mkt.reduce(function(s,p){return s+p.currentValue;},0)/mkt.length) : 0;
+      marketSummary[cid] = { count: mkt.length, cheapest: cheapest, avg: avgPrice };
+    });
+
     this._log('summary', 'month_end', results.rentIncome - results.expenses,
       'rent=' + results.rentIncome + ' exp=' + results.expenses + ' tax=' + (results.propertyTax||0) +
-      ' loans=' + (results.loanPayments||0) + ' divs=' + (results.dividends||0) +
-      ' props=' + this.state.properties.length + ' nw=' + this.getNetWorth() +
-      ' cash=' + this.state.cash + ' cycle=' + this.state.economicCycle);
+      ' loans=' + (results.loanPayments||0) + ' divs=' + (results.dividends||0) + ' mgrFees=' + (results.managerFees||0) +
+      ' props=' + this.state.properties.length + ' nw=' + Math.round(this.getNetWorth()) +
+      ' cash=' + Math.round(this.state.cash) + ' cycle=' + this.state.economicCycle +
+      ' market=' + JSON.stringify(marketSummary));
+
+    // Log each owned property status
+    this.state.properties.forEach(function(p) {
+      self._log('property', 'status', p.monthlyRent, p.name + ' val=' + Math.round(p.currentValue) + ' cond=' + p.condition + ' rented=' + p.isRented + (p.taxShelter ? ' sheltered' : ''));
+    });
+
+    // Log AI family standings
+    if (this.state.aiFamilies) {
+      this.state.aiFamilies.forEach(function(ai) {
+        self._log('ai', 'status', Math.round(ai.netWorth), ai.name + ' props=' + ai.propertyCount + ' income=' + Math.round(ai.monthlyIncome));
+      });
+    }
 
     this.save();
+    console.log('[ENGINE] advanceMonth END — month=' + this.state.month + ' cash=' + Math.round(this.state.cash) + ' props=' + this.state.properties.length);
     return results;
+    } catch(err) {
+      console.error('[ENGINE] advanceMonth CRASHED:', err.message, err.stack);
+      this._log('error', 'crash', 0, err.message);
+      return { rentIncome:0, expenses:0, disasters:[], events:[], completedRefurbishments:[], completedBuilds:[], newProperties:[], propertyChanges:[] };
+    }
   },
 
   // ---- Simulate AI families ----
@@ -1715,8 +1870,8 @@ const GameEngine = {
           p.currentValue = Math.round(p.currentValue * (1 + drop));
           this.recalculateRent(p);
         });
-        // City growth rate also takes a temporary hit
-        city.growthRate = Math.max(-0.02, city.growthRate - 0.015);
+        // City growth rate takes a small temporary hit (recovers via inflation drift)
+        city.growthRate = Math.max(0, city.growthRate - 0.003);
         break;
       }
 
@@ -2635,6 +2790,126 @@ const GameEngine = {
     return this.state.investments.reduce((sum, inv) => sum + (inv.currentUnitPrice * inv.units), 0);
   },
 
+  // ========== TAX SHELTERS (Shell Companies) ==========
+
+  setupTaxShelter(propertyId) {
+    var prop = this.state.properties.find(function(p) { return p.id === propertyId; });
+    if (!prop) return { success: false, message: 'Property not found.' };
+    if (prop.taxShelter) return { success: false, message: 'Already has a shell company.' };
+    // Cost: 3% of property value (min €300, max €8000)
+    var cost = Math.max(300, Math.min(8000, Math.round(prop.currentValue * 0.03)));
+    if (this.state.cash < cost) return { success: false, message: 'Need ' + GameData.formatMoney(cost) + ' to set up shell company.' };
+    this.state.cash -= cost;
+    prop.taxShelter = true;
+    this.save();
+    return { success: true, message: '🏢 Shell company set up for ' + prop.name + '! Property tax reduced 60%. Cost: ' + GameData.formatMoney(cost), cost: cost };
+  },
+
+  // ========== PROPERTY MANAGERS ==========
+
+  hireManager(cityId, managerId) {
+    if (!this.state.managers) this.state.managers = {};
+    if (this.state.managers[cityId]) return { success: false, message: 'Already have a manager in this city.' };
+    var mgr = GameData.managerPool.find(function(m) { return m.id === managerId; });
+    if (!mgr) return { success: false, message: 'Manager not found.' };
+    if (this.state.cash < mgr.hireCost) return { success: false, message: 'Not enough cash. Need ' + GameData.formatMoney(mgr.hireCost) + '.' };
+    this.state.cash -= mgr.hireCost;
+    this.state.managers[cityId] = { id: mgr.id, name: mgr.name, icon: mgr.icon, quality: mgr.quality, fee: mgr.fee, trait: mgr.trait, monthsActive: 0 };
+    this.save();
+    return { success: true, message: mgr.icon + ' ' + mgr.name + ' hired for ' + GameData.formatMoney(mgr.hireCost) + '!' };
+  },
+
+  fireManager(cityId) {
+    if (!this.state.managers || !this.state.managers[cityId]) return { success: false, message: 'No manager in this city.' };
+    var mgr = this.state.managers[cityId];
+    delete this.state.managers[cityId];
+    this.save();
+    return { success: true, message: mgr.icon + ' ' + mgr.name + ' dismissed.' };
+  },
+
+  // Called from advanceMonth — managers auto-handle properties
+  processManagers(results) {
+    if (!this.state.managers) return 0;
+    var totalFees = 0;
+    var self = this;
+    Object.keys(this.state.managers).forEach(function(cityId) {
+      var mgr = self.state.managers[cityId];
+      mgr.monthsActive++;
+      var cityProps = self.state.properties.filter(function(p) { return p.cityId === cityId; });
+
+      cityProps.forEach(function(p) {
+        var mgrSettings = mgr.settings || { autoRent: true, autoRefurb: true, autoMitigation: true, autoDecisions: true };
+
+        // 1. Auto re-rent vacancies
+        if (mgrSettings.autoRent && !p.isRented && !p.isRefurbishing && !p.isBuilding && p.condition !== 'derelict' && p.monthlyRent > 0) {
+          p.isRented = true;
+          p.tenant = GameData.assignTenant(p);
+          self._log('manager', 'auto-rent', 0, mgr.name + ' rented ' + p.name);
+        }
+
+        // 2. Auto refurbish — good managers maintain at Fair, all fix Poor/Derelict
+        if (mgrSettings.autoRefurb && !p.isRefurbishing && !p.isBuilding) {
+          var needsRefurb = (p.condition === 'poor' || p.condition === 'derelict');
+          // High quality managers also refurb Fair → Good (preventive maintenance)
+          if (!needsRefurb && mgr.quality >= 0.7 && p.condition === 'fair') needsRefurb = true;
+          if (needsRefurb) {
+            var tier = mgr.trait === 'handyman' ? 'budget' : (mgr.quality >= 0.8 ? 'standard' : 'budget');
+            var refurbResult = self.refurbishProperty(p.id, tier);
+            if (refurbResult.success) {
+              self._log('manager', 'auto-refurb', 0, mgr.name + ' started ' + tier + ' refurb on ' + p.name + ' (was ' + p.condition + ')');
+            }
+          }
+        }
+
+        // 3. Auto-buy mitigations (insurance, fire alarm, security, flood barriers, seismic)
+        if (mgrSettings.autoMitigation) {
+        var propMits = self.state.mitigations[p.id] || {};
+        var mitOptions = self.getMitigationOptions(p);
+        mitOptions.forEach(function(mit) {
+          // Skip if already owned OR if buying would push cash below €50
+          if (propMits[mit.id] || self.state.cash < mit.cost + 50) return;
+          // Insurance logic: only one type allowed
+          if (mit.id === 'insurance_basic') {
+            if (propMits['insurance_premium']) return; // already have better
+            if (mgr.quality >= 0.8) return; // premium manager will buy premium instead
+          }
+          if (mit.id === 'insurance_premium') {
+            if (mgr.quality < 0.8) return; // not qualified for premium
+            // If has basic, remove it first (upgrade)
+            if (propMits['insurance_basic']) {
+              delete self.state.mitigations[p.id]['insurance_basic'];
+              propMits['insurance_basic'] = false;
+            }
+          }
+          // Buy if: manager quality > 0.7 OR city has had recent disasters
+          var shouldBuy = mgr.quality >= 0.7;
+          if (!shouldBuy) {
+            var recentDisasters = (self.state.disasterHistory || []).filter(function(d) {
+              return d.cityId === p.cityId && (self.state.month - d.month) < 24;
+            });
+            if (recentDisasters.length > 0) shouldBuy = true;
+          }
+          if (shouldBuy) {
+            self.state.cash -= mit.cost;
+            if (!self.state.mitigations[p.id]) self.state.mitigations[p.id] = {};
+            self.state.mitigations[p.id][mit.id] = true;
+            propMits[mit.id] = true; // update local cache
+            self._log('manager', 'auto-mitigation', -mit.cost, mgr.name + ' bought ' + mit.name + ' for ' + p.name);
+          }
+        });
+        } // end autoMitigation
+
+        // 4. Collect fee on rented properties
+        if (p.isRented && p.monthlyRent > 0) {
+          var fee = Math.round(p.monthlyRent * mgr.fee);
+          self.state.cash -= fee;
+          totalFees += fee;
+        }
+      });
+    });
+    return totalFees;
+  },
+
   // ========== LEGACY RATING ==========
 
   getLegacyRating() {
@@ -3402,141 +3677,140 @@ const GameEngine = {
   // Only one campaign active at a time. Completing it unlocks the city and allows starting the next.
   cityUnlockChallenges: [
     // --- TIER 1: Learn the ropes vs weakest families ---
-    { cityId: 'paris', rivalId: 'okonkwo', icon: '🗼', tier: 1,
+    { cityId: 'paris', rivalId: 'okonkwo', icon: '🗼',
       title: 'The Paris Gambit',
-      challenge: 'Flip a property for profit before the Okonkwos catch up',
-      description: 'Buy a property, improve or hold it, then sell it for more than you paid. Prove you can turn a profit.',
+      challenge: 'Flip a property for profit',
+      description: 'Buy a property, improve or hold it, then sell it for more than you paid.',
       setup: function(s) { s._campaignStartNW = s.totalSaleRevenue; },
       check: function(s, ge) { return s.totalSaleRevenue > (s._campaignStartNW || 0); },
-      progress: function(s, ge) { return s.properties.length > 0 ? 0.8 : 0; } },
-    { cityId: 'amsterdam', rivalId: 'okonkwo', icon: '🌷', tier: 1,
+      progress: function(s, ge) { var sold = s.totalSaleRevenue - (s._campaignStartNW||0); return {current: sold > 0 ? 1 : 0, target: 1, label: sold > 0 ? 'Sold for profit!' : 'Sell a property for profit'}; } },
+    { cityId: 'amsterdam', rivalId: 'okonkwo', icon: '🌷',
       title: 'The Amsterdam Yield',
       challenge: 'Collect €200 rent in a single month',
-      description: 'Build enough rental income that one month pays €200+. Grow your portfolio.',
+      description: 'Build enough rental income that one month pays €200+.',
       check: function(s) { return (s.monthlyIncome || 0) >= 200; },
-      progress: function(s) { return Math.min(1, (s.monthlyIncome || 0) / 200); } },
+      progress: function(s, ge) { return {current: s.monthlyIncome||0, target: 200, label: '€'+(s.monthlyIncome||0)+'/€200 rent/mo'}; } },
     // --- TIER 2: Outmanoeuvre the Bourbon-Martinez ---
-    { cityId: 'berlin', rivalId: 'martinez', icon: '🚪', tier: 2,
+    { cityId: 'berlin', rivalId: 'martinez', icon: '🚪',
       title: 'The Berlin Blitz',
-      challenge: 'Own 5 properties while the Bourbon-Martinez own fewer',
+      challenge: 'Own 5 properties while Bourbon-Martinez own fewer',
       description: 'Build faster than your rival. Reach 5 properties while they trail behind.',
       check: function(s) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='martinez';}); return s.properties.length >= 5 && ai && s.properties.length > ai.propertyCount; },
-      progress: function(s) { return Math.min(1, s.properties.length / 5); } },
-    { cityId: 'rome', rivalId: 'martinez', icon: '🏛️', tier: 2,
+      progress: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='martinez';}); return {current: s.properties.length, target: 5, label: s.properties.length+'/5 props (rival: '+(ai?ai.propertyCount:0)+')'}; } },
+    { cityId: 'rome', rivalId: 'martinez', icon: '🏛️',
       title: 'The Roman Renovation',
-      challenge: 'Refurbish 2 properties to Good or Excellent condition',
+      challenge: 'Refurbish 2 properties to Good or Excellent',
       description: 'Master the renovation game. Two properties must reach Good or better.',
-      setup: function(s) { s._campaignRefurbCount = 0; },
       check: function(s) { var good = s.properties.filter(function(p){return p.condition==='good'||p.condition==='excellent';}); return good.length >= 2; },
-      progress: function(s) { var good = s.properties.filter(function(p){return p.condition==='good'||p.condition==='excellent';}); return Math.min(1, good.length / 2); } },
+      progress: function(s, ge) { var good = s.properties.filter(function(p){return p.condition==='good'||p.condition==='excellent';}); return {current: good.length, target: 2, label: good.length+'/2 good+ properties'}; } },
     // --- TIER 3: Take on the Petrovs ---
-    { cityId: 'barcelona', rivalId: 'petrov', icon: '⛪', tier: 3,
+    { cityId: 'barcelona', rivalId: 'petrov', icon: '⛪',
       title: 'The Barcelona Boom',
       challenge: 'Earn €500 rent in a single month',
-      description: 'Scale your rental empire. Monthly rent must hit €500 in one month.',
+      description: 'Scale your rental empire. Monthly rent must hit €500.',
       check: function(s) { return (s.monthlyIncome || 0) >= 500; },
-      progress: function(s) { return Math.min(1, (s.monthlyIncome || 0) / 500); } },
-    { cityId: 'toronto', rivalId: 'petrov', icon: '🗼', tier: 3,
+      progress: function(s, ge) { return {current: s.monthlyIncome||0, target: 500, label: '€'+(s.monthlyIncome||0)+'/€500 rent/mo'}; } },
+    { cityId: 'toronto', rivalId: 'petrov', icon: '🗼',
       title: 'The Toronto Takeover',
       challenge: 'Surpass the Petrovs in net worth',
-      description: 'The aggressive Petrovs are growing fast. Overtake them before they pull away.',
+      description: 'The aggressive Petrovs are growing fast. Overtake them.',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='petrov';}); return ai && ge.getNetWorth() > ai.netWorth; },
-      progress: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='petrov';}); return ai ? Math.min(1, ge.getNetWorth() / ai.netWorth) : 0.5; } },
+      progress: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='petrov';}); var nw=ge.getNetWorth(); var t=ai?ai.netWorth:1; return {current: nw, target: t, label: '€'+GameData.formatMoneyShort(nw)+' / €'+GameData.formatMoneyShort(t)}; } },
     // --- TIER 4: Challenge the Wong Dynasty ---
-    { cityId: 'los_angeles', rivalId: 'wong', icon: '🎬', tier: 4,
+    { cityId: 'los_angeles', rivalId: 'wong', icon: '🎬',
       title: 'The Hollywood Portfolio',
       challenge: 'Own properties in 3 different cities',
       description: 'Diversify beyond your home turf. Spread across three markets.',
       check: function(s) { var c = {}; s.properties.forEach(function(p){c[p.cityId]=1;}); return Object.keys(c).length >= 3; },
-      progress: function(s) { var c = {}; s.properties.forEach(function(p){c[p.cityId]=1;}); return Math.min(1, Object.keys(c).length / 3); } },
-    { cityId: 'miami', rivalId: 'wong', icon: '🌴', tier: 4,
+      progress: function(s, ge) { var c = {}; s.properties.forEach(function(p){c[p.cityId]=1;}); var n=Object.keys(c).length; return {current: n, target: 3, label: n+'/3 cities'}; } },
+    { cityId: 'miami', rivalId: 'wong', icon: '🌴',
       title: 'The Miami Cash Machine',
       challenge: 'Reach €2,000 monthly rental income',
       description: 'Build a rent machine. €2K/month flowing in every single month.',
       check: function(s) { return (s.monthlyIncome || 0) >= 2000; },
-      progress: function(s) { return Math.min(1, (s.monthlyIncome || 0) / 2000); } },
-    { cityId: 'sydney', rivalId: 'wong', icon: '🎭', tier: 4,
+      progress: function(s, ge) { return {current: s.monthlyIncome||0, target: 2000, label: '€'+(s.monthlyIncome||0)+'/€2,000 rent/mo'}; } },
+    { cityId: 'sydney', rivalId: 'wong', icon: '🎭',
       title: 'The Sydney Showdown',
       challenge: 'Surpass the Wong Dynasty in net worth',
       description: 'The Wongs are formidable traders. Outgrow them.',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='wong';}); return ai && ge.getNetWorth() > ai.netWorth; },
-      progress: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='wong';}); return ai ? Math.min(1, ge.getNetWorth() / ai.netWorth) : 0.5; } },
+      progress: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='wong';}); var nw=ge.getNetWorth(); var t=ai?ai.netWorth:1; return {current: nw, target: t, label: '€'+GameData.formatMoneyShort(nw)+' / €'+GameData.formatMoneyShort(t)}; } },
     // --- TIER 5: Rothschilds ---
-    { cityId: 'new_york', rivalId: 'rothschild', icon: '🗽', tier: 5,
+    { cityId: 'new_york', rivalId: 'rothschild', icon: '🗽',
       title: 'The New York Ascent',
       challenge: 'Reach a portfolio of 20 properties',
       description: 'Build a true empire. 20 properties across your markets.',
       check: function(s) { return s.properties.length >= 20; },
-      progress: function(s) { return Math.min(1, s.properties.length / 20); } },
-    { cityId: 'singapore', rivalId: 'rothschild', icon: '🦁', tier: 5,
+      progress: function(s) { return {current: s.properties.length, target: 20, label: s.properties.length+'/20 properties'}; } },
+    { cityId: 'singapore', rivalId: 'rothschild', icon: '🦁',
       title: 'The Singapore Strategy',
       challenge: 'Surpass the Rothschilds in net worth',
       description: 'The ultimate rivalry. Dethrone the banking dynasty.',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='rothschild';}); return ai && ge.getNetWorth() > ai.netWorth; },
-      progress: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='rothschild';}); return ai ? Math.min(1, ge.getNetWorth() / ai.netWorth) : 0.5; } },
+      progress: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='rothschild';}); var nw=ge.getNetWorth(); var t=ai?ai.netWorth:1; return {current: nw, target: t, label: '€'+GameData.formatMoneyShort(nw)+' / €'+GameData.formatMoneyShort(t)}; } },
     // --- TIER 6: Al-Rashids (richest) ---
-    { cityId: 'dubai', rivalId: 'al_rashid', icon: '🏗️', tier: 6,
+    { cityId: 'dubai', rivalId: 'al_rashid', icon: '🏗️',
       title: 'The Dubai Fortune',
       challenge: 'Reach €500K net worth',
       description: 'Build serious wealth. Half a million in total assets.',
       check: function(s, ge) { return ge.getNetWorth() >= 500000; },
-      progress: function(s, ge) { return Math.min(1, ge.getNetWorth() / 500000); } },
-    { cityId: 'tokyo', rivalId: 'al_rashid', icon: '⛩️', tier: 6,
+      progress: function(s, ge) { var nw=ge.getNetWorth(); return {current: nw, target: 500000, label: '€'+GameData.formatMoneyShort(nw)+'/€500K'}; } },
+    { cityId: 'tokyo', rivalId: 'al_rashid', icon: '⛩️',
       title: 'The Tokyo Tycoon',
       challenge: 'Surpass the Al-Rashids in net worth',
       description: 'The wealthiest family in the game. Beat their fortune.',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='al_rashid';}); return ai && ge.getNetWorth() > ai.netWorth; },
-      progress: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='al_rashid';}); return ai ? Math.min(1, ge.getNetWorth() / ai.netWorth) : 0.5; } },
+      progress: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='al_rashid';}); var nw=ge.getNetWorth(); var t=ai?ai.netWorth:1; return {current: nw, target: t, label: '€'+GameData.formatMoneyShort(nw)+' / €'+GameData.formatMoneyShort(t)}; } },
     // --- TIER 7: Domination ---
-    { cityId: 'mumbai', rivalId: 'petrov', icon: '🕌', tier: 7,
+    { cityId: 'mumbai', rivalId: 'petrov', icon: '🕌',
       title: 'The Mumbai Monopoly',
       challenge: 'Own 5+ properties in a single city',
       description: 'Dominate one market completely. Stack 5 properties in one city.',
       check: function(s) { var c = {}; s.properties.forEach(function(p){c[p.cityId]=(c[p.cityId]||0)+1;}); return Object.values(c).some(function(v){return v>=5;}); },
-      progress: function(s) { var c = {}; s.properties.forEach(function(p){c[p.cityId]=(c[p.cityId]||0)+1;}); var m = Math.max.apply(null, Object.values(c).concat([0])); return Math.min(1, m / 5); } },
-    { cityId: 'shanghai', rivalId: 'wong', icon: '🏯', tier: 7,
+      progress: function(s) { var c = {}; s.properties.forEach(function(p){c[p.cityId]=(c[p.cityId]||0)+1;}); var max=Math.max.apply(null,Object.values(c).concat([0])); return {current: max, target: 5, label: max+'/5 in one city'}; } },
+    { cityId: 'shanghai', rivalId: 'wong', icon: '🏯',
       title: 'The Shanghai Surge',
       challenge: 'Reach €5,000 monthly rental income',
       description: 'Industrial-scale rent collection. €5K every month.',
       check: function(s) { return (s.monthlyIncome || 0) >= 5000; },
-      progress: function(s) { return Math.min(1, (s.monthlyIncome || 0) / 5000); } },
-    { cityId: 'hong_kong', rivalId: 'rothschild', icon: '🌉', tier: 7,
+      progress: function(s) { return {current: s.monthlyIncome||0, target: 5000, label: '€'+(s.monthlyIncome||0)+'/€5,000 rent/mo'}; } },
+    { cityId: 'hong_kong', rivalId: 'rothschild', icon: '🌉',
       title: 'The Hong Kong Crown',
       challenge: 'Have 2x the Rothschilds\' net worth',
       description: 'Don\'t just beat them — crush them. Double their entire fortune.',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='rothschild';}); return ai && ge.getNetWorth() > ai.netWorth * 2; },
-      progress: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='rothschild';}); return ai ? Math.min(1, ge.getNetWorth() / (ai.netWorth * 2)) : 0.5; } },
-    { cityId: 'cape_town', rivalId: 'al_rashid', icon: '⛰️', tier: 7,
+      progress: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='rothschild';}); var nw=ge.getNetWorth(); var t=ai?ai.netWorth*2:1; return {current: nw, target: t, label: '€'+GameData.formatMoneyShort(nw)+' / €'+GameData.formatMoneyShort(t)}; } },
+    { cityId: 'cape_town', rivalId: 'al_rashid', icon: '⛰️',
       title: 'The Cape Town Conquest',
       challenge: 'Have 2x the Al-Rashids\' net worth',
       description: 'Double the fortune of the richest dynasty.',
       check: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='al_rashid';}); return ai && ge.getNetWorth() > ai.netWorth * 2; },
-      progress: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='al_rashid';}); return ai ? Math.min(1, ge.getNetWorth() / (ai.netWorth * 2)) : 0.5; } },
-    { cityId: 'sao_paulo', icon: '🎨', tier: 7,
+      progress: function(s, ge) { var ai = (s.aiFamilies||[]).find(function(a){return a.id==='al_rashid';}); var nw=ge.getNetWorth(); var t=ai?ai.netWorth*2:1; return {current: nw, target: t, label: '€'+GameData.formatMoneyShort(nw)+' / €'+GameData.formatMoneyShort(t)}; } },
+    { cityId: 'sao_paulo', icon: '🎨',
       title: 'The São Paulo Empire',
       challenge: 'Own properties in 10+ cities',
       description: 'A truly global empire. Properties on every continent.',
       check: function(s) { var c = {}; s.properties.forEach(function(p){c[p.cityId]=1;}); return Object.keys(c).length >= 10; },
-      progress: function(s) { var c = {}; s.properties.forEach(function(p){c[p.cityId]=1;}); return Math.min(1, Object.keys(c).length / 10); } },
-    { cityId: 'monaco', icon: '🎰', tier: 7,
+      progress: function(s) { var c = {}; s.properties.forEach(function(p){c[p.cityId]=1;}); var n=Object.keys(c).length; return {current: n, target: 10, label: n+'/10 cities'}; } },
+    { cityId: 'monaco', icon: '🎰',
       title: 'The Monaco Coronation',
       challenge: 'Reach Rank #1 on the leaderboard',
       description: 'The final challenge. Be the wealthiest dynasty in the world.',
-      check: function(s) { return (s.playerRank || 99) <= 1; },
-      progress: function(s) { var r = s.playerRank || 99; return r <= 1 ? 1 : Math.min(0.9, 1 / r); } }
+      check: function(s) { return (s.playerRank || 99) <= 1; } }
   ],
 
   // Get city unlock campaign readiness (0-1) and label for a locked city
   getCityUnlockProgress(cityId) {
     var ch = this.cityUnlockChallenges.find(function(c) { return c.cityId === cityId; });
     if (!ch || !ch.progress) return { progress: 0, label: 'Locked', color: '#888' };
-    var p = ch.progress(this.state, this);
+    var info = ch.progress(this.state, this);
+    var p = info.target > 0 ? Math.min(1, info.current / info.target) : 0;
     var label, color;
     if (p >= 0.75) { label = 'Ready'; color = '#2A9D8F'; }
     else if (p >= 0.4) { label = 'Getting Close'; color = '#D4A84B'; }
     else if (p >= 0.15) { label = 'Not Yet'; color = '#E67E22'; }
     else { label = 'Too Early'; color = '#E63946'; }
-    return { progress: p, label: label, color: color, tier: ch.tier || 0 };
+    return { progress: p, label: label, color: color, info: info };
   },
 
   isCityUnlocked(cityId) {
@@ -3608,6 +3882,7 @@ const GameEngine = {
     var ch = this.cityUnlockChallenges.find(function(c) { return c.cityId === camp.cityId; });
     if (!ch) return null;
     var city = GameData.cities.find(function(c) { return c.id === camp.cityId; });
+    var prog = ch.progress ? ch.progress(this.state, this) : null;
     return {
       cityId: camp.cityId,
       cityName: city ? city.name : camp.cityId,
@@ -3617,7 +3892,8 @@ const GameEngine = {
       description: ch.description,
       rivalId: ch.rivalId,
       icon: ch.icon,
-      monthsActive: this.state.month - camp.startMonth
+      monthsActive: this.state.month - camp.startMonth,
+      progress: prog
     };
   },
 
@@ -3710,8 +3986,8 @@ const GameEngine = {
   // ========== DECISION SYSTEM ==========
 
   generateDecision() {
-    // 40% chance of a decision each month
-    if (Math.random() > 0.4) return null;
+    // 20% chance of a decision each month — less intrusive
+    if (Math.random() > 0.2) return null;
 
     var s = this.state;
     if (!s.properties) return null;
@@ -3912,104 +4188,102 @@ const GameEngine = {
       }
     }
 
-    // ---- DYNASTY DECISIONS (keep existing education, marriage, scandal) ----
-
-    // Education — send a child to university
-    if (s.familyMembers) {
-      var children = s.familyMembers.filter(function(m) { return !m.isHead && m.age >= 16 && m.age <= 25 && !m.educated; });
-      if (children.length > 0 && cash > 0) {
-        var child = children[0];
-        var eduCost = Math.round(cash * 0.08);
-        decisions.push({
-          type: 'education',
-          title: '🎓 University Education',
-          description: child.name + ' (age ' + child.age + ', ' + child.trait + ') could attend university. Cost: ' + GameData.formatMoney(eduCost) + '. Improves their abilities if they become head.',
-          choices: [
-            { label: 'Send to university (' + GameData.formatMoney(eduCost) + ')', action: 'educate', data: { memberId: child.id, cost: eduCost } },
-            { label: 'Education is overrated', action: 'pass' }
-          ]
-        });
+    // ---- SELECTION: Filter out unaffordable decisions ----
+    var currentCash = this.state.cash;
+    decisions = decisions.filter(function(d) {
+      if (!d.choices || !d.choices[0] || !d.choices[0].data) return true;
+      var cost = d.choices[0].data.cost || d.choices[0].data.amount || 0;
+      if (cost > 0 && cost > currentCash) {
+        console.log('[ENGINE] Filtered unaffordable decision: ' + d.type + ' cost=€' + cost + ' cash=€' + currentCash);
+        return false;
       }
-    }
-
-    // Marriage — marry into an AI family
-    if (s.familyMembers && s.aiFamilies) {
-      var eligibleChildren = s.familyMembers.filter(function(m) { return !m.isHead && m.age >= 18 && m.age <= 35 && !m.married; });
-      if (eligibleChildren.length > 0 && Math.random() < 0.3) {
-        var spouse = eligibleChildren[0];
-        var aiFamily = s.aiFamilies[Math.floor(Math.random() * s.aiFamilies.length)];
-        var dowry = Math.round(aiFamily.netWorth * 0.05);
-        decisions.push({
-          type: 'marriage',
-          title: '💒 Marriage Proposal',
-          description: aiFamily.icon + ' ' + aiFamily.name + ' propose a marriage alliance with ' + spouse.name + '. Dowry: ' + GameData.formatMoney(dowry) + '. Alliance improves business relations.',
-          choices: [
-            { label: 'Accept marriage (+' + GameData.formatMoney(dowry) + ', +reputation)', action: 'marry', data: { memberId: spouse.id, aiId: aiFamily.id, dowry: dowry } },
-            { label: 'Decline the proposal', action: 'pass' }
-          ]
-        });
-      }
-    }
-
-    // Philanthropy — tied to reputation
-    if (nw > 1000 && (s.reputation || 50) < 70 && Math.random() < 0.3) {
-      var donationAmt = Math.round(nw * 0.02);
-      var donationCity = props.length > 0 ? GameData.cities.find(function(c) { return c.id === props[0].cityId; }) : null;
-      decisions.push({
-        type: 'philanthropy',
-        title: '🎗️ Charity Gala' + (donationCity ? ' in ' + donationCity.name : ''),
-        description: (donationCity ? donationCity.name + '\'s' : 'The') + ' community leaders invite you to fund a hospital wing. ' + GameData.formatMoney(donationAmt) + ' would boost your reputation significantly.' + ((s.reputation || 50) < 50 ? ' Your current reputation is hurting business — this would help.' : ''),
-        choices: [
-          { label: 'Donate ' + GameData.formatMoney(donationAmt) + ' (+8 reputation)', action: 'donate', data: { amount: donationAmt } },
-          { label: 'Decline politely', action: 'pass' }
-        ]
-      });
-    }
-
-    // Scandal — more likely with high reputation (more to lose)
-    if (s.familyMembers && Math.random() < ((s.reputation || 50) > 70 ? 0.25 : 0.1)) {
-      var head = s.familyMembers.find(function(m) { return m.isHead; });
-      if (head) {
-        var scandals = [
-          { text: head.name + ' is caught in a gambling scandal! Pay hush money or face public shame.', cost: 0.05, repLoss: 12 },
-          { text: 'A rival family publishes damaging rumors about ' + head.name + '. Counter with lawyers or ignore.', cost: 0.03, repLoss: 8 },
-          { text: head.name + '\'s business dealings questioned in the press. Bribe officials or let the story run.', cost: 0.04, repLoss: 10 },
-        ];
-        var scandal = scandals[Math.floor(Math.random() * scandals.length)];
-        var bribeCost = Math.round(cash * scandal.cost);
-        decisions.push({
-          type: 'scandal',
-          title: '⚠️ Family Scandal',
-          description: scandal.text,
-          choices: [
-            { label: 'Pay ' + GameData.formatMoney(bribeCost) + ' to suppress it', action: 'suppress_scandal', data: { cost: bribeCost } },
-            { label: 'Let it play out (reputation -' + scandal.repLoss + ')', action: 'accept_scandal', data: { repLoss: scandal.repLoss } }
-          ]
-        });
-      }
-    }
-
-    // ---- SELECTION: Prioritize portfolio-linked over generic ----
+      return true;
+    });
     if (decisions.length === 0) return null;
 
-    // Weight portfolio-linked decisions higher
-    var portfolioTypes = ['derelict_dilemma','tenant_trouble','tenant_upgrade','city_dominance','debt_pressure','recession_buy','premium_tenant','speculate','redevelopment_grant','security_shakedown'];
-    var portfolio = decisions.filter(function(d) { return portfolioTypes.indexOf(d.type) >= 0; });
-    var chosen;
-    if (portfolio.length > 0 && Math.random() < 0.75) {
-      chosen = portfolio[Math.floor(Math.random() * portfolio.length)];
-    } else {
-      chosen = decisions[Math.floor(Math.random() * decisions.length)];
+    var chosen = decisions[Math.floor(Math.random() * decisions.length)];
+
+    // Manager auto-decision: if a manager covers this property's city, handle it automatically
+    var autoResult = this.tryManagerAutoDecision(chosen);
+    if (autoResult) {
+      // Manager handled it — don't show to player, return auto-result for toast
+      this._log('decision', 'manager_auto', 0, chosen.type + ': ' + autoResult);
+      return { _managerHandled: true, message: autoResult };
     }
+
+    // Log the decision shown to the player (for recording analysis)
+    var decCost = (chosen.choices && chosen.choices[0] && chosen.choices[0].data) ? (chosen.choices[0].data.cost || chosen.choices[0].data.amount || 0) : 0;
+    this._log('decision', 'shown', -decCost, chosen.type + ': ' + chosen.title + ' | ' + (chosen.choices[0] ? chosen.choices[0].label : '') + ' | cash=' + Math.round(this.state.cash));
 
     this.state.pendingDecision = chosen;
     return chosen;
+  },
+
+  // Manager auto-handles decisions for properties in managed cities
+  tryManagerAutoDecision(decision) {
+    if (!decision || !this.state.managers) return null;
+
+    // Find which city this decision relates to
+    var propId = decision.choices && decision.choices[0] && decision.choices[0].data ? decision.choices[0].data.propId : null;
+    var cityId = decision.choices && decision.choices[0] && decision.choices[0].data ? decision.choices[0].data.cityId : null;
+    if (propId && !cityId) {
+      var prop = this.state.properties.find(function(p) { return p.id === propId; });
+      if (prop) cityId = prop.cityId;
+    }
+    if (!cityId) return null;
+
+    var mgr = this.state.managers[cityId];
+    if (!mgr) return null;
+    var mgrSettings = mgr.settings || { autoRent: true, autoRefurb: true, autoMitigation: true, autoDecisions: true };
+    if (!mgrSettings.autoDecisions) return null;
+
+    var type = decision.type;
+    var data = decision.choices[0] ? decision.choices[0].data : {};
+
+    // Investment opportunities (city_dominance, redevelopment_grant)
+    if (type === 'city_dominance' && data.cost && this.state.cash >= data.cost) {
+      var result = this.resolveDecision('city_invest', data);
+      return mgr.icon + ' ' + mgr.name + ' invested ' + GameData.formatMoney(data.cost) + ' in district redevelopment (+5%)';
+    }
+    if (type === 'redevelopment_grant') {
+      var result = this.resolveDecision('accept_grant', data);
+      return mgr.icon + ' ' + mgr.name + ' accepted redevelopment grant of ' + GameData.formatMoney(data.grant);
+    }
+
+    // Tenant decisions
+    if (type === 'tenant_upgrade' && data.cost && this.state.cash >= data.cost) {
+      var result = this.resolveDecision('upgrade_for_tenant', data);
+      return mgr.icon + ' ' + mgr.name + ' upgraded property for tenant (+10% value)';
+    }
+    if (type === 'tenant_trouble') {
+      // Good managers renegotiate, bad ones evict
+      if (mgr.quality >= 0.7) {
+        var result = this.resolveDecision('renegotiate_rent', data);
+        return mgr.icon + ' ' + mgr.name + ' renegotiated rent with difficult tenant';
+      } else {
+        var result = this.resolveDecision('evict_tenant', data);
+        return mgr.icon + ' ' + mgr.name + ' evicted problematic tenant';
+      }
+    }
+
+    // Emergency repairs (derelict_dilemma)
+    if (type === 'derelict_dilemma' && data.cost && this.state.cash >= data.cost) {
+      var result = this.resolveDecision('emergency_repair', data);
+      return mgr.icon + ' ' + mgr.name + ' ordered emergency repairs (' + GameData.formatMoney(data.cost) + ')';
+    }
+    if (type === 'security_shakedown' && data.cost && this.state.cash >= data.cost) {
+      var result = this.resolveDecision('hire_security', data);
+      return mgr.icon + ' ' + mgr.name + ' hired security for your property';
+    }
+
+    return null; // Manager can't handle this decision type
   },
 
   resolveDecision(choiceAction, choiceData) {
     var decision = this.state.pendingDecision;
     if (!decision) return { success: false, message: 'No pending decision.' };
 
+    this._log('decision', 'resolved', 0, choiceAction + ' | ' + (decision ? decision.type : 'unknown'));
     this.state.pendingDecision = null;
     var result = { success: true, message: '' };
 
