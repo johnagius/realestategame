@@ -464,6 +464,7 @@ const App = {
       } else if (ai.type === 'threat') {
         aiDecision.choices = [
           { label: 'Stand your ground — "We\'re staying"', action: 'reject_threat', data: ai.data },
+          { label: 'Block threats from this family', action: 'block_buyout', data: ai.data },
           { label: 'Back down — sell a property', action: 'decline', data: ai.data }
         ];
       } else if (ai.type === 'alliance') {

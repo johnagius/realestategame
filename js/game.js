@@ -3199,10 +3199,10 @@ const GameEngine = {
       }
     }
 
-    // Threat: more likely if relationship is bad
+    // Threat: more likely if relationship is bad (skip if blocked)
     var threatChance = rel < -20 ? 0.7 : 0.3; // hostile rivals threaten more
     var playerCities = [...new Set(this.state.properties.map(function(p){return p.cityId;}))];
-    if (playerCities.length > 0 && Math.random() < threatChance) {
+    if (playerCities.length > 0 && Math.random() < threatChance && blocked.indexOf(ai.id) < 0 && blocked.indexOf(ai.name) < 0) {
       var cityId = playerCities[Math.floor(Math.random() * playerCities.length)];
       var city = GameData.cities.find(function(c){return c.id === cityId;});
       if (city) {
