@@ -3184,7 +3184,7 @@ const GameEngine = {
     var interactions = [];
 
     // Buyout offer: AI wants to buy one of your properties (skip if blocked)
-    if (this.state.properties.length > 0 && blocked.indexOf(ai.id) < 0) {
+    if (this.state.properties.length > 0 && blocked.indexOf(ai.id) < 0 && blocked.indexOf(ai.name) < 0) {
       var prop = this.state.properties[Math.floor(Math.random() * this.state.properties.length)];
       if (!prop.isBuilding && !prop.isRefurbishing) {
         // Better relationship = better offers
@@ -3267,10 +3267,13 @@ const GameEngine = {
         this.adjustRelationship(aiId, -5);
         if (!this.state.blockedFamilies) this.state.blockedFamilies = [];
         var familyObj = (this.state.aiFamilies || []).find(function(a) { return a.name === aiId || a.id === aiId; });
+        // Store both id and name to ensure matching works regardless of which is used
         var blockId = familyObj ? familyObj.id : aiId;
+        var blockName = familyObj ? familyObj.name : aiId;
         if (this.state.blockedFamilies.indexOf(blockId) < 0) this.state.blockedFamilies.push(blockId);
+        if (blockName !== blockId && this.state.blockedFamilies.indexOf(blockName) < 0) this.state.blockedFamilies.push(blockName);
         this.save();
-        result.message = 'Blocked. ' + aiId + ' won\'t bother you with offers again.';
+        result.message = 'Blocked. ' + (familyObj ? familyObj.name : aiId) + ' won\'t bother you with offers again.';
         break;
       }
       case 'reject_threat': {
