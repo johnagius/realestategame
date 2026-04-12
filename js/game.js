@@ -2721,7 +2721,31 @@ const GameEngine = {
           }
         }
 
-        // 3. Collect fee on rented properties
+        // 3. Auto-buy mitigations (insurance, fire alarm, security, flood barriers, seismic)
+        var propMits = self.state.mitigations[p.id] || {};
+        var mitOptions = self.getMitigationOptions(p);
+        mitOptions.forEach(function(mit) {
+          if (!propMits[mit.id] && self.state.cash >= mit.cost) {
+            // Buy if: manager quality > 0.7 (experienced enough to assess risk)
+            // or if property has been hit by a disaster of this type
+            var shouldBuy = mgr.quality >= 0.7;
+            // Check disaster history for this property's city
+            if (!shouldBuy) {
+              var recentDisasters = (self.state.disasterHistory || []).filter(function(d) {
+                return d.cityId === p.cityId && (self.state.month - d.month) < 24;
+              });
+              if (recentDisasters.length > 0) shouldBuy = true;
+            }
+            if (shouldBuy) {
+              self.state.cash -= mit.cost;
+              if (!self.state.mitigations[p.id]) self.state.mitigations[p.id] = {};
+              self.state.mitigations[p.id][mit.id] = true;
+              self._log('manager', 'auto-mitigation', -mit.cost, mgr.name + ' bought ' + mit.name + ' for ' + p.name);
+            }
+          }
+        });
+
+        // 4. Collect fee on rented properties
         if (p.isRented && p.monthlyRent > 0) {
           var fee = Math.round(p.monthlyRent * mgr.fee);
           self.state.cash -= fee;
