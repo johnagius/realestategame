@@ -2154,15 +2154,19 @@ const GameUI = {
         html += '</div>';
       } else if (biz.availableStake >= 5) {
         // Calculate max affordable stake (in 5% increments)
-        var maxAffordPct = Math.min(biz.availableStake, Math.floor(GameEngine.state.cash / (biz.totalValue * 0.05)) * 5);
-        maxAffordPct = Math.max(0, Math.min(100, maxAffordPct));
+        var costPer5 = Math.max(1, Math.round(biz.totalValue * 0.05));
+        var maxAffordPct = Math.min(biz.availableStake, Math.floor(GameEngine.state.cash / costPer5) * 5);
+        maxAffordPct = Math.max(0, Math.min(biz.availableStake, maxAffordPct));
+        var maxCost = Math.round(biz.totalValue * maxAffordPct / 100);
         html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
-        html += '<button class="btn btn-secondary btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 10)">Buy 10% · ' + GameData.formatMoneyShort(Math.round(biz.totalValue * 0.10)) + '</button>';
-        if (maxAffordPct >= 25 && biz.availableStake >= 25) {
-          html += '<button class="btn btn-primary btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 25)">25% · ' + GameData.formatMoneyShort(Math.round(biz.totalValue * 0.25)) + '</button>';
+        if (maxAffordPct > 10) {
+          html += '<button class="btn btn-secondary btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 10)">10% · ' + GameData.formatMoney(Math.round(biz.totalValue * 0.10)) + '</button>';
         }
-        if (maxAffordPct >= 10) {
-          html += '<button class="btn btn-accent btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', ' + maxAffordPct + ')">Buy Max ' + maxAffordPct + '% · ' + GameData.formatMoneyShort(Math.round(biz.totalValue * maxAffordPct / 100)) + '</button>';
+        if (maxAffordPct > 25 && biz.availableStake >= 25) {
+          html += '<button class="btn btn-primary btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', 25)">25% · ' + GameData.formatMoney(Math.round(biz.totalValue * 0.25)) + '</button>';
+        }
+        if (maxAffordPct >= 5) {
+          html += '<button class="btn btn-accent btn-small" style="flex:1" onclick="App.buyStake(\'' + biz.id + '\', \'' + cityId + '\', ' + maxAffordPct + ')">Buy ' + maxAffordPct + '% · ' + GameData.formatMoney(maxCost) + '</button>';
         }
         html += '</div>';
       } else {
