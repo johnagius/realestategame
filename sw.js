@@ -1,4 +1,4 @@
-const CACHE_NAME = 'property-empire-v6.3';
+const CACHE_NAME = 'property-empire-v6.4';
 const ASSETS = [
   './',
   './index.html',
@@ -36,7 +36,7 @@ const ASSETS = [
   './manifest.json'
 ];
 
-// Install — cache core assets, skip waiting to activate immediately
+// Install — cache core assets
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
@@ -44,7 +44,7 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// Activate — clean old caches, claim clients immediately
+// Activate — clean old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -54,25 +54,35 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch — NETWORK FIRST for JS/CSS/HTML (always get fresh code)
-// Cache fallback only when offline
+// Fetch — cache-first for core assets, network-first for images
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Only handle same-origin requests
-  if (url.origin !== self.location.origin) return;
+  // Images: network first, cache fallback
+  if (url.pathname.startsWith('/assets/')) {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
 
-  // Network first for all app files — always try to get latest code
+  // Core assets: cache first, network fallback
   event.respondWith(
-    fetch(event.request).then(response => {
-      if (response.ok) {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-      }
-      return response;
-    }).catch(() => {
-      // Offline — serve from cache
-      return caches.match(event.request);
+    caches.match(event.request).then(cached => {
+      if (cached) return cached;
+      return fetch(event.request).then(response => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      });
     })
   );
 });

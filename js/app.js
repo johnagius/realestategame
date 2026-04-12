@@ -247,8 +247,6 @@ const App = {
     document.getElementById('hud-goals').classList.remove('hidden');
     // Generate initial goals
     GameEngine.generateGoals();
-    // Auto-start recording for debugging
-    if (!GameEngine.recording) GameEngine.startRecording();
     GameUI.updateHUD();
 
     if (isNewGame && !GameEngine.state.tutorialDone) {
@@ -310,25 +308,6 @@ const App = {
     var cityName = city ? city.flag + ' ' + city.name : cityId;
     var trait = city && city.trait ? GameData.cityTraits[city.trait] : null;
 
-    // Calculate difficulty based on position in campaign list (earlier = easier)
-    var idx = GameEngine.cityUnlockChallenges.indexOf(ch);
-    var totalCampaigns = GameEngine.cityUnlockChallenges.length;
-    var diffPct = idx / totalCampaigns;
-    var diffLabel, diffColor;
-    if (diffPct < 0.25) { diffLabel = 'Early Game'; diffColor = '#2A9D8F'; }
-    else if (diffPct < 0.5) { diffLabel = 'Mid Game'; diffColor = '#D4A84B'; }
-    else if (diffPct < 0.75) { diffLabel = 'Late Game'; diffColor = '#E07A5F'; }
-    else { diffLabel = 'Endgame'; diffColor = '#E63946'; }
-
-    // Check if player can realistically complete this now
-    var canComplete = ch.check(GameEngine.state, GameEngine);
-    var warningHTML = '';
-    if (!canComplete && diffPct > 0.5) {
-      warningHTML = '<div style="margin-top:8px;font-size:0.72rem;color:#E63946;padding:6px;background:rgba(230,57,70,0.06);border-radius:6px">' +
-        '⚠️ This is a <strong>' + diffLabel + '</strong> campaign. Consider completing easier campaigns first to build your wealth.</div>';
-    }
-    var trait = city && city.trait ? GameData.cityTraits[city.trait] : null;
-
     // Show rival info if applicable
     var rivalHTML = '';
     if (ch.rivalId && GameEngine.state.aiFamilies) {
@@ -353,9 +332,21 @@ const App = {
     }
 
     var traitHTML = trait ? '<div style="font-size:0.72rem;margin-top:6px;padding:4px 8px;display:inline-block;border-radius:8px;background:' + trait.color + '15;color:' + trait.color + ';border:1px solid ' + trait.color + '30">' + trait.icon + ' ' + trait.name + '</div>' : '';
-    var diffBadge = '<span style="font-size:0.65rem;padding:2px 8px;border-radius:10px;background:' + diffColor + '20;color:' + diffColor + ';font-weight:700;margin-left:6px">' + diffLabel + '</span>';
 
-    GameUI.showModal(ch.icon + ' ' + ch.title + diffBadge,
+    // Campaign readiness indicator
+    var cp = GameEngine.getCityUnlockProgress(cityId);
+    var pctWidth = Math.round(cp.progress * 100);
+    var readinessHTML = '<div style="margin:10px 0 4px;padding:10px;background:' + cp.color + '0a;border-radius:8px;border:1px solid ' + cp.color + '25">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+        '<span style="font-size:0.72rem;font-weight:700;color:' + cp.color + '">' + cp.label + '</span>' +
+        '<span style="font-size:0.68rem;color:#888">' + pctWidth + '% progress</span>' +
+      '</div>' +
+      '<div style="background:#e8e0d4;border-radius:4px;height:6px;overflow:hidden">' +
+        '<div style="width:' + pctWidth + '%;height:100%;background:' + cp.color + ';border-radius:4px;transition:width 0.3s"></div>' +
+      '</div>' +
+    '</div>';
+
+    GameUI.showModal(ch.icon + ' ' + ch.title,
       '<div style="text-align:center;padding:6px 0">' +
         '<div style="font-size:1.8rem;margin-bottom:6px">' + (city ? (GameData.cityLandmarks[cityId] || {}).landmark || city.flag : '🌍') + '</div>' +
         '<div style="font-family:var(--font-heading);font-size:1rem;color:var(--primary-dark)">' + cityName + '</div>' +
@@ -366,8 +357,8 @@ const App = {
             '<div>' + ch.challenge + '</div>' +
             '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:6px">' + ch.description + '</div>' +
           '</div>' +
+          readinessHTML +
           rivalHTML +
-          warningHTML +
           switchWarning +
         '</div>' +
       '</div>',
@@ -377,28 +368,15 @@ const App = {
   },
 
   acceptCampaign(cityId) {
-    // Cancel existing campaign first (if any)
     if (GameEngine.state.activeCampaign) {
       GameEngine.cancelCityCampaign();
     }
-    GameUI.hideModal();
     var ch = GameEngine.startCityCampaign(cityId);
+    GameUI.hideModal();
     if (ch) {
       GameUI.toast(ch.icon + ' Campaign started: ' + ch.title, 'milestone');
-    } else {
-      GameUI.toast('Campaign started for ' + cityId, 'info');
-      // Force-set if startCityCampaign returned null (edge case)
-      if (!GameEngine.state.activeCampaign) {
-        var challenge = GameEngine.cityUnlockChallenges.find(function(c) { return c.cityId === cityId; });
-        if (challenge && !GameEngine.isCityUnlocked(cityId)) {
-          GameEngine.state.activeCampaign = { cityId: cityId, startMonth: GameEngine.state.month, startNW: GameEngine.getNetWorth() };
-          if (challenge.setup) challenge.setup(GameEngine.state);
-          GameEngine.save();
-        }
-      }
+      GameUI.updateHUD();
     }
-    GameUI.updateHUD();
-    GameUI.renderMap();
   },
 
   showRandomTip() {
@@ -461,12 +439,7 @@ const App = {
       aiDecision._isAI = true;
       GameUI.showDecision(aiDecision);
     } else if (results.decision) {
-      // Manager auto-handled decisions show as toast, not decision card
-      if (results.decision._managerHandled) {
-        GameUI.toast('👔 ' + results.decision.message, 'success');
-      } else {
-        GameUI.showDecision(results.decision);
-      }
+      GameUI.showDecision(results.decision);
     }
 
     // Rotate tips every few months
@@ -695,97 +668,6 @@ const App = {
       GameUI.toast(result.message, 'success');
       GameUI.updateHUD();
       GameUI.renderBank();
-    } else {
-      GameUI.toast(result.message, 'error');
-    }
-  },
-
-  // ---- Tax Shelters ----
-  setupTaxShelter(propertyId) {
-    var result = GameEngine.setupTaxShelter(propertyId);
-    if (result.success) {
-      GameUI.toast(result.message, 'success');
-      GameUI.updateHUD();
-      GameUI.renderProperty(propertyId);
-    } else {
-      GameUI.toast(result.message, 'error');
-    }
-  },
-
-  // ---- Property Managers ----
-  showManagerHire(cityId) {
-    var rep = GameEngine.state.reputation || 50;
-    var managers = GameData.getAvailableManagers(cityId, rep);
-    if (managers.length === 0) {
-      GameUI.toast('No managers available. Build your reputation.', 'warning');
-      return;
-    }
-    var city = GameData.cities.find(function(c) { return c.id === cityId; });
-    var html = '<div style="max-height:60vh;overflow-y:auto">';
-    managers.forEach(function(m) {
-      var locked = rep < m.minReputation;
-      html += '<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;' + (locked ? 'opacity:0.5' : '') + '">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
-          '<span style="font-weight:700">' + m.icon + ' ' + m.name + '</span>' +
-          '<span style="font-size:0.65rem;color:var(--text-muted)">Quality: ' + Math.round(m.quality * 100) + '%</span>' +
-        '</div>' +
-        '<div style="font-size:0.75rem;color:var(--text-dark);margin-bottom:6px">' + m.desc + '</div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:0.72rem;margin-bottom:8px">' +
-          '<div>Fee: <strong>' + Math.round(m.fee * 100) + '% of rent</strong></div>' +
-          '<div>Hire: <strong>' + GameData.formatMoney(m.hireCost) + '</strong></div>' +
-          '<div>Trait: <strong>' + m.trait + '</strong></div>' +
-          '<div>Min rep: <strong>' + m.minReputation + '</strong></div>' +
-        '</div>' +
-        (locked ? '<div style="font-size:0.7rem;color:#E63946">🔒 Reputation ' + m.minReputation + ' required (yours: ' + rep + ')</div>' :
-          '<button class="btn btn-primary btn-small" style="width:100%" onclick="App.hireManager(\'' + cityId + '\',\'' + m.id + '\')">Hire ' + m.name + '</button>') +
-      '</div>';
-    });
-    html += '</div>';
-    GameUI.showModal('👔 Hire Property Manager — ' + (city ? city.name : ''), html, '');
-  },
-
-  hireManager(cityId, managerId) {
-    GameUI.hideModal();
-    var result = GameEngine.hireManager(cityId, managerId);
-    if (result.success) {
-      GameUI.toast(result.message, 'success');
-      GameUI.renderCity();
-    } else {
-      GameUI.toast(result.message, 'error');
-    }
-  },
-
-  showManagerSettings(cityId) {
-    var mgr = (GameEngine.state.managers || {})[cityId];
-    if (!mgr) return;
-    if (!mgr.settings) mgr.settings = { autoRent: true, autoRefurb: true, autoMitigation: true, autoDecisions: true };
-    var s = mgr.settings;
-    var city = GameData.cities.find(function(c) { return c.id === cityId; });
-
-    function toggle(key) {
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.06)">' +
-        '<span style="font-size:0.78rem">' + key.label + '<br><span style="font-size:0.65rem;color:var(--text-muted)">' + key.desc + '</span></span>' +
-        '<button class="btn btn-small" style="min-width:50px;font-size:0.7rem;padding:4px 8px;background:' + (s[key.id] ? 'var(--primary)' : '#ccc') + ';color:#fff;border:none" ' +
-          'onclick="GameEngine.state.managers[\'' + cityId + '\'].settings.' + key.id + '=!' + 'GameEngine.state.managers[\'' + cityId + '\'].settings.' + key.id + ';GameEngine.save();App.showManagerSettings(\'' + cityId + '\')">' +
-          (s[key.id] ? 'ON' : 'OFF') + '</button></div>';
-    }
-
-    var html = '<div style="padding:4px 0">' +
-      toggle({id:'autoRent', label:'Auto Re-rent Vacancies', desc:'Instantly find new tenants when properties go vacant'}) +
-      toggle({id:'autoRefurb', label:'Auto Refurbish', desc:'Renovate properties when condition drops to Poor'}) +
-      toggle({id:'autoMitigation', label:'Auto Buy Protection', desc:'Purchase fire, flood, security, insurance mitigations'}) +
-      toggle({id:'autoDecisions', label:'Auto Handle Decisions', desc:'Accept investments, handle tenant issues, emergency repairs'}) +
-    '</div>';
-
-    GameUI.showModal('⚙️ ' + mgr.icon + ' ' + mgr.name + ' — ' + (city ? city.name : ''), html,
-      '<button class="btn btn-primary" onclick="GameUI.hideModal();GameUI.renderCity()">Done</button>');
-  },
-
-  fireManager(cityId) {
-    var result = GameEngine.fireManager(cityId);
-    if (result.success) {
-      GameUI.toast(result.message, 'info');
-      GameUI.renderCity();
     } else {
       GameUI.toast(result.message, 'error');
     }

@@ -90,18 +90,10 @@ const GameUI = {
           cpTextEl.innerHTML = '⏱️ <strong>' + objProgress.monthsLeft + ' months left</strong> · ' +
             propsCheck + ' ' + objProgress.properties + '/' + objProgress.targetProperties + ' properties · ' +
             rivalCheck + ' vs ' + objProgress.rivalIcon + ' ' + GameData.formatMoneyShort(objProgress.rivalNW);
-        } else if (!GameEngine.state.activeCampaign && GameEngine.getLockedCities && GameEngine.getLockedCities().length > 0) {
-          // No active campaign but locked cities exist — prompt player
-          cpTextEl.innerHTML = '🔒 <strong>Tap a locked city</strong> to start a campaign and unlock it!';
         } else if (GameEngine.getActiveCampaign && GameEngine.getActiveCampaign()) {
           var ac = GameEngine.getActiveCampaign();
-          var progText = '';
-          if (ac.progress) {
-            var pct = ac.progress.target > 0 ? Math.min(100, Math.round(ac.progress.current / ac.progress.target * 100)) : 0;
-            var pCol = pct >= 100 ? '#2A9D8F' : pct >= 50 ? '#D4A84B' : '#E63946';
-            progText = ' · <strong style="color:' + pCol + '">' + ac.progress.label + '</strong>';
-          }
-          cpTextEl.innerHTML = ac.icon + ' <strong>' + ac.title + '</strong>' + progText;
+          cpTextEl.innerHTML = ac.icon + ' <strong>' + ac.title + '</strong> · ' + ac.challenge +
+            ' <span style="color:var(--text-muted)">(' + ac.monthsActive + 'mo)</span>';
         } else if (GameEngine.getCampaignProgress) {
           var cp = GameEngine.getCampaignProgress();
           if (cp.completed) {
@@ -234,6 +226,21 @@ const GameUI = {
     } else if (sortMode === 'growth') {
       cities.sort(function(a, b) { return b.growthRate - a.growthRate; });
     }
+    // Always sort: unlocked first, then active campaign, then by campaign progress
+    cities.sort(function(a, b) {
+      var aLocked = !GameEngine.isCityUnlocked(a.id);
+      var bLocked = !GameEngine.isCityUnlocked(b.id);
+      if (aLocked !== bLocked) return aLocked ? 1 : -1;
+      if (aLocked && bLocked) {
+        var aActive = GameEngine.state.activeCampaign && GameEngine.state.activeCampaign.cityId === a.id;
+        var bActive = GameEngine.state.activeCampaign && GameEngine.state.activeCampaign.cityId === b.id;
+        if (aActive !== bActive) return aActive ? -1 : 1;
+        var ap = GameEngine.getCityUnlockProgress(a.id);
+        var bp = GameEngine.getCityUnlockProgress(b.id);
+        return bp.progress - ap.progress;
+      }
+      return 0;
+    });
 
     // Only rebuild DOM on first render or search/sort change — otherwise just update values
     var existing = grid.querySelectorAll('.city-card');
@@ -241,13 +248,30 @@ const GameUI = {
     var needsRebuild = existing.length !== cities.length || this._lastSearch !== sortKey;
     this._lastSearch = sortKey;
 
+    // Find the recommended next campaign (highest progress among locked, prefer lower tier)
+    var _recommendedCity = null;
+    if (GameEngine.cityUnlockChallenges) {
+      var _bestScore = -1;
+      GameEngine.cityUnlockChallenges.forEach(function(ch) {
+        if (GameEngine.isCityUnlocked(ch.cityId)) return;
+        var isActive = GameEngine.state.activeCampaign && GameEngine.state.activeCampaign.cityId === ch.cityId;
+        if (isActive) { _recommendedCity = ch.cityId; _bestScore = 999; return; }
+        var cp = GameEngine.getCityUnlockProgress(ch.cityId);
+        // Score: progress weighted by tier preference (lower tier = better when progress is similar)
+        var score = cp.progress * 100 - (cp.tier || 0) * 2;
+        if (score > _bestScore && _bestScore < 999) { _bestScore = score; _recommendedCity = ch.cityId; }
+      });
+    }
+
     if (needsRebuild) {
       var html = '';
       cities.forEach(function(city, i) {
         var lm = GameData.cityLandmarks[city.id] || {};
         var locked = !GameEngine.isCityUnlocked(city.id);
-        var isActive = GameEngine.state.activeCampaign && GameEngine.state.activeCampaign.cityId === city.id;
-        html += '<div class="city-card' + (locked && !isActive ? ' city-locked' : '') + (isActive ? ' city-active-campaign' : '') + '" data-tier="' + city.tier + '" data-city="' + city.id + '" style="position:relative">' +
+        var isActive = locked && GameEngine.state.activeCampaign && GameEngine.state.activeCampaign.cityId === city.id;
+        var isRec = locked && city.id === _recommendedCity && !isActive;
+        var extraCls = locked ? (isActive ? ' city-active-campaign' : (isRec ? ' city-recommended' : '')) : '';
+        html += '<div class="city-card' + (locked ? ' city-locked' : '') + extraCls + '" data-tier="' + city.tier + '" data-city="' + city.id + '" style="position:relative">' +
           '<div class="city-invest-badge" data-stat="investScore"></div>' +
           '<div class="city-card-header">' +
             '<span class="city-flag">' + (lm.landmark || city.flag) + '</span>' +
@@ -258,30 +282,40 @@ const GameUI = {
           '</div>';
         if (locked) {
           var ch = GameEngine.cityUnlockChallenges ? GameEngine.cityUnlockChallenges.find(function(c) { return c.cityId === city.id; }) : null;
-          var statusIcon = isActive ? '⚔️' : '🔒';
-          // Show progress on active campaign, or challenge name + difficulty for inactive
-          var statusText = '';
-          if (ch) {
-            if (isActive && ch.progress) {
-              var prog = ch.progress(GameEngine.state, GameEngine);
-              var pct = prog.target > 0 ? Math.min(100, Math.round(prog.current / prog.target * 100)) : 0;
-              var pCol = pct >= 100 ? '#2A9D8F' : pct >= 50 ? '#D4A84B' : '#E63946';
-              statusText = '<strong style="color:var(--primary)">' + ch.title + '</strong><br>' +
-                '<span style="color:' + pCol + ';font-weight:700">' + prog.label + '</span>';
-            } else if (isActive) {
-              statusText = '<strong style="color:var(--primary)">' + ch.title + '</strong><br>' + ch.challenge;
-            } else {
-              // Show campaign name + what it requires
-              var idx = GameEngine.cityUnlockChallenges.indexOf(ch);
-              var diffPct = idx / GameEngine.cityUnlockChallenges.length;
-              var diffLabel = diffPct < 0.25 ? 'Early' : diffPct < 0.5 ? 'Mid' : diffPct < 0.75 ? 'Late' : 'Endgame';
-              statusText = ch.title + '<br><span style="font-size:0.62rem">' + diffLabel + ' · ' + ch.challenge + '</span>';
-            }
-          } else {
-            statusText = 'Click to start campaign';
+          var isActive = GameEngine.state.activeCampaign && GameEngine.state.activeCampaign.cityId === city.id;
+          var isRecommended = city.id === _recommendedCity;
+          var cp = GameEngine.getCityUnlockProgress(city.id);
+
+          // Recommended badge
+          var recBadge = '';
+          if (isActive) {
+            recBadge = '<div style="position:absolute;top:-6px;right:8px;background:var(--primary);color:#fff;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:10px;z-index:2">ACTIVE</div>';
+          } else if (isRecommended && !GameEngine.state.activeCampaign) {
+            recBadge = '<div style="position:absolute;top:-6px;right:8px;background:#2A9D8F;color:#fff;font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:10px;z-index:2;animation:pulse 2s infinite">NEXT</div>';
           }
-          html += '<div style="text-align:center;padding:10px 0;font-size:0.72rem;color:var(--text-muted)">' +
-            statusIcon + ' ' + statusText + '</div>';
+
+          // Readiness badge
+          var readyBadge = '<span style="display:inline-block;font-size:0.58rem;font-weight:700;padding:1px 6px;border-radius:8px;background:' + cp.color + '18;color:' + cp.color + ';border:1px solid ' + cp.color + '40">' + cp.label + '</span>';
+
+          // Progress bar
+          var pctWidth = Math.round(cp.progress * 100);
+          var progressBar = '<div style="margin:6px 0 4px;background:#e8e0d4;border-radius:4px;height:4px;overflow:hidden">' +
+            '<div style="width:' + pctWidth + '%;height:100%;background:' + cp.color + ';border-radius:4px;transition:width 0.3s"></div></div>';
+
+          var statusIcon = isActive ? '⚔️' : '';
+          var statusText = ch ? ch.title : 'Locked';
+          var challengeText = ch ? ch.challenge : '';
+
+          html += recBadge +
+            '<div style="text-align:center;padding:6px 0;font-size:0.72rem;color:var(--text-muted)">' +
+              (isActive ? '<strong style="color:var(--primary)">' + statusIcon + ' ' + statusText + '</strong>' : '<span style="font-weight:600;color:var(--text-dark)">' + statusText + '</span>') +
+              '<div style="margin-top:4px;font-size:0.65rem;color:var(--text-muted)">' + challengeText + '</div>' +
+              progressBar +
+              '<div style="display:flex;justify-content:space-between;align-items:center;font-size:0.58rem;color:#888">' +
+                readyBadge +
+                '<span>' + pctWidth + '% there</span>' +
+              '</div>' +
+            '</div>';
         } else {
           var trait = city.trait ? GameData.cityTraits[city.trait] : null;
           html += '<div class="city-card-stats">' +
@@ -374,29 +408,6 @@ const GameUI = {
       '<div class="city-info-chip">📈 Growth: <strong>' + (city.growthRate * 100).toFixed(1) + '%/yr</strong></div>' +
       '<div class="city-info-chip">💹 Inflation: <strong>' + (inflationRate * 100).toFixed(1) + '%</strong></div>' +
       '<div class="city-info-chip">🏠 Yield: <strong>' + (city.rentYield * 100).toFixed(1) + '%</strong></div>';
-
-    // Manager display — shown below tabs, always visible
-    var mgrBar = document.getElementById('city-manager-bar');
-    if (mgrBar) {
-      var mgr = (GameEngine.state.managers || {})[city.id];
-      var hasProps = GameEngine.state.properties.some(function(p){return p.cityId===city.id;});
-      if (mgr) {
-        mgrBar.style.display = '';
-        mgrBar.innerHTML = '<div style="padding:6px 10px;margin:0 8px 6px;background:rgba(44,110,73,0.06);border-radius:8px;font-size:0.72rem">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center">' +
-            '<span>👔 ' + mgr.icon + ' <strong>' + mgr.name + '</strong> · ' + Math.round(mgr.fee*100) + '% fee · Q' + Math.round(mgr.quality*100) + '%</span>' +
-            '<span>' +
-              '<button class="btn btn-ghost btn-small" style="font-size:0.6rem;padding:1px 5px" onclick="App.showManagerSettings(\'' + city.id + '\')">⚙️</button>' +
-              '<button class="btn btn-ghost btn-small" style="font-size:0.6rem;padding:1px 5px" onclick="App.fireManager(\'' + city.id + '\')">✕</button>' +
-            '</span>' +
-          '</div></div>';
-      } else if (hasProps) {
-        mgrBar.style.display = '';
-        mgrBar.innerHTML = '<div style="padding:4px 10px;margin:0 8px 6px;text-align:center"><button class="btn btn-secondary btn-small" style="font-size:0.7rem;width:100%" onclick="App.showManagerHire(\'' + city.id + '\')">👔 Hire Property Manager</button></div>';
-      } else {
-        mgrBar.style.display = 'none';
-      }
-    }
 
     // Auto-show 3D city view if definition exists
     var mapView = document.getElementById('city-map-view');
@@ -774,10 +785,10 @@ const GameUI = {
         if (typeDef.canRefurbish && p.condition !== 'excellent') {
           var baseCost = Math.round(p.currentValue * condDef.refurbCostPct);
           actionsHTML += '<div class="action-info mb-8">🔨 Renovation Options:</div>';
-          actionsHTML += '<div style="display:flex;flex-direction:column;gap:6px">';
-          actionsHTML += '<button class="btn btn-ghost btn-small" style="width:100%;text-align:left;padding:8px 12px;font-size:0.75rem;display:flex;justify-content:space-between;align-items:center" onclick="App.refurbishProperty(\'' + p.id + '\', \'budget\')"><span>🔧 Budget · +1 cond · 80% chance</span><strong>' + GameData.formatMoney(Math.round(baseCost*0.6)) + '</strong></button>';
-          actionsHTML += '<button class="btn btn-accent btn-small" style="width:100%;text-align:left;padding:8px 12px;font-size:0.75rem;display:flex;justify-content:space-between;align-items:center" onclick="App.refurbishProperty(\'' + p.id + '\', \'standard\')"><span>🔨 Standard · +1 cond · +12% value</span><strong>' + GameData.formatMoney(baseCost) + '</strong></button>';
-          actionsHTML += '<button class="btn btn-primary btn-small" style="width:100%;text-align:left;padding:8px 12px;font-size:0.75rem;display:flex;justify-content:space-between;align-items:center" onclick="App.refurbishProperty(\'' + p.id + '\', \'luxury\')"><span>⭐ Luxury · +2 cond · +25% value</span><strong>' + GameData.formatMoney(Math.round(baseCost*2)) + '</strong></button>';
+          actionsHTML += '<div style="display:flex;gap:4px;flex-wrap:wrap">';
+          actionsHTML += '<button class="btn btn-ghost btn-small" style="flex:1" onclick="App.refurbishProperty(\'' + p.id + '\', \'budget\')">Budget<br>' + GameData.formatMoney(Math.round(baseCost*0.6)) + '<br><span style="font-size:0.6rem;opacity:0.6">+1 cond, 80% chance</span></button>';
+          actionsHTML += '<button class="btn btn-accent btn-small" style="flex:1" onclick="App.refurbishProperty(\'' + p.id + '\', \'standard\')">Standard<br>' + GameData.formatMoney(baseCost) + '<br><span style="font-size:0.6rem;opacity:0.7">+1 cond, +12% value</span></button>';
+          actionsHTML += '<button class="btn btn-primary btn-small" style="flex:1" onclick="App.refurbishProperty(\'' + p.id + '\', \'luxury\')">Luxury<br>' + GameData.formatMoney(Math.round(baseCost*2)) + '<br><span style="font-size:0.6rem;opacity:0.7">+2 cond, +25% value</span></button>';
           actionsHTML += '</div>';
         }
 
@@ -812,13 +823,6 @@ const GameUI = {
           actionsHTML += '<button class="btn btn-ghost btn-small" style="flex:1" onclick="App.demolishProperty(\'' + p.id + '\')">🏗️ Demolish (' + demoCost + ')</button>';
         }
         actionsHTML += '</div>';
-        // Tax shelter option
-        if (!p.taxShelter) {
-          var shelterCost = Math.max(300, Math.min(8000, Math.round(p.currentValue * 0.03)));
-          actionsHTML += '<button class="btn btn-secondary btn-small" style="width:100%;margin-top:6px;font-size:0.72rem" onclick="App.setupTaxShelter(\'' + p.id + '\')">🏢 Shell Company — ' + GameData.formatMoney(shelterCost) + ' (−60% tax)</button>';
-        } else {
-          actionsHTML += '<div style="margin-top:6px;font-size:0.7rem;color:var(--primary);font-weight:600">🏢 Shell company active — 60% tax reduction</div>';
-        }
 
         // Auto-sell
         var autoRule = (GameEngine.state.autoSellRules || []).find(function(r) { return r.propertyId === p.id; });
@@ -979,29 +983,6 @@ const GameUI = {
           '<div class="portfolio-summary-stat"><span class="portfolio-summary-stat-value ' + (stats.monthlyCashflow >= 0 ? '' : 'text-danger') + '">' + GameData.formatMoney(stats.monthlyCashflow) + '</span><span class="portfolio-summary-stat-label">Cashflow/mo</span></div>' +
         '</div>' +
       '</div>';
-
-    // Managers section in portfolio
-    var managers = GameEngine.state.managers || {};
-    var ownedCityIds = {};
-    props.forEach(function(p) { ownedCityIds[p.cityId] = (ownedCityIds[p.cityId]||0) + 1; });
-    var mgrHTML = '';
-    Object.keys(ownedCityIds).forEach(function(cid) {
-      var city = GameData.cities.find(function(c) { return c.id === cid; });
-      var mgr = managers[cid];
-      if (mgr) {
-        mgrHTML += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.72rem">' +
-          '<span>' + (city?city.flag:'') + ' ' + (city?city.name:cid) + ': ' + mgr.icon + ' ' + mgr.name + ' (' + Math.round(mgr.fee*100) + '%)</span>' +
-          '<button class="btn btn-ghost btn-small" style="font-size:0.6rem;padding:1px 6px" onclick="App.fireManager(\'' + cid + '\');GameUI.renderPortfolio()">Dismiss</button></div>';
-      } else {
-        mgrHTML += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.72rem">' +
-          '<span>' + (city?city.flag:'') + ' ' + (city?city.name:cid) + ': <span style="color:var(--text-muted)">No manager</span></span>' +
-          '<button class="btn btn-secondary btn-small" style="font-size:0.6rem;padding:1px 6px" onclick="App.showManagerHire(\'' + cid + '\')">Hire</button></div>';
-      }
-    });
-    if (mgrHTML) {
-      summary.innerHTML += '<div style="margin-top:8px;padding:8px 10px;background:rgba(44,110,73,0.04);border-radius:8px;border:1px solid rgba(44,110,73,0.1)">' +
-        '<div style="font-size:0.7rem;font-weight:700;margin-bottom:4px">👔 Property Managers</div>' + mgrHTML + '</div>';
-    }
 
     // Populate city filter dropdown with owned cities
     var cityFilterEl = document.getElementById('portfolio-city-filter');
@@ -1254,12 +1235,6 @@ const GameUI = {
         '<div class="settings-row"><div><div class="settings-label">Investment Score</div><div class="settings-description">Show investment coefficient on city insight</div></div><button class="btn btn-secondary btn-small" onclick="GameEngine.state.hideInvestScore=!GameEngine.state.hideInvestScore;GameEngine.save();GameUI.renderSettings()">' + (GameEngine.state.hideInvestScore ? '👁️ Show' : '🙈 Hide') + '</button></div>' +
         '<div class="settings-row"><div><div class="settings-label">Save Game</div><div class="settings-description">Game saves automatically each month</div></div><button class="btn btn-primary btn-small" onclick="GameEngine.save(); GameUI.toast(\'Game saved!\', \'success\')">Save Now</button></div>' +
         '<div class="settings-row"><div><div class="settings-label">New Game</div><div class="settings-description">Start fresh with €500,000</div></div><button class="btn btn-danger btn-small" onclick="App.confirmNewGame()">Reset</button></div>' +
-      '</div>' +
-      '<div class="settings-section">' +
-        '<div class="finance-section-title">📊 Debug Recording</div>' +
-        '<div class="settings-row"><div><div class="settings-label">Record Game Events</div><div class="settings-description">' + (GameEngine.recording ? 'Recording... (' + GameEngine.log.length + ' events)' : 'Track every transaction for analysis') + '</div></div>' +
-          '<button class="btn btn-' + (GameEngine.recording ? 'danger' : 'secondary') + ' btn-small" onclick="if(GameEngine.recording){GameEngine.stopRecording();}else{GameEngine.startRecording();}GameUI.renderSettings()">' + (GameEngine.recording ? '⏹ Stop' : '⏺ Record') + '</button></div>' +
-        (GameEngine.log.length > 0 ? '<div class="settings-row"><div><div class="settings-label">Export Recording</div><div class="settings-description">' + GameEngine.log.length + ' events · ' + (GameEngine.state ? GameEngine.state.month : 0) + ' months</div></div><button class="btn btn-primary btn-small" onclick="GameEngine.exportRecording();GameUI.toast(\'Recording exported!\',\'success\')">📥 Export JSON</button></div>' : '') +
       '</div>' +
       '<div class="settings-section">' +
         '<div class="finance-section-title" style="cursor:pointer" onclick="var el=document.getElementById(\'trophy-grid\');el.style.display=el.style.display===\'none\'?\'grid\':\'none\'">🏆 Achievements (' + unlocked.length + '/' + total + ') ▾</div>' +
@@ -1556,7 +1531,7 @@ const GameUI = {
           '<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:10px">' + (cu.title || cu.challenge) + '</div>' +
           '<div style="font-size:0.82rem;color:var(--text-dark)">A new market awaits. Click ' + cu.cityName + ' on the map to explore its properties.</div>' +
         '</div>',
-        '<button class="btn btn-primary" onclick="GameUI.hideModal();GameUI._lastSearch=null;GameUI.renderMap();GameUI.renderWorldMap();GameUI.updateHUD()">Explore ' + cu.cityName + '</button>'
+        '<button class="btn btn-primary" onclick="GameUI.hideModal()">Continue</button>'
       );
       GameUI.animateConfetti();
       GameAudio.fanfare();
@@ -1714,12 +1689,13 @@ const GameUI = {
       '<div style="font-size:0.85rem;color:#6A5A42;line-height:1.5;margin-bottom:16px">' + event.description + '</div>' +
       '</div>';
 
-    var actions = '';
+    var actions = '<div style="display:flex;flex-direction:column;gap:6px;width:100%">';
     for (var i = 0; i < event.choices.length; i++) {
       var c = event.choices[i];
       var btnClass = i === 0 ? 'btn btn-primary' : (i === event.choices.length - 1 ? 'btn btn-ghost' : 'btn btn-secondary');
-      actions += '<button class="' + btnClass + '" style="flex:1;font-size:0.8rem" onclick="App.resolveHistoricalEvent(' + i + ')">' + c.label + '</button>';
+      actions += '<button class="' + btnClass + '" style="width:100%;font-size:0.78rem;padding:10px 12px;text-align:left" onclick="App.resolveHistoricalEvent(' + i + ')">' + c.label + '</button>';
     }
+    actions += '</div>';
 
     this.showModal(event.icon + ' ' + event.title, html, actions);
   },
@@ -1782,9 +1758,8 @@ const GameUI = {
   toggleMapView() {
     this.mapView = !this.mapView;
     document.getElementById('world-map-container').style.display = this.mapView ? 'block' : 'none';
-    // List always visible — toggle only hides/shows the map
-    document.getElementById('cities-list-view').style.display = '';
-    document.getElementById('btn-map-toggle').textContent = this.mapView ? '🗺️ Hide Map' : '🗺️ Show Map';
+    document.getElementById('cities-list-view').style.display = this.mapView ? 'none' : '';
+    document.getElementById('btn-map-toggle').textContent = this.mapView ? '📋 List' : '🗺️ Map';
   },
 
   // ---- Render World Map ----
