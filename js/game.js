@@ -1426,10 +1426,21 @@ const GameEngine = {
       const market = this.state.marketProperties[city.id];
       var ownedInCity = ownedState.properties.filter(function(p) { return p.cityId === city.id; }).length;
       var totalInCity = market.length + ownedInCity;
+      // Guarantee at least 1 affordable studio always exists in unlocked city markets
+      var hasAffordable = market.some(function(p) { return p.monthlyRent > 0 && p.currentValue < 10000; });
+      if (!hasAffordable && totalInCity < city.maxProperties && this.isCityUnlocked(city.id)) {
+        var studioP = GameData.generateProperty(city.id, 'studio');
+        if (studioP) {
+          studioP.condition = 'good';
+          GameEngine.recalculateRent(studioP);
+          market.push(studioP);
+          results.newProperties.push({ cityId: city.id, property: studioP });
+        }
+      }
+      // Normal spawn: 30% chance per month, weighted toward affordable types
       if (totalInCity < city.maxProperties && Math.random() < 0.3) {
-        // Weighted: 3x chance of studios in spawn pool ensures affordable options
-        const type = spawnTypes[Math.floor(Math.random() * spawnTypes.length)];
-        const newProp = GameData.generateProperty(city.id, type);
+        var type = spawnTypes[Math.floor(Math.random() * spawnTypes.length)];
+        var newProp = GameData.generateProperty(city.id, type);
         if (newProp) {
           market.push(newProp);
           results.newProperties.push({ cityId: city.id, property: newProp });
