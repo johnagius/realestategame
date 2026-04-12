@@ -212,6 +212,7 @@ const GameEngine = {
           this.state.unlockedFeatures = { bank: true, businesses: true, investments: true, aiDiplomacy: true, fullLeaderboard: true };
         }
         if (this.state.activeCampaign === undefined) this.state.activeCampaign = null;
+        if (!this.state.managers) this.state.managers = {};
         // Reset city economic data to base values (fixes drifted inflation/growth from old saves)
         GameData.cities.forEach(function(city) {
           var base = GameData.cities.find(function(c) { return c.id === city.id; });
@@ -1021,6 +1022,9 @@ const GameEngine = {
 
         // Tenant problem chance: base 3% modified by reliability (higher = fewer problems)
         var problemChance = 0.03 * (2 - reliability); // reliability 1.0 → 3%, reliability 0.7 → 3.9%
+        // Manager reduces tenant problems based on quality
+        var cityMgr = (this.state.managers || {})[p.cityId];
+        if (cityMgr) problemChance *= (1 - cityMgr.quality * 0.5); // quality 0.9 → 55% reduction
         if (Math.random() < problemChance) {
           var problemRoll = Math.random();
           if (problemRoll < 0.35) {
@@ -1436,6 +1440,10 @@ const GameEngine = {
     // 10. Process loan payments
     results.loanPayments = this.processLoanPayments();
     results.expenses += results.loanPayments;
+
+    // 10b. Process property managers (auto-rent, auto-refurb, collect fees)
+    results.managerFees = this.processManagers(results);
+    results.expenses += results.managerFees;
 
     // 11. Process businesses & collect dividends
     results.dividends = this.processBusinesses();
@@ -2651,6 +2659,66 @@ const GameEngine = {
   getInvestmentValue() {
     if (!this.state.investments) return 0;
     return this.state.investments.reduce((sum, inv) => sum + (inv.currentUnitPrice * inv.units), 0);
+  },
+
+  // ========== PROPERTY MANAGERS ==========
+
+  hireManager(cityId, managerId) {
+    if (!this.state.managers) this.state.managers = {};
+    if (this.state.managers[cityId]) return { success: false, message: 'Already have a manager in this city.' };
+    var mgr = GameData.managerPool.find(function(m) { return m.id === managerId; });
+    if (!mgr) return { success: false, message: 'Manager not found.' };
+    if (this.state.cash < mgr.hireCost) return { success: false, message: 'Not enough cash. Need ' + GameData.formatMoney(mgr.hireCost) + '.' };
+    this.state.cash -= mgr.hireCost;
+    this.state.managers[cityId] = { id: mgr.id, name: mgr.name, icon: mgr.icon, quality: mgr.quality, fee: mgr.fee, trait: mgr.trait, monthsActive: 0 };
+    this.save();
+    return { success: true, message: mgr.icon + ' ' + mgr.name + ' hired for ' + GameData.formatMoney(mgr.hireCost) + '!' };
+  },
+
+  fireManager(cityId) {
+    if (!this.state.managers || !this.state.managers[cityId]) return { success: false, message: 'No manager in this city.' };
+    var mgr = this.state.managers[cityId];
+    delete this.state.managers[cityId];
+    this.save();
+    return { success: true, message: mgr.icon + ' ' + mgr.name + ' dismissed.' };
+  },
+
+  // Called from advanceMonth — managers auto-handle properties
+  processManagers(results) {
+    if (!this.state.managers) return 0;
+    var totalFees = 0;
+    var self = this;
+    Object.keys(this.state.managers).forEach(function(cityId) {
+      var mgr = self.state.managers[cityId];
+      mgr.monthsActive++;
+      var cityProps = self.state.properties.filter(function(p) { return p.cityId === cityId; });
+
+      cityProps.forEach(function(p) {
+        // 1. Auto re-rent vacancies
+        if (!p.isRented && !p.isRefurbishing && !p.isBuilding && p.condition !== 'derelict' && p.monthlyRent > 0) {
+          p.isRented = true;
+          p.tenant = GameData.assignTenant(p);
+          self._log('manager', 'auto-rent', 0, mgr.name + ' rented ' + p.name);
+        }
+
+        // 2. Auto refurbish if condition drops to poor or derelict
+        if (!p.isRefurbishing && (p.condition === 'poor' || p.condition === 'derelict')) {
+          var tier = mgr.trait === 'handyman' ? 'budget' : 'standard';
+          var refurbResult = self.refurbishProperty(p.id, tier);
+          if (refurbResult.success) {
+            self._log('manager', 'auto-refurb', 0, mgr.name + ' started ' + tier + ' refurb on ' + p.name);
+          }
+        }
+
+        // 3. Collect fee on rented properties
+        if (p.isRented && p.monthlyRent > 0) {
+          var fee = Math.round(p.monthlyRent * mgr.fee);
+          self.state.cash -= fee;
+          totalFees += fee;
+        }
+      });
+    });
+    return totalFees;
   },
 
   // ========== LEGACY RATING ==========

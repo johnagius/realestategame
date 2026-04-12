@@ -1107,6 +1107,42 @@ const GameData = {
     }
   ],
 
+  // ---- Property Managers (hire per city, auto-manage properties) ----
+  // Fee is % of rent collected. Quality affects tenant problem reduction and refurb tier.
+  managerPool: [
+    // minReputation gates access — better managers require higher reputation
+    { id: 'mgr_1', name: 'Thomas Blake', icon: '👔', quality: 0.6, fee: 0.06, hireCost: 300,
+      trait: 'budget', desc: 'Cheap and cheerful. Handles basics.', minReputation: 0 },
+    { id: 'mgr_6', name: 'Priya Sharma', icon: '👩‍💻', quality: 0.65, fee: 0.05, hireCost: 400,
+      trait: 'efficient', desc: 'Low cost. Fast vacancy fills.', minReputation: 0 },
+    { id: 'mgr_4', name: 'Elena Rodriguez', icon: '👩‍🔧', quality: 0.7, fee: 0.07, hireCost: 500,
+      trait: 'handyman', desc: 'DIY repairs. Cheaper refurbishments.', minReputation: 40 },
+    { id: 'mgr_8', name: 'Aisha Okonkwo', icon: '👩‍⚖️', quality: 0.7, fee: 0.08, hireCost: 700,
+      trait: 'negotiator', desc: 'Gets better rent deals from tenants.', minReputation: 45 },
+    { id: 'mgr_2', name: 'Sarah Chen', icon: '👩‍💼', quality: 0.75, fee: 0.08, hireCost: 600,
+      trait: 'reliable', desc: 'Dependable. Good tenant relations.', minReputation: 50 },
+    { id: 'mgr_7', name: 'Hans Mueller', icon: '👨‍🔧', quality: 0.8, fee: 0.09, hireCost: 800,
+      trait: 'meticulous', desc: 'Keeps properties in top shape.', minReputation: 60 },
+    { id: 'mgr_3', name: 'Marcus Webb', icon: '🧑‍💼', quality: 0.85, fee: 0.10, hireCost: 1000,
+      trait: 'experienced', desc: 'Veteran manager. Excellent results.', minReputation: 70 },
+    { id: 'mgr_5', name: 'James O\'Brien', icon: '🕴️', quality: 0.9, fee: 0.12, hireCost: 1500,
+      trait: 'premium', desc: 'Top tier. Attracts better tenants.', minReputation: 80 }
+  ],
+
+  // Get managers available based on player reputation
+  getAvailableManagers(cityId, reputation) {
+    var rep = reputation || 50;
+    var eligible = this.managerPool.filter(function(m) { return rep >= m.minReputation; });
+    // Return 3 random from eligible pool
+    var pool = eligible.slice();
+    var selected = [];
+    for (var i = 0; i < 3 && pool.length > 0; i++) {
+      var idx = Math.floor(Math.random() * pool.length);
+      selected.push(pool.splice(idx, 1)[0]);
+    }
+    return selected;
+  },
+
   // ---- Business Types (for shops/manufacturing/stakes) ----
   businessTypes: {
     shop: {
