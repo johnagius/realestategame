@@ -606,24 +606,34 @@ const App = {
     offers.sort(function(a, b) { return a.totalRepayment - b.totalRepayment; });
 
     var actualAmt = offers[0] ? offers[0].amount : amount;
-    var html = '<p style="margin-bottom:8px">Loan offers' + (actualAmt < amount ? ' (approved: <strong>' + GameData.formatMoney(actualAmt) + '</strong> of ' + GameData.formatMoney(amount) + ' requested)' : ' for <strong>' + GameData.formatMoney(amount) + '</strong>') + ':</p>';
-    html += '<table class="compare-table" style="margin-bottom:8px"><thead><tr><th>Bank</th><th>Term</th><th>APR</th><th>Monthly</th><th>Total Cost</th><th></th></tr></thead><tbody>';
-    offers.forEach(function(o, i) {
-      var interestCost = o.totalRepayment - o.amount; // use actual approved amount, not requested
-      var cheapest = i === 0 ? ' style="background:rgba(44,110,73,0.06)"' : '';
-      html += '<tr' + cheapest + '>' +
-        '<td style="font-weight:700;white-space:nowrap">' + o.bankIcon + ' ' + (o.bankName || '') + '</td>' +
-        '<td>' + o.termMonths + 'mo</td>' +
-        '<td>' + (o.interestRate * 100).toFixed(1) + '%</td>' +
-        '<td>' + GameData.formatMoney(o.monthlyPayment) + '</td>' +
-        '<td>' + GameData.formatMoney(o.totalRepayment) + '<div style="font-size:0.6rem;color:#E63946">+' + GameData.formatMoney(interestCost) + ' interest</div></td>' +
-        '<td><button class="btn btn-primary btn-small" style="padding:4px 10px;font-size:0.7rem" onclick="App.takeLoan(\'' + o.bankId + '\', ' + o.amount + ', ' + o.termMonths + ')">Accept</button></td>' +
-      '</tr>';
-    });
-    html += '</tbody></table>';
-    html += '<p style="font-size:0.65rem;color:var(--text-muted);margin:0">Sorted by total cost. Top row is cheapest.</p>';
+    var html = '<div style="max-height:60vh;overflow-y:auto">';
+    html += '<p style="margin-bottom:8px;font-size:0.82rem">Loan: <strong>' + GameData.formatMoney(actualAmt) + '</strong>';
+    if (actualAmt < amount) html += ' <span style="font-size:0.7rem;color:var(--text-muted)">(of ' + GameData.formatMoney(amount) + ' requested)</span>';
+    html += '</p>';
 
-    GameUI.showModal('Loan Comparison', '<div class="loan-options">' + html + '</div>', '');
+    offers.forEach(function(o, i) {
+      var interestCost = o.totalRepayment - o.amount;
+      var bg = i === 0 ? 'background:rgba(44,110,73,0.06);border-color:var(--primary-light)' : '';
+      html += '<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;' + bg + '">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+          '<span style="font-weight:700;font-size:0.82rem">' + o.bankIcon + ' ' + (o.bankName || '') + '</span>' +
+          (i === 0 ? '<span style="font-size:0.6rem;color:var(--primary);font-weight:700">BEST DEAL</span>' : '') +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:0.75rem;margin-bottom:8px">' +
+          '<div>Term: <strong>' + o.termMonths + ' months</strong></div>' +
+          '<div>APR: <strong>' + (o.interestRate * 100).toFixed(1) + '%</strong></div>' +
+          '<div>Monthly: <strong>' + GameData.formatMoney(o.monthlyPayment) + '</strong></div>' +
+          '<div>Interest: <strong style="color:#E63946">' + GameData.formatMoney(interestCost) + '</strong></div>' +
+        '</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center">' +
+          '<span style="font-size:0.7rem;color:var(--text-muted)">Total repay: ' + GameData.formatMoney(o.totalRepayment) + '</span>' +
+          '<button class="btn btn-primary btn-small" onclick="App.takeLoan(\'' + o.bankId + '\', ' + o.amount + ', ' + o.termMonths + ')">Accept</button>' +
+        '</div>' +
+      '</div>';
+    });
+    html += '</div>';
+
+    GameUI.showModal('Loan Offers', html, '');
   },
 
   takeLoan(bankId, amount, termMonths) {

@@ -1005,7 +1005,9 @@ const GameUI = {
         '<div class="finance-card">' +
           '<div class="finance-row"><span class="finance-row-label">Rental Income</span><span class="finance-row-value positive">+' + GameData.formatMoney(stats.monthlyIncome) + '</span></div>' +
           '<div class="finance-row"><span class="finance-row-label">Maintenance & Fees</span><span class="finance-row-value negative">-' + GameData.formatMoney(stats.monthlyExpenses) + '</span></div>' +
-          '<div class="finance-row finance-total"><span class="finance-row-label">Net Cashflow</span><span class="finance-row-value ' + (stats.monthlyCashflow >= 0 ? 'positive' : 'negative') + '">' + GameData.formatMoney(stats.monthlyCashflow) + '</span></div>' +
+          (stats.monthlyLoanPayments > 0 ? '<div class="finance-row"><span class="finance-row-label">Loan Payments</span><span class="finance-row-value negative">-' + GameData.formatMoney(stats.monthlyLoanPayments) + '</span></div>' : '') +
+          (stats.monthlyDividends > 0 ? '<div class="finance-row"><span class="finance-row-label">Business Dividends</span><span class="finance-row-value positive">+' + GameData.formatMoney(stats.monthlyDividends) + '</span></div>' : '') +
+          '<div class="finance-row finance-total"><span class="finance-row-label">Net Cashflow</span><span class="finance-row-value ' + ((stats.monthlyCashflow - stats.monthlyLoanPayments + stats.monthlyDividends) >= 0 ? 'positive' : 'negative') + '">' + GameData.formatMoney(stats.monthlyCashflow - stats.monthlyLoanPayments + stats.monthlyDividends) + '</span></div>' +
         '</div>' +
       '</div>' +
 
@@ -1889,43 +1891,41 @@ const GameUI = {
         '<div style="margin-bottom:10px"><label class="settings-label">Loan Amount</label></div>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">';
 
-    // Loan amount selector — scale to player's economy
-    var avgPropPrice = 0;
-    var unlocked = GameEngine.getUnlockedCities ? GameEngine.getUnlockedCities() : GameData.cities;
-    if (unlocked.length > 0) {
-      var sampleCity = unlocked[0];
-      var era = GameEngine.getCurrentEra();
-      avgPropPrice = Math.round(100000 * (sampleCity.priceMultiplier || 1) * (era.propertyMultiplier || 1));
-    }
-    // Dynamic presets: ~0.5x, 1x, 2x, 5x average property price, plus net worth fractions
-    var presets = [];
-    var baseAmts = [
-      Math.max(1000, Math.round(avgPropPrice * 0.5 / 1000) * 1000),
-      Math.max(2000, Math.round(avgPropPrice / 1000) * 1000),
-      Math.max(5000, Math.round(avgPropPrice * 2 / 1000) * 1000),
-      Math.max(10000, Math.round(avgPropPrice * 5 / 1000) * 1000),
-      Math.max(20000, Math.round(netWorth * 0.3 / 1000) * 1000),
-      Math.max(50000, Math.round(netWorth * 0.5 / 1000) * 1000)
-    ];
-    // Deduplicate and filter reasonable amounts
-    var seen = {};
-    baseAmts.forEach(function(a) { if (a > 0 && !seen[a] && a <= netWorth * 0.8) { seen[a] = 1; presets.push(a); } });
-    presets.sort(function(a, b) { return a - b; });
+    // Loan section: slider-based with max limit and live preview
+    // Calculate the player's max borrowing capacity
+    var loanStats = GameEngine.getLoanCapacity ? GameEngine.getLoanCapacity() : { maxLoan: 0, paymentCap: 0 };
+    var maxBorrow = loanStats.maxLoan;
 
     html += '<div class="finance-section">' +
       '<div class="finance-section-title">Take a Loan</div>' +
-      '<div class="finance-card">' +
-        '<div style="margin-bottom:10px"><label class="settings-label">Loan Amount</label></div>' +
-        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">';
-    presets.forEach(function(amt) {
-      html += '<button class="btn btn-secondary btn-small" onclick="App.showLoanOffers(' + amt + ')">' + GameData.formatMoneyShort(amt) + '</button>';
-    });
-    html += '</div>' +
-      '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">' +
-        '<input type="number" id="custom-loan-amount" placeholder="Custom amount..." style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:0.8rem;max-width:160px">' +
-        '<button class="btn btn-primary btn-small" onclick="var v=parseInt(document.getElementById(\'custom-loan-amount\').value);if(v>0)App.showLoanOffers(v);else GameUI.toast(\'Enter an amount\',\'warning\')">Get Offers</button>' +
-      '</div>' +
-      '</div></div>';
+      '<div class="finance-card">';
+
+    if (maxBorrow <= 0) {
+      html += '<div style="text-align:center;padding:12px;color:var(--text-muted);font-size:0.82rem">' +
+        '🔒 No loans available yet.<br>' +
+        '<span style="font-size:0.72rem">Earn more rental income to build credit history.</span>' +
+      '</div>';
+    } else {
+      var sliderMax = Math.round(maxBorrow / 100) * 100; // round to nearest 100
+      var sliderDefault = Math.min(sliderMax, Math.round(sliderMax * 0.5 / 100) * 100);
+      html += '<div style="margin-bottom:6px;display:flex;justify-content:space-between;align-items:baseline">' +
+          '<label class="settings-label">Loan Amount</label>' +
+          '<span style="font-size:0.7rem;color:var(--text-muted)">Max: ' + GameData.formatMoney(sliderMax) + '</span>' +
+        '</div>' +
+        '<div style="font-size:1.3rem;font-weight:800;color:var(--primary-dark);text-align:center;margin:4px 0" id="loan-slider-value">' + GameData.formatMoney(sliderDefault) + '</div>' +
+        '<input type="range" id="loan-slider" min="500" max="' + sliderMax + '" value="' + sliderDefault + '" step="100" ' +
+          'style="width:100%;margin:8px 0;accent-color:var(--primary)" ' +
+          'oninput="document.getElementById(\'loan-slider-value\').textContent=GameData.formatMoney(parseInt(this.value))">' +
+        '<div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--text-muted);margin-bottom:10px">' +
+          '<span>€500</span><span>' + GameData.formatMoney(sliderMax) + '</span>' +
+        '</div>' +
+        '<button class="btn btn-primary" style="width:100%" onclick="App.showLoanOffers(parseInt(document.getElementById(\'loan-slider\').value))">See Loan Offers</button>' +
+        '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:8px;text-align:center">' +
+          'Max payment capacity: ' + GameData.formatMoney(loanStats.paymentCap) + '/mo · ' +
+          'Rent history: ' + GameData.formatMoney(s.totalRentEarned || 0) +
+        '</div>';
+    }
+    html += '</div></div>';
 
     // Bank listings
     html += '<div class="finance-section"><div class="finance-section-title">Available Banks</div>';
