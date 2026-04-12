@@ -741,6 +741,32 @@ const App = {
     }
   },
 
+  showManagerSettings(cityId) {
+    var mgr = (GameEngine.state.managers || {})[cityId];
+    if (!mgr) return;
+    if (!mgr.settings) mgr.settings = { autoRent: true, autoRefurb: true, autoMitigation: true, autoDecisions: true };
+    var s = mgr.settings;
+    var city = GameData.cities.find(function(c) { return c.id === cityId; });
+
+    function toggle(key) {
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.06)">' +
+        '<span style="font-size:0.78rem">' + key.label + '<br><span style="font-size:0.65rem;color:var(--text-muted)">' + key.desc + '</span></span>' +
+        '<button class="btn btn-small" style="min-width:50px;font-size:0.7rem;padding:4px 8px;background:' + (s[key.id] ? 'var(--primary)' : '#ccc') + ';color:#fff;border:none" ' +
+          'onclick="GameEngine.state.managers[\'' + cityId + '\'].settings.' + key.id + '=!' + 'GameEngine.state.managers[\'' + cityId + '\'].settings.' + key.id + ';GameEngine.save();App.showManagerSettings(\'' + cityId + '\')">' +
+          (s[key.id] ? 'ON' : 'OFF') + '</button></div>';
+    }
+
+    var html = '<div style="padding:4px 0">' +
+      toggle({id:'autoRent', label:'Auto Re-rent Vacancies', desc:'Instantly find new tenants when properties go vacant'}) +
+      toggle({id:'autoRefurb', label:'Auto Refurbish', desc:'Renovate properties when condition drops to Poor'}) +
+      toggle({id:'autoMitigation', label:'Auto Buy Protection', desc:'Purchase fire, flood, security, insurance mitigations'}) +
+      toggle({id:'autoDecisions', label:'Auto Handle Decisions', desc:'Accept investments, handle tenant issues, emergency repairs'}) +
+    '</div>';
+
+    GameUI.showModal('⚙️ ' + mgr.icon + ' ' + mgr.name + ' — ' + (city ? city.name : ''), html,
+      '<button class="btn btn-primary" onclick="GameUI.hideModal();GameUI.renderCity()">Done</button>');
+  },
+
   fireManager(cityId) {
     var result = GameEngine.fireManager(cityId);
     if (result.success) {

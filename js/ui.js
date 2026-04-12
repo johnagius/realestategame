@@ -379,9 +379,14 @@ const GameUI = {
       var hasProps = GameEngine.state.properties.some(function(p){return p.cityId===city.id;});
       if (mgr) {
         mgrBar.style.display = '';
-        mgrBar.innerHTML = '<div style="padding:6px 10px;margin:0 8px 6px;background:rgba(44,110,73,0.06);border-radius:8px;font-size:0.72rem;display:flex;justify-content:space-between;align-items:center">' +
-          '<span>👔 ' + mgr.icon + ' <strong>' + mgr.name + '</strong> · ' + Math.round(mgr.fee*100) + '% fee · Q' + Math.round(mgr.quality*100) + '%</span>' +
-          '<button class="btn btn-ghost btn-small" style="font-size:0.62rem;padding:2px 6px" onclick="App.fireManager(\'' + city.id + '\')">Dismiss</button></div>';
+        mgrBar.innerHTML = '<div style="padding:6px 10px;margin:0 8px 6px;background:rgba(44,110,73,0.06);border-radius:8px;font-size:0.72rem">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center">' +
+            '<span>👔 ' + mgr.icon + ' <strong>' + mgr.name + '</strong> · ' + Math.round(mgr.fee*100) + '% fee · Q' + Math.round(mgr.quality*100) + '%</span>' +
+            '<span>' +
+              '<button class="btn btn-ghost btn-small" style="font-size:0.6rem;padding:1px 5px" onclick="App.showManagerSettings(\'' + city.id + '\')">⚙️</button>' +
+              '<button class="btn btn-ghost btn-small" style="font-size:0.6rem;padding:1px 5px" onclick="App.fireManager(\'' + city.id + '\')">✕</button>' +
+            '</span>' +
+          '</div></div>';
       } else if (hasProps) {
         mgrBar.style.display = '';
         mgrBar.innerHTML = '<div style="padding:4px 10px;margin:0 8px 6px;text-align:center"><button class="btn btn-secondary btn-small" style="font-size:0.7rem;width:100%" onclick="App.showManagerHire(\'' + city.id + '\')">👔 Hire Property Manager</button></div>';

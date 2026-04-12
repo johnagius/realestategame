@@ -2705,15 +2705,17 @@ const GameEngine = {
       var cityProps = self.state.properties.filter(function(p) { return p.cityId === cityId; });
 
       cityProps.forEach(function(p) {
+        var mgrSettings = mgr.settings || { autoRent: true, autoRefurb: true, autoMitigation: true, autoDecisions: true };
+
         // 1. Auto re-rent vacancies
-        if (!p.isRented && !p.isRefurbishing && !p.isBuilding && p.condition !== 'derelict' && p.monthlyRent > 0) {
+        if (mgrSettings.autoRent && !p.isRented && !p.isRefurbishing && !p.isBuilding && p.condition !== 'derelict' && p.monthlyRent > 0) {
           p.isRented = true;
           p.tenant = GameData.assignTenant(p);
           self._log('manager', 'auto-rent', 0, mgr.name + ' rented ' + p.name);
         }
 
         // 2. Auto refurbish if condition drops to poor or derelict
-        if (!p.isRefurbishing && (p.condition === 'poor' || p.condition === 'derelict')) {
+        if (mgrSettings.autoRefurb && !p.isRefurbishing && (p.condition === 'poor' || p.condition === 'derelict')) {
           var tier = mgr.trait === 'handyman' ? 'budget' : 'standard';
           var refurbResult = self.refurbishProperty(p.id, tier);
           if (refurbResult.success) {
@@ -2722,6 +2724,7 @@ const GameEngine = {
         }
 
         // 3. Auto-buy mitigations (insurance, fire alarm, security, flood barriers, seismic)
+        if (mgrSettings.autoMitigation) {
         var propMits = self.state.mitigations[p.id] || {};
         var mitOptions = self.getMitigationOptions(p);
         mitOptions.forEach(function(mit) {
@@ -2744,6 +2747,7 @@ const GameEngine = {
             }
           }
         });
+        } // end autoMitigation
 
         // 4. Collect fee on rented properties
         if (p.isRented && p.monthlyRent > 0) {
@@ -4136,6 +4140,8 @@ const GameEngine = {
 
     var mgr = this.state.managers[cityId];
     if (!mgr) return null;
+    var mgrSettings = mgr.settings || { autoRent: true, autoRefurb: true, autoMitigation: true, autoDecisions: true };
+    if (!mgrSettings.autoDecisions) return null;
 
     var type = decision.type;
     var data = decision.choices[0] ? decision.choices[0].data : {};
