@@ -164,7 +164,7 @@ const GameEngine = {
       })(),
       // Progressive feature unlocking
       unlockedFeatures: {
-        bank: false,           // unlocks at 1 property
+        bank: true,            // always visible (loans are gated by rent history anyway)
         businesses: false,     // unlocks at campaign tier 1
         investments: false,    // unlocks at campaign tier 2
         aiDiplomacy: false,    // unlocks at 5 properties

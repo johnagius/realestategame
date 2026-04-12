@@ -336,7 +336,7 @@ function testSuite_featureUnlocks() {
   console.log('\n=== TEST: Feature Unlock Progression ===');
   loadEngine(); GameEngine.newGame('armstrong');
   var uf = GameEngine.state.unlockedFeatures;
-  assert('bank locked at start', !uf.bank, 'bank=' + uf.bank);
+  assert('bank visible at start', uf.bank === true, 'bank=' + uf.bank);
   assert('businesses locked at start', !uf.businesses, 'businesses=' + uf.businesses);
   assert('investments locked at start', !uf.investments, 'investments=' + uf.investments);
   assert('AI diplomacy locked at start', !uf.aiDiplomacy, 'aiDiplomacy=' + uf.aiDiplomacy);
