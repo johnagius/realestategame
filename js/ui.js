@@ -1307,7 +1307,7 @@ const GameUI = {
         '<div class="trophy-case" id="trophy-grid" style="display:none">' + trophyHTML + '</div>' +
       '</div>' +
       '<div class="settings-section">' +
-        '<div class="settings-row"><div><div class="settings-label">Property Empire</div><div class="settings-description">v6.8 — Build your real estate fortune</div></div></div>' +
+        '<div class="settings-row"><div><div class="settings-label">Property Empire</div><div class="settings-description">v6.9 — Build your real estate fortune</div></div></div>' +
         '<div class="settings-row"><div><div class="settings-label">Month</div><div class="settings-description">' + GameEngine.getDateString() + ' (Month ' + GameEngine.state.month + ')</div></div></div>' +
       '</div>';
   },

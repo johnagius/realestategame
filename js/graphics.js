@@ -3140,23 +3140,271 @@ const GameGraphics = {
   },
 
   // ========== PROPERTY TYPE THUMBNAILS ==========
-  // Small inline SVGs for property cards (40x30px)
+  // Isometric-style inline SVGs with depth, lighting, and material quality (48x36px)
   propertyThumb(type) {
+    // Shared defs for lighting gradient (top-light source)
+    var D = '<defs><linearGradient id="tl" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(255,255,255,0.25)"/><stop offset="100%" stop-color="rgba(0,0,0,0.08)"/></linearGradient>' +
+      '<linearGradient id="sh" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="rgba(0,0,0,0.15)"/><stop offset="100%" stop-color="rgba(0,0,0,0)"/></linearGradient></defs>';
+    var S = '<svg viewBox="0 0 48 36" width="48" height="36" xmlns="http://www.w3.org/2000/svg">' + D;
+    var E = '</svg>';
     var thumbs = {
-      land: '<svg viewBox="0 0 40 30" width="40" height="30"><rect width="40" height="30" fill="#8AA878" rx="2"/><path d="M5,20 Q15,10 25,18 Q32,14 38,20 L38,28 L2,28Z" fill="#6A9058"/><circle cx="12" cy="12" r="2" fill="#3A6828"/><circle cx="28" cy="10" r="2.5" fill="#3A6828"/></svg>',
-      studio: '<svg viewBox="0 0 40 30" width="40" height="30"><rect width="40" height="30" fill="#B8C8D8" rx="2"/><rect x="10" y="6" width="20" height="22" fill="#8898A8" stroke="#6878A0" stroke-width="0.5"/><rect x="14" y="10" width="5" height="5" fill="#A8D0E8"/><rect x="21" y="10" width="5" height="5" fill="#A8D0E8"/><rect x="14" y="18" width="5" height="5" fill="#A8D0E8"/><rect x="21" y="18" width="5" height="5" fill="#F0D060" opacity="0.5"/></svg>',
-      apartment: '<svg viewBox="0 0 40 30" width="40" height="30"><rect width="40" height="30" fill="#B8C8D8" rx="2"/><rect x="8" y="4" width="24" height="24" fill="#7888A0" stroke="#5868A0" stroke-width="0.5"/><g fill="#A8D0E8"><rect x="12" y="7" width="4" height="3"/><rect x="18" y="7" width="4" height="3"/><rect x="24" y="7" width="4" height="3"/><rect x="12" y="12" width="4" height="3"/><rect x="18" y="12" width="4" height="3"/><rect x="24" y="12" width="4" height="3"/><rect x="12" y="17" width="4" height="3"/><rect x="18" y="17" width="4" height="3"/><rect x="24" y="17" width="4" height="3"/></g><rect x="17" y="22" width="6" height="6" fill="#3A4868"/></svg>',
-      penthouse: '<svg viewBox="0 0 40 30" width="40" height="30"><rect width="40" height="30" fill="#7898B8" rx="2"/><rect x="6" y="2" width="28" height="26" fill="#5878A0" stroke="#4060A0" stroke-width="0.5"/><rect x="10" y="4" width="20" height="12" fill="#88C0E0" opacity="0.4"/><rect x="10" y="18" width="8" height="8" fill="#A0D0E8"/><rect x="22" y="18" width="8" height="8" fill="#A0D0E8"/><circle cx="20" cy="10" r="4" fill="#F0D860" opacity="0.3"/></svg>',
-      townhouse: '<svg viewBox="0 0 40 30" width="40" height="30"><rect width="40" height="30" fill="#D0C8B8" rx="2"/><rect x="5" y="8" width="14" height="20" fill="#C08858" stroke="#8A5A38" stroke-width="0.5"/><rect x="21" y="10" width="14" height="18" fill="#B87848" stroke="#8A5A38" stroke-width="0.5"/><path d="M3,8 L12,2 L21,8" fill="#5A6A6A"/><path d="M19,10 L28,4 L37,10" fill="#5A6A6A"/><rect x="9" y="12" width="4" height="4" fill="#88B0C0"/><rect x="9" y="20" width="4" height="6" fill="#3A2818"/><rect x="25" y="14" width="4" height="4" fill="#88B0C0"/></svg>',
-      house: '<svg viewBox="0 0 40 30" width="40" height="30"><rect width="40" height="30" fill="#A0C898" rx="2"/><rect x="8" y="12" width="24" height="16" fill="#E0D0B8" stroke="#A89878" stroke-width="0.5"/><path d="M5,12 L20,3 L35,12" fill="#8A5A38"/><rect x="16" y="18" width="8" height="10" fill="#4A3020"/><rect x="10" y="15" width="5" height="5" fill="#88B8D0"/><rect x="25" y="15" width="5" height="5" fill="#88B8D0"/><circle cx="32" cy="22" r="5" fill="#3A7838" opacity="0.6"/></svg>',
-      villa: '<svg viewBox="0 0 40 30" width="40" height="30"><rect width="40" height="30" fill="#88B8A0" rx="2"/><rect x="4" y="10" width="32" height="18" fill="#F0E8D8" stroke="#B0A888" stroke-width="0.5"/><path d="M2,10 L20,2 L38,10" fill="#7A5A38"/><rect x="15" y="15" width="10" height="13" fill="#4A3828" rx="5" ry="5"/><rect x="7" y="13" width="5" height="5" fill="#88B8D0"/><rect x="28" y="13" width="5" height="5" fill="#88B8D0"/><ellipse cx="20" cy="28" rx="16" ry="3" fill="#4888A8" opacity="0.4"/></svg>',
-      mansion: '<svg viewBox="0 0 40 30" width="40" height="30"><rect width="40" height="30" fill="#7A9A88" rx="2"/><rect x="2" y="10" width="36" height="18" fill="#F0E0C8" stroke="#A89878" stroke-width="0.5"/><rect x="10" y="14" width="8" height="14" fill="#E8D8C0"/><path d="M0,10 L20,2 L40,10" fill="#5A4030"/><rect x="16" y="16" width="8" height="12" fill="#3A2818" rx="4" ry="4"/><line x1="2" y1="14" x2="2" y2="28" stroke="#D0C0A0" stroke-width="1.5"/><line x1="38" y1="14" x2="38" y2="28" stroke="#D0C0A0" stroke-width="1.5"/></svg>',
-      commercial: '<svg viewBox="0 0 40 30" width="40" height="30"><rect width="40" height="30" fill="#B0B8C0" rx="2"/><rect x="6" y="4" width="28" height="24" fill="#6080A0" stroke="#4060A0" stroke-width="0.5"/><g fill="#88C0E0" opacity="0.5"><rect x="9" y="6" width="22" height="8"/><rect x="9" y="16" width="22" height="8"/></g><rect x="14" y="24" width="12" height="4" fill="#A0C8D8"/><text x="20" y="12" text-anchor="middle" font-size="4" fill="#FFF" font-weight="700">OFFICE</text></svg>',
-      warehouse: '<svg viewBox="0 0 40 30" width="40" height="30"><rect width="40" height="30" fill="#A0A098" rx="2"/><rect x="3" y="10" width="34" height="18" fill="#8A8A82" stroke="#6A6A68" stroke-width="0.5"/><path d="M1,10 L20,4 L39,10" fill="#6A7A6A"/><rect x="8" y="15" width="10" height="13" fill="#5A5A58"/><rect x="22" y="15" width="10" height="13" fill="#5A5A58"/><line x1="13" y1="15" x2="13" y2="28" stroke="#4A4A48" stroke-width="1"/><line x1="27" y1="15" x2="27" y2="28" stroke="#4A4A48" stroke-width="1"/></svg>',
-      farm: '<svg viewBox="0 0 40 30" width="40" height="30"><rect width="40" height="30" fill="#8AAA68" rx="2"/><rect x="12" y="10" width="16" height="14" fill="#C8A878" stroke="#A08858" stroke-width="0.5"/><path d="M10,10 L20,4 L30,10" fill="#8A5A38"/><rect x="17" y="16" width="6" height="8" fill="#5A3820"/><g stroke="#6A8A48" stroke-width="0.6"><line x1="3" y1="20" x2="3" y2="28"/><line x1="6" y1="18" x2="6" y2="28"/><line x1="34" y1="19" x2="34" y2="28"/><line x1="37" y1="20" x2="37" y2="28"/></g></svg>',
-      tavern: '<svg viewBox="0 0 40 30" width="40" height="30"><rect width="40" height="30" fill="#B8A888" rx="2"/><rect x="8" y="8" width="24" height="20" fill="#8A6A48" stroke="#6A4A28" stroke-width="0.5"/><path d="M6,8 L20,2 L34,8" fill="#5A4030"/><rect x="16" y="16" width="8" height="12" fill="#4A3020" rx="1"/><rect x="12" y="11" width="5" height="4" fill="#F0C850" opacity="0.5"/><rect x="23" y="11" width="5" height="4" fill="#F0C850" opacity="0.5"/><text x="20" y="7" text-anchor="middle" font-size="3" fill="#5A3A20">🍺</text></svg>',
-      market: '<svg viewBox="0 0 40 30" width="40" height="30"><rect width="40" height="30" fill="#D0C0A0" rx="2"/><rect x="5" y="10" width="30" height="18" fill="#C8B898" stroke="#A09070" stroke-width="0.5"/><path d="M3,10 L20,4 L37,10" fill="#C84030" opacity="0.7"/><rect x="10" y="14" width="8" height="5" fill="#D8A040"/><rect x="22" y="14" width="8" height="5" fill="#40A058"/><rect x="10" y="22" width="8" height="5" fill="#4080C0"/></svg>',
-      workshop: '<svg viewBox="0 0 40 30" width="40" height="30"><rect width="40" height="30" fill="#B8A898" rx="2"/><rect x="6" y="8" width="28" height="20" fill="#A08868" stroke="#806848" stroke-width="0.5"/><path d="M4,8 L20,2 L36,8" fill="#6A5040"/><rect x="14" y="14" width="12" height="14" fill="#4A3828"/><circle cx="30" cy="18" r="4" fill="#8A8A88" stroke="#6A6A68" stroke-width="0.5"/></svg>'
+      land: S +
+        '<rect width="48" height="36" fill="#7BA868" rx="3"/>' +
+        '<path d="M0,22 Q8,16 16,20 Q24,14 32,19 Q40,15 48,21 L48,36 L0,36Z" fill="#5E9248"/>' +
+        '<path d="M0,24 Q12,20 24,23 Q36,19 48,24 L48,36 L0,36Z" fill="#4D8038" opacity="0.6"/>' +
+        '<circle cx="11" cy="14" r="4" fill="#3A7028" opacity="0.7"/><circle cx="11" cy="13.5" r="3.5" fill="#4A8438"/>' +
+        '<rect x="10.5" y="14" width="1" height="5" fill="#5A3A20" rx="0.5"/>' +
+        '<circle cx="35" cy="11" r="5" fill="#3A7028" opacity="0.7"/><circle cx="35" cy="10.5" r="4.5" fill="#4A8438"/>' +
+        '<rect x="34.5" y="11" width="1" height="6" fill="#5A3A20" rx="0.5"/>' +
+        '<path d="M20,26 Q22,24 24,26 Q26,24 28,26" fill="none" stroke="#8ABA78" stroke-width="0.5" opacity="0.5"/>' + E,
+
+      studio: S +
+        '<rect width="48" height="36" fill="#C0D0E0" rx="3"/>' +
+        '<rect x="0" y="28" width="48" height="8" fill="#A0B0B8" rx="0 0 3 3"/>' +
+        // Building body with side shadow
+        '<rect x="12" y="6" width="24" height="22" fill="#8898A8" rx="1"/>' +
+        '<rect x="12" y="6" width="24" height="22" fill="url(#tl)" rx="1"/>' +
+        '<rect x="12" y="6" width="4" height="22" fill="url(#sh)"/>' +
+        // Flat roof edge
+        '<rect x="11" y="5" width="26" height="2" fill="#6A7A90" rx="0.5"/>' +
+        // Windows with warm glow
+        '<g><rect x="16" y="10" width="5" height="4" fill="#88C0E0" rx="0.5"/><rect x="23" y="10" width="5" height="4" fill="#88C0E0" rx="0.5"/>' +
+        '<rect x="16" y="17" width="5" height="4" fill="#88C0E0" rx="0.5"/><rect x="23" y="17" width="5" height="4" fill="#F0D060" opacity="0.6" rx="0.5"/></g>' +
+        // Door
+        '<rect x="21" y="22" width="6" height="6" fill="#4A5868" rx="1"/>' +
+        // Ground shadow
+        '<ellipse cx="24" cy="29" rx="14" ry="1.5" fill="rgba(0,0,0,0.08)"/>' + E,
+
+      apartment: S +
+        '<rect width="48" height="36" fill="#B0C0D0" rx="3"/>' +
+        '<rect x="0" y="28" width="48" height="8" fill="#90A0B0" rx="0 0 3 3"/>' +
+        // Tall building
+        '<rect x="10" y="2" width="28" height="26" fill="#7088A0" rx="1"/>' +
+        '<rect x="10" y="2" width="28" height="26" fill="url(#tl)" rx="1"/>' +
+        '<rect x="10" y="2" width="5" height="26" fill="url(#sh)"/>' +
+        // Roof
+        '<rect x="9" y="1" width="30" height="2" fill="#5A7090" rx="0.5"/>' +
+        // Window grid 3x4
+        '<g fill="#90C8E0">' +
+        '<rect x="14" y="5" width="4" height="3" rx="0.3"/><rect x="20" y="5" width="4" height="3" rx="0.3"/><rect x="26" y="5" width="4" height="3" rx="0.3"/>' +
+        '<rect x="14" y="10" width="4" height="3" rx="0.3"/><rect x="20" y="10" width="4" height="3" rx="0.3"/><rect x="26" y="10" width="4" height="3" rx="0.3"/>' +
+        '<rect x="14" y="15" width="4" height="3" rx="0.3"/><rect x="20" y="15" width="4" height="3" rx="0.3"/><rect x="26" y="15" width="4" height="3" rx="0.3"/>' +
+        '<rect x="14" y="20" width="4" height="3" rx="0.3"/><rect x="20" y="20" width="4" height="3" rx="0.3"/><rect x="26" y="20" width="4" height="3" rx="0.3"/>' +
+        '</g>' +
+        // Entrance
+        '<rect x="19" y="24" width="6" height="4" fill="#3A5068" rx="0.5"/>' +
+        // Water tank on roof
+        '<rect x="28" y="-1" width="5" height="3" fill="#6A7A88" rx="0.5"/>' +
+        '<ellipse cx="24" cy="29" rx="16" ry="1.5" fill="rgba(0,0,0,0.08)"/>' + E,
+
+      penthouse: S +
+        '<rect width="48" height="36" fill="#6888B0" rx="3"/>' +
+        '<rect x="0" y="28" width="48" height="8" fill="#5878A0" rx="0 0 3 3"/>' +
+        // Tower with glass
+        '<rect x="8" y="1" width="32" height="27" fill="#5070A0" rx="1"/>' +
+        '<rect x="8" y="1" width="32" height="27" fill="url(#tl)" rx="1"/>' +
+        // Glass curtain wall effect
+        '<rect x="10" y="3" width="28" height="10" fill="#78B0D8" opacity="0.35" rx="0.5"/>' +
+        '<rect x="10" y="15" width="13" height="10" fill="#88C0E0" opacity="0.4" rx="0.5"/>' +
+        '<rect x="25" y="15" width="13" height="10" fill="#88C0E0" opacity="0.4" rx="0.5"/>' +
+        // Crown/setback
+        '<rect x="7" y="0" width="34" height="2" fill="#4060A0" rx="0.5"/>' +
+        '<line x1="24" y1="-3" x2="24" y2="0" stroke="#8098B0" stroke-width="1"/>' +
+        // Sky reflection
+        '<circle cx="24" cy="8" r="4" fill="#F0D860" opacity="0.15"/>' +
+        // Penthouse terrace
+        '<rect x="10" y="26" width="28" height="2" fill="#6888A8"/>' +
+        '<ellipse cx="24" cy="29" rx="18" ry="1.5" fill="rgba(0,0,0,0.1)"/>' + E,
+
+      townhouse: S +
+        '<rect width="48" height="36" fill="#D0C8B8" rx="3"/>' +
+        '<rect x="0" y="28" width="48" height="8" fill="#B8B0A0" rx="0 0 3 3"/>' +
+        // Left house
+        '<rect x="4" y="9" width="18" height="19" fill="#C08858" rx="0.5"/>' +
+        '<rect x="4" y="9" width="18" height="19" fill="url(#tl)" rx="0.5"/>' +
+        '<path d="M2,9 L13,2 L24,9" fill="#5A6A6A"/><path d="M2,9 L13,2 L13,9" fill="#6A7A7A"/>' +
+        // Right house
+        '<rect x="24" y="11" width="18" height="17" fill="#B07848" rx="0.5"/>' +
+        '<rect x="24" y="11" width="18" height="17" fill="url(#tl)" rx="0.5"/>' +
+        '<path d="M22,11 L33,4 L44,11" fill="#5A6A6A"/><path d="M22,11 L33,4 L33,11" fill="#6A7A7A"/>' +
+        // Windows
+        '<rect x="8" y="13" width="4" height="4" fill="#88B8D0" rx="0.3"/><rect x="14" y="13" width="4" height="4" fill="#88B8D0" rx="0.3"/>' +
+        '<rect x="8" y="20" width="4" height="7" fill="#3A2818" rx="0.5"/>' +
+        '<rect x="28" y="15" width="4" height="4" fill="#88B8D0" rx="0.3"/><rect x="34" y="15" width="4" height="4" fill="#88B8D0" rx="0.3"/>' +
+        '<rect x="30" y="22" width="4" height="6" fill="#3A2818" rx="0.5"/>' +
+        // Chimney
+        '<rect x="16" y="1" width="3" height="6" fill="#8A6A50"/>' + E,
+
+      house: S +
+        '<rect width="48" height="36" fill="#90C098" rx="3"/>' +
+        '<rect x="0" y="26" width="48" height="10" fill="#78A880" rx="0 0 3 3"/>' +
+        // House body
+        '<rect x="8" y="12" width="28" height="14" fill="#E0D0B8" rx="0.5"/>' +
+        '<rect x="8" y="12" width="28" height="14" fill="url(#tl)" rx="0.5"/>' +
+        // Roof with depth
+        '<path d="M5,12 L22,3 L39,12" fill="#8A5838"/><path d="M5,12 L22,3 L22,12" fill="#9A6848"/>' +
+        // Door
+        '<rect x="18" y="18" width="8" height="8" fill="#4A3020" rx="1"/>' +
+        '<circle cx="24.5" cy="22" r="0.6" fill="#D0A040"/>' +
+        // Windows
+        '<rect x="10" y="15" width="5" height="5" fill="#88B8D0" rx="0.3"/><rect x="10" y="15" width="5" height="2.5" fill="#78A8C0" rx="0.3 0.3 0 0"/>' +
+        '<rect x="29" y="15" width="5" height="5" fill="#88B8D0" rx="0.3"/><rect x="29" y="15" width="5" height="2.5" fill="#78A8C0" rx="0.3 0.3 0 0"/>' +
+        // Tree
+        '<circle cx="40" cy="19" r="5" fill="#3A7838" opacity="0.5"/><circle cx="40" cy="18" r="4" fill="#4A8A48"/>' +
+        // Chimney
+        '<rect x="30" y="3" width="3" height="7" fill="#8A6A50"/>' +
+        '<ellipse cx="22" cy="27" rx="16" ry="1.5" fill="rgba(0,0,0,0.06)"/>' + E,
+
+      villa: S +
+        '<rect width="48" height="36" fill="#80B8A0" rx="3"/>' +
+        '<rect x="0" y="26" width="48" height="10" fill="#68A888" rx="0 0 3 3"/>' +
+        // Villa body
+        '<rect x="4" y="10" width="36" height="16" fill="#F0E8D8" rx="0.5"/>' +
+        '<rect x="4" y="10" width="36" height="16" fill="url(#tl)" rx="0.5"/>' +
+        // Hipped roof
+        '<path d="M2,10 L24,2 L44,10" fill="#7A5838"/><path d="M2,10 L24,2 L24,10" fill="#8A6848"/>' +
+        // Arched door
+        '<rect x="17" y="15" width="10" height="11" fill="#4A3828" rx="5 5 0 0"/>' +
+        // Windows
+        '<rect x="7" y="14" width="5" height="5" fill="#88B8D0" rx="0.3"/><rect x="32" y="14" width="5" height="5" fill="#88B8D0" rx="0.3"/>' +
+        // Columns
+        '<line x1="6" y1="12" x2="6" y2="26" stroke="#D8D0C0" stroke-width="1.5"/>' +
+        '<line x1="42" y1="12" x2="42" y2="26" stroke="#D8D0C0" stroke-width="1.5"/>' +
+        // Pool
+        '<ellipse cx="24" cy="30" rx="14" ry="3" fill="#4890B0" opacity="0.45"/>' +
+        '<ellipse cx="24" cy="29.5" rx="12" ry="2" fill="#58A0C0" opacity="0.3"/>' + E,
+
+      mansion: S +
+        '<rect width="48" height="36" fill="#6A9A88" rx="3"/>' +
+        '<rect x="0" y="26" width="48" height="10" fill="#588A78" rx="0 0 3 3"/>' +
+        // Grand mansion
+        '<rect x="2" y="10" width="44" height="16" fill="#F0E0C8" rx="0.5"/>' +
+        '<rect x="2" y="10" width="44" height="16" fill="url(#tl)" rx="0.5"/>' +
+        // Central wing
+        '<rect x="14" y="8" width="20" height="18" fill="#E8D8C0" rx="0.5"/>' +
+        // Roof
+        '<path d="M0,10 L24,2 L48,10" fill="#5A4030"/><path d="M0,10 L24,2 L24,10" fill="#6A5040"/>' +
+        // Portico columns
+        '<line x1="16" y1="10" x2="16" y2="26" stroke="#D8C8B0" stroke-width="1.5"/>' +
+        '<line x1="22" y1="10" x2="22" y2="26" stroke="#D8C8B0" stroke-width="1.5"/>' +
+        '<line x1="28" y1="10" x2="28" y2="26" stroke="#D8C8B0" stroke-width="1.5"/>' +
+        '<line x1="34" y1="10" x2="34" y2="26" stroke="#D8C8B0" stroke-width="1.5"/>' +
+        // Grand door
+        '<rect x="20" y="16" width="8" height="10" fill="#3A2818" rx="4 4 0 0"/>' +
+        // Windows
+        '<rect x="5" y="14" width="4" height="4" fill="#88B8D0" rx="0.3"/><rect x="39" y="14" width="4" height="4" fill="#88B8D0" rx="0.3"/>' +
+        // Chimneys
+        '<rect x="6" y="4" width="2.5" height="5" fill="#8A7A68"/><rect x="40" y="4" width="2.5" height="5" fill="#8A7A68"/>' +
+        // Garden path
+        '<ellipse cx="24" cy="28" rx="18" ry="2" fill="rgba(0,0,0,0.06)"/>' + E,
+
+      commercial: S +
+        '<rect width="48" height="36" fill="#A8B0B8" rx="3"/>' +
+        '<rect x="0" y="28" width="48" height="8" fill="#8898A0" rx="0 0 3 3"/>' +
+        // Office tower
+        '<rect x="8" y="3" width="32" height="25" fill="#5878A0" rx="1"/>' +
+        '<rect x="8" y="3" width="32" height="25" fill="url(#tl)" rx="1"/>' +
+        '<rect x="8" y="3" width="6" height="25" fill="url(#sh)"/>' +
+        // Roof
+        '<rect x="7" y="2" width="34" height="2" fill="#4868A0" rx="0.5"/>' +
+        // Glass panels
+        '<g fill="#78B0D0" opacity="0.4">' +
+        '<rect x="11" y="5" width="12" height="9" rx="0.3"/><rect x="25" y="5" width="12" height="9" rx="0.3"/>' +
+        '<rect x="11" y="16" width="12" height="9" rx="0.3"/><rect x="25" y="16" width="12" height="9" rx="0.3"/>' +
+        '</g>' +
+        // Entrance
+        '<rect x="18" y="24" width="12" height="4" fill="#4A6880" rx="0.5"/>' +
+        '<ellipse cx="24" cy="29" rx="18" ry="1.5" fill="rgba(0,0,0,0.1)"/>' + E,
+
+      warehouse: S +
+        '<rect width="48" height="36" fill="#989890" rx="3"/>' +
+        '<rect x="0" y="28" width="48" height="8" fill="#808078" rx="0 0 3 3"/>' +
+        // Wide warehouse
+        '<rect x="2" y="10" width="44" height="18" fill="#8A8A82" rx="0.5"/>' +
+        '<rect x="2" y="10" width="44" height="18" fill="url(#tl)" rx="0.5"/>' +
+        // Roof ridge
+        '<path d="M0,10 L24,4 L48,10" fill="#6A7A6A"/><path d="M0,10 L24,4 L24,10" fill="#7A8A7A"/>' +
+        // Loading bays
+        '<rect x="6" y="15" width="12" height="13" fill="#5A5A58" rx="0.5"/>' +
+        '<rect x="30" y="15" width="12" height="13" fill="#5A5A58" rx="0.5"/>' +
+        '<line x1="12" y1="15" x2="12" y2="28" stroke="#4A4A48" stroke-width="0.8"/>' +
+        '<line x1="36" y1="15" x2="36" y2="28" stroke="#4A4A48" stroke-width="0.8"/>' +
+        // Ventilation
+        '<rect x="20" y="6" width="8" height="3" fill="#6A7A78" rx="0.5"/>' +
+        '<ellipse cx="24" cy="29" rx="22" ry="1.5" fill="rgba(0,0,0,0.06)"/>' + E,
+
+      farm: S +
+        '<rect width="48" height="36" fill="#80AA60" rx="3"/>' +
+        '<rect x="0" y="24" width="48" height="12" fill="#68944A" rx="0 0 3 3"/>' +
+        // Barn
+        '<rect x="12" y="10" width="20" height="14" fill="#C0A070" rx="0.5"/>' +
+        '<rect x="12" y="10" width="20" height="14" fill="url(#tl)" rx="0.5"/>' +
+        '<path d="M10,10 L22,4 L34,10" fill="#8A5838"/><path d="M10,10 L22,4 L22,10" fill="#9A6848"/>' +
+        '<rect x="19" y="16" width="6" height="8" fill="#5A3820" rx="0.5"/>' +
+        // Fence
+        '<g stroke="#8A7A58" stroke-width="0.6">' +
+        '<line x1="3" y1="21" x2="3" y2="26"/><line x1="7" y1="20" x2="7" y2="26"/><line x1="11" y1="21" x2="11" y2="26"/>' +
+        '<line x1="37" y1="20" x2="37" y2="26"/><line x1="41" y1="21" x2="41" y2="26"/><line x1="45" y1="20" x2="45" y2="26"/>' +
+        '<line x1="2" y1="22" x2="12" y2="22"/><line x1="36" y1="22" x2="46" y2="22"/>' +
+        '</g>' +
+        // Crop rows
+        '<g stroke="#5A8A38" stroke-width="0.4" opacity="0.5">' +
+        '<line x1="3" y1="28" x2="11" y2="28"/><line x1="3" y1="30" x2="11" y2="30"/><line x1="3" y1="32" x2="11" y2="32"/>' +
+        '<line x1="37" y1="28" x2="45" y2="28"/><line x1="37" y1="30" x2="45" y2="30"/><line x1="37" y1="32" x2="45" y2="32"/>' +
+        '</g>' + E,
+
+      tavern: S +
+        '<rect width="48" height="36" fill="#B8A888" rx="3"/>' +
+        '<rect x="0" y="26" width="48" height="10" fill="#A09878" rx="0 0 3 3"/>' +
+        // Tavern building
+        '<rect x="8" y="8" width="28" height="18" fill="#8A6A48" rx="0.5"/>' +
+        '<rect x="8" y="8" width="28" height="18" fill="url(#tl)" rx="0.5"/>' +
+        '<path d="M6,8 L22,2 L38,8" fill="#5A4030"/><path d="M6,8 L22,2 L22,8" fill="#6A5040"/>' +
+        // Warm windows (lit)
+        '<rect x="12" y="12" width="5" height="4" fill="#F0C850" opacity="0.6" rx="0.3"/>' +
+        '<rect x="27" y="12" width="5" height="4" fill="#F0C850" opacity="0.6" rx="0.3"/>' +
+        // Door
+        '<rect x="18" y="16" width="8" height="10" fill="#4A3020" rx="1"/>' +
+        // Sign
+        '<rect x="14" y="5" width="16" height="3" fill="#6A5040" rx="1"/>' +
+        '<text x="22" y="7.5" text-anchor="middle" font-size="2.5" fill="#F0D080" font-weight="700">TAVERN</text>' +
+        // Chimney smoke
+        '<rect x="30" y="1" width="3" height="5" fill="#7A6A58"/>' +
+        '<circle cx="31.5" cy="-1" r="2" fill="#D0C8C0" opacity="0.3"/>' + E,
+
+      market: S +
+        '<rect width="48" height="36" fill="#D0C0A0" rx="3"/>' +
+        '<rect x="0" y="26" width="48" height="10" fill="#B8A888" rx="0 0 3 3"/>' +
+        // Market hall
+        '<rect x="4" y="10" width="40" height="16" fill="#C8B898" rx="0.5"/>' +
+        '<rect x="4" y="10" width="40" height="16" fill="url(#tl)" rx="0.5"/>' +
+        // Striped awning
+        '<path d="M2,10 L24,4 L46,10" fill="#C84030" opacity="0.7"/>' +
+        '<path d="M2,10 L24,4 L24,10" fill="#D85040" opacity="0.7"/>' +
+        // Stall goods
+        '<rect x="8" y="14" width="9" height="5" fill="#D8A040" rx="0.5"/>' +
+        '<rect x="20" y="14" width="9" height="5" fill="#40A058" rx="0.5"/>' +
+        '<rect x="32" y="14" width="9" height="5" fill="#4080C0" rx="0.5"/>' +
+        // Open front
+        '<rect x="8" y="22" width="9" height="4" fill="#B8A070" rx="0.3"/>' +
+        '<rect x="20" y="22" width="9" height="4" fill="#B8A070" rx="0.3"/>' +
+        '<rect x="32" y="22" width="9" height="4" fill="#B8A070" rx="0.3"/>' + E,
+
+      workshop: S +
+        '<rect width="48" height="36" fill="#B0A090" rx="3"/>' +
+        '<rect x="0" y="26" width="48" height="10" fill="#989080" rx="0 0 3 3"/>' +
+        // Workshop building
+        '<rect x="6" y="8" width="32" height="18" fill="#A08868" rx="0.5"/>' +
+        '<rect x="6" y="8" width="32" height="18" fill="url(#tl)" rx="0.5"/>' +
+        '<path d="M4,8 L22,2 L40,8" fill="#6A5040"/><path d="M4,8 L22,2 L22,8" fill="#7A6050"/>' +
+        // Workshop door
+        '<rect x="14" y="14" width="14" height="12" fill="#4A3828" rx="0.5"/>' +
+        // Gear/wheel
+        '<circle cx="38" cy="18" r="4.5" fill="none" stroke="#7A7A78" stroke-width="1.5"/>' +
+        '<circle cx="38" cy="18" r="1.5" fill="#6A6A68"/>' +
+        // Chimney
+        '<rect x="30" y="1" width="3" height="5" fill="#7A6A58"/>' +
+        '<circle cx="31.5" cy="-1" r="1.5" fill="#B0A898" opacity="0.3"/>' + E
     };
     return thumbs[type] || thumbs['house'];
   },
