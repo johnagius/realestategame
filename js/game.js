@@ -12,8 +12,7 @@ const GameEngine = {
   // Log an economy event — always records when recording=true
   _log(category, action, amount, detail) {
     if (!this.debug && !this.recording) return;
-    // Only compute NW on summary entries (expensive calculation)
-    var nw = (category === 'summary' && this.state) ? Math.round(this.getNetWorth()) : 0;
+    var nw = this.state ? Math.round(this.getNetWorth()) : 0;
     var entry = {
       month: this.state ? this.state.month : 0,
       year: this.state ? this.state.year : 0,
@@ -1195,7 +1194,7 @@ const GameEngine = {
         this.state.cash -= monthlyTax;
         results.propertyTax = monthlyTax;
         results.expenses += monthlyTax;
-        this._log('tax', 'property', -monthlyTax, 'rate=' + (taxRate*100).toFixed(1) + '% on ' + taxableProps.length + ' taxable props worth ' + portfolioValue);
+        this._log('tax', 'property', -monthlyTax, 'rate=' + (taxRate*100).toFixed(1) + '% on ' + taxableProps.length + ' props (unsheltered=' + unshelteredValue + ' sheltered=' + shelteredValue + ')');
       }
     }
 
