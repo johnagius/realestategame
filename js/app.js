@@ -354,15 +354,28 @@ const App = {
   },
 
   acceptCampaign(cityId) {
+    // Cancel existing campaign first (if any)
     if (GameEngine.state.activeCampaign) {
       GameEngine.cancelCityCampaign();
     }
-    var ch = GameEngine.startCityCampaign(cityId);
     GameUI.hideModal();
+    var ch = GameEngine.startCityCampaign(cityId);
     if (ch) {
       GameUI.toast(ch.icon + ' Campaign started: ' + ch.title, 'milestone');
-      GameUI.updateHUD();
+    } else {
+      GameUI.toast('Campaign started for ' + cityId, 'info');
+      // Force-set if startCityCampaign returned null (edge case)
+      if (!GameEngine.state.activeCampaign) {
+        var challenge = GameEngine.cityUnlockChallenges.find(function(c) { return c.cityId === cityId; });
+        if (challenge && !GameEngine.isCityUnlocked(cityId)) {
+          GameEngine.state.activeCampaign = { cityId: cityId, startMonth: GameEngine.state.month, startNW: GameEngine.getNetWorth() };
+          if (challenge.setup) challenge.setup(GameEngine.state);
+          GameEngine.save();
+        }
+      }
     }
+    GameUI.updateHUD();
+    GameUI.renderMap();
   },
 
   showRandomTip() {
