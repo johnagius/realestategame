@@ -2725,16 +2725,19 @@ h4 { font-size: 1rem; }
   top: calc(var(--hud-height) + 26px);
   left: 50%;
   transform: translateX(-50%);
-  background: linear-gradient(135deg, rgba(44,110,73,0.1), rgba(212,168,75,0.08));
+  background: linear-gradient(135deg, rgba(44,110,73,0.15), rgba(212,168,75,0.1));
   border: 1px solid rgba(44,110,73,0.2);
   border-radius: 12px;
-  padding: 4px 14px;
-  font-size: 0.72rem;
+  padding: 3px 12px;
+  font-size: 0.68rem;
   color: var(--text-dark);
   z-index: 90;
-  white-space: nowrap;
+  white-space: normal;
+  max-width: 90vw;
+  text-align: center;
   box-shadow: 0 1px 6px rgba(0,0,0,0.06);
   backdrop-filter: blur(6px);
+  pointer-events: none;
 }
 
 .hud-campaign.hidden {
@@ -2743,7 +2746,7 @@ h4 { font-size: 1rem; }
 
 /* ---------- Fix scrolling: lock screens to viewport ---------- */
 .game-screen {
-  padding-top: calc(var(--hud-height) + 28px);
+  padding-top: calc(var(--hud-height) + 48px);
   overflow-y: auto;
   overflow-x: hidden;
 }
