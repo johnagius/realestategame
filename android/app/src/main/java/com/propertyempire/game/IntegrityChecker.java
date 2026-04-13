@@ -116,10 +116,7 @@ public class IntegrityChecker {
         try {
             ApplicationInfo ai = activity.getApplicationInfo();
             if ((ai.flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
-                // Flag debuggable APKs — legitimate debug builds are fine,
-                // but modded release APKs often re-enable this flag
                 threats.add("APK_DEBUGGABLE");
-                }
             }
         } catch (Exception ignored) {}
     }
