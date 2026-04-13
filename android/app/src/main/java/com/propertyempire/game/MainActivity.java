@@ -20,6 +20,7 @@ public class MainActivity extends Activity implements NativeBillingManager.Callb
     private WebView webView;
     private NativeAdManager adManager;
     private NativeBillingManager billingManager;
+    private boolean appIsGenuine = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,9 +40,19 @@ public class MainActivity extends Activity implements NativeBillingManager.Callb
 
         setContentView(R.layout.activity_main);
 
+        // Run integrity checks before initializing monetization
+        IntegrityChecker integrity = new IntegrityChecker(this);
+        boolean isGenuine = integrity.verify();
+
         // Initialize ads and billing
         adManager = new NativeAdManager(this);
         billingManager = new NativeBillingManager(this, this);
+
+        // If tampered, force ads on and block ad removal purchases
+        appIsGenuine = isGenuine;
+        if (!isGenuine) {
+            Log.w(TAG, "Integrity check failed — app may be tampered");
+        }
 
         webView = findViewById(R.id.webview);
 
@@ -77,13 +88,16 @@ public class MainActivity extends Activity implements NativeBillingManager.Callb
 
         @JavascriptInterface
         public void showInterstitial() {
-            if (billingManager.isAdsRemoved()) return;
-            adManager.showInterstitial();
+            // Tampered apps always see ads
+            if (!appIsGenuine || !billingManager.isAdsRemoved()) {
+                adManager.showInterstitial();
+            }
         }
 
         @JavascriptInterface
         public boolean isAdsRemoved() {
-            return billingManager.isAdsRemoved();
+            // Tampered apps never get ad-free status
+            return appIsGenuine && billingManager.isAdsRemoved();
         }
 
         @JavascriptInterface
