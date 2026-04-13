@@ -238,7 +238,7 @@ public class NativeBillingManager implements PurchasesUpdatedListener {
                     // Verify signature — blocks Lucky Patcher fake purchases
                     if (!verifyPurchaseSignature(purchase)) {
                         Log.w(TAG, "Rejecting purchase with invalid signature");
-                        return;
+                        continue;
                     }
 
                     // Acknowledge the purchase (required by Google)
@@ -247,10 +247,20 @@ public class NativeBillingManager implements PurchasesUpdatedListener {
                             com.android.billingclient.api.AcknowledgePurchaseParams.newBuilder()
                                 .setPurchaseToken(purchase.getPurchaseToken())
                                 .build(),
-                            ackResult -> Log.d(TAG, "Purchase acknowledged: " + ackResult.getResponseCode())
+                            ackResult -> {
+                                if (ackResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                                    Log.d(TAG, "Purchase acknowledged");
+                                    markAdsRemoved();
+                                } else {
+                                    Log.e(TAG, "Acknowledgment failed: " + ackResult.getDebugMessage());
+                                    // Don't grant premium yet — Google may retry or user can restore
+                                }
+                            }
                         );
+                    } else {
+                        // Already acknowledged (e.g., restore flow) — grant premium
+                        markAdsRemoved();
                     }
-                    markAdsRemoved();
                 }
             }
         } else if (result.getResponseCode() == BillingClient.BillingResponseCode.USER_CANCELED) {

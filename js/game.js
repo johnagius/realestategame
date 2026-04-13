@@ -273,6 +273,7 @@ const GameEngine = {
         }
         if (this.state.activeCampaign === undefined) this.state.activeCampaign = null;
         if (!this.state.managers) this.state.managers = {};
+        if (this.state.monthsSinceAd === undefined) this.state.monthsSinceAd = 0;
         // Reset city economic data to base values (fixes drifted inflation/growth from old saves)
         GameData.cities.forEach(function(city) {
           var base = GameData.cities.find(function(c) { return c.id === city.id; });

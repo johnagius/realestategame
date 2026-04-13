@@ -25,11 +25,17 @@ public class NativeAdManager {
     private static final String INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712";
 
     private final Activity activity;
+    private final DismissListener dismissListener;
     private InterstitialAd interstitialAd;
     private boolean isLoading = false;
 
-    public NativeAdManager(Activity activity) {
+    public interface DismissListener {
+        void onAdDismissed();
+    }
+
+    public NativeAdManager(Activity activity, DismissListener listener) {
         this.activity = activity;
+        this.dismissListener = listener;
 
         // Initialize the Mobile Ads SDK
         MobileAds.initialize(activity, initStatus -> {
@@ -53,13 +59,13 @@ public class NativeAdManager {
                     interstitialAd = ad;
                     isLoading = false;
 
-                    // When the ad is dismissed, pre-load the next one
                     ad.setFullScreenContentCallback(new FullScreenContentCallback() {
                         @Override
                         public void onAdDismissedFullScreenContent() {
                             Log.d(TAG, "Interstitial dismissed");
                             interstitialAd = null;
                             loadInterstitial();
+                            dismissListener.onAdDismissed();
                         }
 
                         @Override
@@ -67,6 +73,7 @@ public class NativeAdManager {
                             Log.e(TAG, "Interstitial failed to show: " + error.getMessage());
                             interstitialAd = null;
                             loadInterstitial();
+                            dismissListener.onAdDismissed();
                         }
                     });
                 }
@@ -89,6 +96,8 @@ public class NativeAdManager {
             } else {
                 Log.d(TAG, "Interstitial not ready, loading for next time");
                 loadInterstitial();
+                // No ad to show — notify immediately so _adShowing gets cleared
+                dismissListener.onAdDismissed();
             }
         });
     }

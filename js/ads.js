@@ -21,10 +21,16 @@ var AdManager = {
   _initialized: false,
   _adShowing: false,
   _adTimer: null,
+  _savedSpeed: 0,
 
   init: function() {
     if (this._initialized) return;
     this._initialized = true;
+
+    // Restore ad counter from game state (survives save/load/restart)
+    if (typeof GameEngine !== 'undefined' && GameEngine.state) {
+      this._monthsSinceAd = GameEngine.state.monthsSinceAd || 0;
+    }
 
     // Check if ads were previously removed (stored in localStorage)
     try {
@@ -46,16 +52,32 @@ var AdManager = {
   },
 
   /**
-   * Call this after every month advance (only when no decision is blocking).
+   * Count a month advance. Always call this — even during decision months.
+   * The counter ticks every month so the 5-month cadence is consistent.
+   */
+  countMonth: function() {
+    if (this._adsRemoved) return;
+    this._monthsSinceAd++;
+    // Persist to game state so it survives save/load/restart
+    if (typeof GameEngine !== 'undefined' && GameEngine.state) {
+      GameEngine.state.monthsSinceAd = this._monthsSinceAd;
+    }
+  },
+
+  /**
+   * Try to show an ad if the counter has reached the threshold.
+   * Only call this when no decision/AI popup is blocking the screen.
    * Returns true if an ad was shown.
    */
-  onMonthAdvanced: function() {
+  tryShowAd: function() {
     if (this._adsRemoved || this._adShowing) return false;
-
-    this._monthsSinceAd++;
 
     if (this._monthsSinceAd >= this.MONTHS_BETWEEN_ADS) {
       this._monthsSinceAd = 0;
+      // Sync reset to game state
+      if (typeof GameEngine !== 'undefined' && GameEngine.state) {
+        GameEngine.state.monthsSinceAd = 0;
+      }
       this._showInterstitial();
       return true;
     }
@@ -73,12 +95,12 @@ var AdManager = {
     }
 
     if (this._hasNativeBridge()) {
-      // Native Android — tell the bridge to show a real AdMob interstitial
-      // The native ad's dismiss callback will clear _adShowing
+      // Native Android — the bridge shows a real AdMob interstitial.
+      // NativeAdManager calls back _onAdDismissed() when the ad closes.
+      // Safety timeout in case the callback never fires (e.g., SDK error).
       window.PropertyEmpireBridge.showInterstitial();
-      // Native ads handle their own lifecycle; resume after a timeout fallback
       var self = this;
-      setTimeout(function() { self._onAdDismissed(); }, 30000);
+      setTimeout(function() { self._onAdDismissed(); }, 60000);
     } else {
       // Web fallback — show a styled placeholder
       this._showWebInterstitial();
