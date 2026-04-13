@@ -521,6 +521,11 @@ const App = {
     else if (GameUI.currentScreen === 'finances') GameUI.renderFinances();
     else if (GameUI.currentScreen === 'bank') GameUI.renderBank();
     else if (GameUI.currentScreen === 'settings') GameUI.renderSettings();
+
+    // Save again after ad counter update — GameEngine.save() in advanceMonth()
+    // runs before countMonth(), so the counter would be stale without this.
+    GameEngine.save();
+
     this._advancing = false;
   },
 
@@ -922,6 +927,8 @@ const App = {
       GameUI.showScreen(result.navigateTo);
     }
     GameUI.updateHUD();
+    // Show pending ad if counter reached threshold while decision was blocking
+    if (typeof AdManager !== 'undefined') AdManager.tryShowAd();
   },
 
   // ---- Historical Events ----
@@ -933,6 +940,8 @@ const App = {
     }
     GameUI.updateHUD();
     GameUI.hideDecision(); // Resume auto-play
+    // Show pending ad if counter reached threshold while event was blocking
+    if (typeof AdManager !== 'undefined') AdManager.tryShowAd();
   },
 
   // ---- Bank Savings ----
