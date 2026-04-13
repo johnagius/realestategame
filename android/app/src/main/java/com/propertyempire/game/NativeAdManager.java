@@ -20,9 +20,8 @@ public class NativeAdManager {
 
     private static final String TAG = "PE_Ads";
 
-    // TODO: Replace with your real interstitial ad unit ID
-    // Test ID below is Google's official test ID — safe for development
-    private static final String INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712";
+    // Property Empire interstitial ad unit (Month Advance)
+    private static final String INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-4133931500169713/4880162901";
 
     private final Activity activity;
     private final DismissListener dismissListener;
