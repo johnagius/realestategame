@@ -58,7 +58,8 @@ public class NativeBillingManager implements PurchasesUpdatedListener {
     private ProductDetails removeAdsProduct;
 
     // Runtime-only flag — never persisted without verification
-    private boolean adsRemovedVerified = false;
+    // Volatile: read from JSBridge thread, written from billing callback thread
+    private volatile boolean adsRemovedVerified = false;
 
     public interface Callback {
         void onAdsRemoved();
@@ -176,7 +177,7 @@ public class NativeBillingManager implements PurchasesUpdatedListener {
             PublicKey publicKey = KeyFactory.getInstance("RSA")
                 .generatePublic(new X509EncodedKeySpec(keyBytes));
 
-            java.security.Signature sig = java.security.Signature.getInstance("SHA1withRSA");
+            java.security.Signature sig = java.security.Signature.getInstance("SHA256withRSA");
             sig.initVerify(publicKey);
             sig.update(signedData.getBytes());
 

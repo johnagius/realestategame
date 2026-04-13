@@ -27,11 +27,10 @@
 -allowaccessmodification
 -mergeinterfacesaggressively
 
-# Remove all Log calls in release builds (don't leak info to attackers)
+# Remove verbose/debug/info log calls in release builds (don't leak info to attackers)
+# Keep Log.w (warnings) and Log.e (errors) for production diagnostics
 -assumenosideeffects class android.util.Log {
     public static int v(...);
     public static int d(...);
     public static int i(...);
-    public static int w(...);
 }
-# Keep Log.e for crash diagnostics

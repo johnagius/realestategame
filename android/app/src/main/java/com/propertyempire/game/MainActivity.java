@@ -116,6 +116,7 @@ public class MainActivity extends Activity implements NativeBillingManager.Callb
     public void onAdsRemoved() {
         Log.d(TAG, "Ads removed — notifying WebView");
         runOnUiThread(() -> {
+            if (isFinishing() || webView == null) return;
             // Tell the JS side that ads have been removed
             webView.evaluateJavascript(
                 "if(typeof AdManager!=='undefined'){AdManager._onAdsRemoved();}",

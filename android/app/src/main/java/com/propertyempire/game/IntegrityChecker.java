@@ -17,9 +17,15 @@ import java.util.List;
  *
  * Defends against:
  * - Repackaged/modded APKs (signature mismatch)
- * - Lucky Patcher and similar tools (package detection)
- * - Debugger attachment
- * - Running on emulators (optional)
+ * - Debug-flagged APKs (common in modded builds)
+ *
+ * Note: We intentionally do NOT scan for installed packages (Lucky Patcher etc.)
+ * because Google Play's automated review flags package enumeration as potentially
+ * malicious behavior. Instead, we rely on:
+ * - APK signature verification (catches repackaged APKs)
+ * - Purchase signature verification in NativeBillingManager (catches fake IAPs)
+ * - Encrypted purchase state with signature-derived key (catches pref tampering)
+ * - R8 obfuscation (makes reverse engineering harder)
  *
  * HOW TO SET UP:
  * 1. Build a signed release APK
@@ -34,31 +40,6 @@ public class IntegrityChecker {
     // Get it by running: keytool -printcert -jarfile app-release.apk
     // Format: uppercase hex with colons, e.g. "AB:CD:EF:..."
     private static final String RELEASE_SIGNATURE_SHA256 = "PLACEHOLDER";
-
-    // Known cheat/patch tool package names
-    private static final String[] THREAT_PACKAGES = {
-        "com.chelpus.lackypatch",
-        "com.dimonvideo.luckypatcher",
-        "com.forpda.lp",
-        "com.android.vending.billing.InAppBillingService.LUCK",
-        "com.android.vending.billing.InAppBillingService.CLON",
-        "com.android.vending.billing.InAppBillingService.LOCK",
-        "com.android.vending.billing.InAppBillingService.LACK",
-        "com.android.vendinc",                     // LP fake store
-        "com.android.vending.billing.InAppBillingSe",
-        "cc.madkite.freedom",                      // Freedom (IAP cracker)
-        "com.cih.game_cih",                        // GameCIH
-        "com.charles.lpoqasert",                   // LP variant
-        "catch_.telegramgold755",                   // LP variant
-        "zone.jasi2169.uretpatcher",               // Uret Patcher
-        "p.jasi2169.al3",                          // Uret variant
-        "com.leo.playcard",                        // Leo PlayCard (IAP cracker)
-        "org.sbtools.gamehack",                    // SB Game Hacker
-        "com.xmodgame",                            // Xmodgames
-        "org.creeplays.hack",                      // Creeplays Hack
-        "com.baseappfull.fwd",                     // Game Killer
-        "com.github.oneminusone.disablecontentguard" // Content Guard bypass
-    };
 
     private final Activity activity;
     private boolean isTampered = false;
@@ -77,9 +58,7 @@ public class IntegrityChecker {
         isTampered = false;
 
         checkSignature();
-        checkThreatPackages();
         checkDebuggable();
-        checkInstaller();
 
         if (!threats.isEmpty()) {
             isTampered = true;
@@ -132,19 +111,6 @@ public class IntegrityChecker {
         }
     }
 
-    /** Scan for known cheat/patch tools */
-    private void checkThreatPackages() {
-        PackageManager pm = activity.getPackageManager();
-        for (String pkg : THREAT_PACKAGES) {
-            try {
-                pm.getPackageInfo(pkg, 0);
-                threats.add("THREAT_PACKAGE:" + pkg);
-            } catch (PackageManager.NameNotFoundException ignored) {
-                // Good — not installed
-            }
-        }
-    }
-
     /** Check if the APK is marked as debuggable (modded APKs often enable this) */
     private void checkDebuggable() {
         try {
@@ -154,28 +120,6 @@ public class IntegrityChecker {
                 if (!BuildConfig.DEBUG) {
                     threats.add("APK_DEBUGGABLE");
                 }
-            }
-        } catch (Exception ignored) {}
-    }
-
-    /** Check if the app was installed from Google Play */
-    private void checkInstaller() {
-        try {
-            String installer;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                var info = activity.getPackageManager()
-                    .getInstallSourceInfo(activity.getPackageName());
-                installer = info.getInstallingPackageName();
-            } else {
-                installer = activity.getPackageManager()
-                    .getInstallerPackageName(activity.getPackageName());
-            }
-            // Google Play = "com.android.vending", Amazon = "com.amazon.venezia"
-            // null = sideloaded (ADB install), which is fine for development
-            // Only log — don't block sideloaded APKs since testers need this
-            if (installer != null && !installer.equals("com.android.vending")
-                    && !installer.equals("com.amazon.venezia")) {
-                Log.d(TAG, "Non-store installer: " + installer);
             }
         } catch (Exception ignored) {}
     }

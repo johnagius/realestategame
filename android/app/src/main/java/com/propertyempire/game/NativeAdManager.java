@@ -83,6 +83,7 @@ public class NativeAdManager {
     /** Show the interstitial ad if one is loaded */
     public void showInterstitial() {
         activity.runOnUiThread(() -> {
+            if (activity.isFinishing()) return;
             if (interstitialAd != null) {
                 interstitialAd.show(activity);
             } else {

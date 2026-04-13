@@ -461,9 +461,6 @@ const App = {
     var results = GameEngine.advanceMonth();
     GameUI.updateHUD();
 
-    // Show ad every 5 months
-    if (typeof AdManager !== 'undefined') AdManager.onMonthAdvanced();
-
     // Update floating leaderboard if open
     if (!document.getElementById('floating-leaderboard').classList.contains('hidden')) {
       GameUI.renderFloatingLeaderboard();
@@ -505,6 +502,9 @@ const App = {
       } else {
         GameUI.showDecision(results.decision);
       }
+    } else {
+      // Show ad only when no decision/AI popup is blocking the screen
+      if (typeof AdManager !== 'undefined') AdManager.onMonthAdvanced();
     }
 
     // Rotate tips every few months
