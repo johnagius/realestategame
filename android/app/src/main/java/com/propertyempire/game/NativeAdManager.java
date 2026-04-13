@@ -30,6 +30,7 @@ public class NativeAdManager {
 
     public interface DismissListener {
         void onAdDismissed();
+        void onAdNotAvailable();
     }
 
     public NativeAdManager(Activity activity, DismissListener listener) {
@@ -95,8 +96,8 @@ public class NativeAdManager {
             } else {
                 Log.d(TAG, "Interstitial not ready, loading for next time");
                 loadInterstitial();
-                // No ad to show — notify immediately so _adShowing gets cleared
-                dismissListener.onAdDismissed();
+                // No ad to show — tell JS to show the web fallback instead
+                dismissListener.onAdNotAvailable();
             }
         });
     }
