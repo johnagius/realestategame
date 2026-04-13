@@ -21,6 +21,7 @@ var AdManager = {
   _initialized: false,
   _adShowing: false,
   _adTimer: null,
+  _savedSpeed: 0,
 
   init: function() {
     if (this._initialized) return;
@@ -46,13 +47,21 @@ var AdManager = {
   },
 
   /**
-   * Call this after every month advance (only when no decision is blocking).
+   * Count a month advance. Always call this — even during decision months.
+   * The counter ticks every month so the 5-month cadence is consistent.
+   */
+  countMonth: function() {
+    if (this._adsRemoved) return;
+    this._monthsSinceAd++;
+  },
+
+  /**
+   * Try to show an ad if the counter has reached the threshold.
+   * Only call this when no decision/AI popup is blocking the screen.
    * Returns true if an ad was shown.
    */
-  onMonthAdvanced: function() {
+  tryShowAd: function() {
     if (this._adsRemoved || this._adShowing) return false;
-
-    this._monthsSinceAd++;
 
     if (this._monthsSinceAd >= this.MONTHS_BETWEEN_ADS) {
       this._monthsSinceAd = 0;

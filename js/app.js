@@ -461,6 +461,9 @@ const App = {
     var results = GameEngine.advanceMonth();
     GameUI.updateHUD();
 
+    // Always count the month for ad cadence (even during decision months)
+    if (typeof AdManager !== 'undefined') AdManager.countMonth();
+
     // Update floating leaderboard if open
     if (!document.getElementById('floating-leaderboard').classList.contains('hidden')) {
       GameUI.renderFloatingLeaderboard();
@@ -504,7 +507,7 @@ const App = {
       }
     } else {
       // Show ad only when no decision/AI popup is blocking the screen
-      if (typeof AdManager !== 'undefined') AdManager.onMonthAdvanced();
+      if (typeof AdManager !== 'undefined') AdManager.tryShowAd();
     }
 
     // Rotate tips every few months
