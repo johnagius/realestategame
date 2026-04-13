@@ -3,17 +3,23 @@ package com.propertyempire.game;
 import android.app.Activity;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements NativeBillingManager.Callback {
+
+    private static final String TAG = "PE_Main";
 
     private WebView webView;
+    private NativeAdManager adManager;
+    private NativeBillingManager billingManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +39,10 @@ public class MainActivity extends Activity {
 
         setContentView(R.layout.activity_main);
 
+        // Initialize ads and billing
+        adManager = new NativeAdManager(this);
+        billingManager = new NativeBillingManager(this, this);
+
         webView = findViewById(R.id.webview);
 
         // Configure WebView settings
@@ -45,6 +55,9 @@ public class MainActivity extends Activity {
         settings.setMediaPlaybackRequiresUserGesture(false); // allow game audio
         settings.setTextZoom(100);                     // prevent system font scaling
 
+        // Register the JS-to-native bridge
+        webView.addJavascriptInterface(new JSBridge(), "PropertyEmpireBridge");
+
         // Prevent links from opening in external browser
         webView.setWebViewClient(new WebViewClient());
         webView.setWebChromeClient(new WebChromeClient());
@@ -54,6 +67,47 @@ public class MainActivity extends Activity {
 
         // Load the game
         webView.loadUrl("file:///android_asset/web/index.html");
+    }
+
+    /**
+     * JavaScript bridge — exposed to the web game as window.PropertyEmpireBridge.
+     * The JS AdManager calls these methods to show ads and handle purchases.
+     */
+    private class JSBridge {
+
+        @JavascriptInterface
+        public void showInterstitial() {
+            if (billingManager.isAdsRemoved()) return;
+            adManager.showInterstitial();
+        }
+
+        @JavascriptInterface
+        public boolean isAdsRemoved() {
+            return billingManager.isAdsRemoved();
+        }
+
+        @JavascriptInterface
+        public void purchaseRemoveAds() {
+            billingManager.purchaseRemoveAds();
+        }
+
+        @JavascriptInterface
+        public void restorePurchase() {
+            billingManager.restorePurchase();
+        }
+    }
+
+    /** Called by NativeBillingManager when "Remove Ads" purchase is confirmed */
+    @Override
+    public void onAdsRemoved() {
+        Log.d(TAG, "Ads removed — notifying WebView");
+        runOnUiThread(() -> {
+            // Tell the JS side that ads have been removed
+            webView.evaluateJavascript(
+                "if(typeof AdManager!=='undefined'){AdManager._onAdsRemoved();}",
+                null
+            );
+        });
     }
 
     @Override

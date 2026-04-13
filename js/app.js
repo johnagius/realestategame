@@ -238,6 +238,9 @@ const App = {
   },
 
   enterGame(isNewGame) {
+    // Initialize ad manager
+    if (typeof AdManager !== 'undefined') AdManager.init();
+
     // Stop intro animation
     if (typeof IntroScene !== 'undefined') IntroScene.stop();
     document.getElementById('screen-splash').classList.remove('active');
@@ -457,6 +460,10 @@ const App = {
     this._advancing = true;
     var results = GameEngine.advanceMonth();
     GameUI.updateHUD();
+
+    // Show ad every 5 months
+    if (typeof AdManager !== 'undefined') AdManager.onMonthAdvanced();
+
     // Update floating leaderboard if open
     if (!document.getElementById('floating-leaderboard').classList.contains('hidden')) {
       GameUI.renderFloatingLeaderboard();

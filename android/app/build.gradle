@@ -30,4 +30,10 @@ android {
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'androidx.webkit:webkit:1.11.0'
+
+    // AdMob
+    implementation 'com.google.android.gms:play-services-ads:23.1.0'
+
+    // Google Play Billing (for "Remove Ads" IAP)
+    implementation 'com.android.billingclient:billing:7.0.0'
 }
