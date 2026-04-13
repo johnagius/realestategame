@@ -238,6 +238,9 @@ const App = {
   },
 
   enterGame(isNewGame) {
+    // Initialize ad manager
+    if (typeof AdManager !== 'undefined') AdManager.init();
+
     // Stop intro animation
     if (typeof IntroScene !== 'undefined') IntroScene.stop();
     document.getElementById('screen-splash').classList.remove('active');
@@ -457,6 +460,7 @@ const App = {
     this._advancing = true;
     var results = GameEngine.advanceMonth();
     GameUI.updateHUD();
+
     // Update floating leaderboard if open
     if (!document.getElementById('floating-leaderboard').classList.contains('hidden')) {
       GameUI.renderFloatingLeaderboard();
@@ -498,6 +502,9 @@ const App = {
       } else {
         GameUI.showDecision(results.decision);
       }
+    } else {
+      // Show ad only when no decision/AI popup is blocking the screen
+      if (typeof AdManager !== 'undefined') AdManager.onMonthAdvanced();
     }
 
     // Rotate tips every few months

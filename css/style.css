@@ -702,7 +702,7 @@ h4 { font-size: 1rem; }
 }
 @media (max-width: 400px) {
   .buy-row { flex-direction: column; }
-  .buy-btn { font-size: 0.8rem !important; padding: 10px 8px !important; }
+  .buy-btn { font-size: 0.8rem !important; padding: 10px 8px !important; white-space: normal; overflow: visible; text-overflow: clip; }
 }
 
 .btn-advance {
@@ -2100,7 +2100,7 @@ h4 { font-size: 1rem; }
   .property-detail-hero { padding: 16px; }
   .property-stats { grid-template-columns: 1fr 1fr; gap: 4px; }
   .tenant-info { font-size: 0.75rem; }
-  .rent-adjust .btn-ghost { font-size: 0.65rem; padding: 4px 6px; }
+  .rent-adjust .btn-ghost { font-size: 0.65rem; padding: 4px 6px; white-space: normal; overflow: visible; line-height: 1.2; }
   /* Finance */
   .forecast-header, .forecast-row { grid-template-columns: 32px 1fr 1fr 1fr; font-size: 0.65rem; }
   /* Modals */
@@ -2110,6 +2110,39 @@ h4 { font-size: 1rem; }
   .compare-table td, .compare-table th { padding: 4px 3px; }
   .decision-card { padding: 12px; }
   .buy-btn { font-size: 0.7rem; padding: 6px 4px; flex: 1; min-width: 0; }
+  /* Button text overflow fix for mobile */
+  .btn {
+    white-space: normal;
+    overflow: visible;
+    line-height: 1.3;
+    height: auto;
+  }
+  .property-actions .btn {
+    text-align: center;
+    min-height: 36px;
+  }
+  .property-actions .btn > span {
+    white-space: normal;
+    text-align: left;
+    flex: 1;
+    min-width: 0;
+  }
+  /* Property card text overflow */
+  .property-card-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .property-card-details {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+  /* Business card buy buttons */
+  .business-card .btn {
+    font-size: 0.7rem;
+    padding: 6px 4px;
+  }
   .decision-title { font-size: 0.95rem; }
   .decision-desc { font-size: 0.78rem; }
   /* Trophy case */

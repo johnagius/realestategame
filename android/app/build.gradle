@@ -1,0 +1,40 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.propertyempire.game'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.propertyempire.game"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "7.3"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true    // R8 obfuscation — makes decompilation much harder
+            shrinkResources true  // Remove unused resources
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.webkit:webkit:1.11.0'
+
+    // AdMob
+    implementation 'com.google.android.gms:play-services-ads:23.1.0'
+
+    // Google Play Billing (for "Remove Ads" IAP)
+    implementation 'com.android.billingclient:billing:7.0.0'
+}

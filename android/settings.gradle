@@ -1,0 +1,2 @@
+rootProject.name = "PropertyEmpire"
+include ':app'
