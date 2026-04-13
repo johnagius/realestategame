@@ -2111,20 +2111,37 @@ h4 { font-size: 1rem; }
   .decision-card { padding: 12px; }
   .buy-btn { font-size: 0.7rem; padding: 6px 4px; flex: 1; min-width: 0; }
   /* Button text overflow fix for mobile */
-  .property-actions .btn {
+  .btn {
     white-space: normal;
     overflow: visible;
-    text-align: center;
     line-height: 1.3;
-    min-height: 36px;
     height: auto;
+  }
+  .property-actions .btn {
+    text-align: center;
+    min-height: 36px;
   }
   .property-actions .btn > span {
     white-space: normal;
-    overflow: visible;
     text-align: left;
     flex: 1;
     min-width: 0;
+  }
+  /* Property card text overflow */
+  .property-card-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .property-card-details {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+  /* Business card buy buttons */
+  .business-card .btn {
+    font-size: 0.7rem;
+    padding: 6px 4px;
   }
   .decision-title { font-size: 0.95rem; }
   .decision-desc { font-size: 0.78rem; }
