@@ -124,6 +124,18 @@ public class MainActivity extends Activity
         });
     }
 
+    /** Called by NativeAdManager when no ad is available — JS shows web fallback */
+    @Override
+    public void onAdNotAvailable() {
+        runOnUiThread(() -> {
+            if (isFinishing() || webView == null) return;
+            webView.evaluateJavascript(
+                "if(typeof AdManager!=='undefined'){AdManager._showWebInterstitial();}",
+                null
+            );
+        });
+    }
+
     /** Called by NativeBillingManager when "Remove Ads" purchase is confirmed */
     @Override
     public void onAdsRemoved() {
