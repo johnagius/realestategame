@@ -238,7 +238,7 @@ public class NativeBillingManager implements PurchasesUpdatedListener {
                     // Verify signature — blocks Lucky Patcher fake purchases
                     if (!verifyPurchaseSignature(purchase)) {
                         Log.w(TAG, "Rejecting purchase with invalid signature");
-                        return;
+                        continue;
                     }
 
                     // Acknowledge the purchase (required by Google)

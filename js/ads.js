@@ -73,12 +73,12 @@ var AdManager = {
     }
 
     if (this._hasNativeBridge()) {
-      // Native Android — tell the bridge to show a real AdMob interstitial
-      // The native ad's dismiss callback will clear _adShowing
+      // Native Android — the bridge shows a real AdMob interstitial.
+      // NativeAdManager calls back _onAdDismissed() when the ad closes.
+      // Safety timeout in case the callback never fires (e.g., SDK error).
       window.PropertyEmpireBridge.showInterstitial();
-      // Native ads handle their own lifecycle; resume after a timeout fallback
       var self = this;
-      setTimeout(function() { self._onAdDismissed(); }, 30000);
+      setTimeout(function() { self._onAdDismissed(); }, 60000);
     } else {
       // Web fallback — show a styled placeholder
       this._showWebInterstitial();

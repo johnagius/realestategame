@@ -13,7 +13,8 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-public class MainActivity extends Activity implements NativeBillingManager.Callback {
+public class MainActivity extends Activity
+        implements NativeBillingManager.Callback, NativeAdManager.DismissListener {
 
     private static final String TAG = "PE_Main";
 
@@ -45,7 +46,7 @@ public class MainActivity extends Activity implements NativeBillingManager.Callb
         boolean isGenuine = integrity.verify();
 
         // Initialize ads and billing
-        adManager = new NativeAdManager(this);
+        adManager = new NativeAdManager(this, this);
         billingManager = new NativeBillingManager(this, this);
 
         // If tampered, force ads on and block ad removal purchases
@@ -111,13 +112,24 @@ public class MainActivity extends Activity implements NativeBillingManager.Callb
         }
     }
 
+    /** Called by NativeAdManager when an interstitial is dismissed or fails to show */
+    @Override
+    public void onAdDismissed() {
+        runOnUiThread(() -> {
+            if (isFinishing() || webView == null) return;
+            webView.evaluateJavascript(
+                "if(typeof AdManager!=='undefined'){AdManager._onAdDismissed();}",
+                null
+            );
+        });
+    }
+
     /** Called by NativeBillingManager when "Remove Ads" purchase is confirmed */
     @Override
     public void onAdsRemoved() {
         Log.d(TAG, "Ads removed — notifying WebView");
         runOnUiThread(() -> {
             if (isFinishing() || webView == null) return;
-            // Tell the JS side that ads have been removed
             webView.evaluateJavascript(
                 "if(typeof AdManager!=='undefined'){AdManager._onAdsRemoved();}",
                 null
@@ -127,7 +139,7 @@ public class MainActivity extends Activity implements NativeBillingManager.Callb
 
     @Override
     public void onBackPressed() {
-        if (webView.canGoBack()) {
+        if (webView != null && webView.canGoBack()) {
             webView.goBack();
         }
         // Don't call super — prevent accidental exit while playing
@@ -152,12 +164,12 @@ public class MainActivity extends Activity implements NativeBillingManager.Callb
     @Override
     protected void onPause() {
         super.onPause();
-        webView.onPause();
+        if (webView != null) webView.onPause();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        webView.onResume();
+        if (webView != null) webView.onResume();
     }
 }
