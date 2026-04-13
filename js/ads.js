@@ -27,6 +27,11 @@ var AdManager = {
     if (this._initialized) return;
     this._initialized = true;
 
+    // Restore ad counter from game state (survives save/load/restart)
+    if (typeof GameEngine !== 'undefined' && GameEngine.state) {
+      this._monthsSinceAd = GameEngine.state.monthsSinceAd || 0;
+    }
+
     // Check if ads were previously removed (stored in localStorage)
     try {
       this._adsRemoved = localStorage.getItem('pe_ads_removed') === 'true';
@@ -53,6 +58,10 @@ var AdManager = {
   countMonth: function() {
     if (this._adsRemoved) return;
     this._monthsSinceAd++;
+    // Persist to game state so it survives save/load/restart
+    if (typeof GameEngine !== 'undefined' && GameEngine.state) {
+      GameEngine.state.monthsSinceAd = this._monthsSinceAd;
+    }
   },
 
   /**
@@ -65,6 +74,10 @@ var AdManager = {
 
     if (this._monthsSinceAd >= this.MONTHS_BETWEEN_ADS) {
       this._monthsSinceAd = 0;
+      // Sync reset to game state
+      if (typeof GameEngine !== 'undefined' && GameEngine.state) {
+        GameEngine.state.monthsSinceAd = 0;
+      }
       this._showInterstitial();
       return true;
     }
