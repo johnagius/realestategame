@@ -405,3 +405,51 @@ in booms) and a naive one (buys the cheapest, never borrows):
 > and the code disagree, the bible wins; when the bible is silent, choose the
 > option that gives the player a decision with a non-obvious answer, and write
 > that decision into the bible.
+
+---
+
+## 16. Decisions made during implementation (engine v8.0.0, folded back into the bible)
+
+These were open in the sections above; the engine settled them and the
+simulator was tuned against them. They are now canon.
+
+- **Price scale.** 1850 London £14/m² × district factor 0.5–2.4 × type factor.
+  Starting cash: Chen £2,000 (≈4× the cheapest listing), Silva £900 plus a free
+  derelict terrace, Armstrong £1,200 plus a townhouse and a terrace carrying
+  68% and 55% mortgages, Vanderbilt £12,000 with +20% estate tax.
+- **Traits.** The head carries the family trait (Silva Builder, Armstrong
+  Charmer, Vanderbilt Banker, Chen none) plus the one trait picked at start, max
+  two. Chen's merchant network (and later a marriage alliance) reveals one
+  random listing's true value per year.
+- **Covenants** are evaluated on post-drift values. Bankruptcy by missed
+  margin calls = two forced sales within a two-year window.
+- **Depression** is a single −33% year (random recession → depression 12%);
+  scripted crash years are guaranteed (1866, 1873, 1890, 1907, 1920, 1929,
+  1931, 1973–74, 1987, 1990, 2000, 2008–09, 2020).
+- **Hidden defects.** Estate, distressed and auction purchases have a 50%
+  chance of −5..20 condition after purchase; the Surveyor trait halves it.
+  Rivals pre-empt 20% of fresh bargains before the board opens.
+- **Rivals** cap at 30 buildings and upgrade instead; start at 3× family cash ×
+  archetype multiplier; contest bargains with 0.45 × aggression scaled by how
+  good the deal looks to them; bid caps 0.86–1.06 × their own noisy appraisal.
+- **Progressive taxes.** Property-tax era multipliers 1.0 → 1.6; compulsory
+  insurance from the Boom era; wealth tax above 60× start cash × price index;
+  +0.3% maintenance for buildings older than 40 years.
+- **Cities** become available on historical dates (Singapore 1900, Dubai 1970,
+  …). Expansion cost £1,200 × price index × tier (1 / 2.2 / 4.5 / 8) × (1 + 0.35
+  per city held). Reputation gate 44 + 4 per city held + 3 × tier.
+- **Management.** Five self-managed buildings; one manager per city covers ten;
+  unmanaged = +8% vacancy, +2 decay per year, 20% chance of a 1%-of-value fine.
+- **Selling.** `market` sale is pending until year end and completes with a
+  cycle-dependent probability at the cycle "mood" price; `quick` is immediate
+  at 85%. Quick vs market is a real decision.
+- **Era-boundary set-pieces** at 1900, 1950 and 1980 in addition to the crash
+  years.
+- **API wrapping.** Every public call returns `{ ok, message, ...payload }`
+  with payloads wrapped (`{ok, listings}`, `{ok, reports}`), the leaderboard
+  includes the player row, `endYear` refuses with `needsDecision` while an
+  event is pending, and an open auction is auto-withdrawn at year end.
+- **Balance result (100 seeds × 4 families × 2 players × 30 y + 20 × 180 y):**
+  all ten §14 targets pass; "~15×" is read as a 10–22× band; competent
+  bankruptcy sits at 5.3%, the bottom of its band, because the scripted player
+  deleverages when the morning paper foreshadows trouble.

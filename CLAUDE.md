@@ -1,32 +1,24 @@
-# Claude Code Instructions for Property Empire
+# Claude Code Instructions for Property Empire (v8)
 
-## Version Bumping
-**ALWAYS bump the game version with every push to main.**
-Update these 3 places:
-1. `index.html` — splash screen `<p class="splash-version">vX.Y</p>`
-2. `index.html` — nav bar `<span id="game-version"...>vX.Y</span>`
-3. `sw.js` — cache name `const CACHE_NAME = 'property-empire-vX.Y';`
+Read `docs/REDESIGN.md` (design bible, the law), `docs/AUDIT.md` (why v7 failed) and `docs/TASKS.md` (phased plan) before changing anything. The master prompt is in the bible, section 15.
 
-Current version: v5.6
+## Layout
+- `js/engine/` — the game engine (`PE.*` namespace, load order in `ORDER.txt`). Pure, seeded, headless-testable. All rules and numbers live in `js/engine/data.js` (`PE.Data.balance`).
+- `js/sim/` — Node harness: `tests.js` (unit tests), `balance.js` (bible §14 table), `players.js` (scripted players).
+- `js/ui/` — player-facing UI (`PEUI`), `css/tokens.css` + `css/components.css` + `css/app.css` design system, `assets/icons.svg` sprite.
+- `js/city3d-engine.js`, `js/cities/*.js` — 3D city renderer and layouts; `js/intro.js` + `css/splash.css` — hero start screen.
+- `js/vendor/` — vendored runtime libraries (three.js). No CDN at runtime.
+- `archive/` — old recordings, prototypes and the v4.5 snapshot. Not deployed.
 
-## Game Recording Analysis
-**ALWAYS check for the latest game recording JSON file in the repo root.**
-Look for files matching `property-empire-recording-*.json` — the higher the number in the filename, the newer the recording. Analyze these recordings to find bugs, balance issues, and exploits before the user has to report them.
+## Rules
+- Never add auto-advance back. Never add a mechanic that makes a player choice irrelevant. Never ship a goal that is satisfied at game start.
+- Never tune a number without running `node js/sim/balance.js` and pasting the table into the PR. `node js/sim/tests.js` must stay green.
+- UI never recomputes engine formulas; every number comes from an engine payload.
+- Screenshot every screen you touch at 412×915 and 1280×800 with Playwright and look at the result before pushing.
+
+## Version bumping
+Bump with every push: `index.html` (splash version and nav), `sw.js` (`CACHE_NAME`), `js/engine/game.js` (`Game.version`). Current: v8.0.
 
 ## Deployment
-- Push to `main` branch deploys to GitHub Pages automatically
-- Service worker is network-first — updates reach players within 5 minutes
-- Game state is in localStorage — safe across updates
-
-## Testing
-- Run `node js/simulate.js` for automated test suite
-- Run simulations before pushing economy changes
-- Test all 4 families: silva (Hard), chen (Normal), armstrong (Easy), vanderbilt (Sandbox)
-
-## Key Files
-- `js/game.js` — game engine (all economy, logic)
-- `js/data.js` — city/property/business data, families, events
-- `js/ui.js` — all UI rendering
-- `js/app.js` — event handlers, navigation, modals
-- `js/simulate.js` — headless test suite
-- `sw.js` — service worker (cache version must match game version)
+- Push to `main` deploys to GitHub Pages; service worker is network-first.
+- Save key is `pe_v8_save` in localStorage (versioned via `PE.Storage.SAVE_VERSION` + migrations).
