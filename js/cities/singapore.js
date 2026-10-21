@@ -11,6 +11,8 @@ var CityDef_Singapore = {
     ['W','W','MRL','W','W','HB','W'],
     ['W','W','W','W','W','W','W'],
   ],
+  // Terrain tile drawn under a landmark (default 'LOT'); water landmarks keep their water
+  landmarkGround: { MRL:'W' },
   landmarkNames:{MBS:'🏨 Marina Bay Sands',MRL:'🦁 Merlion'},
   landmarks:{
     MBS:function(){

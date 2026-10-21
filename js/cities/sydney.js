@@ -19,6 +19,10 @@ var CityDef_Sydney = {
     ['CT', 'CT', 'CP', 'CP', 'CP', 'CT', 'CT'],
   ],
 
+  // Terrain tile drawn under a landmark (default 'LOT'); water landmarks keep their water
+
+  landmarkGround: { OPH:'W', HBR:'W' },
+
   landmarkNames: {
     OPH: '🎭 Sydney Opera House',
     HBR: '🌉 Harbour Bridge',

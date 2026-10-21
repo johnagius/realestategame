@@ -75,14 +75,13 @@ var Splash = {
       ok = City3D.renderCity(CityDef_London, this._host, this._props(this._eraIdx), {
         era: City3D.ERA_ORDER[this._eraIdx], quality: quality, night: 0.1,
         playerColor: '#d4a84b', rivalColors: { a: '#3d7bd8', b: '#b84a5a' },
-        autoOrbit: opts.orbitSpeed, ambientEvents: false,
+        autoOrbit: opts.orbitSpeed, ambientEvents: false, labels: false, horizon: 0.46,
       });
     } catch (e) { console.warn('Splash 3D failed', e); ok = false; }
     if (!ok) { this._startFallback(); return this; }
-    // Cinematic framing: slightly tighter and centred on the river
-    City3D._zoomGoal = 1.18; City3D._cam.zoom = 1.18; City3D._cam.updateProjectionMatrix();
-    City3D._camGoal.set(0, 18, 0); City3D._camTarget.set(0, 18, 0); City3D._updateCam();
-    City3D._pivot.rotation.y = 0.35;
+    this._frame(true);
+    this._onResize = this._frame.bind(this, false);
+    window.addEventListener('resize', this._onResize);
     el.classList.add('sp-hero--3d');
     this._setTag(this._eraIdx);
     this._t0 = performance.now();
@@ -91,13 +90,21 @@ var Splash = {
     return this;
   },
 
+  // Cinematic framing by aspect: city sits in the lower two thirds, sky above for the title
+  _frame: function(immediate) {
+    if (this._fallback || !this._host) return;
+    var asp = this._host.clientWidth / Math.max(1, this._host.clientHeight);
+    var tall = asp < 0.9;
+    City3D.setView({ x: 0, y: tall ? 84 : 62, z: 0, zoom: tall ? 1.0 : 0.98, rot: immediate ? 0.35 : undefined, horizon: tall ? 0.5 : 0.44, immediate: !!immediate });
+  },
+
   _tick: function() {
     if (!this._mounted || this._fallback) return;
     var self = this;
     this._raf = requestAnimationFrame(function() { self._tick(); });
     var t = (performance.now() - this._t0) / this._opts.dayCycleMs;
     // dusk → night → dusk, eased; windows flicker on as night rises
-    var n = 0.52 - 0.47 * Math.cos(t * Math.PI * 2);
+    var n = 0.52 - 0.47 * Math.cos((t + 0.11) * Math.PI * 2);
     if (Math.abs(n - City3D._night) > 0.004) City3D.setNight(n);
   },
 
@@ -141,6 +148,7 @@ var Splash = {
     this._mounted = false;
     if (this._timer) { clearInterval(this._timer); this._timer = null; }
     if (this._raf) { cancelAnimationFrame(this._raf); this._raf = null; }
+    if (this._onResize) { window.removeEventListener('resize', this._onResize); this._onResize = null; }
     if (!this._fallback && typeof City3D !== 'undefined') City3D.destroy();
     if (this._el && this._el.parentNode) this._el.parentNode.removeChild(this._el);
     this._el = null; this._host = null; this._fallback = false;
@@ -152,6 +160,10 @@ var IntroScene = {
   start: function() {
     var screen = document.getElementById('screen-splash');
     if (!screen || Splash._mounted) return;
+    // Only take over the splash when css/splash.css is loaded (otherwise leave the legacy canvas alone)
+    var probe = document.createElement('div'); probe.className = 'sp-hero'; probe.style.display = 'none'; document.body.appendChild(probe);
+    var styled = getComputedStyle(probe).position === 'absolute'; document.body.removeChild(probe);
+    if (!styled) return;
     var old = document.getElementById('splash-canvas'); if (old) old.style.display = 'none';
     Splash.mount(screen);
   },

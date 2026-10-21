@@ -20,6 +20,10 @@ var CityDef_London = {
     ['CT', 'CT', 'CT', 'CP', 'CP', 'CT', 'CT'],
   ],
 
+  // Terrain tile drawn under a landmark (default 'LOT'); water landmarks keep their water
+
+  landmarkGround: { TBR:'W' },
+
   landmarkNames: {
     BIG: '🕐 Big Ben & Parliament',
     TBR: '🌉 Tower Bridge',

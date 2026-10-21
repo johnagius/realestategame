@@ -19,6 +19,10 @@ var CityDef_Paris = {
     ['CT', 'CT', 'CT', 'CP', 'CP', 'CT', 'CT'],
   ],
 
+  // Terrain tile drawn under a landmark (default 'LOT'); water landmarks keep their water
+
+  landmarkGround: { NTD:'W' },
+
   landmarkNames: {
     EIF: '🗼 Eiffel Tower',
     NTD: '⛪ Notre-Dame',

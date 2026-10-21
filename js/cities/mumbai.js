@@ -11,6 +11,8 @@ var CityDef_Mumbai = {
     ['ST','RD','WR','RD','TH','RD','AP'],
     ['W','W','GWI','HB','HB','W','W'],
   ],
+  // Terrain tile drawn under a landmark (default 'LOT'); water landmarks keep their water
+  landmarkGround: { GWI:'HB' },
   landmarkNames:{GWI:'🕌 Gateway of India',TAJ:'🏨 Taj Palace Hotel'},
   landmarks:{
     GWI:function(){

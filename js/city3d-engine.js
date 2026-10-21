@@ -229,10 +229,11 @@ var City3D = {
 
   // Landmark label sprite (dark pill, gold hairline, serif caption)
   makeLabel: function(text) {
+    text = String(text).replace(/^[^\w(]+/, '');
     var cv = document.createElement('canvas');
     cv.width = 320; cv.height = 72;
     var c2 = cv.getContext('2d');
-    c2.font = '600 26px "Playfair Display", Georgia, serif';
+    c2.font = '700 30px "Playfair Display", Georgia, serif';
     var tw = Math.min(300, c2.measureText(text).width + 44);
     var x0 = (320 - tw) / 2;
     c2.fillStyle = 'rgba(8,10,18,.82)';
@@ -242,10 +243,20 @@ var City3D = {
     c2.fillStyle = '#f3e3b0'; c2.textAlign = 'center'; c2.textBaseline = 'middle';
     c2.fillText(text, 160, 37);
     var s = new THREE.Sprite(new THREE.SpriteMaterial({ map: this._canvasTex(cv), transparent: true, depthTest: false, depthWrite: false }));
-    s.scale.set(22, 4.95, 1);
+    s.scale.set(30, 6.75, 1);
     s.userData.label = true;
     s.renderOrder = 10;
     return s;
+  },
+
+  _glowTex: function() {
+    if (this._glowTexCache) return this._glowTexCache;
+    var cv = document.createElement('canvas'); cv.width = cv.height = 128;
+    var c = cv.getContext('2d'); var g = c.createRadialGradient(64, 64, 8, 64, 64, 64);
+    g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(0.5, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = g; c.fillRect(0, 0, 128, 128);
+    this._glowTexCache = this._canvasTex(cv); this._glowTexCache._keep = true;
+    return this._glowTexCache;
   },
 
   // FOR SALE board texture
@@ -464,7 +475,7 @@ var City3D = {
     var door = this.bx(1.8, 2.8, 0.25, M.WINOFF, false); door.position.set(0, 1.4, -D / 2 - 0.13); g.add(door);
     var step = this.bx(2.8, 0.4, 1.6, M.CONC); step.position.set(0, 0.2, -D / 2 - 1.2); g.add(step);
     this._addWinSimple(g, W, H, D, Math.max(1, Math.floor(H / 5)), 2);
-    g.userData.dims = { W: W, H: H + H * 0.6, D: D };
+    g.userData.dims = { W: W, H: H + H * 0.6, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
     return g;
   },
 
@@ -477,7 +488,7 @@ var City3D = {
     var box = this.bx(3.5, 2.4, 3, sk.accent); box.position.set(W * 0.22, H + 2.3, D * 0.22); g.add(box);
     this._bands(g, W, D, [H * 0.33, H * 0.66], 0.26, sk.accent);
     this._addWinSimple(g, W, H, D, Math.max(2, Math.floor(H / 5.5)), 2);
-    g.userData.dims = { W: W, H: H + 2, D: D };
+    g.userData.dims = { W: W, H: H + 2, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
     return g;
   },
 
@@ -492,7 +503,7 @@ var City3D = {
     this._bands(g, W, D, ys, 0.22, sk.accent);
     var tank = this.cy(1.8, 1.8, 3.6, 10, sk.accent); tank.position.set(-W * 0.25, H + H * 0.22 + 1.8, -D * 0.2); g.add(tank);
     this._addWinSimple(g, W, H, D, floors, 3);
-    g.userData.dims = { W: W, H: H + H * 0.22 + 4, D: D };
+    g.userData.dims = { W: W, H: H + H * 0.22 + 4, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
     return g;
   },
 
@@ -507,7 +518,7 @@ var City3D = {
     var spire = this.cy(0, 0.9, 18, 6, sk.trim); spire.position.y = H + H * 0.44 + 9; g.add(spire);
     this._addWinSimple(g, W, H, D, Math.floor(H / 7), 4);
     if (sk.led) { var led = this.bx(W + 0.3, 0.5, D + 0.3, sk.led, false); led.position.y = H - 0.5; g.add(led); led.userData.role = 'led'; }
-    g.userData.dims = { W: W, H: H + H * 0.44 + 18, D: D };
+    g.userData.dims = { W: W, H: H + H * 0.44 + 18, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
     return g;
   },
 
@@ -521,7 +532,7 @@ var City3D = {
     var stoop = this.bx(W * 0.5, 1.4, 3.2, M.CONC); stoop.position.set(0, 0.7, -D / 2 - 1.6); g.add(stoop);
     var door = this.bx(1.8, 3, 0.25, M.WINOFF, false); door.position.set(0, 2.9, -D / 2 - 0.13); g.add(door);
     this._addWinSimple(g, W, H, D, Math.floor(H / 5.5), 2);
-    g.userData.dims = { W: W, H: H + H * 0.28, D: D };
+    g.userData.dims = { W: W, H: H + H * 0.28, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
     return g;
   },
 
@@ -538,7 +549,7 @@ var City3D = {
     var porch = this.bx(W * 0.72, 0.8, 3, sk.trim); porch.position.set(0, H * 0.44 + 0.4, -D / 2 - 1); g.add(porch);
     var terrace = this.bx(W + 4, 0.5, D + 4, M.CONC); terrace.position.y = 0.25; g.add(terrace);
     this._addWinSimple(g, W, H, D, Math.floor(H / 6), 2);
-    g.userData.dims = { W: W + 4, H: H + H * 0.42, D: D + 4 };
+    g.userData.dims = { W: W + 4, H: H + H * 0.42, D: D + 4 }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
     return g;
   },
 
@@ -562,7 +573,7 @@ var City3D = {
     var entab = this.bx(W + 0.4, 1.8, 2.6, sk.trim, false); entab.position.set(0, H * 0.38 + 0.9, -D / 2 - 1.2); g.add(entab);
     var ped = this.gabledRoof(W + 0.4, 3.5, 2.6, sk.trim); ped.position.set(0, H * 0.38 + 1.8, -D / 2 - 1.2); g.add(ped);
     this._addWinSimple(g, W, H, D, Math.floor(H / 7), 3);
-    g.userData.dims = { W: W * 1.46, H: H + H * 0.22, D: D };
+    g.userData.dims = { W: W * 1.46, H: H + H * 0.22, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
     return g;
   },
 
@@ -576,7 +587,7 @@ var City3D = {
     var glass = this.bx(W * 0.85, H * 0.32, 0.18, sk.glass, false); glass.position.set(0, H * 0.18, -D / 2 - 0.1); g.add(glass);
     this._addWinSimple(g, W, H * 0.5, D, 1, 3, H * 0.5);
     if (sk.led) { var led = this.bx(W * 0.8, 0.35, 0.35, sk.led, false); led.position.set(0, H * 0.72 + H * 0.1 + 0.2, -D / 2 - 0.2); g.add(led); }
-    g.userData.dims = { W: W, H: H + 1.4, D: D };
+    g.userData.dims = { W: W, H: H + 1.4, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
     return g;
   },
 
@@ -592,7 +603,7 @@ var City3D = {
     var dockD = this.bx(W * 0.28, 2.2, 0.28, M.WINOFF, false); dockD.position.set(-W * 0.2, 1.1, -D / 2 - 0.14); g.add(dockD);
     var ch = this.cy(0.9, 1.1, 10, 8, sk.accent); ch.position.set(W * 0.35, H + 4, D * 0.3); g.add(ch);
     this._addWinSimple(g, W, H * 0.5, D, 1, 4, H * 0.5);
-    g.userData.dims = { W: W, H: H + H * 0.3, D: D };
+    g.userData.dims = { W: W, H: H + H * 0.3, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
     return g;
   },
 
@@ -611,7 +622,7 @@ var City3D = {
     if (sk.led) {
       [H, H + H * 0.28].forEach(function(y, i) { var w = i ? W * 0.76 : W, d = i ? D * 0.76 : D; var led = City3D.bx(w + 0.3, 0.45, d + 0.3, sk.led, false); led.position.y = y - 0.6; g.add(led); });
     }
-    g.userData.dims = { W: W, H: H + H * 0.44 + 20, D: D };
+    g.userData.dims = { W: W, H: H + H * 0.44 + 20, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
     return g;
   },
 
@@ -676,8 +687,8 @@ var City3D = {
     if (ownerCol) {
       var col = new THREE.Color(ownerCol);
       var T = this.TILE;
-      var frameMat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.75 });
-      var fw = T - 3.2, ft = 0.7;
+      var frameMat = new THREE.MeshBasicMaterial({ color: col, toneMapped: false });
+      var fw = T - 3.2, ft = 1.3;
       var fr = [];
       [[0, -fw / 2, fw, ft], [0, fw / 2, fw, ft], [-fw / 2, 0, ft, fw], [fw / 2, 0, ft, fw]].forEach(function(a) {
         var p = self.flatPlane(a[2], a[3], frameMat); p.position.set(a[0], 0.32, a[1]); fr.push(p);
@@ -686,29 +697,32 @@ var City3D = {
       fr.forEach(function(p) { p.geometry.dispose(); });
       // Banner (hanging from the top of the front face)
       var bh = Math.min(dims.H * 0.3, 14), bw = 2.6;
-      var bMat = new THREE.MeshLambertMaterial({ color: col, emissive: col, emissiveIntensity: 0.25, side: THREE.DoubleSide });
+      var bMat = new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide, toneMapped: false });
       var banner = new THREE.Mesh(new THREE.PlaneGeometry(bw, bh), bMat);
       banner.position.set(-dims.W * 0.25, dims.H * 0.62 - bh / 2 + 2, -dims.D / 2 - 0.45);
       fx.add(banner);
       var bar = this.bx(bw + 0.8, 0.3, 0.6, M.FLAGPOLE, false); bar.position.set(-dims.W * 0.25, dims.H * 0.62 + 2.1, -dims.D / 2 - 0.4); fx.add(bar);
-      // Flag on the roof
+      // Crown band around the roofline in the owner colour (readable from above)
       var top = bg.userData.roofY != null ? bg.userData.roofY : dims.H * 0.92;
-      var pole = this.cy(0.16, 0.16, 7, 5, M.FLAGPOLE); pole.position.set(dims.W * 0.3, top + 3.5, dims.D * 0.3); fx.add(pole);
-      var flag = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 2.4), bMat);
-      flag.position.set(dims.W * 0.3 + 2.1, top + 5.8, dims.D * 0.3);
+      var bw2 = bg.userData.bodyW || dims.W, bd2 = bg.userData.bodyD || dims.D;
+      var crown = this.bx(bw2 + 0.5, 1.1, bd2 + 0.5, bMat, false); crown.position.y = top - 0.9; fx.add(crown);
+      // Flag on the roof
+      var pole = this.cy(0.22, 0.22, 11, 5, M.FLAGPOLE); pole.position.set(bw2 * 0.3, top + 5.5, bd2 * 0.3); fx.add(pole);
+      var flag = new THREE.Mesh(new THREE.PlaneGeometry(6.5, 3.6), bMat);
+      flag.position.set(bw2 * 0.3 + 3.2, top + 9.2, bd2 * 0.3);
       flag.userData.flag = true; fx.add(flag);
-      var knob = this.sphr(0.35, 6, new THREE.MeshBasicMaterial({ color: 0xffe9a8 })); knob.position.set(dims.W * 0.3, top + 7.1, dims.D * 0.3); fx.add(knob);
+      var knob = this.sphr(0.45, 6, new THREE.MeshBasicMaterial({ color: 0xffe9a8 })); knob.position.set(bw2 * 0.3, top + 11.2, bd2 * 0.3); fx.add(knob);
       if (this._animated) this._animated.push(flag);
     }
 
     // Listing: FOR SALE board on a post, billboarded about Y, with pulse
     if (prop && prop.isListing) {
       var sg = new THREE.Group();
-      var board = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 3.6), new THREE.MeshBasicMaterial({ map: this._saleTex(), side: THREE.DoubleSide }));
-      board.position.y = 6.2; sg.add(board);
-      var back = this.bx(7.4, 3.8, 0.3, M.SIGNPOST, false); back.position.set(0, 6.2, 0.2); sg.add(back);
-      [-2.6, 2.6].forEach(function(x) { var leg = self.bx(0.36, 5, 0.36, M.SIGNPOST); leg.position.set(x, 2.5, 0.2); sg.add(leg); });
-      sg.position.set(-dims.W * 0.5 - 2.2, 0, -dims.D * 0.5 - 2.4);
+      var board = new THREE.Mesh(new THREE.PlaneGeometry(12, 6), new THREE.MeshBasicMaterial({ map: this._saleTex(), side: THREE.DoubleSide }));
+      board.position.y = 10; sg.add(board);
+      var back = this.bx(12.3, 6.3, 0.4, M.SIGNPOST, false); back.position.set(0, 10, -0.25); sg.add(back);
+      [-4.2, 4.2].forEach(function(x) { var leg = self.bx(0.5, 7.2, 0.5, M.SIGNPOST); leg.position.set(x, 3.6, -0.25); sg.add(leg); });
+      sg.userData.radius = Math.max(dims.W, dims.D) * 0.5 + 5;
       sg.userData.sign = true; sg.userData.phase = Math.random() * 6.28;
       fx.add(sg);
       if (this._signs) this._signs.push(sg);
@@ -739,7 +753,7 @@ var City3D = {
       var n2 = new THREE.Mesh(new THREE.PlaneGeometry(sd, sh), M.NET); n2.rotation.y = Math.PI / 2; n2.position.set(-sw / 2 - 0.2, sh / 2, 0); fx.add(n2);
       if (prop.renovation.tier === 'rebuild') {
         var cg = new THREE.Group();
-        var mastH = dims.H + 22;
+        var mastH = (bg.userData.roofY || dims.H * 0.7) + 18;
         var mast = this.bx(1.6, mastH, 1.6, M.CRANE); mast.position.set(0, mastH / 2, 0); cg.add(mast);
         var jibG = new THREE.Group(); jibG.position.y = mastH;
         var jib = this.bx(30, 1.2, 1.2, M.CRANE); jib.position.x = 9; jibG.add(jib);
@@ -760,9 +774,9 @@ var City3D = {
 
     // Prime condition: subtle rim light (inverted hull, additive)
     if (cond >= 85) {
-      var rimMat = new THREE.MeshBasicMaterial({ color: 0xffe9b8, transparent: true, opacity: 0.16, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false });
-      var rim = new THREE.Mesh(new THREE.BoxGeometry(dims.W + 1.2, dims.H * 0.9 + 1, dims.D + 1.2), rimMat);
-      rim.position.y = (dims.H * 0.9) / 2; rim.userData.rim = true; fx.add(rim);
+      if (bg.userData.skin) { bg.userData.skin.trim.emissive = new THREE.Color(0x4a3a18); bg.userData.skin.wall.emissive = new THREE.Color(0x100c06); }
+      var glow = new THREE.Mesh(new THREE.PlaneGeometry(this.TILE * 1.15, this.TILE * 1.15), new THREE.MeshBasicMaterial({ map: this._glowTex(), color: 0xffd9a0, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending, depthWrite: false }));
+      glow.rotation.x = -Math.PI / 2; glow.position.y = 0.34; glow.userData.rim = true; fx.add(glow);
     }
     // Derelict: ground debris + soot haze
     if (cond < 20) {
@@ -801,22 +815,25 @@ var City3D = {
     var nightTop = new THREE.Color(0x03050f), nightMid = new THREE.Color(0x0b1230), nightBot = new THREE.Color(0x1a1a3a);
     top.lerp(nightTop, n); mid.lerp(nightMid, n * 0.9); bot.lerp(nightBot, n * 0.85);
     var g = c.createLinearGradient(0, 0, 0, 256);
-    g.addColorStop(0, '#' + top.getHexString()); g.addColorStop(0.55, '#' + mid.getHexString()); g.addColorStop(1, '#' + bot.getHexString());
+    var deep = bot.clone().lerp(new THREE.Color(0x000000), 0.5), floor = new THREE.Color(P.ground).lerp(new THREE.Color(0x000000), 0.6);
+    var hz = this._horizon != null ? this._horizon : 0.42;
+    g.addColorStop(0, '#' + top.getHexString()); g.addColorStop(hz * 0.6, '#' + mid.getHexString()); g.addColorStop(hz, '#' + bot.getHexString());
+    g.addColorStop(Math.min(1, hz + 0.18), '#' + deep.getHexString()); g.addColorStop(1, '#' + floor.getHexString());
     c.fillStyle = g; c.fillRect(0, 0, 2, 256);
     if (this._skyTex) this._skyTex.needsUpdate = true;
-    if (this._scene && this._scene.fog) { this._scene.fog.color.set(P.fog).lerp(nightMid, n * 0.7); }
+    if (this._scene && this._scene.fog) { this._scene.fog.color.copy(bot).lerp(new THREE.Color(P.fog), 0.25); }
   },
 
   _applyLighting: function() {
     var n = this._night, P = this.ERAS[this._era] || this.ERAS.modern;
     if (this._sun) {
       this._sun.color.set(0xffc78a).lerp(new THREE.Color(0x8ea4d6), n);
-      this._sun.intensity = 1.75 - n * 1.25;
+      this._sun.intensity = 1.9 - n * 1.3;
       var a = 0.55 + n * 0.5;
       this._sun.position.set(Math.cos(a) * 240, 110 + n * 120, Math.sin(a) * 240);
     }
-    if (this._amb) { this._amb.color.set(0x5a4a60).lerp(new THREE.Color(0x1a2240), n); this._amb.intensity = 1.0 - n * 0.3; }
-    if (this._hemi) { this._hemi.color.set(0xffd2a0).lerp(new THREE.Color(0x203050), n); this._hemi.groundColor.set(0x3a2a28).lerp(new THREE.Color(0x101418), n); this._hemi.intensity = 0.7 - n * 0.25; }
+    if (this._amb) { this._amb.color.set(0x4a3e58).lerp(new THREE.Color(0x182038), n); this._amb.intensity = 0.7 - n * 0.2; }
+    if (this._hemi) { this._hemi.color.set(0xffd2a0).lerp(new THREE.Color(0x203050), n); this._hemi.groundColor.set(0x3a2a28).lerp(new THREE.Color(0x101418), n); this._hemi.intensity = 0.5 - n * 0.2; }
     if (this._stars) this._stars.material.opacity = Math.max(0, n - 0.3) * 1.4;
     if (this._moon) this._moon.material.opacity = Math.max(0, n - 0.2) * 1.2;
     this._paintSky();
@@ -832,6 +849,8 @@ var City3D = {
     var low = this._quality === 'low';
     this._era = opts.era || 'modern';
     this._night = opts.night != null ? opts.night : 0.55;
+    this._horizon = opts.horizon != null ? opts.horizon : 0.42;
+    this._camDist = 700;
     this._fades = []; this._winMeshes = []; this._signs = []; this._animated = []; this._textures = []; this._skins = [];
     this._winRng = this._mkRng(2718);
 
@@ -841,12 +860,12 @@ var City3D = {
 
     var scene = new THREE.Scene();
     scene.background = this._makeSky();
-    scene.fog = new THREE.Fog(0x1c2240, 420, 900);
+    scene.fog = new THREE.Fog(0x1c2240, 560, 1150);
     this._scene = scene;
 
     // Camera
     var asp = VW / VH;
-    var cam = new THREE.OrthographicCamera(-100 * asp, 100 * asp, 100, -100, -600, 1600);
+    var cam = new THREE.OrthographicCamera(-100 * asp, 100 * asp, 100, -100, 1, 2200);
     this._camDir = new THREE.Vector3(1, 0.86, 1).normalize();
     this._camTarget = new THREE.Vector3(0, this.TY, 0); this._camGoal = this._camTarget.clone();
     this._cam = cam;
@@ -863,7 +882,7 @@ var City3D = {
     renderer.shadowMap.enabled = !low;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 1.0;
     renderer.outputEncoding = THREE.sRGBEncoding;
     this._renderer = renderer;
 
@@ -881,9 +900,11 @@ var City3D = {
 
     // Stars + moon (sky dome objects, fog disabled)
     var sp = [], nStars = low ? 350 : 1100;
-    for (var i = 0; i < nStars; i++) {
-      var t = Math.random() * Math.PI * 2, p = Math.acos(Math.random() * 0.9), r = 700 + Math.random() * 120;
-      sp.push(r * Math.sin(p) * Math.cos(t), r * Math.cos(p), r * Math.sin(p) * Math.sin(t));
+    var cd = this._camDir;
+    while (sp.length < nStars * 3) {
+      var t = Math.random() * Math.PI * 2, p = Math.acos(Math.random() * 0.92), r = 900 + Math.random() * 150;
+      var sx = r * Math.sin(p) * Math.cos(t), sy = r * Math.cos(p), sz = r * Math.sin(p) * Math.sin(t);
+      if (sx * cd.x + sy * cd.y + sz * cd.z < -r * 0.15) sp.push(sx, sy, sz);
     }
     var sg = new THREE.BufferGeometry();
     sg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(sp), 3));
@@ -899,7 +920,7 @@ var City3D = {
 
     // Pivot (rotation) + clouds
     var pivot = new THREE.Group(); scene.add(pivot); this._pivot = pivot;
-    this._makeClouds(low ? 5 : 10);
+    if (opts.clouds !== false) this._makeClouds(opts.clouds || (low ? 4 : 7));
 
     // Selection ring (flat, gold)
     var ring = new THREE.Mesh(new THREE.RingGeometry(0.46, 0.5, 48), new THREE.MeshBasicMaterial({ color: 0xffd36a, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false }));
@@ -918,8 +939,8 @@ var City3D = {
     var GW = def ? def.layout[0].length : 7, GH = def ? def.layout.length : 8;
     var diag = (GW + GH) * T / Math.SQRT2 * 0.5 + T * 0.4; // half width of the rotated diamond
     var elev = Math.atan2(this._camDir.y, Math.hypot(this._camDir.x, this._camDir.z));
-    var depth = diag * Math.sin(elev) + 95 * Math.cos(elev) * 0.5 + 10; // vertical half extent incl. buildings
-    var needV = Math.max(depth, diag * 0.82 / asp) * 1.04;
+    var depth = diag * Math.sin(elev) + 20; // vertical half extent incl. building headroom
+    var needV = Math.max(depth, diag * 0.74 / asp);
     this._CS = needV; this._asp = asp;
     this._updateCam();
   },
@@ -930,26 +951,26 @@ var City3D = {
     var cam = this._cam, CS = this._CS, asp = this._asp || 1;
     cam.left = -CS * asp; cam.right = CS * asp; cam.top = CS; cam.bottom = -CS;
     cam.updateProjectionMatrix();
-    var pos = this._camTarget.clone().addScaledVector(this._camDir, 600);
+    var pos = this._camTarget.clone().addScaledVector(this._camDir, 700);
     cam.position.copy(pos); cam.lookAt(this._camTarget);
   },
 
   _makeClouds: function(n) {
     var cv = document.createElement('canvas'); cv.width = 256; cv.height = 128;
     var c = cv.getContext('2d');
-    for (var k = 0; k < 7; k++) {
-      var x = 40 + Math.random() * 176, y = 40 + Math.random() * 48, r = 28 + Math.random() * 30;
-      var g = c.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(0.6, 'rgba(255,255,255,.18)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    var puffs = [[70, 78, 34], [110, 62, 42], [150, 70, 38], [190, 82, 30], [128, 86, 48], [90, 90, 30], [170, 90, 32]];
+    puffs.forEach(function(pf) {
+      var g = c.createRadialGradient(pf[0], pf[1], pf[2] * 0.15, pf[0], pf[1], pf[2]);
+      g.addColorStop(0, 'rgba(255,255,255,.95)'); g.addColorStop(0.55, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
       c.fillStyle = g; c.fillRect(0, 0, 256, 128);
-    }
+    });
     var tex = this._canvasTex(cv);
     this._clouds = [];
     for (var i = 0; i < n; i++) {
-      var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.22 + Math.random() * 0.2, depthWrite: false, fog: false, color: 0xd9c8d8 });
+      var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.07 + Math.random() * 0.06, depthWrite: false, fog: false, color: 0xe6d8e4 });
       var s = new THREE.Sprite(mat);
-      var w = 90 + Math.random() * 110;
-      s.scale.set(w, w * 0.45, 1);
+      var w = 60 + Math.random() * 70;
+      s.scale.set(w, w * 0.32, 1);
       s.position.set((Math.random() - 0.5) * 520, 150 + Math.random() * 70, (Math.random() - 0.5) * 520);
       s.userData.speed = 0.4 + Math.random() * 0.6;
       this._pivot.add(s); this._clouds.push(s);
@@ -1047,7 +1068,6 @@ var City3D = {
     var lim = this._CS * 0.9;
     this._camGoal.x = Math.max(-lim, Math.min(lim, this._camGoal.x));
     this._camGoal.z = Math.max(-lim, Math.min(lim, this._camGoal.z));
-    this._camGoal.y = this.TY;
   },
 
   _bindVisibility: function(canvas) {
@@ -1181,7 +1201,8 @@ var City3D = {
     if (cityDef.landmarkNames) for (var k in cityDef.landmarkNames) this.BNAMES[k] = cityDef.landmarkNames[k].replace(/^[^\w]+/, '');
     this._grid = grid; this._evLog = []; this._nxtE = 6000;
     // Cap label heights so nothing floats off-screen
-    this._bldgGroup.traverse(function(o) { if (o.userData.label) o.position.y = Math.min(o.position.y, 96); });
+    var showLabels = !(this._opts && this._opts.labels === false);
+    this._bldgGroup.traverse(function(o) { if (o.userData.label) { o.position.y = Math.min(o.position.y, 96); o.visible = showLabels; } });
   },
 
   _placeBuilding: function(cell, tileType, prop, animate) {
@@ -1194,7 +1215,7 @@ var City3D = {
     bg.userData.skin = sk; bg.userData.typeKey = tileType;
     this._skins.push(sk);
     this._dressBuilding(bg, prop, cell);
-    bg.position.set(cell.x, 0, cell.z);
+    bg.position.set(cell.x, 0, cell.z); bg.rotation.y = Math.PI;
     bg.traverse(function(m) { if (m.isMesh) m.userData.cell = cell; });
     this._bldgGroup.add(bg);
     cell.bGrp = bg; cell.t = tileType; cell.property = prop; cell.propertyId = prop ? prop.id : null; cell.filler = !prop;
@@ -1291,6 +1312,17 @@ var City3D = {
 
   resetView: function() { this._camGoal.set(0, this.TY, 0); this._zoomGoal = 1; },
 
+  // Framing helper: { x, y, z } camera target (world units), zoom, rot (pivot rotation, radians), immediate
+  setView: function(v) {
+    v = v || {};
+    if (!this._cam) return;
+    if (v.x != null || v.z != null || v.y != null) this._camGoal.set(v.x != null ? v.x : this._camGoal.x, v.y != null ? v.y : this._camGoal.y, v.z != null ? v.z : this._camGoal.z);
+    if (v.zoom != null) this._zoomGoal = Math.max(0.3, Math.min(4, v.zoom));
+    if (v.rot != null && this._pivot) this._pivot.rotation.y = v.rot;
+    if (v.horizon != null) { this._horizon = v.horizon; this._paintSky(); }
+    if (v.immediate) { this._camTarget.copy(this._camGoal); this._cam.zoom = this._zoomGoal; this._updateCam(); }
+  },
+
   setEra: function(era, fadeMs) {
     if (!this.ERAS[era]) return;
     var ms = fadeMs == null ? 1200 : fadeMs;
@@ -1383,7 +1415,8 @@ var City3D = {
       if (self._signs.length) {
         var camAng = Math.atan2(self._cam.position.x - ct.x, self._cam.position.z - ct.z) - self._pivot.rotation.y;
         for (var si = 0; si < self._signs.length; si++) {
-          var sg = self._signs[si]; sg.rotation.y = camAng;
+          var sg = self._signs[si], owner = sg.parent && sg.parent.parent, la = camAng - (owner ? owner.rotation.y : 0), rr = sg.userData.radius;
+          sg.rotation.y = la; sg.position.set(Math.sin(la) * rr, 0, Math.cos(la) * rr);
           var p = 1 + Math.sin(ts * 0.004 + sg.userData.phase) * 0.04; sg.scale.set(p, p, p);
         }
       }

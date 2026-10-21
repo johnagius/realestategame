@@ -19,6 +19,10 @@ var CityDef_Dubai = {
     ['W',  'W',  'HB', 'W',  'W',  'HB', 'W' ],
   ],
 
+  // Terrain tile drawn under a landmark (default 'LOT'); water landmarks keep their water
+
+  landmarkGround: { BAA:'W' },
+
   landmarkNames: {
     BKH: '🏗️ Burj Khalifa',
     BAA: '⛵ Burj Al Arab',

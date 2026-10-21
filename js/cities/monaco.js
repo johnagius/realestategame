@@ -11,6 +11,8 @@ var CityDef_Monaco = {
     ['W','W','HB','YHT','HB','W','W'],
     ['W','W','W','W','W','W','W'],
   ],
+  // Terrain tile drawn under a landmark (default 'LOT'); water landmarks keep their water
+  landmarkGround: { YHT:'HB' },
   landmarkNames:{CAS:'🎰 Monte Carlo Casino',YHT:'🛥️ Yacht Harbor'},
   landmarks:{
     CAS:function(){
