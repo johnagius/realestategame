@@ -61,7 +61,6 @@
     var wt = T.wealthTax(); s.cash -= wt; cf.taxes += wt;
     // 3. Sales on the market, covenants
     PE.Market.resolveSales(rep);
-    rep.warnings = PE.Finance.covenants(rep);
     // 4. Prices: drift this year's values, then set next year's cycle and rate
     PE.Market.driftPrices(rep);
     T.advanceCycle();
@@ -69,6 +68,8 @@
     rep.cycleAfter = s.cycle.phase; rep.baseRateAfter = s.baseRate;
     for (var id in s.properties) PE.Property.revalue(s.properties[id]);
     for (var lid in s.listings) PE.Property.revalue(s.listings[lid]);
+    // Covenants are tested on the new values, so the shortfall the player sees next year is exact.
+    rep.warnings = PE.Finance.covenants(rep);
     // 5. Rivals, dynasty
     PE.Rivals.yearly(rep);
     var dl = PE.Dynasty.yearly(rep); for (i = 0; i < dl.length; i++) rep.lines.push(dl[i]);
@@ -101,6 +102,7 @@
       rep.paper = PE.Events.makePaper();
     }
     // 10. Report
+    s.cash = Math.round(s.cash);
     rep.netWorthAfter = St.netWorth('player'); rep.equityChange = rep.netWorthAfter - rep.netWorthBefore; rep.cashAfter = s.cash; rep.rank.after = St.rank();
     s.history.push({ year: s.year, netWorth: rep.netWorthAfter, cash: s.cash, debt: St.debt('player'), rank: rep.rank.after, props: St.propertyCount('player') });
     T.decorate(rep);
@@ -120,9 +122,16 @@
     if (rep.goals.achieved.length) dec.push('goal');
     if (rep.bankrupt || rep.ended) dec.push('end');
     if (rep.rank.after < rep.rank.before) dec.push('rank_up');
-    // a bargain the player can afford
+    // a deal worth bidding on that the player can afford
     var ls = PE.Market.listingArray(null), bp = Math.max(0, s.cash) / B.buyingPowerDivisor;
-    for (var i = 0; i < ls.length; i++) { var e = PE.Market.estimate(ls[i]); if (ls[i].askingPrice <= e.mid * 0.85 && ls[i].askingPrice <= bp) { dec.push('bargain'); break; } }
+    for (var i = 0; i < ls.length; i++) { var e = PE.Market.estimate(ls[i]); if (ls[i].askingPrice <= e.mid * 0.95 && ls[i].askingPrice <= bp) { dec.push('deal'); break; } }
+    // portfolio actions with a real trade-off: a renovation you can pay for, or equity you could release
+    var pp = St.playerProps(), nw = Math.max(1, St.netWorth('player'));
+    for (var j = 0; j < pp.length; j++) {
+      var q = pp[j]; if (q.renovation) continue;
+      if (q.condition < 65 && q.type !== 'land' && s.cash >= PE.Property.renovationCost(q, 'patch') * 2) { dec.push('renovation'); break; }
+      if (!q.mortgage || (q.mortgage.principal / q.trueValue < 0.5 && s.year - q.mortgage.lastRefi >= B.refinanceEveryYears)) { if (s.cash < nw * 0.1 && q.trueValue > nw * 0.05) { dec.push('refinance'); break; } }
+    }
     rep.needsDecision = dec.length > 0;
     if (!rep.headline) {
       var ch = rep.equityChange, pct = rep.netWorthBefore > 0 ? Math.round(ch / rep.netWorthBefore * 100) : 0;

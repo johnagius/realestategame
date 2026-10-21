@@ -41,7 +41,8 @@ function main() {
   var t0 = Date.now(), PE = load(), players = require('./players.js')(PE);
   var rows30 = [], rows180 = [], f, sd;
   for (f = 0; f < FAMILIES.length; f++) for (sd = 1; sd <= SEEDS30; sd++) { rows30.push(run(PE, players, FAMILIES[f], sd, 30, 'competent')); rows30.push(run(PE, players, FAMILIES[f], sd, 30, 'naive')); }
-  for (f = 0; f < FAMILIES.length; f++) for (sd = 1; sd <= SEEDS180; sd++) { rows180.push(run(PE, players, FAMILIES[f], 1000 + sd, 180, 'competent')); rows180.push(run(PE, players, FAMILIES[f], 1000 + sd, 180, 'naive')); }
+  // 180-year runs: every family with the competent player; the naive player on two families (its late game is small and slow-moving)
+  for (f = 0; f < FAMILIES.length; f++) for (sd = 1; sd <= SEEDS180; sd++) { rows180.push(run(PE, players, FAMILIES[f], 1000 + sd, 180, 'competent')); if (f < 2) rows180.push(run(PE, players, FAMILIES[f], 1000 + sd, 180, 'naive')); }
   var t1 = Date.now();
 
   function sel(rows, fam, pl) { return rows.filter(function (r) { return (!fam || r.family === fam) && (!pl || r.player === pl); }); }

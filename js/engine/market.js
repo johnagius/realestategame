@@ -61,7 +61,7 @@
     var condRange = { estate: [25, 70], distressed: [8, 50], developer: [92, 100], landlord: [45, 85], auction: [15, 60], rival: [30, 80] }[seller];
     var best = null;
     if (s.flags.extraLand > 0 && seller !== 'developer') { types = [D.propertyTypes.land]; }
-    for (var k = 0; k < 3; k++) {
+    for (var k = 0; k < 2; k++) {
       var ws = []; for (var i = 0; i < types.length; i++) ws.push(types[i].weight);
       var t = R.weighted(types, ws), d = R.pick(c.districts), cond = R.int(condRange[0], condRange[1]);
       if (t.id === 'land') cond = 50;
@@ -169,7 +169,8 @@
       if (!stretchDone && n === target - 1) { desired = bp * R.range(B.stretchDealMult[0], B.stretchDealMult[1]); stretchDone = true; }
       else if (n === 0) desired = bp * B.listingCheapMult; // one genuinely cheap way in
       else desired = bp * Math.exp(R.range(Math.log(B.listingAffordLow), Math.log(B.listingAffordHigh)));
-      M.genListing(cid, desired, seller);
+      var nl = M.genListing(cid, desired, seller);
+      if (nl.m < 0.9 && R.chance(B.rivalPreemptChance) && PE.Rivals.preempt(nl)) continue;
       n++;
     }
     s.flags.extraDistressed = extraD;
@@ -254,9 +255,15 @@
     delete s.listings[l.id];
     var wasRival = l.sellerRivalId, asking = l.askingPrice, seller = l.seller;
     var fields = ['listing', 'seller', 'sellerRivalId', 'm', 'askingPrice', 'yearsListed', 'listedYear', 'offersThisYear', 'counterPrice', 'revealed', 'comps', 'cues'];
-    for (var i = 0; i < fields.length; i++) delete l[fields[i]];
+    for (var i = 0; i < fields.length; i++) l[fields[i]] = undefined; // keep the object shape stable (JSON drops undefined)
     if (wasRival) PE.Rivals.listingSold(wasRival, l, price);
     l.purchasePrice = price; l.purchaseYear = s.year; l.forSale = null; l.marginCall = null;
+    // Hidden defects: cheap sellers hide problems; a Surveyor halves the chance.
+    var defect = null;
+    if ((seller === 'estate' || seller === 'distressed' || seller === 'auction') && l.type !== 'land') {
+      var pd = B.hiddenDefectChance * ((buyerId === 'player' && St.hasTrait('surveyor')) ? 0.5 : 1);
+      if (R.chance(pd)) { defect = R.int(B.hiddenDefectRange[0], B.hiddenDefectRange[1]); l.condition = U.clamp(l.condition - defect, 0, 100); PE.Property.revalue(l); }
+    }
     if (buyerId === 'player') {
       var need = M.cashNeeded(l, price, financing);
       s.cash -= need.cash;
@@ -271,7 +278,7 @@
     }
     var d = St.district(l.cityId, l.district); d.buysThisYear++;
     if (l.ownerId === 'player') PE.Property.initTenancy(l);
-    return { property: l, price: price, seller: seller };
+    return { property: l, price: price, seller: seller, defect: defect };
   };
 
   M.makeOffer = function (listingId, price, financing) {
@@ -297,7 +304,7 @@
       var bidders = PE.Rivals.contest(l, price);
       if (bidders.length) return M.startAuction(l, price, financing, false, bidders);
       var res = M.buy(l, price, financing, 'player');
-      return PE.ok({ outcome: 'accepted', price: price, property: PE.Property.view(res.property), message: 'Offer of ' + U.fmt(price) + ' accepted for ' + res.property.name + '.' });
+      return PE.ok({ outcome: 'accepted', price: price, property: PE.Property.view(res.property), defect: res.defect, message: 'Offer of ' + U.fmt(price) + ' accepted for ' + res.property.name + '.' + (res.defect ? ' The survey finds rot: condition −' + res.defect + '.' : '') });
     }
     if (r >= floor - B.counterWindow) {
       var counter = Math.round(l.askingPrice * U.clamp((floor + r) / 2 + 0.02, r + 0.03, 1.0));

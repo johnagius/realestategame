@@ -30,7 +30,7 @@
 
   Dy.mortality = function (age) {
     var era = St.era();
-    return Math.min(0.6, B.mortalityBase * Math.pow(B.mortalityGrowth, age - 30) * era.lifeMult);
+    return Math.min(age >= 90 ? 0.9 : 0.6, B.mortalityBase * Math.pow(B.mortalityGrowth, age - 30) * era.lifeMult);
   };
 
   /* One year of family life. Returns report lines. */

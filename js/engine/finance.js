@@ -126,10 +126,11 @@
 
   /* Yearly debt service for an owner; returns the cash paid. Variable loans re-price yearly. */
   F.service = function (ownerId) {
-    var props = St.ownedProps(ownerId), total = 0;
+    var props = St.ownedProps(ownerId), total = 0, rates = null;
     for (var i = 0; i < props.length; i++) {
       var m = props[i].mortgage; if (!m || m.principal <= 0) continue;
-      if (!m.fixed) m.rate = F.rateFor(ownerId, m.type, false);
+      if (!rates) rates = { io: F.rateFor(ownerId, 'io', false), amort: F.rateFor(ownerId, 'amort', false) };
+      if (!m.fixed) m.rate = rates[m.type] || rates.io;
       var pay = F.annualPayment(m);
       if (m.type === 'amort') {
         var interest = Math.round(m.principal * m.rate);
@@ -187,6 +188,7 @@
     for (var i = 0; i < props.length; i++) {
       var p = props[i]; if (!p.mortgage) continue;
       var ltv = p.mortgage.principal / Math.max(1, p.trueValue);
+      if (p.marginCall) p.marginCall.shortfall = Math.max(1, Math.round(p.mortgage.principal - p.trueValue * B.covenantLtv));
       if (p.marginCall) warnings.push({ propertyId: p.id, name: p.name, kind: 'margin_call', ltv: ltv, shortfall: p.marginCall.shortfall, text: 'Margin call on ' + p.name + ': repay ' + U.fmt(p.marginCall.shortfall) + ' this year or it is force-sold.' });
       else if (ltv > 0.78) warnings.push({ propertyId: p.id, name: p.name, kind: 'ltv_high', ltv: ltv, text: p.name + ' is at ' + Math.round(ltv * 100) + '% LTV; a dip would trigger a covenant.' });
     }

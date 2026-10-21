@@ -13,11 +13,11 @@
   /* ---------- Eras (bible §2, §4, §3.3) ---------- */
   D.eras = [
     { id: 'victorian', name: 'Victorian', from: 1850, to: 1899, baseRate: 0.035, rateSpread: 0.005, drift: 0.000, stampDuty: 0.02, cgt: 0.00, estateTax: 0.20, wealthTax: 0.000, maxLtv: 0.70, fixedRate: false, lifeMult: 1.35, propTaxMult: 1.0, insurance: 0.000 },
-    { id: 'gilded',    name: 'Gilded Age', from: 1900, to: 1929, baseRate: 0.045, rateSpread: 0.005, drift: 0.010, stampDuty: 0.03, cgt: 0.00, estateTax: 0.25, wealthTax: 0.002, maxLtv: 0.70, fixedRate: false, lifeMult: 1.2, propTaxMult: 1.2, insurance: 0.001 },
-    { id: 'crisis',    name: 'Crisis & War', from: 1930, to: 1949, baseRate: 0.045, rateSpread: 0.025, drift: -0.005, stampDuty: 0.03, cgt: 0.10, estateTax: 0.40, wealthTax: 0.005, maxLtv: 0.60, fixedRate: false, lifeMult: 1.1, propTaxMult: 1.5, insurance: 0.002 },
-    { id: 'boom',      name: 'Boom', from: 1950, to: 1979, baseRate: 0.065, rateSpread: 0.015, drift: 0.025, stampDuty: 0.04, cgt: 0.25, estateTax: 0.40, wealthTax: 0.010, maxLtv: 0.70, fixedRate: true, lifeMult: 0.9, propTaxMult: 1.8, insurance: 0.003 },
-    { id: 'modern',    name: 'Modern', from: 1980, to: 2007, baseRate: 0.070, rateSpread: 0.030, drift: 0.015, stampDuty: 0.05, cgt: 0.20, estateTax: 0.35, wealthTax: 0.006, maxLtv: 0.70, fixedRate: true, lifeMult: 0.75, propTaxMult: 1.7, insurance: 0.003 },
-    { id: 'digital',   name: 'Digital', from: 2008, to: 2030, baseRate: 0.030, rateSpread: 0.020, drift: 0.010, stampDuty: 0.06, cgt: 0.20, estateTax: 0.30, wealthTax: 0.004, maxLtv: 0.70, fixedRate: true, lifeMult: 0.65, propTaxMult: 1.6, insurance: 0.003 }
+    { id: 'gilded',    name: 'Gilded Age', from: 1900, to: 1929, baseRate: 0.045, rateSpread: 0.005, drift: 0.010, stampDuty: 0.03, cgt: 0.00, estateTax: 0.25, wealthTax: 0.002, maxLtv: 0.70, fixedRate: false, lifeMult: 1.2, propTaxMult: 1.1, insurance: 0.000 },
+    { id: 'crisis',    name: 'Crisis & War', from: 1930, to: 1949, baseRate: 0.045, rateSpread: 0.025, drift: -0.005, stampDuty: 0.03, cgt: 0.10, estateTax: 0.40, wealthTax: 0.005, maxLtv: 0.60, fixedRate: false, lifeMult: 1.1, propTaxMult: 1.3, insurance: 0.001 },
+    { id: 'boom',      name: 'Boom', from: 1950, to: 1979, baseRate: 0.065, rateSpread: 0.015, drift: 0.025, stampDuty: 0.04, cgt: 0.25, estateTax: 0.40, wealthTax: 0.010, maxLtv: 0.70, fixedRate: true, lifeMult: 0.9, propTaxMult: 1.6, insurance: 0.0025 },
+    { id: 'modern',    name: 'Modern', from: 1980, to: 2007, baseRate: 0.070, rateSpread: 0.030, drift: 0.015, stampDuty: 0.05, cgt: 0.20, estateTax: 0.35, wealthTax: 0.006, maxLtv: 0.70, fixedRate: true, lifeMult: 0.75, propTaxMult: 1.5, insurance: 0.0025 },
+    { id: 'digital',   name: 'Digital', from: 2008, to: 2030, baseRate: 0.030, rateSpread: 0.020, drift: 0.010, stampDuty: 0.06, cgt: 0.20, estateTax: 0.30, wealthTax: 0.004, maxLtv: 0.70, fixedRate: true, lifeMult: 0.65, propTaxMult: 1.5, insurance: 0.0025 }
   ];
   D.eraFor = function (year) {
     for (var i = 0; i < D.eras.length; i++) if (year <= D.eras[i].to) return D.eras[i];
@@ -30,8 +30,8 @@
     boom:       { name: 'Boom',       value: 0.08,  rate: 0.010, vacancy: 0.8, next: { stagnation: 0.5, recession: 0.35, growth: 0.15 }, len: [2, 3] },
     growth:     { name: 'Growth',     value: 0.03,  rate: 0.000, vacancy: 1.0, next: { boom: 0.25, growth: 0.45, stagnation: 0.3 }, len: [2, 5] },
     stagnation: { name: 'Stagnation', value: 0.00,  rate: -0.005, vacancy: 1.2, next: { growth: 0.5, recession: 0.35, boom: 0.15 }, len: [1, 3] },
-    recession:  { name: 'Recession',  value: -0.10, rate: -0.010, vacancy: 1.5, next: { stagnation: 0.45, growth: 0.47, depression: 0.08 }, len: [1, 2] },
-    depression: { name: 'Depression', value: -0.28, rate: 0.015, vacancy: 2.0, next: { stagnation: 0.5, growth: 0.5 }, len: [1, 1] }
+    recession:  { name: 'Recession',  value: -0.10, rate: -0.010, vacancy: 1.5, next: { stagnation: 0.43, growth: 0.45, depression: 0.12 }, len: [1, 2] },
+    depression: { name: 'Depression', value: -0.33, rate: 0.015, vacancy: 2.0, next: { stagnation: 0.5, growth: 0.5 }, len: [1, 1] }
   };
   /* Guaranteed historical crashes: year -> phase */
   D.scriptedCycles = { 1866: 'recession', 1873: 'depression', 1890: 'recession', 1907: 'recession', 1920: 'recession', 1929: 'depression', 1931: 'recession', 1945: 'stagnation', 1955: 'boom', 1973: 'recession', 1974: 'depression', 1987: 'recession', 1990: 'recession', 2000: 'recession', 2008: 'depression', 2009: 'recession', 2020: 'recession', 2021: 'boom' };
@@ -194,12 +194,12 @@
   // wealthMult: starting wealth relative to the player's family starting cash.
   // noise: appraisal noise sd. leverage: target LTV. floor: buys when ask/appraisal <= floor.
   D.rivals = [
-    { id: 'rothschild', name: 'The Rothschilds', archetype: 'Banker',     color: '#1B4D33', wealthMult: 3.0, noise: 0.05, leverage: 0.30, floor: 1.00, bidMult: 0.98, aggression: 0.5, prefers: 'bluechip', sells: 'rarely',  renovates: true,  lends: true },
-    { id: 'wong',       name: 'The Wong Dynasty', archetype: 'Trader',    color: '#C41E3A', wealthMult: 1.5, noise: 0.08, leverage: 0.60, floor: 0.92, bidMult: 1.06, aggression: 0.9, prefers: 'any',      sells: 'boom',    renovates: true,  lends: false },
-    { id: 'al_rashid',  name: 'The Al-Rashids',   archetype: 'Hoarder',   color: '#DAA520', wealthMult: 4.0, noise: 0.12, leverage: 0.20, floor: 1.10, bidMult: 1.12, aggression: 0.6, prefers: 'prestige', sells: 'never',   renovates: true,  lends: false },
-    { id: 'petrov',     name: 'The Petrovs',      archetype: 'Speculator', color: '#4169E1', wealthMult: 1.2, noise: 0.15, leverage: 0.70, floor: 1.00, bidMult: 1.03, aggression: 0.95, prefers: 'momentum', sells: 'stress',  renovates: false, lends: false },
-    { id: 'martinez',   name: 'The Bourbon-Martinez', archetype: 'Slumlord', color: '#E07A5F', wealthMult: 1.0, noise: 0.10, leverage: 0.50, floor: 0.95, bidMult: 0.90, aggression: 0.6, prefers: 'cheap',    sells: 'rarely',  renovates: false, lends: false },
-    { id: 'okonkwo',    name: 'The Okonkwos',     archetype: 'Builder',    color: '#2A9D8F', wealthMult: 0.8, noise: 0.08, leverage: 0.55, floor: 1.00, bidMult: 1.02, aggression: 0.7, prefers: 'derelict', sells: 'rebuilt', renovates: true,  lends: false }
+    { id: 'rothschild', name: 'The Rothschilds', archetype: 'Banker',     color: '#1B4D33', wealthMult: 3.0, noise: 0.05, leverage: 0.30, floor: 1.00, bidMult: 0.93, aggression: 0.5, prefers: 'bluechip', sells: 'rarely',  renovates: true,  lends: true },
+    { id: 'wong',       name: 'The Wong Dynasty', archetype: 'Trader',    color: '#C41E3A', wealthMult: 1.5, noise: 0.08, leverage: 0.60, floor: 0.92, bidMult: 0.99, aggression: 0.9, prefers: 'any',      sells: 'boom',    renovates: true,  lends: false },
+    { id: 'al_rashid',  name: 'The Al-Rashids',   archetype: 'Hoarder',   color: '#DAA520', wealthMult: 4.0, noise: 0.12, leverage: 0.20, floor: 1.10, bidMult: 1.06, aggression: 0.6, prefers: 'prestige', sells: 'never',   renovates: true,  lends: false },
+    { id: 'petrov',     name: 'The Petrovs',      archetype: 'Speculator', color: '#4169E1', wealthMult: 1.2, noise: 0.15, leverage: 0.70, floor: 1.00, bidMult: 0.98, aggression: 0.95, prefers: 'momentum', sells: 'stress',  renovates: false, lends: false },
+    { id: 'martinez',   name: 'The Bourbon-Martinez', archetype: 'Slumlord', color: '#E07A5F', wealthMult: 1.0, noise: 0.10, leverage: 0.50, floor: 0.95, bidMult: 0.86, aggression: 0.6, prefers: 'cheap',    sells: 'rarely',  renovates: false, lends: false },
+    { id: 'okonkwo',    name: 'The Okonkwos',     archetype: 'Builder',    color: '#2A9D8F', wealthMult: 0.8, noise: 0.08, leverage: 0.55, floor: 1.00, bidMult: 0.96, aggression: 0.7, prefers: 'derelict', sells: 'rebuilt', renovates: true,  lends: false }
   ];
   D.rivalById = function (id) { for (var i = 0; i < D.rivals.length; i++) if (D.rivals[i].id === id) return D.rivals[i]; return null; };
 
@@ -240,10 +240,10 @@
 
   /* ---------- Seller types (bible §3.3) ---------- */
   D.sellers = {
-    estate:     { name: 'Estate sale',     m: [0.70, 0.95], floor: 0.88, weight: 0.14, cue: 'Heirs want a quick sale' },
+    estate:     { name: 'Estate sale',     m: [0.70, 0.95], floor: 0.88, weight: 0.16, cue: 'Heirs want a quick sale' },
     distressed: { name: 'Repossession',    m: [0.65, 0.90], floor: 0.85, weight: 0.10, cue: 'Bank repossession' },
     developer:  { name: 'Developer',       m: [1.00, 1.25], floor: 0.97, weight: 0.18, cue: 'New build, finished to a high standard' },
-    landlord:   { name: 'Private landlord', m: [0.90, 1.15], floor: 0.92, weight: 0.46, cue: 'Tenanted, rent history available' },
+    landlord:   { name: 'Private landlord', m: [0.90, 1.15], floor: 0.92, weight: 0.44, cue: 'Tenanted, rent history available' },
     rival:      { name: 'Rival family',    m: [0.95, 1.30], floor: 0.95, weight: 0.08, cue: 'A rival wants out of this district' },
     auction:    { name: 'Auction',         m: [0.60, 0.60], floor: 0.60, weight: 0.12, cue: 'Open bidding; rivals will attend' }
   };
@@ -272,9 +272,9 @@
     offersPerListingPerYear: 2,
     counterWindow: 0.20,             // offers more than this below floor are rejected outright
     lowballRepHit: 1,
-    rivalContestChance: 0.6,        // × aggression when a rival sees a bargain
+    rivalContestChance: 0.45,        // × aggression when a rival sees a bargain
     auctionRounds: 3,
-    auctionRivalStep: 1.05,
+    auctionRivalStep: 1.04,
     // transaction costs
     agentFee: 0.03,
     cgtYears: 3,
@@ -315,6 +315,7 @@
     savingsRateBelowBase: 0.02,
     bankruptcyNegativeCashYears: 2,
     bankruptcyMissedCalls: 2,
+    foreshadowAccuracy: 0.45,          // chance the paper warns of a scripted crash
     // taxes
     wealthTaxThresholdMult: 60,       // × family start cash × priceIndex
     estateTrustFactor: 0.5,
@@ -330,6 +331,10 @@
     districtStock: [30, 90],
     // rivals
     rivalMaxProperties: 30,
+    rivalStartWealthMult: 3.0,        // × family start cash × archetype wealthMult
+    rivalPreemptChance: 0.20,         // a fresh bargain is snapped up by a rival before the board opens
+    hiddenDefectChance: 0.5,          // estate/distressed/auction purchases may hide problems
+    hiddenDefectRange: [5, 20],
     rivalMaxBuysPerYear: 2,
     rivalOfferChance: 0.25,
     rivalOfferPremium: [1.10, 1.40],
@@ -349,7 +354,7 @@
     randomEventChance: 0.55,
     maxEventsPerYear: 2,
     // cities
-    expansionBase: 2600,              // 1850 £; × priceIndex × tier multiplier
+    expansionBase: 1200,              // 1850 £; × priceIndex × tier multiplier
     expansionTierMult: [1.0, 1.0, 2.2, 4.5, 8.0],
     expansionCountMult: 0.35,         // +35% per already-unlocked city
     expansionRepBase: 44,
@@ -386,10 +391,14 @@
       choices: [{ label: 'Insure against bombing (pay 3% of cash now; no event damage this era)', fx: { donatePct: 0.03, bombInsured: true } }, { label: 'Take the risk (random property may lose 40 condition)', fx: { bombRisk: true } }] },
     { year: 1946, title: 'Reconstruction', text: 'Governments pour money into rebuilding. Planning permission is easy, labour is cheap.',
       choices: [{ label: 'Rebuild grants: all renovations −30% for 5 years', fx: { renoDiscountYears: 5 } }, { label: 'Buy bombed plots (3 extra land listings next year at 60%)', fx: { extraLand: 3 } }] },
+    { year: 1950, title: 'The planners', text: 'A new era: slum clearance orders, council housing and planning permission. Old tenements are condemned; new estates need builders.',
+      choices: [{ label: 'Sell your lowest-condition building to the council at 100% (no fee)', fx: { sellWeakest: 1.0 } }, { label: 'Tender for council contracts (renovations −30% for 5 years, +3 reputation)', fx: { renoDiscountYears: 5, reputation: 3 } }, { label: 'Lobby against clearance (−4 reputation, 2 extra distressed listings next year)', fx: { reputation: -4, extraDistressed: 2 } }] },
     { year: 1955, title: 'The suburbs', text: 'Cars, motorways, mortgages for everyone. Suburban houses appear on the board; fixed-rate loans are offered.', cycle: 'boom',
       choices: [{ label: 'Fix every variable mortgage (+1% rate, immune to the 1970s spike)', fx: { fixAll: true } }, { label: 'Stay variable and enjoy the boom', fx: {} }] },
     { year: 1973, title: 'Oil shock', text: 'OPEC quadruples the oil price. Inflation and rates explode; the secondary banks go under.', cycle: 'recession',
       choices: [{ label: 'Sell your most leveraged property at 95%', fx: { sellMostLeveraged: 0.95 } }, { label: 'Raise all rents to 115% (cash now, vacancy later)', fx: { rentAll: 1.15 } }, { label: 'Do nothing', fx: {} }] },
+    { year: 1980, title: 'Deregulation', text: 'A new era: the banks are unleashed, council tenants get the right to buy, and towers rise on the docks.',
+      choices: [{ label: 'Refinance everything to 70% while the banks are generous', fx: { refiAll: 0.7 } }, { label: 'Sell your weakest building to its tenants at 95%', fx: { sellWeakest: 0.95 } }, { label: 'Stay cautious', fx: {} }] },
     { year: 1989, title: 'The Wall falls', text: 'Berlin reunites. Eastern districts are derelict, cheap and about to become the hippest addresses in Europe.',
       choices: [{ label: 'Buy a derelict Berlin block (pay 20% of cash; Berlin unlocked free)', fx: { unlockCity: 'berlin', giftProperty: { type: 'apartment', condition: 15, pct: 0.20, city: 'berlin' } } }, { label: 'Invest in Berlin momentum (Berlin districts trend up 5 years)', fx: { cityMomentum: { city: 'berlin', years: 5 } } }, { label: 'Watch from afar', fx: {} }] },
     { year: 2000, title: 'Dot-com bust', text: 'Tech stocks crater. Office tenants vanish in tech hubs; residential holds.', cycle: 'recession',

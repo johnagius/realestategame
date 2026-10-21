@@ -101,6 +101,7 @@
     if (fx.sellMostLeveraged) { var lev = props.filter(function (x) { return x.mortgage && !x.renovation; }).sort(function (a, b) { return b.mortgage.principal / b.trueValue - a.mortgage.principal / a.trueValue; })[0]; if (lev) { var q1 = PE.Market.saleQuote(lev, fx.sellMostLeveraged / PE.Market.saleMood()); PE.Market.completeSale(lev, q1, null, null); lines.push('Sold ' + lev.name + ' for ' + U.fmt(q1.price) + '.'); } else lines.push('Nothing leveraged to sell.'); }
     if (fx.sellCommercial) { var cm = props.filter(function (x) { return (x.type === 'shop' || x.type === 'office') && !x.renovation; }).sort(function (a, b) { return b.trueValue - a.trueValue; })[0]; if (cm) { var q3 = PE.Market.saleQuote(cm, fx.sellCommercial / PE.Market.saleMood()); PE.Market.completeSale(cm, q3, null, null); lines.push('Sold ' + cm.name + ' for ' + U.fmt(q3.price) + '.'); } else lines.push('No shop or office to sell.'); }
     if (fx.refiBest) { var best = props.filter(function (x) { return !x.renovation; }).sort(function (a, b) { return b.trueValue - a.trueValue; })[0]; if (best) { if (best.mortgage) best.mortgage.lastRefi = s.year - 10; var r = PE.Finance.refinance(best.id, 0.7); lines.push(r.ok ? r.message : r.message); } }
+    if (fx.refiAll) { var nref = 0; for (i = 0; i < props.length; i++) { p = props[i]; if (p.renovation) continue; if (p.mortgage) p.mortgage.lastRefi = s.year - 10; if (PE.Finance.refinance(p.id, fx.refiAll).ok) nref++; } lines.push(nref + ' loan(s) refinanced to ' + Math.round(fx.refiAll * 100) + '%.'); }
     if (fx.rentAll) { for (i = 0; i < props.length; i++) { if (!props[i].lease) { props[i].rentSetting = U.clamp(fx.rentAll, 0.8, 1.2); props[i].rentAnnual = PE.Property.grossRent(props[i]); } } lines.push('All rents set to ' + Math.round(fx.rentAll * 100) + '%.'); }
     if (fx.cityRent) { for (i = 0; i < props.length; i++) if (props[i].cityId === t.cityId && !props[i].lease) { props[i].rentSetting = fx.cityRent; props[i].rentAnnual = PE.Property.grossRent(props[i]); } lines.push('Rents cut in ' + D.cityById[t.cityId].name + '.'); }
     if (fx.cityVacancy) { s.flags.cityVacancyYear = s.year; s.flags.cityVacancyCity = t.cityId; lines.push('Tenants leave in ' + D.cityById[t.cityId].name + '.'); }
@@ -140,7 +141,7 @@
   E.makePaper = function () {
     var s = PE.S(), lines = [], cyc = s.cycle, next = D.scriptedCycles[s.year + 1];
     lines.push({ kind: 'macro', text: 'The bank rate stands at ' + (s.baseRate * 100).toFixed(1) + '%. The market is in ' + D.cycles[cyc.phase].name.toLowerCase() + '.' });
-    if (next && R.chance(0.8)) lines.push({ kind: 'macro', text: (next === 'depression' || next === 'recession') ? 'Bankers whisper of trouble next year.' : 'Bankers talk of a coming boom.' });
+    if (next && R.chance(B.foreshadowAccuracy)) lines.push({ kind: 'macro', text: (next === 'depression' || next === 'recession') ? 'Bankers whisper of trouble next year.' : 'Bankers talk of a coming boom.' });
     else if (cyc.yearsLeft <= 1) {
       var nx = D.cycles[cyc.phase].next, bestK = null; for (var k in nx) if (!bestK || nx[k] > nx[bestK]) bestK = k;
       if (R.chance(0.3)) bestK = R.pick(Object.keys(nx));

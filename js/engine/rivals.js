@@ -13,7 +13,7 @@
   Rv.create = function (fam) {
     var s = PE.S();
     for (var i = 0; i < D.rivals.length; i++) {
-      var rd = D.rivals[i], wealth = fam.startCash * rd.wealthMult * 1.6;
+      var rd = D.rivals[i], wealth = fam.startCash * rd.wealthMult * B.rivalStartWealthMult;
       var rv = { id: rd.id, cash: Math.round(wealth * 0.45), relation: 50 + (St.hasTrait('charmer') ? 10 : 0), cities: ['london'], bankrupt: false, bankruptYear: null, lastAction: 'Watching the market.', mistakeYear: 0, stats: { bought: 0, sold: 0 }, windfalls: 0 };
       s.rivals[rd.id] = rv;
       var budget = wealth * 0.55, n = R.int(1, 3);
@@ -60,11 +60,13 @@
     for (var id in s.rivals) {
       var rv = s.rivals[id], rd = Rv.def(id);
       if (rv.bankrupt || rv.cities.indexOf(l.cityId) < 0 || l.sellerRivalId === id) continue;
+      if (St.propertyCount(Rv.owner(id)) >= B.rivalMaxProperties) continue;
       var pref = Rv.wants(rv, l); if (!pref) continue;
-      var ap = Rv.appraise(rv, l), maxBid = Math.round(ap * rd.bidMult * (pref > 1 ? 1.03 : 1));
+      var ap = Rv.appraise(rv, l), maxBid = Math.round(ap * rd.bidMult * (pref > 1 ? 1.02 : 1));
       if (St.hasTrait('gambler')) maxBid = Math.round(maxBid * 0.97);
       if (maxBid < price * 1.02 || !Rv.canPay(rv, maxBid, l)) continue;
-      var chance = forcedChance !== null && forcedChance !== undefined ? forcedChance : B.rivalContestChance * rd.aggression * (l.askingPrice / ap < 0.92 ? 1 : 0.5);
+      var bargainness = l.askingPrice / ap, mult = bargainness < 0.85 ? 1 : (bargainness < 0.95 ? 0.5 : 0.2);
+      var chance = forcedChance !== null && forcedChance !== undefined ? forcedChance : B.rivalContestChance * rd.aggression * mult;
       if (R.chance(chance)) out.push({ id: id, maxBid: maxBid });
     }
     out.sort(function (a, b) { return b.maxBid - a.maxBid; });
@@ -167,7 +169,7 @@
     }
     // Portfolio cap: upgrade by selling the smallest
     props = St.ownedProps(owner);
-    if (props.length >= B.rivalMaxProperties) {
+    if (props.length >= B.rivalMaxProperties - 1) {
       var small = props.slice().sort(function (a, b) { return a.trueValue - b.trueValue; })[0];
       var debt0 = small.mortgage ? small.mortgage.principal : 0; rv.cash += Math.round(small.trueValue * 0.97) - debt0; St.setOwner(small, null); rv.stats.sold++;
     }
@@ -195,6 +197,7 @@
 
   Rv.buyFromBoard = function (rv, report) {
     var s = PE.S(), rd = Rv.def(rv.id), owner = Rv.owner(rv.id), cands = [], nw = St.netWorth(owner), n = St.propertyCount(owner);
+    if (n >= B.rivalMaxProperties) return null;
     var listings = PE.Market.listingArray(null);
     for (var i = 0; i < listings.length; i++) {
       var l = listings[i];
@@ -216,6 +219,25 @@
       text = 'Bought ' + c.l.name + ' for ' + U.fmt(c.price) + '.';
     }
     return text;
+  };
+
+  /* A fresh bargain may be bought by a rival before the player ever sees it (bible: rivals grow with you). */
+  Rv.preempt = function (l) {
+    var s = PE.S(), best = null, bestScore = 0;
+    for (var id in s.rivals) {
+      var rv = s.rivals[id], rd = Rv.def(id);
+      if (rv.bankrupt || rv.cities.indexOf(l.cityId) < 0) continue;
+      if (St.propertyCount(Rv.owner(id)) >= B.rivalMaxProperties) continue;
+      var pref = Rv.wants(rv, l); if (!pref) continue;
+      var ap = Rv.appraise(rv, l); if (l.askingPrice / ap > rd.floor) continue;
+      if (!Rv.canPay(rv, l.askingPrice, l)) continue;
+      var score = pref * rd.aggression * ap / l.askingPrice;
+      if (score > bestScore) { bestScore = score; best = rv; }
+    }
+    if (!best) return false;
+    PE.Market.buy(l, l.askingPrice, null, Rv.owner(best.id));
+    best.lastAction = 'Snapped up ' + l.name + ' before it was advertised.';
+    return true;
   };
 
   Rv.offerToPlayer = function (rv) {
