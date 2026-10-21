@@ -86,9 +86,12 @@
   /* Operating costs for a year (bible §3.2, §6.1). */
   P.costsFor = function (p, rent, ctx) {
     var c = P.city(p), s = PE.S();
+    var era = St.era();
     var maint = p.trueValue * (B.maintenanceMin + (B.maintenanceMax - B.maintenanceMin) * (1 - p.condition / 100));
+    if (s.year - (p.builtYear || s.year) > B.decayAgeYears) maint += p.trueValue * B.maintenanceAgeExtra;
     if (p.type === 'land') maint *= 0.2;
-    var tax = c.trait === 'tax_haven' ? 0 : p.trueValue * c.taxRate;
+    maint += p.trueValue * era.insurance; // compulsory insurance in later eras
+    var tax = c.trait === 'tax_haven' ? 0 : p.trueValue * c.taxRate * era.propTaxMult;
     var mgmt = 0, fines = 0;
     if (ctx && ctx.mgmt === 'manager') mgmt = rent * (ctx.fee || B.managerFeeDefault);
     if (ctx && ctx.mgmt === 'none' && R.chance(B.unmanagedFineChance)) fines = p.trueValue * B.unmanagedFine;
@@ -149,7 +152,7 @@
     return n;
   };
 
-  P.availableManagers = function () {
+  P._availableManagersRaw = function () {
     var rep = PE.S().reputation, out = [];
     for (var i = 0; i < D.managers.length; i++) if (D.managers[i].minReputation <= rep) out.push(D.managers[i]);
     return out;

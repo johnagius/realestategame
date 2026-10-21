@@ -121,7 +121,7 @@
       paper: [],
       goals: { yearly: null, era: null, eraDone: {}, campaignTier: 0, achievements: [], history: [] },
       stats: { bought: 0, sold: 0, belowAsk: 0, auctionsWon: 0, renovations: 0, rebuilds: 0, refinances: 0, forcedSales: 0, forcedSalesThisEra: 0,
-               marginCallsMissed: 0, negativeCashYears: 0, peakNetWorth: 0, bankruptcies: 0, comebackFrom: 0, flips: 0, brrrr: 0,
+               marginCallsMissed: 0, forcedSaleYears: [], negativeCashYears: 0, peakNetWorth: 0, bankruptcies: 0, comebackFrom: 0, flips: 0, brrrr: 0,
                rentTotal: 0, costTotal: 0, firstBuyYear: {}, cityUnlockYear: {}, depressionsSurvived: 0 },
       history: [],
       lastReport: null,

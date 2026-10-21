@@ -12,12 +12,12 @@
 
   /* ---------- Eras (bible §2, §4, §3.3) ---------- */
   D.eras = [
-    { id: 'victorian', name: 'Victorian', from: 1850, to: 1899, baseRate: 0.035, rateSpread: 0.005, drift: 0.000, stampDuty: 0.02, cgt: 0.00, estateTax: 0.20, wealthTax: 0.000, maxLtv: 0.70, fixedRate: false, lifeMult: 1.35 },
-    { id: 'gilded',    name: 'Gilded Age', from: 1900, to: 1929, baseRate: 0.045, rateSpread: 0.005, drift: 0.010, stampDuty: 0.03, cgt: 0.00, estateTax: 0.25, wealthTax: 0.002, maxLtv: 0.70, fixedRate: false, lifeMult: 1.2 },
-    { id: 'crisis',    name: 'Crisis & War', from: 1930, to: 1949, baseRate: 0.045, rateSpread: 0.025, drift: -0.005, stampDuty: 0.03, cgt: 0.10, estateTax: 0.40, wealthTax: 0.005, maxLtv: 0.60, fixedRate: false, lifeMult: 1.1 },
-    { id: 'boom',      name: 'Boom', from: 1950, to: 1979, baseRate: 0.065, rateSpread: 0.015, drift: 0.025, stampDuty: 0.04, cgt: 0.25, estateTax: 0.40, wealthTax: 0.010, maxLtv: 0.70, fixedRate: true, lifeMult: 0.9 },
-    { id: 'modern',    name: 'Modern', from: 1980, to: 2007, baseRate: 0.070, rateSpread: 0.030, drift: 0.015, stampDuty: 0.05, cgt: 0.20, estateTax: 0.35, wealthTax: 0.006, maxLtv: 0.70, fixedRate: true, lifeMult: 0.75 },
-    { id: 'digital',   name: 'Digital', from: 2008, to: 2030, baseRate: 0.030, rateSpread: 0.020, drift: 0.010, stampDuty: 0.06, cgt: 0.20, estateTax: 0.30, wealthTax: 0.004, maxLtv: 0.70, fixedRate: true, lifeMult: 0.65 }
+    { id: 'victorian', name: 'Victorian', from: 1850, to: 1899, baseRate: 0.035, rateSpread: 0.005, drift: 0.000, stampDuty: 0.02, cgt: 0.00, estateTax: 0.20, wealthTax: 0.000, maxLtv: 0.70, fixedRate: false, lifeMult: 1.35, propTaxMult: 1.0, insurance: 0.000 },
+    { id: 'gilded',    name: 'Gilded Age', from: 1900, to: 1929, baseRate: 0.045, rateSpread: 0.005, drift: 0.010, stampDuty: 0.03, cgt: 0.00, estateTax: 0.25, wealthTax: 0.002, maxLtv: 0.70, fixedRate: false, lifeMult: 1.2, propTaxMult: 1.2, insurance: 0.001 },
+    { id: 'crisis',    name: 'Crisis & War', from: 1930, to: 1949, baseRate: 0.045, rateSpread: 0.025, drift: -0.005, stampDuty: 0.03, cgt: 0.10, estateTax: 0.40, wealthTax: 0.005, maxLtv: 0.60, fixedRate: false, lifeMult: 1.1, propTaxMult: 1.5, insurance: 0.002 },
+    { id: 'boom',      name: 'Boom', from: 1950, to: 1979, baseRate: 0.065, rateSpread: 0.015, drift: 0.025, stampDuty: 0.04, cgt: 0.25, estateTax: 0.40, wealthTax: 0.010, maxLtv: 0.70, fixedRate: true, lifeMult: 0.9, propTaxMult: 1.8, insurance: 0.003 },
+    { id: 'modern',    name: 'Modern', from: 1980, to: 2007, baseRate: 0.070, rateSpread: 0.030, drift: 0.015, stampDuty: 0.05, cgt: 0.20, estateTax: 0.35, wealthTax: 0.006, maxLtv: 0.70, fixedRate: true, lifeMult: 0.75, propTaxMult: 1.7, insurance: 0.003 },
+    { id: 'digital',   name: 'Digital', from: 2008, to: 2030, baseRate: 0.030, rateSpread: 0.020, drift: 0.010, stampDuty: 0.06, cgt: 0.20, estateTax: 0.30, wealthTax: 0.004, maxLtv: 0.70, fixedRate: true, lifeMult: 0.65, propTaxMult: 1.6, insurance: 0.003 }
   ];
   D.eraFor = function (year) {
     for (var i = 0; i < D.eras.length; i++) if (year <= D.eras[i].to) return D.eras[i];
@@ -27,14 +27,14 @@
 
   /* ---------- Market cycle phases (bible §6.4) ---------- */
   D.cycles = {
-    boom:       { name: 'Boom',       value: 0.08,  rate: 0.010, vacancy: 0.8, next: { stagnation: 0.5, recession: 0.35, growth: 0.15 }, len: [2, 4] },
-    growth:     { name: 'Growth',     value: 0.03,  rate: 0.000, vacancy: 1.0, next: { boom: 0.3, growth: 0.4, stagnation: 0.3 }, len: [2, 5] },
+    boom:       { name: 'Boom',       value: 0.08,  rate: 0.010, vacancy: 0.8, next: { stagnation: 0.5, recession: 0.35, growth: 0.15 }, len: [2, 3] },
+    growth:     { name: 'Growth',     value: 0.03,  rate: 0.000, vacancy: 1.0, next: { boom: 0.25, growth: 0.45, stagnation: 0.3 }, len: [2, 5] },
     stagnation: { name: 'Stagnation', value: 0.00,  rate: -0.005, vacancy: 1.2, next: { growth: 0.5, recession: 0.35, boom: 0.15 }, len: [1, 3] },
-    recession:  { name: 'Recession',  value: -0.10, rate: -0.010, vacancy: 1.5, next: { stagnation: 0.4, growth: 0.45, depression: 0.15 }, len: [1, 2] },
-    depression: { name: 'Depression', value: -0.30, rate: 0.015, vacancy: 2.0, next: { stagnation: 0.4, growth: 0.6 }, len: [1, 2] }
+    recession:  { name: 'Recession',  value: -0.10, rate: -0.010, vacancy: 1.5, next: { stagnation: 0.45, growth: 0.47, depression: 0.08 }, len: [1, 2] },
+    depression: { name: 'Depression', value: -0.28, rate: 0.015, vacancy: 2.0, next: { stagnation: 0.5, growth: 0.5 }, len: [1, 1] }
   };
   /* Guaranteed historical crashes: year -> phase */
-  D.scriptedCycles = { 1866: 'recession', 1873: 'depression', 1890: 'recession', 1907: 'recession', 1920: 'recession', 1929: 'depression', 1931: 'depression', 1945: 'stagnation', 1955: 'boom', 1973: 'recession', 1974: 'depression', 1987: 'recession', 1990: 'recession', 2000: 'recession', 2008: 'depression', 2009: 'recession', 2020: 'recession', 2021: 'boom' };
+  D.scriptedCycles = { 1866: 'recession', 1873: 'depression', 1890: 'recession', 1907: 'recession', 1920: 'recession', 1929: 'depression', 1931: 'recession', 1945: 'stagnation', 1955: 'boom', 1973: 'recession', 1974: 'depression', 1987: 'recession', 1990: 'recession', 2000: 'recession', 2008: 'depression', 2009: 'recession', 2020: 'recession', 2021: 'boom' };
 
   /* ---------- Condition bands (bible §3.2) ---------- */
   D.conditionBands = [
@@ -115,45 +115,45 @@
   }
   // trend: starting momentum bias (-1 declining, 0 stable, 1 up-and-coming, 2 hot)
   D.cities = [
-    city('london', 'London', 'United Kingdom', 14, 0.070, 0.007, 0.028, 'heritage_city', 0, 1850,
+    city('london', 'London', 'United Kingdom', 14, 0.070, 0.007, 0.022, 'heritage_city', 0, 1850,
       dd(['Mayfair', 'Chelsea', 'Kensington', 'Notting Hill', 'Canary Wharf', 'Shoreditch', 'Camden', 'Hampstead'], [2.4, 1.6, 1.8, 0.9, 0.5, 0.6, 0.8, 1.5], [0, 1, 0, 1, -1, 0, 0, 0])),
-    city('paris', 'Paris', 'France', 11, 0.065, 0.008, 0.025, 'heritage_city', 1, 1850,
+    city('paris', 'Paris', 'France', 11, 0.065, 0.008, 0.019, 'heritage_city', 1, 1850,
       dd(['Le Marais', 'Saint-Germain', 'Montmartre', 'Champs-Élysées', 'Bastille', 'Belleville', 'Pigalle', 'Trocadéro'], [1.5, 2.0, 0.7, 2.4, 0.8, 0.5, 0.6, 1.9], [0, 0, 1, 0, 0, 1, -1, 0])),
-    city('new_york', 'New York', 'United States', 11, 0.080, 0.010, 0.032, 'rent_control', 1, 1850,
+    city('new_york', 'New York', 'United States', 11, 0.080, 0.010, 0.026, 'rent_control', 1, 1850,
       dd(['Manhattan', 'Brooklyn', 'SoHo', 'Tribeca', 'Upper East Side', 'Chelsea', 'Williamsburg', 'Harlem'], [2.0, 0.7, 0.9, 0.8, 2.2, 1.2, 0.5, 0.6], [1, 1, 0, 1, 0, 0, 1, -1])),
-    city('amsterdam', 'Amsterdam', 'Netherlands', 8, 0.070, 0.008, 0.024, 'rent_control', 1, 1850,
+    city('amsterdam', 'Amsterdam', 'Netherlands', 8, 0.070, 0.008, 0.018, 'rent_control', 1, 1850,
       dd(['Jordaan', 'De Pijp', 'Oud-West', 'Centrum', 'Vondelpark', 'Plantage', 'Oud-Zuid', 'Westerpark'], [1.2, 0.8, 0.9, 1.8, 1.5, 1.1, 1.6, 0.6], [1, 1, 0, 0, 0, 0, 0, 1])),
-    city('berlin', 'Berlin', 'Germany', 6, 0.085, 0.007, 0.026, 'redevelopment', 2, 1850,
+    city('berlin', 'Berlin', 'Germany', 6, 0.085, 0.007, 0.020, 'redevelopment', 2, 1850,
       dd(['Mitte', 'Kreuzberg', 'Prenzlauer Berg', 'Charlottenburg', 'Friedrichshain', 'Schöneberg', 'Neukölln', 'Tiergarten'], [1.6, 0.7, 0.8, 1.5, 0.6, 1.0, 0.5, 1.7], [0, 1, 1, 0, 1, 0, 1, 0])),
-    city('rome', 'Rome', 'Italy', 6, 0.080, 0.009, 0.020, 'heritage_city', 2, 1850,
+    city('rome', 'Rome', 'Italy', 6, 0.080, 0.009, 0.014, 'heritage_city', 2, 1850,
       dd(['Trastevere', 'Prati', 'Monti', 'Testaccio', 'Parioli', 'San Lorenzo', 'Centro Storico', 'EUR'], [1.0, 1.3, 1.1, 0.7, 1.8, 0.6, 2.0, 0.5], [1, 0, 0, 1, 0, 0, 0, 1])),
-    city('barcelona', 'Barcelona', 'Spain', 5, 0.085, 0.008, 0.026, 'boom_bust', 2, 1850,
+    city('barcelona', 'Barcelona', 'Spain', 5, 0.085, 0.008, 0.020, 'boom_bust', 2, 1850,
       dd(['Eixample', 'Gràcia', 'Barceloneta', 'El Born', 'Sarrià', 'Poble Sec', 'Sant Antoni', 'Poblenou'], [1.4, 1.0, 0.7, 1.1, 1.8, 0.6, 0.8, 0.5], [1, 0, 1, 0, 0, 0, 1, 1])),
-    city('monaco', 'Monaco', 'Monaco', 9, 0.045, 0.003, 0.030, 'tax_haven', 3, 1870,
+    city('monaco', 'Monaco', 'Monaco', 9, 0.045, 0.003, 0.024, 'tax_haven', 3, 1870,
       dd(['Monte Carlo', 'La Condamine', 'Larvotto', 'Fontvieille', 'Monaco-Ville', 'Moneghetti', 'Les Révoires', 'La Rousse'], [2.6, 1.5, 2.0, 0.9, 1.8, 1.2, 1.1, 1.3], [1, 0, 1, 1, 0, 0, 0, 0])),
-    city('sydney', 'Sydney', 'Australia', 4, 0.080, 0.007, 0.034, 'foreign_buyer', 2, 1860,
+    city('sydney', 'Sydney', 'Australia', 4, 0.080, 0.007, 0.028, 'foreign_buyer', 2, 1860,
       dd(['Bondi', 'Surry Hills', 'Darling Point', 'Manly', 'Paddington', 'Mosman', 'Circular Quay', 'Newtown'], [1.3, 0.8, 2.0, 0.9, 1.1, 1.6, 1.8, 0.6], [1, 1, 0, 0, 0, 0, 0, 1])),
-    city('hong_kong', 'Hong Kong', 'China', 4, 0.100, 0.006, 0.040, 'boom_bust', 2, 1870,
+    city('hong_kong', 'Hong Kong', 'China', 4, 0.100, 0.006, 0.034, 'boom_bust', 2, 1870,
       dd(['Central', 'The Peak', 'Causeway Bay', 'Tsim Sha Tsui', 'Wan Chai', 'Repulse Bay', 'Mid-Levels', 'Sai Ying Pun'], [2.2, 2.6, 1.3, 1.0, 1.1, 2.0, 1.7, 0.7], [1, 0, 1, 1, 0, 0, 0, 1])),
-    city('mumbai', 'Mumbai', 'India', 2, 0.100, 0.007, 0.040, 'redevelopment', 3, 1870,
+    city('mumbai', 'Mumbai', 'India', 2, 0.100, 0.007, 0.034, 'redevelopment', 3, 1870,
       dd(['South Mumbai', 'Bandra', 'Juhu', 'Worli', 'Powai', 'Andheri', 'Lower Parel', 'Malabar Hill'], [1.8, 0.9, 1.1, 1.0, 0.5, 0.6, 0.7, 2.4], [0, 1, 0, 1, 1, 0, 1, 0])),
-    city('toronto', 'Toronto', 'Canada', 4, 0.085, 0.006, 0.030, 'foreign_buyer', 3, 1880,
+    city('toronto', 'Toronto', 'Canada', 4, 0.085, 0.006, 0.024, 'foreign_buyer', 3, 1880,
       dd(['Yorkville', 'King West', 'The Annex', 'Liberty Village', 'Distillery', 'Leslieville', 'Rosedale', 'Cabbagetown'], [1.8, 1.0, 1.2, 0.6, 0.5, 0.6, 2.0, 0.8], [0, 1, 0, 1, 1, 1, 0, 0])),
-    city('shanghai', 'Shanghai', 'China', 3, 0.085, 0.006, 0.038, 'boom_bust', 3, 1880,
+    city('shanghai', 'Shanghai', 'China', 3, 0.085, 0.006, 0.032, 'boom_bust', 3, 1880,
       dd(['The Bund', 'Pudong', 'French Concession', "Jing'an", 'Xuhui', 'Hongkou', 'Luwan', 'Changning'], [2.0, 0.4, 1.6, 1.3, 1.0, 0.6, 1.1, 0.7], [0, 2, 0, 1, 0, -1, 0, 1])),
-    city('cape_town', 'Cape Town', 'South Africa', 2, 0.110, 0.005, 0.034, 'redevelopment', 3, 1880,
+    city('cape_town', 'Cape Town', 'South Africa', 2, 0.110, 0.005, 0.028, 'redevelopment', 3, 1880,
       dd(['Camps Bay', 'Clifton', 'Sea Point', 'Waterfront', 'Gardens', 'Green Point', 'Constantia', 'Hout Bay'], [1.8, 2.2, 1.1, 1.0, 0.9, 1.0, 1.5, 0.8], [1, 0, 0, 1, 0, 1, 0, 0])),
-    city('tokyo', 'Tokyo', 'Japan', 4, 0.080, 0.006, 0.030, 'tech_hub', 2, 1890,
+    city('tokyo', 'Tokyo', 'Japan', 4, 0.080, 0.006, 0.024, 'tech_hub', 2, 1890,
       dd(['Shibuya', 'Shinjuku', 'Ginza', 'Roppongi', 'Minato', 'Aoyama', 'Akasaka', 'Meguro'], [1.4, 1.3, 2.2, 1.5, 1.8, 1.7, 1.6, 1.0], [1, 1, 0, 1, 0, 0, 0, 1])),
-    city('singapore', 'Singapore', 'Singapore', 3, 0.070, 0.007, 0.036, 'foreign_buyer', 3, 1900,
+    city('singapore', 'Singapore', 'Singapore', 3, 0.070, 0.007, 0.030, 'foreign_buyer', 3, 1900,
       dd(['Orchard', 'Marina Bay', 'Sentosa', 'Bugis', 'Holland Village', 'Tanjong Pagar', 'River Valley', 'Bukit Timah'], [2.0, 1.2, 1.5, 0.8, 1.1, 0.9, 1.4, 1.8], [0, 2, 1, 0, 0, 1, 0, 0])),
-    city('los_angeles', 'Los Angeles', 'United States', 3, 0.080, 0.007, 0.032, 'tech_hub', 2, 1900,
+    city('los_angeles', 'Los Angeles', 'United States', 3, 0.080, 0.007, 0.026, 'tech_hub', 2, 1900,
       dd(['Beverly Hills', 'Hollywood', 'Santa Monica', 'Malibu', 'Venice', 'Bel Air', 'Silver Lake', 'Downtown'], [2.4, 1.2, 1.5, 1.8, 0.8, 2.6, 0.7, 0.9], [0, 1, 0, 1, 1, 0, 1, -1])),
-    city('sao_paulo', 'São Paulo', 'Brazil', 2, 0.110, 0.006, 0.036, 'tech_hub', 3, 1900,
+    city('sao_paulo', 'São Paulo', 'Brazil', 2, 0.110, 0.006, 0.030, 'tech_hub', 3, 1900,
       dd(['Jardins', 'Vila Madalena', 'Itaim Bibi', 'Pinheiros', 'Moema', 'Brooklin', 'Higienópolis', 'Vila Olímpia'], [1.9, 0.8, 1.4, 1.0, 1.2, 0.7, 1.5, 0.9], [0, 1, 1, 0, 0, 1, 0, 1])),
-    city('miami', 'Miami', 'United States', 2, 0.090, 0.006, 0.035, 'boom_bust', 3, 1920,
+    city('miami', 'Miami', 'United States', 2, 0.090, 0.006, 0.029, 'boom_bust', 3, 1920,
       dd(['South Beach', 'Brickell', 'Wynwood', 'Coconut Grove', 'Coral Gables', 'Downtown', 'Key Biscayne', 'Edgewater'], [1.8, 1.2, 0.5, 1.3, 1.5, 0.9, 2.0, 0.8], [1, 1, 1, 0, 0, -1, 0, 1])),
-    city('dubai', 'Dubai', 'UAE', 3, 0.095, 0.000, 0.045, 'tax_haven', 3, 1970,
+    city('dubai', 'Dubai', 'UAE', 3, 0.095, 0.000, 0.039, 'tax_haven', 3, 1970,
       dd(['Downtown', 'Marina', 'Palm Jumeirah', 'JBR', 'Business Bay', 'DIFC', 'Arabian Ranches', 'Creek Harbour'], [1.8, 1.4, 2.4, 1.2, 1.0, 2.0, 0.8, 0.6], [2, 1, 1, 1, 1, 1, 0, 2]))
   ];
   D.cityById = {};
@@ -240,12 +240,12 @@
 
   /* ---------- Seller types (bible §3.3) ---------- */
   D.sellers = {
-    estate:     { name: 'Estate sale',     m: [0.70, 0.95], floor: 0.88, weight: 0.22, cue: 'Heirs want a quick sale' },
-    distressed: { name: 'Repossession',    m: [0.65, 0.90], floor: 0.85, weight: 0.14, cue: 'Bank repossession' },
-    developer:  { name: 'Developer',       m: [1.00, 1.25], floor: 0.97, weight: 0.14, cue: 'New build, finished to a high standard' },
-    landlord:   { name: 'Private landlord', m: [0.90, 1.15], floor: 0.92, weight: 0.32, cue: 'Tenanted, rent history available' },
+    estate:     { name: 'Estate sale',     m: [0.70, 0.95], floor: 0.88, weight: 0.14, cue: 'Heirs want a quick sale' },
+    distressed: { name: 'Repossession',    m: [0.65, 0.90], floor: 0.85, weight: 0.10, cue: 'Bank repossession' },
+    developer:  { name: 'Developer',       m: [1.00, 1.25], floor: 0.97, weight: 0.18, cue: 'New build, finished to a high standard' },
+    landlord:   { name: 'Private landlord', m: [0.90, 1.15], floor: 0.92, weight: 0.46, cue: 'Tenanted, rent history available' },
     rival:      { name: 'Rival family',    m: [0.95, 1.30], floor: 0.95, weight: 0.08, cue: 'A rival wants out of this district' },
-    auction:    { name: 'Auction',         m: [0.60, 0.60], floor: 0.60, weight: 0.10, cue: 'Open bidding; rivals will attend' }
+    auction:    { name: 'Auction',         m: [0.60, 0.60], floor: 0.60, weight: 0.12, cue: 'Open bidding; rivals will attend' }
   };
 
   /* ---------- Renovation tiers (bible §3.4) ---------- */
@@ -259,8 +259,9 @@
   D.balance = {
     // listings
     listingsBase: 4,                 // + tier
-    listingAffordLow: 0.22,          // listing trueValue range as a fraction of buying power
-    listingAffordHigh: 1.10,
+    listingAffordLow: 0.14,          // listing trueValue range as a fraction of buying power
+    listingAffordHigh: 1.05,
+    listingCheapMult: 0.09,          // the cheapest listing on a fresh board (≈ cash / 4)
     stretchDealMult: [2.0, 3.2],
     buyingPowerDivisor: 0.36,        // cash / this = what the player can plausibly buy (deposit + duty)
     listingMaxYears: 3,
@@ -271,7 +272,7 @@
     offersPerListingPerYear: 2,
     counterWindow: 0.20,             // offers more than this below floor are rejected outright
     lowballRepHit: 1,
-    rivalContestChance: 0.45,        // × aggression when a rival sees a bargain
+    rivalContestChance: 0.6,        // × aggression when a rival sees a bargain
     auctionRounds: 3,
     auctionRivalStep: 1.05,
     // transaction costs
@@ -293,7 +294,9 @@
     unmanagedFine: 0.01,
     decayMin: 3,
     decayMax: 6,
-    decayAgeYears: 40,                // buildings older than this decay +1
+    decayAgeYears: 40,
+    maintenanceAgeExtra: 0.003,       // old buildings cost more to keep up
+    marginCallWindowYears: 2,         // two forced sales within this window = bankruptcy                // buildings older than this decay +1
     unrentableBelow: 20,
     highVacancyBelow: 40,
     // finance
@@ -320,7 +323,7 @@
     districtNoise: 0.03,
     momentumMeanReversion: 0.15,
     momentumNoise: 0.008,
-    pressurePerBuy: 0.015,
+    pressurePerBuy: 0.006,
     saturationShare: 0.30,
     saturationPricePenalty: 0.10,
     saturationYieldPenalty: 0.15,

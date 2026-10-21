@@ -153,7 +153,7 @@
       if (p.marginCall && p.marginCall.year < s.year) {
         // missed: forced sale
         var price = Math.round(p.trueValue * B.forcedSaleFactor), net = price - m.principal;
-        s.cash += net; s.stats.forcedSales++; s.stats.forcedSalesThisEra++; s.stats.marginCallsMissed++;
+        s.cash += net; s.stats.forcedSales++; s.stats.forcedSalesThisEra++; s.stats.marginCallsMissed++; (s.stats.forcedSaleYears = s.stats.forcedSaleYears || []).push(s.year);
         report.deals.push({ kind: 'forced_sale', propertyId: p.id, name: p.name, price: price, net: net, text: 'The bank force-sold ' + p.name + ' for ' + U.fmt(price) + '.' });
         St.setOwner(p, null);
         s.reputation = U.clamp(s.reputation - 3, 0, 100);
