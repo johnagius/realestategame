@@ -49,28 +49,28 @@ var CityDef_HongKong = {
     },
     VPK:function(){
       var g=new THREE.Group(),E=City3D;
-      var Mrock=new THREE.MeshPhongMaterial({color:0x5a7848,shininess:15});
-      // Mountain
-      var mtn=E.cy(0,14,28,6,Mrock);mtn.position.y=14;g.add(mtn);
-      // Second layer
-      var mtn2=E.sphr(10,6,new THREE.MeshPhongMaterial({color:0x4a6838,shininess:10}));
-      mtn2.position.y=18;mtn2.scale.set(1.2,0.7,1.2);g.add(mtn2);
-      // Peak tower (viewing platform)
-      var tower=E.bx(4,8,4,E.M.CONC);tower.position.y=28+4;g.add(tower);
-      var deck=E.bx(8,1,8,E.M.CONC);deck.position.y=28+8.5;g.add(deck);
-      // Trees on slopes
-      [-6,6,-4,5].forEach(function(tx){
-        var t=E.sphr(3,5,E.M.PARKD);t.position.set(tx,12+Math.abs(tx)*0.3,tx*0.5);g.add(t);
-      });
-      // Tram track (line going up)
-      var track=E.bx(0.5,24,0.8,E.M.CONC,false);track.rotation.z=0.6;track.position.set(-8,12,0);g.add(track);
-      var lb=E.makeLabel('Victoria Peak');lb.position.set(0,40,0);g.add(lb);
+      // Dark mountain silhouette in the Peak Ridge signature tone (0x243530,
+      // same as HIL) so peak and ridge read as one system framing the towers.
+      // Darker than the old 0x2e4038 to survive the day-fog washout.
+      var Mpeak=new THREE.MeshPhongMaterial({color:0x243530,shininess:8});
+      // Three overlapping cone ridges, massed to the tile's right so the filler
+      // tower in front (2,4) does not hide the silhouette; low enough to frame
+      // rather than crowd ICC.
+      var r1=E.cy(0,18,26,7,Mpeak);r1.position.set(7,13,-3);g.add(r1);
+      var r2=E.cy(0,13,20,7,Mpeak);r2.position.set(13,10,1);g.add(r2);
+      var r3=E.cy(0,11,16,7,Mpeak);r3.position.set(-1,8,6);g.add(r3);
+      // Peak Tower viewing deck on the summit (kept small and light-toned)
+      var tower=E.bx(3,5,3,E.M.CONC);tower.position.set(7,28.5,-3);g.add(tower);
+      var deck=E.bx(6,1,6,E.M.CONC);deck.position.set(7,31.5,-3);g.add(deck);
+      // Peak Tram track climbing the front slope
+      var track=E.bx(0.5,20,0.8,E.M.CONC,false);track.rotation.z=0.5;track.position.set(3,7,3);g.add(track);
+      var lb=E.makeLabel('Victoria Peak');lb.position.set(4,35,0);g.add(lb);
       return g;
     },
     // SKYLINE-5 signature: hillside silhouette ridge behind the grid (backdrop plane)
     HIL:function(){
       var g=new THREE.Group(),E=City3D;
-      var Mridge=new THREE.MeshPhongMaterial({color:0x2e4038,shininess:8});
+      var Mridge=new THREE.MeshPhongMaterial({color:0x243530,shininess:8});
       // Ridge silhouette: two overlapping cones
       var r1=E.cy(0,15,20,6,Mridge);r1.position.set(-3,10,2);g.add(r1);
       var r2=E.cy(0,10,15,6,Mridge);r2.position.set(7,7.5,-3);g.add(r2);

@@ -55,25 +55,31 @@ var CityDef_Sydney = {
       // Water base
       g.add(E.flatPlane(28, 28, E.M.WATER));
 
-      // Platform/podium
-      var podium = E.bx(20, 3, 16, Mbase);
-      podium.position.y = 1.5; g.add(podium);
+      // Podium (two steps down to the water)
+      var podium = E.bx(24, 2.5, 17, Mbase);
+      podium.position.y = 1.25; g.add(podium);
+      var upper = E.bx(18, 2, 13, Mbase);
+      upper.position.set(-1, 3.5, -1); g.add(upper);
 
-      // Sail shells — overlapping low domes (full spheres, half-sunk into the podium,
-      // wide and sweeping like the real sails)
+      // Sail shells — elongated ellipsoids, thin in depth, half-sunk into the
+      // podium and leaning into each other so they interleave like the real
+      // fans: a tall four-shell fan descending back-left to front-right, plus
+      // the small restaurant pair at the front point.
       var shells = [
-        { x: -6, z: -2, sx: 6, sy: 3.5, sz: 4.5, ry: 0 },
-        { x: -6, z: -2, sx: 4.5, sy: 5, sz: 3.5, ry: 0.15 },
-        { x: 1, z: -1, sx: 7, sy: 4, sz: 5, ry: -0.1 },
-        { x: 1, z: -1, sx: 5, sy: 5.5, sz: 4, ry: 0.12 },
-        { x: 7, z: 1, sx: 4.5, sy: 3, sz: 3.5, ry: -0.08 },
+        { x: -7,   z: -3.5, sx: 7.5, sy: 12,  sz: 3,   ry: 0.3,  rz: 0.3 },
+        { x: -3.5, z: -2.5, sx: 6.5, sy: 10,  sz: 2.7, ry: 0.25, rz: 0.3 },
+        { x: 0,    z: -1.5, sx: 5.4, sy: 8.2, sz: 2.4, ry: 0.2,  rz: 0.3 },
+        { x: 3.5,  z: -1,   sx: 4.4, sy: 6.5, sz: 2.1, ry: 0.15, rz: 0.3 },
+        { x: 6.5,  z: 4.5,  sx: 3.4, sy: 4.8, sz: 1.9, ry: -0.6, rz: 0.2 },
+        { x: 9.5,  z: 4,    sx: 2.6, sy: 3.8, sz: 1.6, ry: -0.5, rz: 0.2 },
       ];
 
       shells.forEach(function(s) {
         var shell = E.sphr(1, 10, Mwhite);
         shell.scale.set(s.sx, s.sy, s.sz);
-        shell.position.set(s.x, 3 + s.sy * 0.4, s.z);
+        shell.position.set(s.x, 4.5, s.z);
         shell.rotation.y = s.ry;
+        shell.rotation.z = s.rz;
         g.add(shell);
       });
 
@@ -81,7 +87,7 @@ var CityDef_Sydney = {
       var gl = new THREE.PointLight(0xffcc66, 1.2, 30);
       gl.position.set(0, 5, 0); g.add(gl);
 
-      var lb = E.makeLabel('Opera House'); lb.position.set(0, 12, 0); g.add(lb);
+      var lb = E.makeLabel('Opera House'); lb.position.set(0, 19, 0); g.add(lb);
       return g;
     },
 

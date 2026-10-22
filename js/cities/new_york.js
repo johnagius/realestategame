@@ -37,11 +37,13 @@ var CityDef_NewYork = {
   // W=water, HB=harbor, RD=road, CP=central park, CT=countryside
   // HO/ST/AP/PH/TH/VI/MN/CM/WR/SK = building types
   // ESB/CHR/OWT/SOL = landmarks
+  // SKYLINE-13 spacing: ESB(3,3), CHR(2,4), BST(1,5) stagger diagonally so no
+  // two tall landmarks screen-overlap at the default camera.
   layout: [
-    ['W',  'CT', 'BST','CP', 'CP', 'CT', 'W' ],
-    ['W',  'AP', 'RD', 'CP', 'CP', 'MN', 'W' ],
-    ['W',  'RD', 'RD', 'RD', 'RD', 'RD', 'W' ],
-    ['W',  'TH', 'RD', 'ESB','CHR','PH', 'W' ],
+    ['W',  'CT', 'MN', 'CP', 'CP', 'CT', 'W' ],
+    ['W',  'AP', 'RD', 'CP', 'CP', 'BST','W' ],
+    ['W',  'RD', 'RD', 'RD', 'CHR','RD', 'W' ],
+    ['W',  'TH', 'RD', 'ESB','RD', 'PH', 'W' ],
     ['W',  'CM', 'SK', 'RD', 'SK', 'CM', 'W' ],
     ['W',  'RD', 'RD', 'RD', 'RD', 'RD', 'W' ],
     ['W',  'HO', 'VI', 'RD', 'OWT','ST', 'W' ],
@@ -141,7 +143,7 @@ var CityDef_NewYork = {
     },
 
     // SKYLINE-5 signature: brownstone stoop row on the Central Park edge
-    // (Central Park West) — three facades with concrete stoops. 6 meshes, ~72 tris.
+    // (Fifth Avenue side) — three facades with concrete stoops. 6 meshes, ~72 tris.
     BST: function() {
       var g = new THREE.Group(), E = City3D;
       var browns = [0x6e4530, 0x7a4e34, 0x653f2c];
