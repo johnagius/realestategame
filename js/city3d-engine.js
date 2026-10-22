@@ -829,7 +829,7 @@ var City3D = {
   _cityDef: null, _onBuildingClick: null, _opts: null, _era: 'modern', _night: 0.55,
   _fades: [], _winMeshes: null, _signs: null, _animated: null, _textures: null, _skins: null,
   _paused: false, _visible: true, _tabVisible: true, _orbit: 0,
-  _surround: null,
+  _surround: null, _life: null,
   _camTarget: null, _camGoal: null, _zoomGoal: 1, _lastTs: 0, _frameMs: 0,
 
   _eraOrder: ['victorian', 'gilded', 'crisis', 'boom', 'modern', 'digital'],
@@ -936,6 +936,7 @@ var City3D = {
     }
     if (this._stars) this._stars.material.opacity = Math.max(0, n - 0.3) * 1.4;
     if (this._moon) this._moon.material.opacity = Math.max(0, n - 0.2) * 1.2;
+    this._updatePools();
     this._applyExposure();
     this._paintSky();
   },
@@ -1474,6 +1475,138 @@ var City3D = {
     }
   },
 
+  /* Street life (SKYLINE-6): parked cars merged into one mesh, ≤2 cars crawling
+     road lanes, ≤2 boats drifting on water with one shared wake mesh, and one
+     additive lamp-pool mesh at night. Parents to _pivot (moves with the city);
+     movers/boats animate in the RAF loop. High: ≤7 calls (≤5 without water);
+     low: parked cars + pools only. */
+  _buildStreetLife: function() {
+    this._life = null;
+    if (!this._pivot || !this._cityDef) return;
+    var def = this._cityDef, T = this.TILE, self = this;
+    var GH = def.layout.length, GW = def.layout[0].length;
+    var OX = -(GW - 1) * T / 2, OZ = -(GH - 1) * T / 2;
+    var low = this._quality === 'low';
+    var pr = this._prof(this._era) || {};
+    var rng = this._mkRng(3131 + GH * 17 + GW * 31);
+    var grp = new THREE.Group(); this._pivot.add(grp);
+    var life = { grp: grp, movers: [], boats: [], pools: null, wakes: null };
+    var carGeo = function(alongX, col) {   // body + cabin meshes at origin, aligned to +x
+      var body = new THREE.Mesh(new THREE.BoxGeometry(alongX ? 3.4 : 1.7, 1.1, alongX ? 1.7 : 3.4));
+      body.position.y = 0.55;
+      var cab = new THREE.Mesh(new THREE.BoxGeometry(alongX ? 1.8 : 1.4, 0.8, alongX ? 1.4 : 1.8));
+      cab.position.y = 1.35;
+      return [body, cab];
+    };
+
+    // Road runs (for lanes + parking) and water tiles
+    var rowRuns = [], colRuns = [], waters = [];
+    def.layout.forEach(function(row, r) {
+      var run = null;
+      row.forEach(function(t, c) {
+        var x = OX + c * T, z = OZ + r * T;
+        if (t === 'RD') {
+          if (!run) { run = { r: r, tiles: [] }; rowRuns.push(run); }
+          run.tiles.push([x, z]);
+          (colRuns[c] = colRuns[c] || []).push([x, z]);
+        } else run = null;
+        if (t === 'W' || t === 'HB') waters.push([x, z]);
+      });
+    });
+    colRuns = colRuns.filter(function(c) { return c && c.length >= 2; });
+
+    // ── Cars
+    var carCols = pr.carColors || null;
+    var parked = [];
+    var nPark = low ? 8 : 11;
+    var rdAll = rowRuns.concat(colRuns.map(function(tiles) { return { tiles: tiles }; }));
+    for (var i = 0; i < nPark && rdAll.length; i++) {
+      var runP = rdAll[Math.floor(rng() * rdAll.length)].tiles;
+      var tp = runP[Math.floor(rng() * runP.length)];
+      var alongX = rng() < 0.5, off = (rng() - 0.5) * T * 0.6, lat = (rng() < 0.5 ? -1 : 1) * T * 0.09;
+      carGeo(alongX).forEach(function(m) { m.position.x = tp[0] + (alongX ? off : lat); m.position.z = tp[1] + (alongX ? lat : off); parked.push(m); });
+    }
+    if (parked.length) {
+      var pmat = new THREE.MeshPhongMaterial({ color: carCols ? carCols[0] : 0x9aa0a8, shininess: 80 });
+      var pm = new THREE.Mesh(this._mergeMeshes(parked), pmat);
+      pm.castShadow = true; grp.add(pm); life.parked = pm;
+      parked.forEach(function(m) { m.geometry.dispose(); });
+    }
+    if (!low) {   // two crawlers on the longest runs
+      var lanes = rowRuns.filter(function(r) { return r.tiles.length >= 3; }).map(function(r) { return { axis: 'x', tiles: r.tiles }; })
+        .concat(colRuns.filter(function(c) { return c.length >= 3; }).map(function(c) { return { axis: 'z', tiles: c }; }));
+      for (var mi = 0; mi < 2 && lanes.length; mi++) {
+        var ln = lanes[Math.floor(rng() * lanes.length)];
+        var mid = ln.tiles[Math.floor(ln.tiles.length / 2)];
+        var u = ln.axis === 'x' ? 0 : 1, v = 1 - u;
+        var us = ln.tiles.map(function(t2) { return t2[u]; });
+        var meshes = carGeo(ln.axis === 'x');
+        var mat = new THREE.MeshPhongMaterial({ color: carCols ? carCols[mi % carCols.length] : (mi ? 0x7a2e2e : 0x3a4a5c), shininess: 80 });
+        var cm = new THREE.Mesh(this._mergeMeshes(meshes), mat);
+        cm.castShadow = true; grp.add(cm);
+        life.movers.push({ mesh: cm, axis: ln.axis, lane: mid[v] + T * 0.09, min: Math.min.apply(null, us), max: Math.max.apply(null, us),
+          p: us[0], v: (mi % 2 ? -1 : 1) * (6.5 + rng() * 2.5) });
+      }
+    }
+
+    // ── Boats + wakes (high quality, water cities only)
+    if (!low && waters.length >= 1) {
+      var bmat = new THREE.MeshPhongMaterial({ color: 0xefe9dc, shininess: 60 });
+      for (var bi = 0; bi < 2; bi++) {
+        var wt = waters[Math.floor(rng() * waters.length)];
+        var hull = new THREE.Mesh(new THREE.BoxGeometry(8, 1.2, 3));
+        hull.position.y = 0.6;
+        var cab = new THREE.Mesh(new THREE.BoxGeometry(3, 1.5, 2.2));
+        cab.position.set(-0.6, 1.9, 0);
+        var bm = new THREE.Mesh(this._mergeMeshes([hull, cab]), bmat);
+        grp.add(bm);
+        life.boats.push({ mesh: bm, cx: wt[0], cz: wt[1], r: 3.5 + rng() * 3.5, a: rng() * 6.28,
+          w: (rng() < 0.5 ? -1 : 1) * (0.08 + rng() * 0.06), ph: rng() * 6.28 });
+      }
+      // one wake mesh: a quad per boat, vertices follow the boat every frame
+      var wpos = new Float32Array(life.boats.length * 12);
+      var wuv = new Float32Array(life.boats.length * 8);
+      for (var ui = 0; ui < life.boats.length; ui++) { wuv.set([0, 0, 1, 0, 1, 1, 0, 1], ui * 8); }
+      var wgeo = new THREE.BufferGeometry();
+      wgeo.setAttribute('position', new THREE.BufferAttribute(wpos, 3));
+      wgeo.setAttribute('uv', new THREE.BufferAttribute(wuv, 2));
+      var widx = [];
+      for (var qi = 0; qi < life.boats.length; qi++) { var b0 = qi * 4; widx.push(b0, b0 + 2, b0 + 1, b0, b0 + 3, b0 + 2); }
+      wgeo.setIndex(widx);
+      life.wakes = new THREE.Mesh(wgeo, new THREE.MeshBasicMaterial({ map: this._glowTex(), color: 0xcfe4ee, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false }));
+      life.wakes.renderOrder = 3; grp.add(life.wakes);
+    }
+
+    // ── Lamp light pools at night (one additive mesh)
+    var lampKind = pr.lamps || 'modern';
+    var quads = [];
+    def.layout.forEach(function(row, r) {
+      row.forEach(function(t, c) {
+        if (t !== 'RD') return;
+        if (lampKind !== 'neon' && (r + c) % 2 !== 0) return;
+        var q = new THREE.Mesh(new THREE.PlaneGeometry(26, 26));
+        q.rotation.x = -Math.PI / 2;
+        q.position.set(OX + c * T + T * 0.36 - 1.5, 0.5, OZ + r * T + T * 0.36);
+        quads.push(q);
+      });
+    });
+    if (quads.length) {
+      var poolMat = new THREE.MeshBasicMaterial({ map: this._glowTex(), color: lampKind === 'neon' ? 0x9fdcff : 0xffc27a,
+        transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+      var poolMesh = new THREE.Mesh(this._mergeMeshes(quads), poolMat);
+      poolMesh.renderOrder = 4; grp.add(poolMesh);
+      life.pools = poolMat;
+      quads.forEach(function(q) { q.geometry.dispose(); });
+    }
+
+    this._life = life;
+    this._updatePools();
+  },
+
+  _updatePools: function() {
+    if (this._life && this._life.pools) this._life.pools.opacity = this._night > 0.35 ? 0.2 + 0.22 * this._night : 0;
+  },
+
   // ───────────────────────────── Build the city ─────────────────────────────
   buildCity: function(cityDef, properties) {
     if (!this._pivot) return;
@@ -1518,6 +1651,7 @@ var City3D = {
     this._terrain = this._flushBatches(batches, this._terrainGroup);
     this._buildContactShadows(shadowCells);
     this._buildSurroundings();
+    this._buildStreetLife();
     this._applyEraTerrain(this._era, 0);
     if (cityDef.landmarkNames) for (var k in cityDef.landmarkNames) this.BNAMES[k] = cityDef.landmarkNames[k].replace(/^[^\w]+/, '');
     this._grid = grid; this._evLog = []; this._nxtE = 6000;
@@ -1684,6 +1818,7 @@ var City3D = {
     // Water / harbour: retint through the same fade mechanism so era changes restore
     // the palette (or the factory default) instead of leaking the previous profile.
     var wd = pr && pr.water, self = this;
+    this._waterSpec = {};
     ['WATER', 'HARBOR'].forEach(function(nm) {
       var wm = M[nm], d = self._waterDefaults[nm];
       var col = wd && wd.color != null ? wd.color : d.color;
@@ -1694,6 +1829,7 @@ var City3D = {
         if (wm.opacity !== op) fades.push({ m: wm, fromOp: wm.opacity, toOp: op, t: 0, ms: ms });
       } else { wm.color.set(col); wm.opacity = op; }
       wm.specular.set(sp);
+      self._waterSpec[nm] = wm.specular.clone();   // ripple sheen pulses around this
     });
   },
 
@@ -1834,8 +1970,44 @@ var City3D = {
       if (self._clouds) for (var ci = 0; ci < self._clouds.length; ci++) {
         var cl = self._clouds[ci]; cl.position.x += cl.userData.speed * dt * 4; if (cl.position.x > 300) cl.position.x = -300;
       }
-      // Water shimmer
-      self.M.WATER.shininess = 100 + Math.sin(ts * 0.002) * 30;
+      // Street life: crawling cars, drifting boats, wake quads following the boats
+      if (self._life) {
+        var L = self._life;
+        for (var mi = 0; mi < L.movers.length; mi++) {
+          var mv = L.movers[mi]; mv.p += mv.v * dt;
+          if (mv.p > mv.max + 8) mv.p = mv.min - 8; else if (mv.p < mv.min - 8) mv.p = mv.max + 8;
+          if (mv.axis === 'x') { mv.mesh.position.set(mv.p, 0, mv.lane); mv.mesh.rotation.y = mv.v > 0 ? 0 : Math.PI; }
+          else { mv.mesh.position.set(mv.lane, 0, mv.p); mv.mesh.rotation.y = mv.v > 0 ? Math.PI / 2 : -Math.PI / 2; }
+        }
+        for (var bi3 = 0; bi3 < L.boats.length; bi3++) {
+          var bt = L.boats[bi3]; bt.a += bt.w * dt;
+          var sgn = bt.w > 0 ? 1 : -1;
+          var hx2 = -Math.sin(bt.a) * sgn, hz2 = Math.cos(bt.a) * sgn;   // heading
+          bt.mesh.position.set(bt.cx + Math.cos(bt.a) * bt.r, 0.3 + Math.sin(ts * 0.002 + bt.ph) * 0.1, bt.cz + Math.sin(bt.a) * bt.r);
+          bt.mesh.rotation.y = Math.atan2(-hz2, hx2);
+        }
+        if (L.wakes) {
+          var wparr = L.wakes.geometry.attributes.position, wpa = wparr.array;
+          for (var wi3 = 0; wi3 < L.boats.length; wi3++) {
+            var bw = L.boats[wi3], bwsgn = bw.w > 0 ? 1 : -1;
+            var bhx = -Math.sin(bw.a) * bwsgn, bhz = Math.cos(bw.a) * bwsgn;
+            var bcx = bw.cx + Math.cos(bw.a) * bw.r - bhx * 9, bcz = bw.cz + Math.sin(bw.a) * bw.r - bhz * 9; // behind the stern
+            var bax = -bhz, baz = bhx, o = wi3 * 12;
+            wpa[o] = bcx - bhx * 8 - bax * 2.2; wpa[o + 1] = 0.06; wpa[o + 2] = bcz - bhz * 8 - baz * 2.2;
+            wpa[o + 3] = bcx + bhx * 8 - bax * 2.2; wpa[o + 4] = 0.06; wpa[o + 5] = bcz + bhz * 8 - baz * 2.2;
+            wpa[o + 6] = bcx + bhx * 8 + bax * 2.2; wpa[o + 7] = 0.06; wpa[o + 8] = bcz + bhz * 8 + baz * 2.2;
+            wpa[o + 9] = bcx - bhx * 8 + bax * 2.2; wpa[o + 10] = 0.06; wpa[o + 11] = bcz - bhz * 8 + baz * 2.2;
+          }
+          wparr.needsUpdate = true;
+        }
+      }
+      // Water shimmer: specular sheen pulsing gently around the profile's base
+      var wsb = self._waterSpec || {};
+      ['WATER', 'HARBOR'].forEach(function(nm, wi4) {
+        var wm2 = self.M[nm]; if (!wm2) return;
+        wm2.shininess = 100 + Math.sin(ts * 0.002 + wi4 * 1.7) * 30;
+        if (wsb[nm]) wm2.specular.copy(wsb[nm]).multiplyScalar(0.8 + 0.35 * (0.5 + 0.5 * Math.sin(ts * 0.0016 + wi4 * 2.1)));
+      });
 
       // Weather (rain in, fog banks, rain fall)
       self._tickWeather(dt);
@@ -1914,7 +2086,7 @@ var City3D = {
     this._fades = []; this._winMeshes = null; this._signs = null; this._animated = null; this._textures = null; this._skins = null; this._dying = null;
     this._rain = null; this._weather = 'clear'; this._weatherK = 0; this._fogGoal = null;
     this._terrain = null; this._terrainGroup = null; this._bldgGroup = null; this._orbit = 0; this._zoomGoal = 1; this._frameMs = 0;
-    this._profile = null; this._profCache = null; this._contactShadow = null; this._surround = null;
+    this._profile = null; this._profCache = null; this._contactShadow = null; this._surround = null; this._life = null;
     this._dragState = { active: false, prevX: 0, prevY: 0, startX: 0, startY: 0, moved: false };
     this._visible = true; this._tabVisible = true;
   },

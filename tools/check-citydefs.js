@@ -56,6 +56,7 @@ function checkProfile(city, def) {
   if (p.base.lamps != null && !LAMPS.has(p.base.lamps)) bad(city, `base.lamps '${p.base.lamps}' unknown`);
   if (p.base.skyline != null && !hexNum(p.base.skyline)) bad(city, `base.skyline not a hex number (${p.base.skyline})`);
   if (p.base.surroundings != null && !SURROUNDINGS.has(p.base.surroundings)) bad(city, `base.surroundings '${p.base.surroundings}' unknown`);
+  if (p.base.carColors != null && (!Array.isArray(p.base.carColors) || !p.base.carColors.every(hexNum))) bad(city, 'base.carColors not an array of hex numbers');
   for (const e of eras) {
     const pe = p[e];
     if (pe.sky != null && (!Array.isArray(pe.sky) || pe.sky.length !== 3 || !pe.sky.every(s => HEX.test(s)))) bad(city, `${e}.sky not a 3-string hex triad`);

@@ -13,7 +13,8 @@ var CityDef_NewYork = {
   // Park green. Resolved by City3D._prof: era key > base > ERAS palette.
   // Victorian/Gilded get gas lamps + coal-smog dusk, Digital neon + dark mirror water.
   profile: {
-    base: { skyline: 0x1a243c, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure: 1.07, sunDay: 0xf2e6d2, sunDusk: 0x8ea2d2,
+    base: { skyline: 0x1a243c, surroundings: 'dense', carColors: [0xe3b53a, 0x2b2f36], // SKYLINE-5: skyline-edge tint + slab kind; SKYLINE-6: taxi yellow
+      exposure: 1.07, sunDay: 0xf2e6d2, sunDusk: 0x8ea2d2,
       ambDay: 0x303a4e, ambDusk: 0x182034, hemiSky: 0xb4ccea, hemiGround: 0x3c404a,
       wallJitter: 0.05, water: { color: 0x1c4a6e, specular: 0x92badc, opacity: 0.9 },
       trees: 'plane', lamps: 'modern' },

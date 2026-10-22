@@ -148,10 +148,28 @@ rolled into the build-out:
 - Known-weak for the next wave: Sydney Opera House shells, Victoria Peak shape,
   Table Mountain day-side washout, NYC signature crowding, Notre-Dame camera-facing.
 
+### SKYLINE-5 — surroundings slab + skyline edge (2026-10-22, Kimi) — DONE
+- `_buildSurroundings()` in `js/city3d-engine.js`: view-aligned slab (ground + packed
+  filler mass + 14-silhouette skyline edge) parented to `_pivot`, rotation-compensated
+  per frame so the skyline stays behind on orbit. Profile fields `skyline` (tint) and
+  `surroundings` (`hills|flat|desert|dense`) set in all 20 city profiles. ≤4 calls /
+  ≤5.5k tris; low quality = ground + skyline only. Night response: surround darkens and
+  desaturates with night, silhouette luminance clamped ≤85% of the sky bottom.
+- Verified: sk5-* shots (London day/dusk, HK dusk, Amsterdam, Dubai, mobile); London
+  high 232 calls / 18.3k tris, low 227 / 13.1k.
+
+### SKYLINE-6 — streets and water alive (2026-10-22, Kimi) — DONE
+- `_buildStreetLife()`: 11 parked cars merged to 1 mesh + 2 crawlers on road lanes
+  (profile `carColors`, NYC taxi yellow), 2 boats drifting W/HB tiles with one shared
+  2-quad wake mesh (vertices follow in RAF), one additive lamp-pool mesh under every
+  lamp (opacity ∝ night), water specular sheen pulsing around each profile's base.
+  +7 calls / +~400 tris high (≤5 without water), parked+pools only on low. London
+  modern-day 237–239 calls / 18.7k tris; engine cost 1.36 → 1.49 ms avg (noise-level).
+  Motion verified: mover + boat positions sampled 3 s apart — both moved.
+
 ### Remaining (audit §2 order)
 
-SKYLINE-5 surroundings slab (world beyond the island) → SKYLINE-6 streets/water
-alive → SKYLINE-7 silhouette variety (largest gap) → SKYLINE-9 mobile hero →
+SKYLINE-7 silhouette variety (largest gap) → SKYLINE-9 mobile hero →
 SKYLINE-10 labels + landmark lights → SKYLINE-11 perspective rig for splash/photo.
 
 Perf budget (this machine has a GPU — measure, don't assume):
