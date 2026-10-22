@@ -37,11 +37,11 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 ## Phase 3 — Rivals, dynasty, events depth
 
-- [ ] **P3.1 Rival personalities visible** — portraits (SVG), one-line taunts/reactions in auctions and year report, relationship meter, "offer on their property" flow. Acceptance: ≥ 1 rival interaction per 2 years in sim; leaderboard rank at year 30 in #2–#4 band.
-- [x] **P3.2 Marriage/alliance** — propose marriage of an heir to a rival family: alliance grants deal intel and a late-game merger option; refusal costs reputation. _(engine done v8.1; UI pending unless noted)_
+- [x] **P3.1 Rival personalities visible** — portraits (SVG heraldic crests with charges + motto ribbons), one-line taunts/reactions in auctions and year report, relationship meter, "offer on their property" flow (listed lots open from the rival sheet). Acceptance: ≥ 1 rival interaction per 2 years in sim; leaderboard rank at year 30 in #2–#4 band. _(2baa7f2; sim interaction test green)_
+- [x] **P3.2 Marriage/alliance** — propose marriage of an heir to a rival family: alliance grants deal intel and a late-game merger option; refusal costs reputation. _(engine v8.1; UI 151a540 — candidate picker with live odds, alliance card, merger confirm)_
 - [x] **P3.3 Succession ceremony** — heir choice screen with trait reveal, estate tax breakdown, trust/charity planning, "new chapter" title card. _(P3.3: ceremony with ink tree, wax-seal reveal and tax breakdown; charity endowment engine+UI per bible §7)_
   Quick balance (node js/sim/balance.js 20 5): 10/10 targets PASS, 4/4 family guards PASS.
-- [x] **P3.4 Events v2** — 40+ city events with two non-dominant choices, 12 historical set-pieces 1850–2030 with pre-warnings in the morning paper, era transition set-pieces that re-skin the 3D city live. _(engine done v8.1; UI pending unless noted)_
+- [x] **P3.4 Events v2** — 40+ city events with two non-dominant choices, 12 historical set-pieces 1850–2030 with pre-warnings in the morning paper, era transition set-pieces that re-skin the 3D city live. _(engine v8.1; era-gated landmarks + weather re-skin the city live, c4d938d)_
 - [x] **P3.5 Bankruptcy/comeback arc** — rivals absorb the estate the moment the house falls (visible on the 3D map), end card names the absorber; comeback run has a bespoke three-step yearly goal track (black year → two buildings → 50% of peak). _(P3.5)_
 
 ## Phase 4 — Breadth returns as era unlocks (only what passed the audit)
@@ -54,11 +54,11 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 ## Phase 5 — Retention systems
 
-- [x] **P5.1 Four families with real rule differences** (bible §11). _(engine done v8.1; UI pending unless noted)_
-- [x] **P5.2 Prestige perks store** (legacy points) with perks that change rules, not just +cash. _(engine done v8.1; UI pending unless noted)_
-- [x] **P5.3 Weekly seeded challenge** (30-year sprint, local leaderboard; online later). _(engine done v8.1; UI pending unless noted)_
-- [x] **P5.4 Era-start scenarios** (1929 leveraged, 2008 crash). _(engine done v8.1; UI pending unless noted)_
-- [x] **P5.5 Achievements v2** re-tuned to the new curve, with 3D trophies in the home city. _(engine done v8.1; UI pending unless noted)_
+- [x] **P5.1 Four families with real rule differences** (bible §11). _(engine v8.1; family select cards with crests + rule facts, start.js 0a7ad10)_
+- [x] **P5.2 Prestige perks store** (legacy points) with perks that change rules, not just +cash. _(engine v8.1; store UI + mode-perk selection via Game.setModes, 1800761)_
+- [x] **P5.3 Weekly seeded challenge** (30-year sprint, local leaderboard; online later). _(engine v8.1; lobby UI with best/history, 1800761; online interface agent-4 pending)_
+- [x] **P5.4 Era-start scenarios** (1929 leveraged, 2008 crash). _(engine v8.1; scenario select UI, 1800761)_
+- [x] **P5.5 Achievements v2** re-tuned to the new curve, with 3D trophies in the home city. _(engine v8.1; trophy room gallery, 1800761; 3D trophies not built — backlog)_
 
 ## Phase 6 — Store readiness
 
