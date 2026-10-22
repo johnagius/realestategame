@@ -26,6 +26,7 @@
 
   function boot() {
     PEUI.loadPrefs();
+    if (!document.documentElement.getAttribute('data-era')) document.documentElement.setAttribute('data-era', 'victorian');
     PEUI.buildHUD(); PEUI.buildNav();
     if (root.AdManager && root.AdManager.init) { try { root.AdManager.init(); } catch (e) {} }
     PEUI.render('start');

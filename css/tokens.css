@@ -160,3 +160,197 @@
   :root { --dur-1: 0ms; --dur-2: 0ms; --dur-3: 0ms; }
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
 }
+
+/* ========================================
+   ERA COLOUR SCRIPT — DESIGN-DIRECTION §2.
+   The UI is a Victorian ledger growing into a glass skyline: [data-era] on
+   <html> re-inks the whole interface per era (paper, ink, accent, light).
+   Light blocks come before the dark renditions; an explicit data-theme or
+   the system scheme picks the rendition, the era picks the hues.
+   ======================================== */
+
+/* --- Victorian 1850–1899: warm cream, sepia, brass, oxblood, gaslight --- */
+:root[data-era="victorian"] {
+  --bg: #F1E8D3; --surface: #FAF4E4; --surface-2: #EBDFC2; --surface-3: #DECFA9;
+  --ink: #2A2016; --ink-2: #584B39; --ink-3: #6E6049;
+  --line: #D8C9A6; --line-strong: #BCA877;
+  --gold: #C29A3B; --gold-ink: #8A6418; --gold-soft: #F3E7C6;
+  --primary: #5A1F24; --primary-ink: #F7EFDD; --primary-hover: #6E2A30;
+  --hud-bg: #2A2016; --hud-ink: #F1E8D3; --hud-ink-2: #CBB98F;
+  --focus: #8A6418;
+}
+/* --- Gilded 1900–1929: ivory, green-black, gold leaf, bottle green --- */
+:root[data-era="gilded"] {
+  --bg: #F4EFE0; --surface: #FCF9EE; --surface-2: #ECE4CD; --surface-3: #E0D5B5;
+  --ink: #15211B; --ink-2: #47564C; --ink-3: #5D6C61;
+  --line: #DAD2B9; --line-strong: #BFB488;
+  --gold: #B8912F; --gold-ink: #7A5E14; --gold-soft: #F2E9CB;
+  --primary: #1F4D3A; --primary-ink: #EFF5EC; --primary-hover: #2A5F4A;
+  --hud-bg: #14211B; --hud-ink: #F4EFE0; --hud-ink-2: #C3BC9C;
+  --focus: #1F4D3A;
+}
+/* --- Crisis 1930–1949: grey newsprint, hard black, signal red, cold daylight --- */
+:root[data-era="crisis"] {
+  --bg: #E9E7DF; --surface: #F3F1E9; --surface-2: #DCD9CE; --surface-3: #CCC8BA;
+  --ink: #191919; --ink-2: #494946; --ink-3: #5F5F5A;
+  --line: #CFCBBE; --line-strong: #A8A395;
+  --gold: #B3402A; --gold-ink: #8F2E1E; --gold-soft: #F3DDD6;
+  --primary: #232323; --primary-ink: #F3F1E9; --primary-hover: #3A3A3A;
+  --hud-bg: #191919; --hud-ink: #F3F1E9; --hud-ink-2: #B9B5A8;
+  --focus: #8F2E1E;
+}
+/* --- Boom 1950–1979: pale mint, navy, coral, mustard, bright noon --- */
+:root[data-era="boom"] {
+  --bg: #E3EFE2; --surface: #F1F7EF; --surface-2: #D3E4D2; --surface-3: #BFD4BF;
+  --ink: #1F2A46; --ink-2: #4B5670; --ink-3: #616B85;
+  --line: #C4D6C4; --line-strong: #9FB89F;
+  --gold: #C9971C; --gold-ink: #8F6A03; --gold-soft: #F7ECC9;
+  --primary: #B8432B; --primary-ink: #FFF6F0; --primary-hover: #9E3722;
+  --hud-bg: #1F2A46; --hud-ink: #EAF2E8; --hud-ink-2: #A9B8D0;
+  --focus: #8F6A03;
+}
+/* --- Modern 1980–2007: off-white, charcoal, cobalt, chrome, fluorescent --- */
+:root[data-era="modern"] {
+  --bg: #EBE9E3; --surface: #F7F5F0; --surface-2: #DEDBD2; --surface-3: #CCC8BC;
+  --ink: #22252A; --ink-2: #54575D; --ink-3: #6A6D74;
+  --line: #D3D0C7; --line-strong: #ADA99E;
+  --gold: #2456B8; --gold-ink: #1D439B; --gold-soft: #DCE5F7;
+  --primary: #2456B8; --primary-ink: #F4F7FD; --primary-hover: #1B469E;
+  --hud-bg: #16181D; --hud-ink: #E9E9E4; --hud-ink-2: #9DA3AD;
+  --focus: #1D439B;
+}
+/* --- Digital 2008–2030: pale glass (light rendition of the near-black era) --- */
+:root[data-era="digital"] {
+  --bg: #E4E8EC; --surface: #F4F7FA; --surface-2: #D8DEE5; --surface-3: #C4CDD7;
+  --ink: #14181F; --ink-2: #46505C; --ink-3: #5C6672;
+  --line: #C8D1DA; --line-strong: #A0ADBB;
+  --gold: #0A6E80; --gold-ink: #0A6E80; --gold-soft: #D5F2F7;
+  --primary: #0A6E80; --primary-ink: #EFFBFE; --primary-hover: #085D6C;
+  --hud-bg: #0E1116; --hud-ink: #E8EEF4; --hud-ink-2: #8E99A6;
+  --focus: #0A6E80;
+}
+
+/* --- Dark renditions of the same script --- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-era="victorian"] {
+    --bg: #171310; --surface: #201A15; --surface-2: #2A221B; --surface-3: #372D22;
+    --ink: #F0E7D4; --ink-2: #B9AB8F; --ink-3: #94866D;
+    --line: #3A3226; --line-strong: #55492F;
+    --gold: #D9B45C; --gold-ink: #E8CF86; --gold-soft: #3A2F1C;
+    --primary: #D9B45C; --primary-ink: #241C0C; --primary-hover: #E8CF86;
+    --hud-bg: #100D0A; --hud-ink: #F0E7D4; --hud-ink-2: #B9AB8F;
+    --focus: #E8CF86;
+  }
+  :root:not([data-theme="light"])[data-era="gilded"] {
+    --bg: #12180F; --surface: #182114; --surface-2: #212D1B; --surface-3: #2C3A24;
+    --ink: #EDF2DF; --ink-2: #B4C0A4; --ink-3: #8E9B80;
+    --line: #2C3624; --line-strong: #445239;
+    --gold: #D9B45C; --gold-ink: #E8CF86; --gold-soft: #33301A;
+    --primary: #7FB08F; --primary-ink: #10180F; --primary-hover: #9AC3A8;
+    --hud-bg: #0E130B; --hud-ink: #EDF2DF; --hud-ink-2: #A8B498;
+    --focus: #D9B45C;
+  }
+  :root:not([data-theme="light"])[data-era="crisis"] {
+    --bg: #131313; --surface: #1B1B1A; --surface-2: #262625; --surface-3: #333331;
+    --ink: #EDECE6; --ink-2: #AEADA6; --ink-3: #84837C;
+    --line: #30302E; --line-strong: #4B4B48;
+    --gold: #E07B5F; --gold-ink: #EB9C86; --gold-soft: #38201B;
+    --primary: #EDECE6; --primary-ink: #161615; --primary-hover: #C9C8C0;
+    --hud-bg: #0E0E0D; --hud-ink: #EDECE6; --hud-ink-2: #9C9B94;
+    --focus: #E07B5F;
+  }
+  :root:not([data-theme="light"])[data-era="boom"] {
+    --bg: #101B1C; --surface: #162425; --surface-2: #1E3233; --surface-3: #2A4446;
+    --ink: #E6F0EA; --ink-2: #A8BDB2; --ink-3: #7E938A;
+    --line: #274042; --line-strong: #3A5C5F;
+    --gold: #E3B23C; --gold-ink: #EFCB6E; --gold-soft: #38300F;
+    --primary: #E07856; --primary-ink: #2A0F08; --primary-hover: #E89273;
+    --hud-bg: #0C1516; --hud-ink: #E6F0EA; --hud-ink-2: #93A89E;
+    --focus: #E3B23C;
+  }
+  :root:not([data-theme="light"])[data-era="modern"] {
+    --bg: #141518; --surface: #1B1D21; --surface-2: #24272D; --surface-3: #30343C;
+    --ink: #ECECE8; --ink-2: #AEAFAD; --ink-3: #83858A;
+    --line: #2E323A; --line-strong: #474C58;
+    --gold: #6E8FE8; --gold-ink: #9DB4F0; --gold-soft: #1E2740;
+    --primary: #6E8FE8; --primary-ink: #0E1330; --primary-hover: #8FA8ED;
+    --hud-bg: #0F1013; --hud-ink: #ECECE8; --hud-ink-2: #9DA0A8;
+    --focus: #9DB4F0;
+  }
+  :root:not([data-theme="light"])[data-era="digital"] {
+    --bg: #0C0F14; --surface: #141920; --surface-2: #1C242E; --surface-3: #28323F;
+    --ink: #EDF2F8; --ink-2: #AEB9C6; --ink-3: #7F8B99;
+    --line: #242E3A; --line-strong: #3A4757;
+    --gold: #2FC6DE; --gold-ink: #6FDCEC; --gold-soft: #0E2A33;
+    --primary: #2FC6DE; --primary-ink: #06222A; --primary-hover: #54D4E8;
+    --hud-bg: #080B0F; --hud-ink: #EDF2F8; --hud-ink-2: #7F8B99;
+    --scrim: rgba(0, 0, 0, 0.7);
+    --focus: #2FC6DE;
+  }
+}
+:root[data-theme="dark"][data-era="victorian"] {
+  --bg: #171310; --surface: #201A15; --surface-2: #2A221B; --surface-3: #372D22;
+  --ink: #F0E7D4; --ink-2: #B9AB8F; --ink-3: #94866D;
+  --line: #3A3226; --line-strong: #55492F;
+  --gold: #D9B45C; --gold-ink: #E8CF86; --gold-soft: #3A2F1C;
+  --primary: #D9B45C; --primary-ink: #241C0C; --primary-hover: #E8CF86;
+  --hud-bg: #100D0A; --hud-ink: #F0E7D4; --hud-ink-2: #B9AB8F;
+  --focus: #E8CF86;
+}
+:root[data-theme="dark"][data-era="gilded"] {
+  --bg: #12180F; --surface: #182114; --surface-2: #212D1B; --surface-3: #2C3A24;
+  --ink: #EDF2DF; --ink-2: #B4C0A4; --ink-3: #8E9B80;
+  --line: #2C3624; --line-strong: #445239;
+  --gold: #D9B45C; --gold-ink: #E8CF86; --gold-soft: #33301A;
+  --primary: #7FB08F; --primary-ink: #10180F; --primary-hover: #9AC3A8;
+  --hud-bg: #0E130B; --hud-ink: #EDF2DF; --hud-ink-2: #A8B498;
+  --focus: #D9B45C;
+}
+:root[data-theme="dark"][data-era="crisis"] {
+  --bg: #131313; --surface: #1B1B1A; --surface-2: #262625; --surface-3: #333331;
+  --ink: #EDECE6; --ink-2: #AEADA6; --ink-3: #84837C;
+  --line: #30302E; --line-strong: #4B4B48;
+  --gold: #E07B5F; --gold-ink: #EB9C86; --gold-soft: #38201B;
+  --primary: #EDECE6; --primary-ink: #161615; --primary-hover: #C9C8C0;
+  --hud-bg: #0E0E0D; --hud-ink: #EDECE6; --hud-ink-2: #9C9B94;
+  --focus: #E07B5F;
+}
+:root[data-theme="dark"][data-era="boom"] {
+  --bg: #101B1C; --surface: #162425; --surface-2: #1E3233; --surface-3: #2A4446;
+  --ink: #E6F0EA; --ink-2: #A8BDB2; --ink-3: #7E938A;
+  --line: #274042; --line-strong: #3A5C5F;
+  --gold: #E3B23C; --gold-ink: #EFCB6E; --gold-soft: #38300F;
+  --primary: #E07856; --primary-ink: #2A0F08; --primary-hover: #E89273;
+  --hud-bg: #0C1516; --hud-ink: #E6F0EA; --hud-ink-2: #93A89E;
+  --focus: #E3B23C;
+}
+:root[data-theme="dark"][data-era="modern"] {
+  --bg: #141518; --surface: #1B1D21; --surface-2: #24272D; --surface-3: #30343C;
+  --ink: #ECECE8; --ink-2: #AEAFAD; --ink-3: #83858A;
+  --line: #2E323A; --line-strong: #474C58;
+  --gold: #6E8FE8; --gold-ink: #9DB4F0; --gold-soft: #1E2740;
+  --primary: #6E8FE8; --primary-ink: #0E1330; --primary-hover: #8FA8ED;
+  --hud-bg: #0F1013; --hud-ink: #ECECE8; --hud-ink-2: #9DA0A8;
+  --focus: #9DB4F0;
+}
+:root[data-theme="dark"][data-era="digital"] {
+  --bg: #0C0F14; --surface: #141920; --surface-2: #1C242E; --surface-3: #28323F;
+  --ink: #EDF2F8; --ink-2: #AEB9C6; --ink-3: #7F8B99;
+  --line: #242E3A; --line-strong: #3A4757;
+  --gold: #2FC6DE; --gold-ink: #6FDCEC; --gold-soft: #0E2A33;
+  --primary: #2FC6DE; --primary-ink: #06222A; --primary-hover: #54D4E8;
+  --hud-bg: #080B0F; --hud-ink: #EDF2F8; --hud-ink-2: #7F8B99;
+  --scrim: rgba(0, 0, 0, 0.7);
+  --focus: #2FC6DE;
+}
+
+/* Era cross-fade: surfaces re-ink over --dur-3 when the year turns an era. */
+.card, .paper, .hud, .chip, .sheet, .screen__scroll {
+  transition: background-color var(--dur-3) var(--ease), border-color var(--dur-3) var(--ease);
+}
+
+/* Paper grain — the ledger is a physical surface (DESIGN-DIRECTION §2.1). */
+body::after {
+  content: ''; position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}

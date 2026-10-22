@@ -58,6 +58,8 @@
     end.disabled = blocked;
     PEUI.setText(end.querySelector('span'), s.pendingEvents ? 'Decide' : 'End year');
     document.documentElement.style.setProperty('--player', s.color);
+    var eraId = s.eraId || 'victorian';
+    if (document.documentElement.getAttribute('data-era') !== eraId) document.documentElement.setAttribute('data-era', eraId);
   };
 
   PEUI.buildNav = function () {
