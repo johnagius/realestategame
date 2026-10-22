@@ -192,7 +192,16 @@
     var deals = section('Deals', r.deals.map(function (d) { return d.text; }), 'tag'); if (deals) inner.appendChild(deals);
     var dyn = section('The family', r.lines, 'crown'); if (dyn) inner.appendChild(dyn);
     var evs = section('Events', r.events.map(function (e) { return e.title + (e.kind === 'historical' ? ' (history)' : ''); }), 'warning'); if (evs) inner.appendChild(evs);
-    var rv = section('The rivals', r.rivalsMoves.map(function (m) { return m.name + ': ' + m.text; }), 'users'); if (rv) inner.appendChild(rv);
+    var rvMoves = r.rivalsMoves || [];
+    if (rvMoves.length) {
+      var rvSec = h('section', { class: 'card card--flat stack stack--2' }, h('div', { class: 'kicker', text: 'The rivals' }));
+      var rvUl = h('ul', { class: 'lines' });
+      for (var mi = 0; mi < rvMoves.length; mi++) {
+        var m = rvMoves[mi], mDef = m.id !== 'player' ? PE().Data.rivalById(m.id) : null;
+        rvUl.appendChild(h('li', {}, [mDef ? PEUI.crest({ id: m.id, name: m.name, color: mDef.color }, { size: 22 }) : icon('users'), h('span', { text: m.name + ': ' + m.text })]));
+      }
+      rvSec.appendChild(rvUl); inner.appendChild(rvSec);
+    }
     if (PEUI.appraisal) { var reveals = r.appraisalReveals || (r.appraisalReveals = PEUI.appraisal.sweep(r.year)); var ap = section('Your appraisals', reveals.map(function (x) { return x.text; }), 'percent'); if (ap) inner.appendChild(ap); }
     inner.appendChild(h('p', { class: 'report__cliff', text: r.cliffhanger }));
     return inner;

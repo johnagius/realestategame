@@ -211,6 +211,68 @@
     return null;
   };
 
+  /* ---------- Rival voice (P3.1): per-archetype taunts and reactions.
+     Kinds: outbidYou (they raise against you), outbidAny (their bid in the log),
+     win (they take the lot), lose (you beat them), ally / jab / greet / idle. ---------- */
+  D.taunts = {
+    Banker: {
+      outbidYou: ['A pleasure to do business. Do try to keep up.', 'Sentiment is expensive, friend.', 'The bank thanks you for the rehearsal.'],
+      outbidAny: ['Rothschild.', 'A modest increment.', 'Money speaks quietly.'],
+      win: ['Sound assets find sound owners.', 'It will sit well in our column.'],
+      lose: ['You overpaid. The market will remind you.'],
+      ally: ['Dinner is at eight. Bring your books.'], jab: ['Leverage is a knife. You are holding the blade.', 'Interest accrues. So does regret.'], greet: ['Rothschild & Sons acknowledges you.'],
+      idle: ['Counting coupons.', 'Reviewing covenants.', 'Lending only to friends.']
+    },
+    Trader: {
+      outbidYou: ['Too slow, old sport.', 'I will flip it before you have found a pen.'],
+      outbidAny: ['Wong Dynasty bids.', 'Cheap at twice the price.'],
+      win: ['Bought well is half sold.', 'Another one for the ledger.'],
+      lose: ['Fine — it is your anchor to carry.'],
+      ally: ['Tips flow both ways between friends.'], jab: ['You collect deeds the way others collect dust.'], greet: ['The Wong Dynasty smells a deal.'],
+      idle: ['Watching the tape.', 'Three deals before breakfast.']
+    },
+    Hoarder: {
+      outbidYou: ['It was never for sale to you.', 'What is bought is kept. Forever.'],
+      outbidAny: ['Al-Rashid.', 'It belongs with us.'],
+      win: ['It joins the collection.', 'Ours, as all fine things become.'],
+      lose: ['A rare loss. It will sting, eventually.'],
+      ally: ['Our houses are one house now.'], jab: ['You buy houses. We keep homes.'], greet: ['The Al-Rashids remember courtesy.'],
+      idle: ['Walking the holdings.', 'Cataloguing the collection.']
+    },
+    Speculator: {
+      outbidYou: ['Ha! Again! Higher!', 'The wave is rising — ride or drown!'],
+      outbidAny: ['Petrov bids!', 'To the moon!'],
+      win: ['Fortune favours the loud!', 'Told you. Always bet on Petrov.'],
+      lose: ['Luck turns. Mine returns.'],
+      ally: ['Together we are a storm.'], jab: ['Careful is just slow wearing a tie.'], greet: ['Petrov! Remember the name!'],
+      idle: ['Doubling down, somewhere.', 'Smelling a boom on the wind.']
+    },
+    Slumlord: {
+      outbidYou: ['Nothing personal. It is all personal.', 'Every door has a price. You just paid mine.'],
+      outbidAny: ['Martinez bids.', 'Cash, no questions.'],
+      win: ['Keys are keys.', 'It will pay for itself by Friday.'],
+      lose: ['Enjoy the repairs.'],
+      ally: ['Keys for the family, then.'], jab: ['You polish yours. Mine pay.'], greet: ['Martinez. You know the name.'],
+      idle: ['Collecting. Always collecting.', 'Rent is due. Always.']
+    },
+    Builder: {
+      outbidYou: ['That plot had my mark on it already.', 'I know what that wall is hiding.'],
+      outbidAny: ['Okonkwo builds.', 'Ground worth keeping.'],
+      win: ['Good ground. I will make it great.', 'From ruin, we raise.'],
+      lose: ['Keep it standing straight, at least.'],
+      ally: ['Two houses, one scaffold.'], jab: ['Paper gains. I deal in brick.'], greet: ['Okonkwo builds. Remember it.'],
+      idle: ['Drawing plans by lamplight.', 'Pouring foundations before dawn.']
+    },
+    Magnate: {
+      outbidYou: ['You were bidding against a weather system.', 'How quaint.'],
+      outbidAny: ['Hartwell.', 'Acquired, shortly.'],
+      win: ['Of course.', 'The map fills in.'],
+      lose: ['Amusing.'],
+      ally: ['An empire accepts your map.'], jab: ['Small houses, small dreams.'], greet: ['The Hartwells see you.'],
+      idle: ['Reviewing the map.', 'Markets are moods. We are climate.']
+    }
+  };
+
   /* ---------- Managers (bible §6.1) ---------- */
   D.managers = [
     { id: 'mgr_blake',   name: 'Thomas Blake',    quality: 0.60, fee: 0.06, minReputation: 0,  desc: 'Cheap and cheerful. Handles the basics.' },

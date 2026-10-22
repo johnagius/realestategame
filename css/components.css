@@ -272,3 +272,27 @@ button { -webkit-tap-highlight-color: transparent; }
 .crestsvg { display: block; flex: none; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.28)); }
 .head-card .crestsvg { grid-row: 1 / span 2; }
 .fam__crest, .sp-dynasty-crest { background: none; border-radius: 0; box-shadow: none; width: auto; height: auto; }
+
+/* ---------- Rival personalities (P3.1) ---------- */
+.relwrap { display: flex; align-items: center; gap: var(--sp-2); margin-top: 2px; }
+.relbar { position: relative; flex: 1; max-width: 220px; height: 8px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; }
+.relbar__zero { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--line-strong); }
+.relbar__mark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--line); }
+.relbar__mark--ally { left: 65%; background: var(--gold); }
+.relbar__fill { position: absolute; top: 0; bottom: 0; border-radius: var(--r-pill); }
+.relbar__fill--danger { background: var(--danger); }
+.relbar__fill--warn { background: var(--warn); }
+.relbar__fill--info { background: var(--info); }
+.relbar__fill--success { background: var(--success); }
+.relbar__fill--gold { background: var(--gold); }
+.relwrap__label { font-size: var(--fs-1); letter-spacing: 0.4px; text-transform: uppercase; white-space: nowrap; }
+.text--danger { color: var(--danger); } .text--warn { color: var(--warn); } .text--info { color: var(--info); } .text--success { color: var(--success); } .text--gold { color: var(--gold-ink); }
+.rival-hero { display: flex; gap: var(--sp-3); align-items: flex-start; }
+.rival-hero__name { font-family: var(--font-display); font-size: var(--fs-5); }
+.rival-hero__quote { font-style: italic; color: var(--ink-2); margin-top: var(--sp-1); }
+.holding { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-2); background: var(--surface); font-size: var(--fs-2); }
+.holding--tap { cursor: pointer; width: 100%; text-align: left; }
+.holding--tap:hover { border-color: var(--line-strong); }
+.auction-log .logline { display: flex; align-items: center; gap: var(--sp-2); padding: 2px 0; }
+.auction-log .logline__taunt { font-style: italic; color: var(--ink-3); font-size: var(--fs-1); }
+.taunt-note { display: flex; gap: var(--sp-2); align-items: center; font-style: italic; }

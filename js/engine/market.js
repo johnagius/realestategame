@@ -339,15 +339,15 @@
     // rivals open against the player's price
     var resp = M.rivalResponse(a, openingBid);
     if (!resp) { var r2 = M.buy(l, openingBid, financing, 'player'); s.auction = null; s.stats.auctionsWon++; return PE.ok({ outcome: 'accepted', price: openingBid, property: PE.Property.view(r2.property), message: 'Rivals looked, but none bid. Yours for ' + U.fmt(openingBid) + '.' }); }
-    return PE.ok({ outcome: 'auction', auction: M.auctionView(a), message: D.rivalById(resp.rivalId).name + ' bid ' + U.fmt(resp.bid) + ' against you. Bid again or withdraw.' });
+    return PE.ok({ outcome: 'auction', auction: M.auctionView(a), taunt: resp.taunt, message: D.rivalById(resp.rivalId).name + ' bid ' + U.fmt(resp.bid) + ' against you. Bid again or withdraw.' });
   };
   M.rivalResponse = function (a, playerBid) {
     var best = null;
     for (var i = 0; i < a.bidders.length; i++) if (a.bidders[i].maxBid >= playerBid * 1.02 && (!best || a.bidders[i].maxBid > best.maxBid)) best = a.bidders[i];
     if (!best) return null;
     var bid = Math.min(best.maxBid, Math.round(playerBid * B.auctionRivalStep));
-    a.currentBid = bid; a.leader = 'rival:' + best.id; a.log.push({ who: best.id, bid: bid });
-    return { rivalId: best.id, bid: bid };
+    a.currentBid = bid; a.leader = 'rival:' + best.id; a.log.push({ who: best.id, bid: bid, taunt: PE.Rivals.taunt(best.id, 'outbidAny') });
+    return { rivalId: best.id, bid: bid, taunt: a.log[a.log.length - 1].taunt };
   };
   /* round is 1-based: the round the player is about to bid in (1..maxRounds); bidsMade counts bids already placed. */
   M.auctionView = function (a) {
@@ -367,15 +367,15 @@
     if (!resp) {
       var res = M.buy(l, price, a.financing, 'player'); s.auction = null; s.stats.auctionsWon++;
       M.outbidRivals(a);
-      return PE.ok({ outcome: 'won', price: price, round: a.round, currentBid: price, property: PE.Property.view(res.property), message: 'Going, going, gone. ' + res.property.name + ' for ' + U.fmt(price) + '.' });
+      return PE.ok({ outcome: 'won', price: price, round: a.round, currentBid: price, property: PE.Property.view(res.property), taunt: a.bidders && a.bidders.length ? PE.Rivals.taunt(a.bidders[0].id, 'lose') : '', message: 'Going, going, gone. ' + res.property.name + ' for ' + U.fmt(price) + '.' });
     }
     if (a.round >= B.auctionRounds) {
       M.buy(l, resp.bid, null, 'rival:' + resp.rivalId); s.auction = null;
       var rv = s.rivals[resp.rivalId]; rv.lastAction = 'Outbid you at auction for ' + l.name;
       PE.Rivals.adjustRelation(resp.rivalId, B.relationOutbidBy);
-      return PE.ok({ outcome: 'outbid', round: a.round, currentBid: resp.bid, winner: resp.rivalId, message: D.rivalById(resp.rivalId).name + ' takes it at ' + U.fmt(resp.bid) + '.' });
+      return PE.ok({ outcome: 'outbid', round: a.round, currentBid: resp.bid, winner: resp.rivalId, taunt: PE.Rivals.taunt(resp.rivalId, 'win'), message: D.rivalById(resp.rivalId).name + ' takes it at ' + U.fmt(resp.bid) + '.' });
     }
-    return PE.ok({ outcome: 'continue', round: a.round, currentBid: resp.bid, auction: M.auctionView(a), message: D.rivalById(resp.rivalId).name + ' raises to ' + U.fmt(resp.bid) + '.' });
+    return PE.ok({ outcome: 'continue', round: a.round, currentBid: resp.bid, auction: M.auctionView(a), taunt: PE.Rivals.taunt(resp.rivalId, 'outbidYou'), message: D.rivalById(resp.rivalId).name + ' raises to ' + U.fmt(resp.bid) + '.' });
   };
   /* The player won against these bidders: they resent it (P3.2 relation driver). */
   M.outbidRivals = function (a) {
@@ -391,7 +391,7 @@
     if (!a || (auctionId && a.id !== auctionId)) return PE.fail('No such auction');
     var l = s.listings[a.listingId];
     s.auction = null;
-    if (l && a.leader !== 'player') { M.buy(l, a.currentBid, null, a.leader); return PE.ok({ outcome: 'withdrawn', winner: a.leader, message: 'You withdraw; ' + D.rivalById(a.leader.replace('rival:', '')).name + ' takes ' + l.name + '.' }); }
+    if (l && a.leader !== 'player') { M.buy(l, a.currentBid, null, a.leader); var wid = a.leader.replace('rival:', ''); return PE.ok({ outcome: 'withdrawn', winner: a.leader, taunt: PE.Rivals.taunt(wid, 'win'), message: 'You withdraw; ' + D.rivalById(wid).name + ' takes ' + l.name + '.' }); }
     return PE.ok({ outcome: 'withdrawn', message: 'You withdraw.' });
   };
 

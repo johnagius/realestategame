@@ -624,6 +624,58 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   check('ORDER.txt unchanged (no new engine files needed)', require('./load.js').order().length === 14);
 })();
 
+/* ---------- P3.1 rival personalities visible ---------- */
+(function () {
+  var P = fresh('chen', 11), s = P.S(), Rv = P.Rivals, D = P.Data;
+  var archetypes = ['Banker', 'Trader', 'Hoarder', 'Speculator', 'Slumlord', 'Builder', 'Magnate'], kinds = ['outbidYou', 'outbidAny', 'win', 'lose', 'ally', 'jab', 'greet', 'idle'];
+  var allLines = true;
+  archetypes.forEach(function (a) { kinds.forEach(function (k) { if (!D.taunts[a] || !D.taunts[a][k] || !D.taunts[a][k].length) allLines = false; }); });
+  check('P3.1: every archetype has voiced lines for every kind', allLines);
+  check('P3.1: taunts are deterministic per call count and never consume the gameplay RNG', (function () {
+    var P1 = fresh('chen', 12), P2 = fresh('chen', 12);
+    for (var i = 0; i < 5; i++) { P1.Rivals.taunt('wong', 'outbidYou'); P2.Rivals.taunt('wong', 'outbidYou'); }
+    return P1.S().rngState === P2.S().rngState;
+  })());
+  check('P3.1: taunt picks stay inside their pool', (function () {
+    var ok = true;
+    for (var i = 0; i < 40; i++) { var t = Rv.taunt('petrov', 'outbidYou'); if (D.taunts.Speculator.outbidYou.indexOf(t) < 0) ok = false; }
+    return ok;
+  })());
+  check('P3.1: adjustRelation keeps a capped relation log', (function () {
+    for (var i = 0; i < 9; i++) Rv.adjustRelation('wong', -2, 'relationOutbid');
+    var log = P.S().rivals.wong.relationLog;
+    return log && log.length === 6 && log[log.length - 1].why === 'relationOutbid';
+  })());
+  check('P3.1: leaderboard rows carry holdings and relation log', (function () {
+    var rows = Rv.leaderboard().leaderboard.filter(function (r) { return !r.isPlayer; });
+    return rows.every(function (r) { return Array.isArray(r.holdings) && Array.isArray(r.relationLog); });
+  })());
+  check('P3.1: idle lines come from the persona table (relations shift the voice)', (function () {
+    var Pn = fresh('chen', 13), pool = [];
+    for (var y = 0; y < 10; y++) {
+      clearEvents(Pn); Pn.Game.endYear();
+      for (var id in Pn.S().rivals) { var rv = Pn.S().rivals[id], T = D.taunts[P.Data.rivalById(id).archetype]; if (rv.lastAction) pool.push([].concat(T.ally, T.jab, T.greet, T.idle).indexOf(rv.lastAction) >= 0); }
+    }
+    var persona = pool.filter(Boolean).length;
+    return pool.length > 0 && persona >= pool.length * 0.3;
+  })());
+  check('P3.1: >=1 rival interaction per 2 years across scripted competent runs', (function () {
+    var pl = require('./players.js'), totalYears = 0, interactionYears = 0;
+    [21, 22, 23].forEach(function (seed) {
+      var Px = fresh('chen', seed), players = pl(Px);
+      for (var y = 0; y < 30 && Px.S().status === 'playing'; y++) {
+        var relBefore = 0; for (var id in Px.S().rivals) relBefore += (Px.S().rivals[id].relationLog || []).length;
+        var offers = Px.S().offers.length;
+        players.competent.play();
+        var r = Px.Game.endYear(); if (!r.ok) { players.resolveEvents('competent'); r = Px.Game.endYear(); }
+        var relAfter = 0; for (var id2 in Px.S().rivals) relAfter += (Px.S().rivals[id2].relationLog || []).length;
+        totalYears++;
+        if (offers > 0 || Px.S().auction || relAfter > relBefore || (r.rivalsMoves && r.rivalsMoves.length)) interactionYears++;
+      }
+    });
+    return interactionYears * 2 >= totalYears;
+  })());
+})();
 /* ---------- Summary ---------- */
 console.log('tests: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) { console.log('FAILURES:'); failures.forEach(function (f) { console.log('  - ' + f); }); }

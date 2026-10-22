@@ -334,15 +334,15 @@
       PEUI.refresh(); return;
     }
     if (r.outcome === 'rejected') { PEUI.sound('negative'); PEUI.toast(r.message, 'danger'); offer.id = null; PEUI.openListing(l.id, r.message); PEUI.refresh(); return; }
-    if (r.outcome === 'auction' || r.outcome === 'continue') { PEUI.sound('decision'); openAuction(r.auction, r.message); PEUI.refresh(); return; }
-    if (r.outcome === 'outbid') { PEUI.sound('negative'); PEUI.sheet.close(); PEUI.toast(r.message, 'danger'); offer.id = null; PEUI.refresh(); return; }
+    if (r.outcome === 'auction' || r.outcome === 'continue') { PEUI.sound('decision'); openAuction(r.auction, r.message, r.taunt); PEUI.refresh(); return; }
+    if (r.outcome === 'outbid') { PEUI.sound('negative'); PEUI.sheet.close(); offer.id = null; PEUI.refresh(); openBeaten(r); return; }
     PEUI.toast(r.message);
   }
   function stat(label, value) { return h('div', { class: 'stat' }, [h('span', { class: 'stat__label', text: label }), h('span', { class: 'stat__value num', text: value })]); }
 
   /* ---------- Auction sheet ---------- */
   var bidState = { id: null, bid: 0 };
-  function openAuction(a, message) {
+  function openAuction(a, message, taunt) {
     var s = PEUI.summary();
     bidState.id = a.id;
     var step = Math.max(1, Math.round(a.currentBid * 0.03));
@@ -350,11 +350,16 @@
     var rounds = h('div', { class: 'auction-rounds', 'aria-label': 'Round ' + a.round + ' of ' + a.maxRounds });
     for (var i = 0; i < a.maxRounds; i++) rounds.appendChild(h('span', { class: i < (a.round - 1) ? 'is-done' : '' }));
     var log = h('div', { class: 'auction-log', 'aria-live': 'polite' });
-    for (var j = 0; j < a.log.length; j++) log.appendChild(h('div', { text: (a.log[j].who === 'player' ? 'You' : PEUI.rivalName('rival:' + a.log[j].who)) + ' bid ' + fmt.money(a.log[j].bid) }));
+    for (var j = 0; j < a.log.length; j++) {
+      var entry = a.log[j];
+      if (entry.who === 'player') log.appendChild(h('div', { class: 'logline' }, [h('span', { class: 'grow', text: 'You bid ' + fmt.money(entry.bid) })]));
+      else log.appendChild(h('div', { class: 'logline' }, [PEUI.crest({ id: entry.who, name: PEUI.rivalName('rival:' + entry.who), color: (PE().Data.rivalById(entry.who) || {}).color }, { size: 20 }), h('span', { class: 'grow', text: PEUI.rivalName('rival:' + entry.who) + ' bid ' + fmt.money(entry.bid) }), entry.taunt ? h('span', { class: 'logline__taunt', text: '“' + entry.taunt + '”' }) : null]));
+    }
     if (PEUI.advisor) PEUI.advisor.trigger('auction', 'auction');
     var body = [
       PEUI.advisor ? PEUI.advisor.mount('auction') : null,
       message ? h('div', { class: 'note note--warn' }, [icon('gavel'), h('span', { text: message })]) : null,
+      taunt ? h('div', { class: 'note taunt-note' }, [h('span', { class: 'grow', text: '“' + taunt + '”' })]) : null,
       h('div', { class: 'kicker', style: 'text-align:center', text: 'Current bid · ' + a.leaderName }),
       h('div', { class: 'auction-bid num', text: fmt.money(a.currentBid) }),
       rounds,
@@ -372,6 +377,17 @@
     ];
     PEUI.sheet.open({ id: 'auction', title: 'Auction: ' + a.name, sub: 'Highest bid after ' + a.maxRounds + ' rounds wins', body: body, foot: h('div', { class: 'btn-row' }, [PEUI.btn('Withdraw', { cls: 'btn--ghost', action: 'auction-withdraw', 'data-id': a.id }), PEUI.btn('Bid', { cls: 'btn--primary', icon: 'gavel', action: 'auction-bid', 'data-id': a.id })]) });
   }
+  function openBeaten(r) {
+    var wid = r.winner ? String(r.winner).replace('rival:', '') : null;
+    var def = wid && PE().Data.rivalById(wid);
+    var body = [
+      def ? h('div', { class: 'rival-hero' }, [PEUI.crest({ id: wid, name: def.name, color: def.color }, { size: 64 }), h('div', { class: 'rival-hero__meta' }, [h('div', { class: 'rival-hero__name rival__name', text: def.name }), h('div', { class: 'small muted', text: 'Takes it at ' + fmt.money(r.currentBid) })])]) : h('div', { class: 'note note--warn', text: r.message }),
+      r.taunt ? h('div', { class: 'note taunt-note' }, [h('span', { class: 'grow', text: '“' + r.taunt + '”' })]) : null,
+      h('p', { class: 'small muted', text: 'There will be other lots. The board refreshes every year.' })
+    ];
+    PEUI.sheet.open({ id: 'beaten', title: 'Outbid', body: body, foot: h('div', { class: 'btn-row' }, [PEUI.btn('Back to the board', { cls: 'btn--primary', action: 'sheet-close' })]) });
+  }
+
   PEUI.inputs['bid-amount'] = function (el) { bidState.bid = Math.round(+el.value || 0); PEUI.setText(document.getElementById('bid-amount-v'), fmt.money(bidState.bid)); };
   PEUI.actions['bid-step'] = function (b, d) { bidState.bid = Math.max(0, bidState.bid + (+d.step)); var inp = document.getElementById('bid-amount'); if (inp) inp.value = bidState.bid; PEUI.setText(document.getElementById('bid-amount-v'), fmt.money(bidState.bid)); };
   PEUI.actions['auction-bid'] = function (b, d) {

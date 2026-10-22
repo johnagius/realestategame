@@ -17,8 +17,33 @@
     var before = s.relations[id] || 0;
     s.relations[id] = Math.round(U.clamp(before + delta, -100, 100));
     rv.relation = Rv.relationView(s.relations[id]);
-    if (why) rv.lastRelationChange = { year: s.year, delta: delta, why: why };
+    if (why) {
+      rv.lastRelationChange = { year: s.year, delta: delta, why: why };
+      rv.relationLog = rv.relationLog || [];
+      rv.relationLog.push({ year: s.year, delta: delta, why: why });
+      if (rv.relationLog.length > 6) rv.relationLog.shift();
+    }
     return s.relations[id] - before;
+  };
+  /* A voiced line for a rival. kind: outbidYou/outbidAny/win/lose/ally/jab/greet/idle.
+     Picked by hash, not PE.RNG: voice lines must never shift the gameplay stream. */
+  Rv.taunt = function (id, kind) {
+    var rd = Rv.def(id), T = rd && D.taunts[rd.archetype];
+    if (!T) return '';
+    var pool = T[kind] || T.idle || [];
+    if (!pool.length) return '';
+    var s = PE.S(), rv = s.rivals[id];
+    var n = rv ? (rv.tauntCount = (rv.tauntCount || 0) + 1) : 1;
+    var h = PE.RNG.hashSeed(id + ':' + kind + ':' + (s.year || 0) + ':' + n);
+    return pool[Math.abs(h) % pool.length];
+  };
+  /* The year's line when the rival did nothing notable: persona by relation tier. */
+  Rv.idleLine = function (rv, rd) {
+    var s = PE.S(), rel = s.relations[rv.id] || 0, T = D.taunts[rd.archetype];
+    if (rv.allied && T.ally) return R.pick(T.ally);
+    if (rel <= -30 && T.jab) return R.pick(T.jab);
+    if (rel >= 60 && T.greet) return R.pick(T.greet);
+    return R.pick(T.idle);
   };
   Rv.setRelation = function (id, value) { var s = PE.S(); return Rv.adjustRelation(id, value - (s.relations[id] || 0)); };
   Rv.allies = function () { var s = PE.S(), out = []; for (var id in s.rivals) if (s.rivals[id].allied && !s.rivals[id].bankrupt) out.push(id); return out; };
@@ -231,7 +256,7 @@
     }
     // Offer on a player property
     if (R.chance(B.rivalOfferChance * rd.aggression)) Rv.offerToPlayer(rv);
-    rv.lastAction = action || R.pick(['Collecting rents.', 'Watching the market.', 'Dining with bankers.', 'Inspecting the portfolio.']);
+    rv.lastAction = action || Rv.idleLine(rv, rd);
     if (report) report.rivalsMoves.push({ id: rv.id, name: rd.name, text: rv.lastAction, netWorth: St.netWorth(owner) });
   };
 
@@ -356,7 +381,15 @@
     for (var id in s.rivals) {
       var rv = s.rivals[id], rd = Rv.def(id);
       if (rv.merged) continue;
-      rows.push({ id: id, name: rd.name, archetype: rd.archetype, color: rd.color, netWorth: rv.bankrupt ? 0 : St.netWorth(Rv.owner(id)), properties: St.propertyCount(Rv.owner(id)), cities: rv.cities.length, lastAction: rv.lastAction, relation: rv.relation, relationScore: s.relations[id] || 0, allied: !!rv.allied, bankrupt: rv.bankrupt, isPlayer: false });
+      var owner = Rv.owner(id);
+      var owned = St.ownedProps(owner).slice().sort(function (a, b) { return b.trueValue - a.trueValue; }).slice(0, 5)
+        .map(function (p) { return { id: p.id, name: p.name, cityId: p.cityId, district: p.district, value: p.trueValue, conditionLabel: PE.Property.view(p).conditionLabel, listed: false }; });
+      for (var lid in s.listings) {
+        var l = s.listings[lid];
+        if (l.sellerRivalId !== id || owned.length >= 7) continue;
+        owned.push({ id: lid, name: l.name, cityId: l.cityId, district: l.district, value: l.trueValue, conditionLabel: l.conditionLabel || '', listed: true });
+      }
+      rows.push({ id: id, name: rd.name, archetype: rd.archetype, color: rd.color, netWorth: rv.bankrupt ? 0 : St.netWorth(owner), properties: St.propertyCount(owner), cities: rv.cities.length, lastAction: rv.lastAction, relation: rv.relation, relationScore: s.relations[id] || 0, allied: !!rv.allied, bankrupt: rv.bankrupt, isPlayer: false, holdings: owned, relationLog: (rv.relationLog || []).slice(-5) });
     }
     rows.sort(function (a, b) { return b.netWorth - a.netWorth; });
     var prev = (s.ranks && s.ranks.prevById) || {};
