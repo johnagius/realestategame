@@ -6,7 +6,7 @@ var CityDef_Rome = {
   // Victorian/Gilded gas-lit warm dusk, Digital neon + dark mirror water
   // (docs/SKYLINE.md §2, direction B).
   profile:{
-    base:{ exposure:1.1, sunDay:0xffd998, sunDusk:0xdf9a5c,
+    base:{ skyline: 0x2b2830, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure:1.1, sunDay:0xffd998, sunDusk:0xdf9a5c,
       ambDay:0x3a3346, ambDusk:0x221c2e, hemiSky:0xd4c8ea, hemiGround:0x4a3c30,
       wallJitter:0.08, water:{color:0x2a5e66,specular:0xb8dcd8,opacity:0.88},
       sky:['#1a1a3e','#7a567a','#f2a45c'], fog:0x584648, haze:0.15,

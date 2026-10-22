@@ -13,7 +13,7 @@ var CityDef_Paris = {
   // ERAS palette. Victorian/Gilded evenings go gas-lit and warm; Digital goes neon
   // with dark mirror water (docs/SKYLINE.md §2, direction B).
   profile: {
-    base: { exposure: 1.08, sunDay: 0xffe6bc, sunDusk: 0x9ca8d8,
+    base: { skyline: 0x2b2a38, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure: 1.08, sunDay: 0xffe6bc, sunDusk: 0x9ca8d8,
       ambDay: 0x363a4e, ambDusk: 0x1c2034, hemiSky: 0xc2d2f4, hemiGround: 0x46403a,
       wallJitter: 0.07, water: { color: 0x27586e, specular: 0xa8d0e0, opacity: 0.9 },
       sky: ['#1a1e44', '#7c6684', '#f4b284'], fog: 0x584c5c, haze: 0.16,

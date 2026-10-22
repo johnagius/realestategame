@@ -7,7 +7,7 @@ var CityDef_SaoPaulo = {
   // era key > base > ERAS palette. Victorian/Gilded get gas lamps + warmed dusk,
   // Digital gets neon lamps + dark mirror water.
   profile:{
-    base:{ exposure:1.08, sunDay:0xffdc9e, sunDusk:0xd88a5e,
+    base:{ skyline: 0x1b2836, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure:1.08, sunDay:0xffdc9e, sunDusk:0xd88a5e,
       ambDay:0x3a4034, ambDusk:0x201c2a, hemiSky:0xc4dcc0, hemiGround:0x4a4634,
       wallJitter:0.09, water:{ color:0x1a6a74, specular:0xa8e0d4, opacity:0.9 },
       trees:'palm', lamps:'modern' },

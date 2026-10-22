@@ -6,7 +6,7 @@ var CityDef_Barcelona = {
   // Victorian/Gilded gas-lit warm dusk, Digital neon + dark mirror sea
   // (docs/SKYLINE.md §2, direction B).
   profile:{
-    base:{ exposure:1.09, sunDay:0xffe0a6, sunDusk:0xd89c62,
+    base:{ skyline: 0x2a2c3b, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure:1.09, sunDay:0xffe0a6, sunDusk:0xd89c62,
       ambDay:0x363446, ambDusk:0x1e1c2e, hemiSky:0xbfd2f2, hemiGround:0x4c4234,
       wallJitter:0.08, water:{color:0x1868a0,specular:0xb0e0f4,opacity:0.9},
       sky:['#12204a','#4a6a9e','#f8b878'], fog:0x565064, haze:0.14,

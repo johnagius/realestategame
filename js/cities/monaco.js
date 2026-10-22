@@ -6,7 +6,7 @@ var CityDef_Monaco = {
   // saturated water (R6 pastel-against-water), palms. Victorian gets A's warm
   // gas-lit dusk; Digital gets C's neon lamps + darkest mirror water.
   profile: {
-    base: { exposure: 1.09, sunDay: 0xfff2da, sunDusk: 0xffb784,
+    base: { skyline: 0x2d3d51, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure: 1.09, sunDay: 0xfff2da, sunDusk: 0xffb784,
       ambDay: 0x3a4c68, ambDusk: 0x1c2642, hemiSky: 0xcfe6ff, hemiGround: 0x4c5a4e,
       wallJitter: 0.08, sky: ['#14305e', '#3f7ec2', '#cfeaf2'], fog: 0x5e7e9e, haze: 0.13,
       water: { color: 0x1f8fc0, specular: 0xd8f6ff, opacity: 0.88 },

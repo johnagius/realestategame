@@ -7,7 +7,7 @@ var CityDef_Toronto = {
   // Victorian gets A's warm gas-lit dusk; Digital gets C's neon lamps +
   // darkest mirror water.
   profile: {
-    base: { exposure: 1.08, sunDay: 0xf2f6ff, sunDusk: 0x9aa8d8,
+    base: { skyline: 0x26334a, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure: 1.08, sunDay: 0xf2f6ff, sunDusk: 0x9aa8d8,
       ambDay: 0x323e58, ambDusk: 0x1a2238, hemiSky: 0xc6daf6, hemiGround: 0x3e4c4a,
       wallJitter: 0.06, sky: ['#12224c', '#3a5e96', '#bcdaea'], fog: 0x4c648c, haze: 0.15,
       water: { color: 0x1c507a, specular: 0xcae6fa, opacity: 0.9 },

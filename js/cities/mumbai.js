@@ -7,7 +7,7 @@ var CityDef_Mumbai = {
   // gas-lit dusk; Digital gets C's neon lamps + darkest mirror water.
   // Signature set-piece: the Gateway-of-India arch (GWI, already canonical).
   profile: {
-    base: { exposure: 1.07, sunDay: 0xffe2b2, sunDusk: 0xff9a50,
+    base: { skyline: 0x322a37, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure: 1.07, sunDay: 0xffe2b2, sunDusk: 0xff9a50,
       ambDay: 0x4a3c4a, ambDusk: 0x2a1c2c, hemiSky: 0xf2d4ba, hemiGround: 0x4c3e32,
       wallJitter: 0.08, sky: ['#2c2046', '#8a5570', '#e8a05c'], fog: 0x6b4c5a, haze: 0.3,
       water: { color: 0x3a6a78, specular: 0xe8cca4, opacity: 0.9 },

@@ -13,7 +13,7 @@ var CityDef_Dubai = {
   // kept low. Resolved by City3D._prof: era key > base > ERAS palette.
   // Victorian/Gilded get gas lamps + warmed dusk, Digital neon + dark mirror water.
   profile: {
-    base: { exposure: 1.1, sunDay: 0xfff4d0, sunDusk: 0xe8a45c,
+    base: { skyline: 0x1b2a38, surroundings: 'desert', // SKYLINE-5: skyline-edge tint + slab kind exposure: 1.1, sunDay: 0xfff4d0, sunDusk: 0xe8a45c,
       ambDay: 0x4a4238, ambDusk: 0x262030, hemiSky: 0xc0e8fa, hemiGround: 0x6a5a3e,
       wallJitter: 0.05, water: { color: 0x18a4c4, specular: 0xd0f2fa, opacity: 0.88 },
       trees: 'scrub', lamps: 'modern' },

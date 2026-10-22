@@ -6,7 +6,7 @@ var CityDef_Singapore = {
   // water; heavy humid haze softens every era. Palm trees. Resolved by City3D._prof:
   // era key > base > ERAS palette.
   profile: {
-    base: { exposure: 1.09, sunDay: 0xffecc4, sunDusk: 0xa090b0,
+    base: { skyline: 0x1a263b, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure: 1.09, sunDay: 0xffecc4, sunDusk: 0xa090b0,
       ambDay: 0x36403e, ambDusk: 0x1c2030, hemiSky: 0xc4dcd8, hemiGround: 0x3c4a34,
       wallJitter: 0.07, water: { color: 0x12586a, specular: 0xa8e0d8, opacity: 0.9 },
       trees: 'palm', lamps: 'modern' },

@@ -6,7 +6,7 @@ var CityDef_CapeTown = {
   // bright saturated azure sky; haze stays low — Cape air is clear. Acacia trees.
   // Resolved by City3D._prof: era key > base > ERAS palette.
   profile: {
-    base: { exposure: 1.1, sunDay: 0xffedc0, sunDusk: 0xb08498,
+    base: { skyline: 0x1a2942, surroundings: 'hills', // SKYLINE-5: skyline-edge tint + slab kind exposure: 1.1, sunDay: 0xffedc0, sunDusk: 0xb08498,
       ambDay: 0x3c3a4e, ambDusk: 0x20203a, hemiSky: 0xc8dcff, hemiGround: 0x5a4a34,
       wallJitter: 0.08, water: { color: 0x16608a, specular: 0xaadcee, opacity: 0.9 },
       trees: 'acacia', lamps: 'modern' },

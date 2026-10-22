@@ -13,7 +13,7 @@ var CityDef_London = {
   // evenings and C's neon lamps + mirror water for the Digital night. Resolved by
   // City3D._prof: era key > base > ERAS palette. Ground/park authored per era (R6 ramps).
   profile: {
-    base: { exposure: 1.1, sunDay: 0xffe2b8, sunDusk: 0x9ab2e0,
+    base: { skyline: 0x1e2337, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure: 1.1, sunDay: 0xffe2b8, sunDusk: 0x9ab2e0,
       ambDay: 0x323a4e, ambDusk: 0x1a2238, hemiSky: 0xbcd4ff, hemiGround: 0x3c4a3c,
       wallJitter: 0.07, water: { color: 0x1d5a8a, specular: 0x99ccee, opacity: 0.9 },
       trees: 'plane', lamps: 'modern' },

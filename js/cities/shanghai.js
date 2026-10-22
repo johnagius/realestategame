@@ -6,7 +6,7 @@ var CityDef_Shanghai = {
   // Huangpu water carries a warm gold specular; dusk horizons run peach into plum.
   // Resolved by City3D._prof: era key > base > ERAS palette.
   profile: {
-    base: { exposure: 1.08, sunDay: 0xffe0b0, sunDusk: 0xc088a0,
+    base: { skyline: 0x1b253d, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure: 1.08, sunDay: 0xffe0b0, sunDusk: 0xc088a0,
       ambDay: 0x36304a, ambDusk: 0x1e1c30, hemiSky: 0xc0d0f0, hemiGround: 0x4a4038,
       wallJitter: 0.07, water: { color: 0x1a4a6e, specular: 0xe8c888, opacity: 0.9 },
       trees: 'plane', lamps: 'modern' },

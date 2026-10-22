@@ -6,7 +6,7 @@ var CityDef_LosAngeles = {
   // sky; the boom era runs smoggy golden dusk (haze up, amber horizon). Palm trees.
   // Resolved by City3D._prof: era key > base > ERAS palette.
   profile: {
-    base: { exposure: 1.1, sunDay: 0xffe8b4, sunDusk: 0xb88a80,
+    base: { skyline: 0x20273c, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure: 1.1, sunDay: 0xffe8b4, sunDusk: 0xb88a80,
       ambDay: 0x3c3838, ambDusk: 0x241e28, hemiSky: 0xd0ccdc, hemiGround: 0x584a34,
       wallJitter: 0.08, water: { color: 0x1c5478, specular: 0xa8d0e8, opacity: 0.9 },
       trees: 'palm', lamps: 'modern' },

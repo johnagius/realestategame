@@ -829,6 +829,7 @@ var City3D = {
   _cityDef: null, _onBuildingClick: null, _opts: null, _era: 'modern', _night: 0.55,
   _fades: [], _winMeshes: null, _signs: null, _animated: null, _textures: null, _skins: null,
   _paused: false, _visible: true, _tabVisible: true, _orbit: 0,
+  _surround: null,
   _camTarget: null, _camGoal: null, _zoomGoal: 1, _lastTs: 0, _frameMs: 0,
 
   _eraOrder: ['victorian', 'gilded', 'crisis', 'boom', 'modern', 'digital'],
@@ -1330,6 +1331,134 @@ var City3D = {
     quads.forEach(function(q) { q.geometry.dispose(); });
   },
 
+  /* Surroundings (SKYLINE-5): the world beyond the island. The ortho camera has no
+     horizon, so the world is a view-aligned slab: it runs to the front and sides of
+     the island and stops BACK_D behind centre, where the skyline edge rises against
+     the sky and the ground alpha-fades into the haze. The slab is parented to
+     _pivot and its rotation is compensated every frame (see startAnimation), so the
+     skyline stays behind the city on orbit while the circular island cut-out stays
+     valid at every azimuth. ≤4 draw calls (ground, 2 filler tones, skyline);
+     quality 'low' keeps ground + skyline only. */
+  _surroundPalette: function(pr, P) {
+    var fogC = new THREE.Color(pr && pr.fog != null ? pr.fog : P.fog);
+    var gcol = new THREE.Color(pr && pr.ground != null ? pr.ground : P.ground)
+      .lerp(fogC, 0.45).lerp(new THREE.Color(0x05070c), 0.25).multiplyScalar(0.82);
+    var fill = gcol.clone().lerp(new THREE.Color(0x2a3242), 0.4).multiplyScalar(0.9);
+    var sky = pr && pr.skyline != null ? pr.skyline
+      : fogC.clone().lerp(new THREE.Color(0x141c2c), 0.55).multiplyScalar(0.85).getHex();
+    return { ground: gcol, fill: fill, sky: sky };
+  },
+
+  _buildSurroundings: function() {
+    this._surround = null;
+    if (!this._pivot || !this._cityDef) return;
+    var low = this._quality === 'low';
+    var pr = this._prof(this._era) || {}, P = this.ERAS[this._era] || this.ERAS.modern;
+    var pal = this._surroundPalette(pr, P);
+    var kind = pr.surroundings || 'dense';
+    var def = this._cityDef, T = this.TILE;
+    var HX = def.layout[0].length * T / 2, HZ = def.layout.length * T / 2;
+    var rng = this._mkRng(977 + def.layout.length * 131 + def.layout[0].length * 17);
+    var BACK = 250, SIDE = 470, FRONT = 330, HOLE = Math.sqrt(HX * HX + HZ * HZ) + T * 0.8;
+    var grp = new THREE.Group(); grp.rotation.y = Math.PI / 4; this._pivot.add(grp); // local +z = toward camera
+
+    // Ground: one plane, alpha-fading to nothing across a short band ahead of the
+    // back edge. The fade band projects into the top sliver of the frame, so the
+    // sky is never covered; blocks and spires stand on the opaque part only.
+    var gcv = document.createElement('canvas'); gcv.width = 4; gcv.height = 256;
+    var gc = gcv.getContext('2d'), gg = gc.createLinearGradient(0, 0, 0, 256);
+    gg.addColorStop(0, 'rgba(255,255,255,0)'); gg.addColorStop(0.1, 'rgba(255,255,255,1)'); gg.addColorStop(1, 'rgba(255,255,255,1)');
+    gc.fillStyle = gg; gc.fillRect(0, 0, 4, 256);
+    var gnd = new THREE.Mesh(
+      new THREE.PlaneGeometry(SIDE * 2, BACK + FRONT),
+      new THREE.MeshLambertMaterial({ color: pal.ground, map: this._canvasTex(gcv), transparent: true, depthWrite: false })
+    );
+    gnd.rotation.x = -Math.PI / 2; gnd.position.set(0, -0.9, (FRONT - BACK) / 2);
+    gnd.renderOrder = -1; grp.add(gnd);
+
+    // Filler suburb blocks — skipped on low quality (kept: ground + skyline edge).
+    // Zone A packs the visible upper-left window (the mass behind/above the island);
+    // zone B rings the front and sides with sparse low blocks.
+    var fills = null;
+    if (!low) {
+      var buckets = [[], []];
+      function block(list, x, z, h, w) {
+        var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 5 + rng() * 10));
+        m.position.set(x, h / 2 - 0.9, z);
+        m.rotation.y = (rng() < 0.5 ? 0 : Math.PI / 2) + (rng() - 0.5) * 0.12;
+        list.push(m);
+      }
+      for (var za = -170; za < -25; za += 12) {
+        for (var xa = -470; xa < 70; xa += 12) {
+          var ax = xa + (rng() - 0.5) * 9, az = za + (rng() - 0.5) * 9;
+          if (Math.sqrt(ax * ax + az * az) < HOLE || rng() < 0.28) continue;
+          var ha = 9 + rng() * 6 + rng() * rng() * (az < -90 ? 42 : 16);
+          block(buckets[az < -90 ? 1 : 0], ax, az, ha, 6 + rng() * 9);
+        }
+      }
+      for (var zb = -25; zb < FRONT; zb += 30) {
+        for (var xb = -SIDE; xb < SIDE; xb += 30) {
+          var bx = xb + (rng() - 0.5) * 24, bz = zb + (rng() - 0.5) * 24;
+          if (Math.sqrt(bx * bx + bz * bz) < HOLE || rng() < 0.6) continue;
+          var hb = bz < -60 ? 2 + rng() * 4 : 3 + rng() * 7;
+          block(buckets[0], bx, bz, hb, 6 + rng() * 10);
+        }
+      }
+      fills = buckets.map(function(list, bi) {
+        if (!list.length) return null;
+        var mat = new THREE.MeshLambertMaterial({ color: pal.fill.clone().multiplyScalar(bi ? 0.78 : 1) });
+        var mesh = new THREE.Mesh(this._mergeMeshes(list), mat);
+        grp.add(mesh); list.forEach(function(m) { m.geometry.dispose(); });
+        return mat;
+      }, this);
+    }
+
+    // Skyline edge: 14 silhouettes against the sky. The ortho projection puts the
+    // visible height sliver at z ≈ -175..-120 (nearer and they cover the island,
+    // farther and they project above the frame), so the edge stands there, in
+    // front of the ground's fade band.
+    var L = new THREE.MeshLambertMaterial({ color: pal.sky });
+    var spires = [];
+    for (var i = 0; i < 14; i++) {
+      var sx = -380 + rng() * 600, sz = -175 + rng() * 55, h2 = 35 + rng() * 60, parts = [];
+      if (kind === 'hills') {   // layered ridge cones, town boxes at the foot
+        var r1 = 16 + rng() * 22;
+        parts.push(new THREE.Mesh(new THREE.CylinderGeometry(0, r1, h2 * 0.85, 7), L)); parts[0].position.set(0, h2 * 0.425, 0);
+        parts.push(new THREE.Mesh(new THREE.CylinderGeometry(0, r1 * 0.6, h2 * 0.6, 7), L)); parts[1].position.set(r1 * 0.5, h2 * 0.3, r1 * 0.3);
+        if (rng() < 0.6) { var tbh = 8 + rng() * 8; var tb = new THREE.Mesh(new THREE.BoxGeometry(10 + rng() * 8, tbh, 8), L); tb.position.set(-r1 * 0.4, tbh / 2, r1 * 0.2); parts.push(tb); }
+      } else if (kind === 'flat') { // low wide blocks, occasional church spire
+        if (rng() < 0.28) { var sh = 22 + rng() * 12; var sp = new THREE.Mesh(new THREE.CylinderGeometry(0, 1.4, sh, 6), L); sp.position.y = sh / 2; parts.push(sp); }
+        var bw = 14 + rng() * 12, bh = 8 + rng() * 14;
+        var bl = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, 10 + rng() * 6), L); bl.position.y = bh / 2; parts.push(bl);
+      } else if (kind === 'desert') { // low dune mounds, rare glass spire
+        if (rng() < 0.2) { var gh = 40 + rng() * 30; var gs = new THREE.Mesh(new THREE.BoxGeometry(6 + rng() * 3, gh, 6 + rng() * 3), L); gs.position.y = gh / 2; parts.push(gs); }
+        var md = new THREE.Mesh(new THREE.SphereGeometry(9 + rng() * 9, 7, 5), L); md.scale.y = 0.2; md.position.y = 0.5; parts.push(md);
+      } else {                    // 'dense' — setback towers
+        var w2 = 8 + rng() * 8;
+        var t1 = new THREE.Mesh(new THREE.BoxGeometry(w2, h2, 7 + rng() * 7), L); t1.position.y = h2 / 2; parts.push(t1);
+        if (rng() < 0.35) { var h3 = h2 * (0.35 + rng() * 0.25); var t2 = new THREE.Mesh(new THREE.BoxGeometry(w2 * 0.62, h3, 6), L); t2.position.y = h2 + h3 / 2; parts.push(t2); }
+      }
+      parts.forEach(function(p) { p.position.x += sx; p.position.z += sz; spires.push(p); });
+    }
+    var sk = new THREE.Mesh(this._mergeMeshes(spires), L);
+    grp.add(sk); spires.forEach(function(p) { p.geometry.dispose(); });
+
+    this._surround = { grp: grp, mats: [gnd.material, L].concat(fills || []) };
+  },
+
+  // Re-tint the surroundings when the era changes (pushed through the fade loop).
+  _retintSurroundings: function(era, ms) {
+    var s = this._surround; if (!s) return;
+    var pr = this._prof(era) || {}, P = this.ERAS[era] || this.ERAS.modern;
+    var pal = this._surroundPalette(pr, P);
+    var targets = [pal.ground, new THREE.Color(pal.sky), pal.fill, pal.fill.clone().multiplyScalar(0.8)];
+    for (var i = 0; i < s.mats.length && i < targets.length; i++) {
+      if (!s.mats[i]) continue;
+      if (ms > 0) this._fades.push({ m: s.mats[i], from: s.mats[i].color.clone(), to: targets[i], t: 0, ms: ms });
+      else s.mats[i].color.copy(targets[i]);
+    }
+  },
+
   // ───────────────────────────── Build the city ─────────────────────────────
   buildCity: function(cityDef, properties) {
     if (!this._pivot) return;
@@ -1373,6 +1502,7 @@ var City3D = {
     });
     this._terrain = this._flushBatches(batches, this._terrainGroup);
     this._buildContactShadows(shadowCells);
+    this._buildSurroundings();
     this._applyEraTerrain(this._era, 0);
     if (cityDef.landmarkNames) for (var k in cityDef.landmarkNames) this.BNAMES[k] = cityDef.landmarkNames[k].replace(/^[^\w]+/, '');
     this._grid = grid; this._evLog = []; this._nxtE = 6000;
@@ -1507,6 +1637,7 @@ var City3D = {
     var self = this;
     (this._skins || []).forEach(function(sk) { if (!sk.ownEra) self._retargetSkin(sk, era, ms); });
     this._applyEraTerrain(era, ms);
+    this._retintSurroundings(era, ms);
     this._applyLighting();
     // Era-gated landmarks: plots that gain or lose their monument rebuild (city grows with the era)
     var cityDef = this._cityDef, grid = this._grid;
@@ -1643,6 +1774,9 @@ var City3D = {
       // Orbit
       if (self._orbit) self._pivot.rotation.y += self._orbit * dt;
 
+      // Surroundings stay camera-aligned (world azimuth fixed) while the city orbits.
+      if (self._surround) self._surround.grp.rotation.y = Math.PI / 4 - self._pivot.rotation.y;
+
       // Camera easing
       var ct = self._camTarget, cg = self._camGoal;
       if (ct.distanceToSquared(cg) > 0.01 || Math.abs(self._cam.zoom - self._zoomGoal) > 0.002) {
@@ -1765,7 +1899,7 @@ var City3D = {
     this._fades = []; this._winMeshes = null; this._signs = null; this._animated = null; this._textures = null; this._skins = null; this._dying = null;
     this._rain = null; this._weather = 'clear'; this._weatherK = 0; this._fogGoal = null;
     this._terrain = null; this._terrainGroup = null; this._bldgGroup = null; this._orbit = 0; this._zoomGoal = 1; this._frameMs = 0;
-    this._profile = null; this._profCache = null; this._contactShadow = null;
+    this._profile = null; this._profCache = null; this._contactShadow = null; this._surround = null;
     this._dragState = { active: false, prevX: 0, prevY: 0, startX: 0, startY: 0, moved: false };
     this._visible = true; this._tabVisible = true;
   },

@@ -128,3 +128,9 @@ signatures add several unmergeable material batches (Table Mountain's
 3-cell range, NYC's tower cluster, neon-lamp eras). Worst overage is +14
 calls (5.6%); revisit with per-city batch merging only if a hard cap
 appears. Full data: `tour-stats.csv`.
+
+SKYLINE-5 (surroundings slab + skyline edge) adds ≤4 draw calls and ≤5.5k
+triangles per city (quality high; on low it is ground + skyline edge only,
++2 calls). London modern-day high measures 232 calls / 18.3k tris, low
+227 calls / 13.1k tris; the fleet worst moves to ≈268 calls
+(new_york-digital-dusk) — still calls-only, triangles ≤ 19k fleet-wide.

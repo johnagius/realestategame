@@ -22,6 +22,7 @@ const TERRAIN = new Set(['W', 'HB', 'RD', 'LOT', 'CP', 'CT', 'B']);           //
 const BLDG = new Set(['HO', 'ST', 'AP', 'PH', 'TH', 'VI', 'MN', 'CM', 'WR', 'SK']);
 const TREES = new Set(['plane', 'palm', 'conifer', 'cherry', 'acacia', 'scrub']);
 const LAMPS = new Set(['gas', 'modern', 'neon']);
+const SURROUNDINGS = new Set(['hills', 'flat', 'desert', 'dense']);
 const HEX = /^#([0-9a-f]{6})$/i;
 
 // Multi-tile silhouette landmarks are intentional (range/ridge built from repeated
@@ -53,6 +54,8 @@ function checkProfile(city, def) {
   checkWater(p.base.water, 'base');
   if (p.base.trees != null && !TREES.has(p.base.trees)) bad(city, `base.trees '${p.base.trees}' unknown`);
   if (p.base.lamps != null && !LAMPS.has(p.base.lamps)) bad(city, `base.lamps '${p.base.lamps}' unknown`);
+  if (p.base.skyline != null && !hexNum(p.base.skyline)) bad(city, `base.skyline not a hex number (${p.base.skyline})`);
+  if (p.base.surroundings != null && !SURROUNDINGS.has(p.base.surroundings)) bad(city, `base.surroundings '${p.base.surroundings}' unknown`);
   for (const e of eras) {
     const pe = p[e];
     if (pe.sky != null && (!Array.isArray(pe.sky) || pe.sky.length !== 3 || !pe.sky.every(s => HEX.test(s)))) bad(city, `${e}.sky not a 3-string hex triad`);

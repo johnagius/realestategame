@@ -12,7 +12,7 @@ var CityDef_Tokyo = {
   // gentle bloom horizon) that turns hard neon at digital night. Cherry trees.
   // Resolved by City3D._prof: era key > base > ERAS palette.
   profile: {
-    base: { exposure: 1.07, sunDay: 0xf2dcd0, sunDusk: 0x9a90b8,
+    base: { skyline: 0x1c243e, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure: 1.07, sunDay: 0xf2dcd0, sunDusk: 0x9a90b8,
       ambDay: 0x3a3444, ambDusk: 0x1c1c30, hemiSky: 0xd0c8e0, hemiGround: 0x44403c,
       wallJitter: 0.06, water: { color: 0x1c4260, specular: 0xa8c4e0, opacity: 0.9 },
       trees: 'cherry', lamps: 'modern' },

@@ -6,7 +6,7 @@ var CityDef_HongKong = {
   // digital split, rose-magenta dusk horizon, teal harbour. Victorian gets A's
   // warm gas-lit dusk; Digital gets C's neon lamps + darkest mirror water.
   profile: {
-    base: { exposure: 1.08, sunDay: 0xffe8c8, sunDusk: 0xf08ab0,
+    base: { skyline: 0x262840, surroundings: 'hills', // SKYLINE-5: skyline-edge tint + slab kind exposure: 1.08, sunDay: 0xffe8c8, sunDusk: 0xf08ab0,
       ambDay: 0x323c58, ambDusk: 0x1c1a38, hemiSky: 0xbcccf2, hemiGround: 0x3c4048,
       wallJitter: 0.06, sky: ['#101c42', '#3a3a7c', '#c87a9e'], fog: 0x4c4672, haze: 0.19,
       water: { color: 0x14506e, specular: 0xa8ecf4, opacity: 0.9 },

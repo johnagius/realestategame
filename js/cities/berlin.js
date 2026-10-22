@@ -5,7 +5,7 @@ var CityDef_Berlin = {
   // sky triad, plane/linden trees. Era key > base > ERAS (City3D._prof); Victorian/Gilded
   // gas-lit warm dusk, Digital neon + dark mirror Spree (docs/SKYLINE.md §2, direction B).
   profile:{
-    base:{ exposure:1.06, sunDay:0xf2e2c4, sunDusk:0x8ea2d4,
+    base:{ skyline: 0x262a33, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure:1.06, sunDay:0xf2e2c4, sunDusk:0x8ea2d4,
       ambDay:0x303842, ambDusk:0x1a2030, hemiSky:0xacc4e2, hemiGround:0x3a443e,
       wallJitter:0.06, water:{color:0x1c4c68,specular:0x9cc6e2,opacity:0.9},
       sky:['#0f1830','#3a5478','#b8a084'], fog:0x4a4c50, haze:0.18,

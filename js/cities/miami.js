@@ -7,7 +7,7 @@ var CityDef_Miami = {
   // Resolved by City3D._prof: era key > base > ERAS palette. Victorian/Gilded get
   // gas lamps + warmed dusk, Digital gets neon lamps + dark mirror water.
   profile:{
-    base:{ exposure:1.1, sunDay:0xfff0d2, sunDusk:0xe89ab0,
+    base:{ skyline: 0x1c2b3b, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure:1.1, sunDay:0xfff0d2, sunDusk:0xe89ab0,
       ambDay:0x404660, ambDusk:0x221e34, hemiSky:0xc2e2ee, hemiGround:0x4e4c44,
       wallJitter:0.08, water:{ color:0x17a0b4, specular:0xc0eef2, opacity:0.88 },
       trees:'palm', lamps:'modern' },

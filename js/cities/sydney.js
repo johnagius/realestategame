@@ -13,7 +13,7 @@ var CityDef_Sydney = {
   // gas-lit dusk; Digital gets C's neon lamps + darkest mirror water.
   // Signature set-piece: the harbour bridge arch (HBR, already canonical).
   profile: {
-    base: { exposure: 1.1, sunDay: 0xfff6e2, sunDusk: 0xffb27a,
+    base: { skyline: 0x2d4257, surroundings: 'dense', // SKYLINE-5: skyline-edge tint + slab kind exposure: 1.1, sunDay: 0xfff6e2, sunDusk: 0xffb27a,
       ambDay: 0x364868, ambDusk: 0x1a2440, hemiSky: 0xd2eaff, hemiGround: 0x46524a,
       wallJitter: 0.07, sky: ['#123a6e', '#3f8ed2', '#c6ecf4'], fog: 0x5e8aae, haze: 0.12,
       water: { color: 0x1a7ec0, specular: 0x9fd8f0, opacity: 0.9 },

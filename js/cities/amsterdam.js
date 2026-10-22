@@ -5,7 +5,7 @@ var CityDef_Amsterdam = {
   // brick tint variance, plane trees. Era key > base > ERAS (City3D._prof); Victorian/Gilded
   // gas-lit warm dusk, Digital neon + dark mirror canals (docs/SKYLINE.md §2, direction B).
   profile:{
-    base:{ exposure:1.07, sunDay:0xffe2b2, sunDusk:0x96a6d6,
+    base:{ skyline: 0x242a39, surroundings: 'flat', // SKYLINE-5: skyline-edge tint + slab kind exposure:1.07, sunDay:0xffe2b2, sunDusk:0x96a6d6,
       ambDay:0x323c4e, ambDusk:0x1a2236, hemiSky:0xb6d0f0, hemiGround:0x3c4640,
       wallJitter:0.08, water:{color:0x1d6a8c,specular:0xa8dcf0,opacity:0.9},
       sky:['#121c40','#46587e','#e0a172'], fog:0x464c60, haze:0.2,
