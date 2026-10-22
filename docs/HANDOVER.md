@@ -236,3 +236,24 @@ Order of work:
 - Verification at handover: `node js/sim/tests.js` → 354 passed, 0 failed. `node js/sim/balance.js` → 10/10 targets and 4/4 family guards pass (table in bible §16.1 era). `tools/playwright/phase2-flow.js` → 0 page errors, 0 console errors at 412/1280/360. `tools/playwright/play.js` (30-year run) → reached the Phase 2 stats with 0 errors, then the *test script* timed out clicking the share-card button under software rendering (element present, Playwright "not stable"); the UI builder's earlier run of the same script passed end to end. Treat it as a harness timing issue to confirm on a real machine, not a known game bug.
 - Known UI nit left: `js/ui/deals.js` still scales the mortgage quote client-side by offer/asking; the engine now accepts `price` in `mortgageQuote` and the UI should pass it (P2.0 note).
 - Save version 2 with a migration from version 1.
+
+---
+
+## 11. v8.2 progress log (2026-10-22, Kimi wave)
+
+Committed on `main` after the v8.1 merge, in order:
+- `d1dd7da` P2.0 UI note: offer price passed to `mortgageQuote` (engine `cashNeeded` used).
+- `32b4ea6` Playwright harness portable (tools/playwright/config.js, PW_* env overrides, local axe-core); `f32350c` act() hardened vs intercepting title cards + era palette shot pass.
+- `515737b` Era colour script: `[data-era]` tokens for all six eras (light+dark), live era sync in updateHUD, paper grain.
+- `0a7ad10` Heraldic crest generator (js/ui/crest.js) wired into rivals/dynasty/start.
+- `2baa7f2` P3.1 rival personalities: taunt tables, relation meters, rival sheet, auction theatre.
+- `151a540` P3.2 marriage candidates with odds, alliance card, merger flow.
+- `b58f0dd` P3.3 succession ceremony + charity endowment (bible §7, `Dynasty.toggleCharity`).
+- `9ef8592` P3.5 rivals absorb the estate at the fall; three-step comeback goal track.
+- `c4d938d` 3D: era-gated landmarks (`landmarkEras`, plots build when the era comes), weather (`setWeather`: rain in recessions, Victorian fog), dusk-to-night per era, push-in on new purchases.
+- `1800761` Phase 5 UI: prestige store + mode-perk selection (`Game.setModes`), challenge lobby, scenario select, trophy room.
+- `6fcbf29` Signature moments: handwritten cues, estimate-band draw, stamping comps/bids, gavel/page/stamp sounds, newsprint crash report.
+- `dba5657` City photo mode; paper uses engine prewarn flag.
+
+Test count grew 354 → 379. Quick balance table stayed 10/10 + 4/4 after each engine change (full run due at release).
+Known deliberate gaps: 3D trophies in the home city (P5.5) and the remaining phases were handed to subagents in the same session — see TASKS.md for their state.
