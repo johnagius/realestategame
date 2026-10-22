@@ -8,6 +8,30 @@ var CityDef_Dubai = {
   name: 'Dubai',
   id: 'dubai',
 
+  // Project Skyline profile (SKYLINE-5): clear-hot bright — azure-to-gold sky,
+  // cyan gulf water, sand ground, gold/white/cyan glass accents, heat shimmer haze
+  // kept low. Resolved by City3D._prof: era key > base > ERAS palette.
+  // Victorian/Gilded get gas lamps + warmed dusk, Digital neon + dark mirror water.
+  profile: {
+    base: { exposure: 1.1, sunDay: 0xfff4d0, sunDusk: 0xe8a45c,
+      ambDay: 0x4a4238, ambDusk: 0x262030, hemiSky: 0xc0e8fa, hemiGround: 0x6a5a3e,
+      wallJitter: 0.05, water: { color: 0x18a4c4, specular: 0xd0f2fa, opacity: 0.88 },
+      trees: 'scrub', lamps: 'modern' },
+    victorian: { sky: ['#2c2848', '#8a705c', '#e8b078'], fog: 0x665848, haze: 0.24, lamps: 'gas',
+      sunDusk: 0xf09a50, ambDusk: 0x2c2430, ground: 0x423a30, road: 0x342e28, side: 0x584e40, park: 0x37562c },
+    gilded:    { sky: ['#282c50', '#8a7662', '#ecb67e'], fog: 0x645c50, haze: 0.2, lamps: 'gas',
+      sunDusk: 0xf09a50, ambDusk: 0x2a2432, ground: 0x443c32, road: 0x36302a, side: 0x5a5042, park: 0x385a2e },
+    crisis:    { sky: ['#1c2440', '#5a6a7a', '#dcae7e'], fog: 0x4a524e, haze: 0.26,
+      ground: 0x3e3830, road: 0x2e2a26, side: 0x504840, park: 0x34542c },
+    boom:      { sky: ['#16284e', '#5a7a92', '#f6c07e'], fog: 0x465862, haze: 0.16,
+      ground: 0x403a32, road: 0x322e2a, side: 0x564e44, park: 0x3a6030 },
+    modern:    { sky: ['#12305a', '#3f7a9e', '#fac884'], fog: 0x2e4c5c, haze: 0.18,
+      ground: 0x3e3a34, road: 0x302c28, side: 0x544c42, park: 0x3a5e32 },
+    digital:   { sky: ['#08102c', '#1c3a72', '#c07840'], fog: 0x182c4c, haze: 0.12, lamps: 'neon',
+      water: { color: 0x083048, specular: 0xe0f8ff, opacity: 0.85 },
+      ground: 0x2c2822, road: 0x211e1a, side: 0x403a32, park: 0x2a522c },
+  },
+
   layout: [
     ['CT', 'CT', 'CT', 'CT', 'CT', 'CT', 'CT'],
     ['CT', 'RD', 'RD', 'RD', 'RD', 'RD', 'CM'],
@@ -16,18 +40,19 @@ var CityDef_Dubai = {
     ['VI', 'RD', 'CM', 'RD', 'SK', 'RD', 'AP'],
     ['RD', 'RD', 'RD', 'RD', 'RD', 'RD', 'RD'],
     ['TH', 'RD', 'BAA', 'RD', 'HO', 'RD', 'ST'],
-    ['W',  'W',  'HB', 'W',  'W',  'HB', 'W' ],
+    ['W',  'W',  'HB', 'FNT', 'W',  'HB', 'W' ],
   ],
 
   // Terrain tile drawn under a landmark (default 'LOT'); water landmarks keep their water
 
-  landmarkGround: { BAA:'W' },
+  landmarkGround: { BAA:'W', FNT:'W' },
 
-    landmarkEras: { BKH:'digital', BAA:'digital' },
+    landmarkEras: { BKH:'digital', BAA:'digital', FNT:'digital' },
 
   landmarkNames: {
     BKH: '🏗️ Burj Khalifa',
     BAA: '⛵ Burj Al Arab',
+    FNT: 'Fountain Jets',
   },
 
   landmarks: {
@@ -102,6 +127,29 @@ var CityDef_Dubai = {
       g.add(E.flatPlane(28, 28, E.M.WATER));
 
       var lb = E.makeLabel('Burj Al Arab'); lb.position.set(0, 70, 0); g.add(lb);
+      return g;
+    },
+
+    // SKYLINE-5 signature: fountain jets on a gulf water tile (Dubai Fountain) —
+    // basin + three translucent jets. 6 meshes, ~250 tris.
+    FNT: function() {
+      var g = new THREE.Group(), E = City3D;
+      var Mjet = new THREE.MeshPhongMaterial({ color: 0xd8f2fa, transparent: true, opacity: 0.75, shininess: 100, specular: 0xffffff });
+
+      // Water stays (landmarkGround FNT:'W'); redraw the plane like BAA does
+      g.add(E.flatPlane(28, 28, E.M.WATER));
+
+      // Basin ring
+      var basin = E.cy(7, 8, 1.2, 12, E.M.CONC); basin.position.y = 0.6; g.add(basin);
+
+      // Jets — tall centre, two flanking
+      [[0, 26, 1.1], [-3.4, 15, 0.8], [3.4, 15, 0.8]].forEach(function(j) {
+        var jet = E.cy(0.25, j[2], j[1], 6, Mjet);
+        jet.position.set(j[0], 1.2 + j[1] / 2, 0); g.add(jet);
+      });
+      var crown = E.sphr(1.6, 6, Mjet); crown.position.set(0, 28.5, 0); g.add(crown);
+
+      var lb = E.makeLabel('Fountain Jets'); lb.position.set(0, 34, 0); g.add(lb);
       return g;
     },
   },

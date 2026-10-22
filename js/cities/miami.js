@@ -1,6 +1,31 @@
 /* PROPERTY EMPIRE — Miami: Art Deco District, Freedom Tower */
 var CityDef_Miami = {
   name:'Miami', id:'miami',
+
+  // Project Skyline profile (SKYLINE-5): Art Deco pastels — pink/mint/cream triad
+  // (Townscaper principle) against saturated turquoise water, powder-blue skies.
+  // Resolved by City3D._prof: era key > base > ERAS palette. Victorian/Gilded get
+  // gas lamps + warmed dusk, Digital gets neon lamps + dark mirror water.
+  profile:{
+    base:{ exposure:1.1, sunDay:0xfff0d2, sunDusk:0xe89ab0,
+      ambDay:0x404660, ambDusk:0x221e34, hemiSky:0xc2e2ee, hemiGround:0x4e4c44,
+      wallJitter:0.08, water:{ color:0x17a0b4, specular:0xc0eef2, opacity:0.88 },
+      trees:'palm', lamps:'modern' },
+    victorian:{ sky:['#2a2650','#8a6a8c','#f6b492'], fog:0x5e5464, haze:0.28, lamps:'gas',
+      sunDusk:0xe89a6a, ambDusk:0x2a2438, ground:0x34322c, road:0x2a2825, side:0x544f46, park:0x346234 },
+    gilded:{ sky:['#282a54','#8a6e94','#f8ba96'], fog:0x5c586c, haze:0.24, lamps:'gas',
+      sunDusk:0xe89a6a, ambDusk:0x282438, ground:0x36342e, road:0x2c2a27, side:0x565148, park:0x366636 },
+    crisis:{ sky:['#1c2444','#5a6a88','#ecb09a'], fog:0x465064, haze:0.26,
+      ground:0x323230, road:0x262625, side:0x4c4a48, park:0x326036 },
+    boom:{ sky:['#1a2c58','#6a7aa0','#fcb498'], fog:0x4c566e, haze:0.18,
+      ground:0x353431, road:0x292826, side:0x524f4a, park:0x386a38 },
+    modern:{ sky:['#16305c','#4a7aa0','#f8b49a'], fog:0x324e64, haze:0.2,
+      ground:0x33322f, road:0x272624, side:0x504d48, park:0x36683a },
+    digital:{ sky:['#0a1236','#2a3a80','#d05a9c'], fog:0x1c2a56, haze:0.14, lamps:'neon',
+      water:{ color:0x0b3c50, specular:0xd8f8ff, opacity:0.85 },
+      ground:0x242428, road:0x1b1a1e, side:0x3a3a40, park:0x285a34 },
+  },
+
   layout:[
     ['CT','CT','CT','CT','CT','CT','CT'],
     ['TH','RD','RD','RD','RD','RD','AP'],
@@ -8,10 +33,12 @@ var CityDef_Miami = {
     ['RD','RD','RD','RD','RD','RD','RD'],
     ['ADC','RD','MN','RD','VI','RD','HO'],
     ['RD','RD','RD','RD','RD','RD','RD'],
-    ['ST','RD','CM','RD','WR','RD','TH'],
+    ['ST','RD','CM','RD','WR','RD','PDR'],
     ['W','W','HB','W','W','HB','W'],
   ],
-  landmarkNames:{FTW:'🗽 Freedom Tower',ADC:'🌴 Art Deco District'},
+  // Pastel deco row is a 1930s style — era-gated to crisis (Art Deco period)
+  landmarkEras:{PDR:'crisis'},
+  landmarkNames:{FTW:'🗽 Freedom Tower',ADC:'🌴 Art Deco District',PDR:'Deco Waterfront Row'},
   landmarks:{
     FTW:function(){
       var g=new THREE.Group(),E=City3D;
@@ -57,6 +84,21 @@ var CityDef_Miami = {
         fronds.scale.y=0.5;fronds.position.set(tx,9,5);g.add(fronds);
       });
       var lb=E.makeLabel('Art Deco District');lb.position.set(0,16,0);g.add(lb);
+      return g;
+    },
+    // SKYLINE-5 signature: pastel deco row on the waterfront — pink/mint/cream
+    // triad with white deco eyebrows (shared trim material). 6 meshes, ~72 tris.
+    PDR:function(){
+      var g=new THREE.Group(),E=City3D;
+      var triad=[0xf2b6c6,0xa8dcd2,0xf2ead2];
+      for(var i=0;i<3;i++){
+        var h=14+i*3;
+        var bld=E.bx(7,h,10,new THREE.MeshPhongMaterial({color:triad[i],shininess:30}));
+        bld.position.set(-8.5+i*8.5,h/2,0);g.add(bld);
+        var brow=E.bx(7.4,0.6,10.4,E.M.MNt,false);
+        brow.position.set(-8.5+i*8.5,h*0.72,0);g.add(brow);
+      }
+      var lb=E.makeLabel('Deco Waterfront');lb.position.set(0,26,0);g.add(lb);
       return g;
     },
   },
