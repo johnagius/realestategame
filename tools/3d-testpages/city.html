@@ -21,7 +21,7 @@
 <div id="wrap">
   <div id="bar">
     <span>Direction:</span>
-    <button data-dir="a">A</button><button data-dir="b">B</button><button data-dir="c">C</button>
+    <button data-dir="" id="dir-city">City</button><button data-dir="a">A</button><button data-dir="b">B</button><button data-dir="c">C</button>
     <span id="dirname" style="color:#d4a84b;font-weight:700"></span>
     <span style="margin-left:8px">Era:</span>
     <button data-era="victorian">Victorian</button><button data-era="gilded">Gilded</button><button data-era="crisis">Crisis</button>
@@ -53,10 +53,11 @@
     { id: 'p12', type: 'townhouse', model3d: 'TH', name: 'Kennington Terrace', ownerId: 'rival:okafor', condition: 80 },
   ];
   // ── Project Skyline direction variants (London, experiment only) ──
-  // ?dir=a|b|c selects the art-direction preset passed as opts.profile.
+  // No ?dir= → the city def's own profile (CityDef_London.profile, the shipped
+  // Glass-Commonwealth direction). ?dir=a|b|c overrides with an experiment preset.
   // Note: tree/lamp kinds bake into terrain at render time — use the dir buttons
   // (full re-render); the era buttons only cross-fade colours.
-  var DIR = ((new URLSearchParams(location.search)).get('dir') || 'c').toLowerCase();
+  var DIR = ((new URLSearchParams(location.search)).get('dir') || '').toLowerCase() || null; // null = city profile
   var DIRS = {
     a: { name: 'A · Ledger Craft', profile: {
       base: { exposure: 1.06, sunDay: 0xffd9a8, sunDusk: 0xd88a5a, sunIntensity: 1.0,
@@ -92,10 +93,10 @@
       digital:   { sky: ['#0c1226', '#263258', '#7a5890'], fog: 0x3a3a5c, haze: 0.35, lamps: 'neon',   road: 0x0d1016, side: 0x222633 },
     } },
   };
-  if (!DIRS[DIR]) DIR = 'c';
+  if (DIR && !DIRS[DIR]) DIR = null; // unknown key falls back to the city profile
   // ?sketch=1 layers the target-look prototype (sketch-layer.js) over the chosen direction.
   var SKETCH = (new URLSearchParams(location.search)).get('sketch') === '1';
-  function dirProfile() { return DIRS[DIR].profile; }
+  function dirProfile() { return DIR ? DIRS[DIR].profile : null; }
   var state = { era: 'modern', quality: 'high', night: 0.55 };
   function render() {
     City3D.renderCity(CityDef_London, document.getElementById('city'), PROPS, {
@@ -105,14 +106,14 @@
       onSelect: function(p) { document.getElementById('sel').textContent = p.name + ' · ' + (p.ownerId || 'unowned') + ' · cond ' + p.condition; },
     });
     City3D._onBuildingClick = function(cell) { if (!cell.property) document.getElementById('sel').textContent = City3D.BNAMES[cell.t] || cell.t; };
-    document.getElementById('dirname').textContent = DIRS[DIR].name;
-    document.querySelectorAll('[data-dir]').forEach(function(x) { x.classList.toggle('on', x.dataset.dir === DIR); });
+    document.getElementById('dirname').textContent = DIR ? DIRS[DIR].name : 'City default · Glass Commonwealth (London profile)';
+    document.querySelectorAll('[data-dir]').forEach(function(x) { x.classList.toggle('on', (x.dataset.dir || null) === DIR); });
     if (SKETCH && window.SkylineSketch) setTimeout(function() { SkylineSketch.apply(); }, 60);
   }
   render();
   document.querySelectorAll('[data-dir]').forEach(function(b) { b.onclick = function() {
-    DIR = b.dataset.dir;
-    if (history.replaceState) history.replaceState(null, '', '?dir=' + DIR);
+    DIR = b.dataset.dir || null;
+    if (history.replaceState) history.replaceState(null, '', DIR ? '?dir=' + DIR : location.pathname);
     render();
   }; });
   document.querySelectorAll('[data-era]').forEach(function(b) { b.onclick = function() {

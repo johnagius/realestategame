@@ -20,6 +20,11 @@ const MOBILE = [
   { dir: 'c', era: 'victorian', n: 0.72, tag: 'dusk' },
   { dir: 'b', era: 'modern', n: 0.12, tag: 'day' },
 ];
+// no ?dir= → the city def's own (shipped) profile
+const CITY_DEFAULT = [
+  { era: 'victorian', n: 0.72, tag: 'dusk' },
+  { era: 'digital', n: 0.72, tag: 'dusk' },
+];
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function waitServer(url, timeoutMs) {
@@ -88,6 +93,24 @@ async function waitServer(url, timeoutMs) {
       console.log(name, `calls=${s.calls} tris=${s.triangles} frameMs=${(s.frameMs || 0).toFixed(1)}`);
     }
     await mctx.close();
+
+    // city default profile (no ?dir=)
+    const dctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const dpage = await dctx.newPage();
+    dpage.on('pageerror', e => console.log('PAGE ERROR', String(e)));
+    for (const m of CITY_DEFAULT) {
+      await dpage.goto(BASE, { waitUntil: 'load' });
+      await dpage.waitForFunction(() => window.City3D && (City3D.getStats().calls || 0) > 0, null, { timeout: 30000 });
+      const label = await dpage.evaluate(() => document.getElementById('dirname').textContent);
+      await dpage.evaluate(([e, n]) => { window.state.era = e; window.state.night = n; window.render(); }, [m.era, m.n]);
+      await sleep(1600);
+      const name = `london-profile-${m.era}-${m.tag}`;
+      await dpage.screenshot({ path: path.join(DIRS_OUT, name + '.png') });
+      const s = await dpage.evaluate(() => City3D.getStats());
+      stats.push({ name, calls: s.calls, triangles: s.triangles, frameMs: +(s.frameMs || 0).toFixed(1), quality: s.quality });
+      console.log(name, `calls=${s.calls} tris=${s.triangles} frameMs=${(s.frameMs || 0).toFixed(1)} label="${label}"`);
+    }
+    await dctx.close();
   } finally {
     await browser.close();
     if (ownServer && server) server.kill();

@@ -86,7 +86,7 @@ var City3D = {
   },
 
   // Window colours
-  WIN_LIT_PLAYER: 0xffc46e,   // warm
+  WIN_LIT_PLAYER: 0xffd082,   // warm (SKYLINE-4: warmed so player windows read at deep dusk)
   WIN_LIT_RIVAL: 0xbfe2ff,    // cool
   WIN_LIT_NONE: 0xf2d6a4,     // neutral
   WIN_DIM: 0x1c2733,
@@ -439,6 +439,9 @@ var City3D = {
     var meshes = this._winMeshes; if (!meshes) return;
     var dim = new THREE.Color(this.WIN_DIM), board = new THREE.Color(this.WIN_BOARD), broken = new THREE.Color(this.WIN_BROKEN);
     var tmp = new THREE.Color();
+    // SKYLINE-4: deep dusk (night >= 0.6) makes lit windows burn brighter (intensity only,
+    // no sprites — the lit ratio itself is set at build time via the threshold range)
+    var glow = night >= 0.6 ? 1.3 : 1;
     for (var mi = 0; mi < meshes.length; mi++) {
       var mesh = meshes[mi], W = mesh.userData.win;
       var attr = mesh.geometry.attributes.color;
@@ -464,7 +467,7 @@ var City3D = {
           if (cur === -1) tmp.copy(board);
           else if (cur === -2) tmp.copy(broken);
           else if (cur <= 0) tmp.copy(dim);
-          else tmp.copy(dim).lerp(W.lit, cur);
+          else { tmp.copy(dim).lerp(W.lit, cur); if (glow > 1) tmp.multiplyScalar(glow); }
           for (var k = 0; k < 4; k++) attr.setXYZ(i * 4 + k, tmp.r, tmp.g, tmp.b);
           changed = true;
         }

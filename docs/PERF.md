@@ -57,3 +57,47 @@ software-GL artefacts, not engine regressions (draw calls and triangles are
 inside the 3D budget). Follow-up: run `perf.js` on a real GPU and on a
 mid-range Android device (budget there: < 2 s cold start, 60 fps city on
 `quality:'low'` — TASKS P6.4).
+
+
+## Skyline city (SKYLINE-4) — measured 2026-10-22, this machine (has a GPU)
+
+Harness: `node tools/playwright/skyline-perf.js` (add `PW_FORCE_SW=1` for a
+software-GL comparison run). Subject: London 3D test page with the shipped
+city profile (Glass Commonwealth + steals), era modern, day (night 0.12),
+viewport 1280×800. Engine cost is measured as wall time of `renderer.render`
+over ~350 frames (avg + p95); frame pacing as the RAF interval average.
+JSON dump: `tools/playwright/out/skyline/perf.json`.
+
+Two GL backends, labelled — do not mix them:
+
+- **GPU**: NVIDIA GeForce RTX 5070 via ANGLE OpenGL. Caveat: Playwright's
+  default headless launch still lands on SwiftShader here; the GPU needs
+  `--use-gl=angle --use-angle=gl --ignore-gpu-blocklist`. Headless + GPU also
+  only produces frames on demand, so the harness forces BeginFrames through a
+  CDP screencast during sampling.
+- **SW**: SwiftShader (software Vulkan), the old `ARGS` from config.js.
+
+| Metric | Budget | GPU (RTX 5070) | SwiftShader | Verdict |
+|---|---|---|---|---|
+| Draw calls (modern-day, high) | ~≤250 | 228 | 227 | PASS |
+| Triangles (modern-day, high) | ~≤25k | 12 926 | 12 924 | PASS |
+| Engine frame cost avg (`renderer.render`) | ≤16 ms | **1.36 ms** | 1.51 ms | PASS |
+| Engine frame cost p95 | ≤16 ms | 3.4 ms | 2.0 ms | PASS |
+| Frame pacing (RAF interval avg) | 60 fps | **16.6 ms** (vsync-locked) | 38.4 ms | PASS on GPU; SW artefact |
+| Low quality (`quality:'low'`): contact shadows skipped | yes | yes | yes | PASS |
+| Low quality engine frame cost avg | ≤33 ms | 1.16 ms | 1.26 ms | PASS |
+
+Reading: on the GPU the city runs at the display's 60 fps cap with ~1.3 ms of
+engine work per frame — an order of magnitude under the 16 ms budget, and the
+low-quality path is the same story under the 33 ms budget. The SwiftShader
+`renderer.render` number only measures JS + command submit (rasterisation is
+async in the GPU process), which is why it looks deceptively fast; the honest
+software-GL signal is the 38.4 ms RAF interval, and it fails only on that
+backend. Note the P6.4 SwiftShader FAIL rows above are the same artefact, now
+contradicted by real-GPU numbers.
+
+Peak load: the Digital era's neon lamps add two material batches, so the
+skyline grid peaks at 249–251 calls (`{a,b,c}-digital-{day,dusk}` and
+`london-profile-digital-dusk`) — 1 call over the ~250 guideline. Within
+rounding of the budget; revisit only if the guideline becomes a hard cap.
+Triangles never exceed 13.6k.
