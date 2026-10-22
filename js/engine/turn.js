@@ -105,7 +105,7 @@
       rep.scenario = U.clone(s.scenario);
       if (s.scenario.result) { rep.headline = s.scenario.result === 'won' ? 'You came through the ' + s.scenario.name + ' with the house intact.' : 'The ' + s.scenario.name + ' beat the House of ' + s.dynasty.surname + '.'; }
     }
-    if (s.challenge) { s.challenge.score = PE.Goals.challengeScore(); rep.challenge = U.clone(s.challenge); if (rep.ended || rep.bankrupt) PE.Game.recordChallenge(); }
+    if (s.challenge) { s.challenge.score = PE.Goals.challengeScore(); if (rep.ended || rep.bankrupt) PE.Game.recordChallenge(); rep.challenge = U.clone(s.challenge); }
     // the end-of-year leaderboard snapshot feeds prevRank / rankDelta next year
     PE.Rivals.snapshotRanks();
     // 9. New year: board, events, goal, paper

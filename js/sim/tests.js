@@ -550,11 +550,13 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   check('a challenge is a 30-year sprint ending 1879', A.S().endYear === 1879 && A.S().challenge.endYear === 1879 && ra.challenge.week === '2026-W43');
   var info = A.Game.challengeInfo();
   check('challengeInfo reports the week, seed, years left, live score and best', info.ok && info.week === '2026-W43' && info.active && info.current.yearsLeft === 30 && typeof info.current.score === 'number' && info.best === 0);
-  var pl = require('./players.js')(A), s = A.S(), last = null;
-  while (s.status === 'playing') { pl.competent.play(); var r = A.Game.endYear(); if (!r.ok) { pl.resolveEvents('competent'); r = A.Game.endYear(); } if (!r.ok) break; last = r; }
-  check('the sprint ends after 1879 with a score in the report and the best score stored in meta per week', s.status === 'ended' && s.year === 1880 && last.ended && last.challenge && last.challenge.score > 0 && A.Storage.loadMeta().challenges['2026-W43'].best === last.challenge.score && A.Storage.loadMeta().challenges['2026-W43'].runs === 1, last && last.challenge);
-  check('challengeInfo after the run shows best and history; summary carries challenge info', A.Game.challengeInfo().best === last.challenge.score && A.Game.summary().challenge.week === '2026-W43' && A.Game.summary().mode === 'challenge');
-  check('a second run of the same week keeps the best score', (function () { var m = A.Storage.loadMeta(); var best = m.challenges['2026-W43'].best; A.Game.newChallenge({ week: '2026-W43' }); A.S().status = 'bankrupt'; A.Game.recordChallenge(); return A.Storage.loadMeta().challenges['2026-W43'].best === best && A.Storage.loadMeta().challenges['2026-W43'].runs === 2; })());
+  function sprint(P) { var pl = require('./players.js')(P), s = P.S(), last = null; while (s.status === 'playing') { pl.competent.play(); var r = P.Game.endYear(); if (!r.ok) { pl.resolveEvents('competent'); r = P.Game.endYear(); } if (!r.ok) break; last = r; } return last; }
+  var lastA = sprint(A), sA = A.S();
+  check('a natural sprint ends (1880 or bankrupt) with the result recorded once in meta for the week', (sA.status === 'ended' && sA.year === 1880 && lastA.ended || sA.status === 'bankrupt' && lastA.bankrupt && lastA.challenge.score === 0) && lastA.challenge.recorded === true && A.Storage.loadMeta().challenges['2026-W43'].runs === 1 && A.Storage.loadMeta().challenges['2026-W43'].best === lastA.challenge.score, lastA && lastA.challenge);
+  var C = load(); C.Game.newChallenge({ week: '2026-W43' }); C.S().cash = 1e6; var last = sprint(C), s = C.S();
+  check('a well-funded sprint ends after 1879 with a positive score in the report and the best score stored in meta per week', s.status === 'ended' && s.year === 1880 && last.ended && last.challenge && last.challenge.score > 0 && C.Storage.loadMeta().challenges['2026-W43'].best === last.challenge.score && C.Storage.loadMeta().challenges['2026-W43'].runs === 1, last && last.challenge);
+  check('challengeInfo after the run shows best and history; summary carries challenge info', C.Game.challengeInfo().best === last.challenge.score && C.Game.summary().challenge.week === '2026-W43' && C.Game.summary().mode === 'challenge');
+  check('a second run of the same week keeps the best score', (function () { var m = C.Storage.loadMeta(); var best = m.challenges['2026-W43'].best; C.Game.newChallenge({ week: '2026-W43' }); C.S().status = 'bankrupt'; C.Game.recordChallenge(); return C.Storage.loadMeta().challenges['2026-W43'].best === best && C.Storage.loadMeta().challenges['2026-W43'].runs === 2; })());
 })();
 
 /* ---------- 21. P5.4 Era-start scenarios ---------- */
