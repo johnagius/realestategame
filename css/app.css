@@ -197,10 +197,10 @@ body { overflow: hidden; }
 .prop__flags { grid-column: 1 / -1; }
 .city-total { display: flex; justify-content: space-between; gap: var(--sp-3); font-size: var(--fs-2); color: var(--ink-2); padding: 0 var(--sp-1); }
 .city-total strong { color: var(--ink); font-variant-numeric: tabular-nums; }
-.reno { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--sp-3); align-items: center; width: 100%; padding: var(--sp-2) var(--sp-3); text-align: left; min-height: 56px; border: 1px solid var(--line-strong); border-radius: var(--r-2); background: var(--surface); cursor: pointer; }
+.reno { display: grid; grid-template-columns: auto 1fr auto; gap: 2px var(--sp-3); align-items: center; width: 100%; padding: var(--sp-2) var(--sp-3); text-align: left; min-height: 56px; border: 1px solid var(--line-strong); border-radius: var(--r-2); background: var(--surface); cursor: pointer; }
 .reno:disabled { opacity: 0.5; cursor: not-allowed; }
 .reno__n { font-weight: 800; } .reno__c { font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
-.reno__d { grid-column: 1 / -1; font-size: var(--fs-1); color: var(--ink-2); }
+.reno__d { grid-column: 2 / -1; font-size: var(--fs-1); color: var(--ink-2); }
 
 /* ── Dynasty ── */
 .member { display: grid; grid-template-columns: 40px 1fr auto; gap: var(--sp-1) var(--sp-3); align-items: center; padding: var(--sp-2) 0; border-bottom: 1px solid var(--line); }

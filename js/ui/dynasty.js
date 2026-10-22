@@ -13,6 +13,23 @@
     var head = h('section', { class: 'card stack', 'aria-label': 'Head of the family' });
     var famDef = PE().Data.familyById(PE().S().familyId);
     head.appendChild(h('div', { class: 'head-card' }, [PEUI.crest({ id: PE().S().familyId, name: 'House ' + d.surname, color: s.color, motto: famDef ? famDef.motto : '' }, { size: 46, motto: true }), h('div', { class: 'head-card__name', text: d.head.name + ' ' + d.surname }), h('div', { class: 'small muted', text: 'Head of the family · age ' + d.head.age + ' · ' + fmt.ordinal(d.generation) + ' generation' + (d.head.educated ? ' · educated' : '') })]));
+    if (d.merger && (d.merger.allies.length || d.alliances.length)) {
+      var mg = h('section', { class: 'card stack', 'aria-label': 'Marriage alliances' });
+      mg.appendChild(h('div', { class: 'section-head' }, [h('h2', { text: 'Marriage alliances' }), h('span', { class: 'small muted', text: d.alliances.length ? d.alliances.length + ' allied' : 'None yet' })]));
+      if (d.alliances.length) {
+        for (var al = 0; al < d.alliances.length; al++) {
+          var a2 = d.alliances[al], aDef = PE().Data.rivalById(a2.rivalId);
+          mg.appendChild(h('div', { class: 'member' }, [PEUI.crest({ id: a2.rivalId, name: aDef.name, color: aDef.color }, { size: 34 }), h('div', { class: 'member__name' }, [aDef.name, ' ', PEUI.badge('Allied', 'gold')]), h('div', { class: 'member__acts' }), h('div', { class: 'member__traits', text: 'Married in ' + a2.year + ' · reveals one true value a year in their city · never contests your deals' })]));
+        }
+      } else mg.appendChild(h('p', { class: 'small muted', text: 'Propose a marriage below. An alliance shares one true value a year and opens the door to a late-game merger.' }));
+      for (var mi = 0; mi < d.merger.allies.length; mi++) {
+        var mAlly = d.merger.allies[mi];
+        mg.appendChild(h('div', { class: 'note note--gold row row--between' }, [h('span', { class: 'grow' }, [icon('crown'), ' Merger with ' + mAlly.name + ': their ' + mAlly.properties + ' building' + (mAlly.properties === 1 ? '' : 's') + ' and treasury fold into your house for ', h('strong', { text: fmt.money(mAlly.cost) }), '. Legacy score ×' + (1 + 0.25 * ((d.mergers || 0) + 1)).toFixed(2) + '.']), PEUI.btn('Merge houses', { cls: 'btn--gold btn--sm', action: 'dyn-merge', 'data-id': mAlly.rivalId, disabled: !mAlly.available })]));
+        if (!mAlly.available) mg.appendChild(h('p', { class: 'small muted', text: mAlly.reason }));
+      }
+      if (!d.merger.allies.length && !d.merger.windowOpen) mg.appendChild(h('p', { class: 'small muted', text: 'A merger becomes possible in the last 20 years of the run, or when the head turns 65.' }));
+      inner.appendChild(mg);
+    }
     head.appendChild(traitChips(d.head.traits));
     head.appendChild(h('div', { class: 'stat-grid stat-grid--3' }, [stat('Reputation', Math.round(d.reputation) + ' / 100'), stat('Estate tax', Math.round(d.estateTaxRate * 100) + '%' + (d.trust ? ' (trust)' : '')), stat('Risk this year', d.mortality.toFixed(1) + '%', d.mortality > 8 ? 'neg' : '')]));
     head.appendChild(h('div', { class: 'meter' }, [h('span', { text: 'Reputation' }), PEUI.bar(d.reputation / 100, d.reputation >= 70 ? 'success' : d.reputation >= 40 ? 'info' : 'danger'), h('span', { text: d.reputation >= 70 ? 'Respected' : d.reputation >= 40 ? 'Known' : 'Suspect' })]));
@@ -75,15 +92,66 @@
   PEUI.actions['dyn-heir'] = function (b, d) { var r = PEUI.call(PE().Dynasty.chooseHeir, d.id); if (r.ok) { PEUI.save(); PEUI.toast(r.message, 'success'); PEUI.refresh(); } };
   PEUI.actions['dyn-educate'] = function (b, d) { var r = PEUI.call(PE().Dynasty.educate, d.id); if (r.ok) { PEUI.save(); PEUI.sound('coin'); PEUI.moneyFloat(b, -r.cost); PEUI.toast(r.message, 'success'); PEUI.refresh(); } };
   PEUI.actions['dyn-marry'] = function (b, d) {
-    var lb = PE().Rivals.leaderboard(); if (!lb.ok) return;
-    var body = [h('p', { class: 'small muted', text: 'An alliance shares one true value a year. Families need relation 55 or better to consider it.' })];
-    for (var i = 0; i < lb.leaderboard.length; i++) {
-      var r = lb.leaderboard[i]; if (r.isPlayer || r.bankrupt) continue;
-      body.push(h('button', { type: 'button', class: 'reno', 'data-action': 'dyn-marry-pick', 'data-id': d.id, 'data-rival': r.id, disabled: r.relation < 55 }, [h('span', { class: 'reno__n', text: r.name }), h('span', { class: 'reno__c', text: 'Relation ' + r.relation }), h('span', { class: 'reno__d', text: r.archetype + ' · ' + fmt.money(r.netWorth) })]));
+    var ds = PE().Dynasty.summary(); if (!ds.ok) return;
+    var cands = ds.marriageCandidates || [];
+    var body = [h('p', { class: 'small muted', text: 'An alliance shares one true value a year, never contests your deals, and opens the door to a late-game merger. Acceptance: 35% plus a little for every point of relation (0+ needed), minus for a richer rival. A refusal costs reputation and relation.' })];
+    var any = false;
+    for (var i = 0; i < cands.length; i++) {
+      var c = cands[i]; if (c.allied) continue;
+      any = true;
+      var rDef = PE().Data.rivalById(c.rivalId);
+      body.push(h('button', { type: 'button', class: 'reno' + (c.eligible ? '' : ' reno--off'), 'data-action': 'dyn-marry-pick', 'data-id': d.id, 'data-rival': c.rivalId, disabled: !c.eligible }, [
+        PEUI.crest({ id: c.rivalId, name: c.name, color: rDef.color }, { size: 34 }),
+        h('span', { class: 'reno__n', text: c.name }),
+        h('span', { class: 'reno__c', text: c.eligible ? '≈ ' + Math.round(c.chance * 100) + '% yes · relation ' + c.relation : (c.reason || 'Not interested') }),
+        h('span', { class: 'reno__d', text: rDef.archetype })
+      ]));
     }
+    if (!any) body.push(h('p', { class: 'small muted', text: 'No eligible houses right now. Improve a relation (accept their offers, avoid outbidding them) and reputation 50+.' }));
     PEUI.sheet.open({ id: 'marry', title: 'Propose a marriage', body: body });
   };
-  PEUI.actions['dyn-marry-pick'] = function (b, d) { var r = PEUI.call(PE().Dynasty.proposeMarriage, d.id, d.rival); if (r.ok) { PEUI.save(); PEUI.sheet.close(); PEUI.sound('fanfare'); PEUI.toast(r.message, 'success'); PEUI.refresh(); } };
+  PEUI.actions['dyn-marry-pick'] = function (b, d) {
+    var r = PEUI.call(PE().Dynasty.proposeMarriage, d.id, d.rival);
+    if (!r.ok) return;
+    PEUI.save();
+    var rDef = PE().Data.rivalById(d.rival);
+    var body;
+    if (r.accepted) {
+      PEUI.sound('fanfare'); PEUI.confetti(60);
+      body = [
+        h('div', { class: 'rival-hero' }, [PEUI.crest({ id: d.rival, name: rDef.name, color: rDef.color }, { size: 72, motto: true }), h('div', { class: 'rival-hero__meta' }, [h('div', { class: 'rival-hero__name rival__name', text: 'A marriage joins the houses' }), h('div', { class: 'small muted', text: r.message })])]),
+        h('div', { class: 'note note--gold' }, [icon('star'), h('span', { text: 'Alliance: ' + rDef.name + ' reveals one true value a year in their city and never bids against you. A merger becomes possible when the head turns 65 or in the last 20 years.' })])
+      ];
+    } else {
+      PEUI.sound('negative');
+      body = [
+        h('div', { class: 'rival-hero' }, [PEUI.crest({ id: d.rival, name: rDef.name, color: rDef.color }, { size: 72, motto: true }), h('div', { class: 'rival-hero__meta' }, [h('div', { class: 'rival-hero__name rival__name', text: 'They refuse' }), h('div', { class: 'small muted', text: r.message })])]),
+        h('div', { class: 'note note--warn' }, [icon('users'), h('span', { text: 'Refusal cost ' + (r.reputationChange || 0) + ' reputation and cooled relations. Their house waits ' + PE().Data.balance.marriageCooldownYears + ' years before another proposal.' })])
+      ];
+    }
+    PEUI.sheet.open({ id: 'marry-result', title: r.accepted ? 'An alliance' : 'Refused', body: body, foot: h('div', { class: 'btn-row' }, [PEUI.btn('Back to the family', { cls: 'btn--primary', action: 'sheet-close' })]) });
+    PEUI.refresh();
+  };
+  PEUI.actions['dyn-merge'] = function (b, d) {
+    var ds = PE().Dynasty.summary(); if (!ds.ok) return;
+    var ally = null; for (var i = 0; i < ds.merger.allies.length; i++) if (ds.merger.allies[i].rivalId === d.id) ally = ds.merger.allies[i];
+    if (!ally) return;
+    PEUI.sheet.open({
+      id: 'merge-confirm', title: 'Merge the houses?', back: 'sheet-close',
+      body: [
+        h('p', { text: 'The ' + ally.name.replace(/^The /, '') + ' fold ' + ally.properties + ' building' + (ally.properties === 1 ? '' : 's') + ' and their treasury into your house for ' + fmt.money(ally.cost) + ' in stamp and duties.' }),
+        h('div', { class: 'note note--gold' }, [icon('trophy'), h('span', { text: 'Legacy score multiplier rises to ×' + (1 + 0.25 * ((ds.mergers || 0) + 1)).toFixed(2) + '. They leave the leaderboard for good.' })])
+      ],
+      foot: h('div', { class: 'btn-row' }, [PEUI.btn('Not yet', { cls: 'btn--ghost', action: 'sheet-close' }), PEUI.btn('Merge houses', { cls: 'btn--gold', icon: 'crown', action: 'dyn-merge-confirm', 'data-id': d.id })])
+    });
+  };
+  PEUI.actions['dyn-merge-confirm'] = function (b, d) {
+    var r = PEUI.call(PE().Dynasty.mergeWithAlly, d.id); if (!r.ok) return;
+    PEUI.save(); PEUI.sound('fanfare'); PEUI.confetti(80);
+    PEUI.sheet.close();
+    PEUI.sheet.open({ id: 'merge-done', title: 'One house now', body: [h('div', { class: 'note note--success' }, [icon('check'), h('span', { text: r.message })])], foot: h('div', { class: 'btn-row' }, [PEUI.btn('To the city', { cls: 'btn--primary', action: 'sheet-close' })]) });
+    PEUI.refresh();
+  };
 
   /* ---------- Settings ---------- */
   function seg(name, opts, cur, action) { var s = h('div', { class: 'seg', role: 'group', 'aria-label': name }); for (var i = 0; i < opts.length; i++) s.appendChild(h('button', { type: 'button', class: 'seg__btn', 'data-action': action, 'data-v': opts[i][0], 'aria-pressed': String(cur === opts[i][0]), text: opts[i][1] })); return s; }
