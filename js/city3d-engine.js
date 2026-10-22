@@ -763,13 +763,52 @@ var City3D = {
     }
   },
 
+  /* Palette integration (SKYLINE-12b fix): the kit's shared colormap carries
+     saturated roof caps (yellow/blue/red) that fight the city palette. Once per
+     kit file + era, derive a neutralised colormap: high-saturation pixels are
+     desaturated and pulled toward the era roof hue; walls/windows barely move. */
+  _kitPaletteTex: function(file, era) {
+    this._kitTex = this._kitTex || {};
+    var key = file + '|' + era;
+    if (this._kitTex[key]) return this._kitTex[key];
+    var src = null, scene = this._kitCache && this._kitCache[file];
+    if (!scene) return null;
+    scene.traverse(function(o) { if (!src && o.isMesh && o.material.map) src = o.material.map; });
+    if (!src || !src.image) return null;
+    var img = src.image;
+    var cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
+    var c = cv.getContext('2d'); c.drawImage(img, 0, 0);
+    var id = c.getImageData(0, 0, cv.width, cv.height), d = id.data;
+    var R = this.ERAS[era] || this.ERAS.modern;
+    var roof = new THREE.Color(R.roofs[0]);
+    var rr = roof.r * 255, rg = roof.g * 255, rb = roof.b * 255;
+    for (var i = 0; i < d.length; i += 4) {
+      var r = d[i], g = d[i + 1], b = d[i + 2];
+      var mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+      if (mx < 8) continue;
+      var sat = (mx - mn) / mx;
+      if (sat < 0.22) continue;          // walls/windows: leave
+      var lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      var desat = 0.78;                  // kill most of the toy saturation
+      var nr = r + (lum - r) * desat, ng = g + (lum - g) * desat, nb = b + (lum - b) * desat;
+      var pull = 0.32 * Math.min(1, sat * 1.4);
+      d[i] = nr + (rr - nr) * pull; d[i + 1] = ng + (rg - ng) * pull; d[i + 2] = nb + (rb - nb) * pull;
+    }
+    c.putImageData(id, 0, 0);
+    var tex = this._canvasTex(cv);
+    this._kitTex[key] = tex;
+    return tex;
+  },
+
   _buildFromKit: function(typeKey, kitScene, sk) {
+    var self = this;
     var k = this.KIT_MAP[typeKey], g = new THREE.Group();
     var inst = kitScene.clone(true);
     var mats = [];
     inst.traverse(function(o) {
       if (o.isMesh) {
         o.material = o.material.clone();
+        if (o.material.map) { var ptx = self._kitPaletteTex(k.f, sk.era); if (ptx) { o.material.map = ptx; } }
         o.material.roughness = 0.85; o.material.metalness = 0.04;
         if (o.material.emissive) { o.material.emissive = new THREE.Color(0xffc27a); o.material.emissiveMap = o.material.map; o.material.emissiveIntensity = 0; }
         mats.push(o.material);
@@ -959,7 +998,7 @@ var City3D = {
   _cityDef: null, _onBuildingClick: null, _opts: null, _era: 'modern', _night: 0.55,
   _fades: [], _winMeshes: null, _signs: null, _animated: null, _textures: null, _skins: null,
   _paused: false, _visible: true, _tabVisible: true, _orbit: 0,
-  _surround: null, _life: null, _detailQ: null, _detailMeshes: null, _helipadTaken: false, _post: false, _composer: null, _bloom: null, _ssao: null, _grade: null, _env: null, _envRT: null, _envEra: null, _camPersp: false, _camDist: 700, _lmAccents: null, _assetsOn: false, _kitCache: null, _kitLive: null,
+  _surround: null, _life: null, _detailQ: null, _detailMeshes: null, _helipadTaken: false, _post: false, _composer: null, _bloom: null, _ssao: null, _grade: null, _env: null, _envRT: null, _envEra: null, _camPersp: false, _camDist: 700, _lmAccents: null, _assetsOn: false, _kitCache: null, _kitLive: null, _kitTex: null,
   _camTarget: null, _camGoal: null, _zoomGoal: 1, _lastTs: 0, _frameMs: 0,
 
   _eraOrder: ['victorian', 'gilded', 'crisis', 'boom', 'modern', 'digital'],
@@ -2358,7 +2397,7 @@ var City3D = {
       // Windows
       self._updateWindows(self._night, ts);
       if (self._kitLive && self._kitLive.length) {
-        var ke = Math.pow(self._night, 1.7) * 0.5;
+        var ke = Math.pow(self._night, 1.7) * 0.25;
         for (var ki2 = 0; ki2 < self._kitLive.length; ki2++) {
           var km = self._kitLive[ki2].mats;
           for (var kj = 0; kj < km.length; kj++) km[kj].emissiveIntensity = ke;
@@ -2516,7 +2555,7 @@ var City3D = {
     this._fades = []; this._winMeshes = null; this._signs = null; this._animated = null; this._textures = null; this._skins = null; this._dying = null;
     this._rain = null; this._weather = 'clear'; this._weatherK = 0; this._fogGoal = null;
     this._terrain = null; this._terrainGroup = null; this._bldgGroup = null; this._orbit = 0; this._zoomGoal = 1; this._frameMs = 0;
-    this._profile = null; this._profCache = null; this._contactShadow = null; this._surround = null; this._life = null; this._detailQ = null; this._detailMeshes = null; this._lmAccents = null; if (this._composer) { this._composer.passes.forEach(function(p) { if (p.dispose) p.dispose(); }); if (this._composer.renderTarget1) this._composer.renderTarget1.dispose(); if (this._composer.renderTarget2) this._composer.renderTarget2.dispose(); } if (this._envRT && this._envRT.dispose) this._envRT.dispose(); this._composer = null; this._bloom = null; this._ssao = null; this._grade = null; this._env = null; this._envRT = null; this._envEra = null; this._post = false; this._assetsOn = false; this._kitCache = null; this._kitLive = null;
+    this._profile = null; this._profCache = null; this._contactShadow = null; this._surround = null; this._life = null; this._detailQ = null; this._detailMeshes = null; this._lmAccents = null; if (this._composer) { this._composer.passes.forEach(function(p) { if (p.dispose) p.dispose(); }); if (this._composer.renderTarget1) this._composer.renderTarget1.dispose(); if (this._composer.renderTarget2) this._composer.renderTarget2.dispose(); } if (this._envRT && this._envRT.dispose) this._envRT.dispose(); this._composer = null; this._bloom = null; this._ssao = null; this._grade = null; this._env = null; this._envRT = null; this._envEra = null; this._post = false; this._assetsOn = false; this._kitCache = null; this._kitLive = null; this._kitTex = null;
     this._dragState = { active: false, prevX: 0, prevY: 0, startX: 0, startY: 0, moved: false };
     this._visible = true; this._tabVisible = true;
   },
