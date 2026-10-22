@@ -1,8 +1,32 @@
 /* PROPERTY EMPIRE — Cape Town: Table Mountain, Bo-Kaap Houses */
 var CityDef_CapeTown = {
   name:'Cape Town', id:'cape_town',
+
+  // Project Skyline profile (SKYLINE-5): warm sandstone ground bounce under a
+  // bright saturated azure sky; haze stays low — Cape air is clear. Acacia trees.
+  // Resolved by City3D._prof: era key > base > ERAS palette.
+  profile: {
+    base: { exposure: 1.1, sunDay: 0xffedc0, sunDusk: 0xb08498,
+      ambDay: 0x3c3a4e, ambDusk: 0x20203a, hemiSky: 0xc8dcff, hemiGround: 0x5a4a34,
+      wallJitter: 0.08, water: { color: 0x16608a, specular: 0xaadcee, opacity: 0.9 },
+      trees: 'acacia', lamps: 'modern' },
+    victorian: { sky: ['#1c2450', '#6a5278', '#f0a05e'], fog: 0x524a66, haze: 0.24, lamps: 'gas',
+      sunDusk: 0xe08c54, ambDusk: 0x28202e, ground: 0x332c24, road: 0x282422, side: 0x4c4136, park: 0x37502a },
+    gilded:    { sky: ['#202858', '#785a80', '#f8a866'], fog: 0x5c526e, haze: 0.22, lamps: 'gas',
+      sunDusk: 0xe08c54, ambDusk: 0x2a2230, ground: 0x352e26, road: 0x2a2624, side: 0x4e4438, park: 0x39562c },
+    crisis:    { sky: ['#1c2444', '#4e5c84', '#d4a478'], fog: 0x3e4862, haze: 0.28,
+      ground: 0x302f2c, road: 0x252427, side: 0x474442, park: 0x324c2a },
+    boom:      { sky: ['#16265a', '#4a62a8', '#fcae60'], fog: 0x3e5080, haze: 0.15,
+      ground: 0x33302c, road: 0x282726, side: 0x4e4c48, park: 0x365e2e },
+    modern:    { sky: ['#102a5a', '#3f66a8', '#f2a468'], fog: 0x2c4a78, haze: 0.16,
+      ground: 0x2f2f30, road: 0x26272a, side: 0x4a4a4c, park: 0x326232 },
+    digital:   { sky: ['#081430', '#28407e', '#a85ea8'], fog: 0x1c2e5c, haze: 0.13, lamps: 'neon',
+      water: { color: 0x0c3050, specular: 0xd0ecff, opacity: 0.86 },
+      ground: 0x23242e, road: 0x1a1c24, side: 0x383a46, park: 0x28522e },
+  },
+
   layout:[
-    ['CT','CT','TBM','TBM','TBM','CT','CT'],
+    ['CT','CT','TBM','TBM','TBM','CT','RGE'],
     ['TH','RD','RD','RD','RD','RD','AP'],
     ['BOK','RD','SK','RD','PH','RD','CM'],
     ['RD','RD','RD','RD','RD','RD','RD'],
@@ -11,7 +35,9 @@ var CityDef_CapeTown = {
     ['CM','RD','WR','RD','TH','RD','AP'],
     ['W','W','HB','HB','HB','W','W'],
   ],
-  landmarkNames:{TBM:'⛰️ Table Mountain',BOK:'🏠 Bo-Kaap Houses'},
+  // Terrain tile drawn under a landmark (default 'LOT'); the ridge keeps countryside
+  landmarkGround: { RGE:'CT' },
+  landmarkNames:{TBM:'⛰️ Table Mountain',BOK:'🏠 Bo-Kaap Houses',RGE:'Twelve Apostles Ridge'},
   landmarks:{
     TBM:function(){
       var g=new THREE.Group(),E=City3D;
@@ -56,6 +82,21 @@ var CityDef_CapeTown = {
       // Cobblestone street in front
       var street=E.bx(22,0.15,4,E.M.SIDEW);street.position.set(-0.4,0.08,-5);g.add(street);
       var lb=E.makeLabel('Bo-Kaap');lb.position.set(0,14,0);g.add(lb);
+      return g;
+    },
+    // Signature (SKYLINE-5): flat-topped mountain silhouette backdrop
+    RGE:function(){
+      var g=new THREE.Group(),E=City3D;
+      var Msil=new THREE.MeshLambertMaterial({color:0x2e3450});
+      // Distant flat-topped ridge, layered dark against the sky
+      var ridge=E.bx(30,12,7,Msil);ridge.position.set(0,6,-7);g.add(ridge);
+      var cap=E.bx(24,2,8,Msil,false);cap.position.set(0,13,-7);g.add(cap);
+      var peak=E.bx(14,16,6,Msil);peak.position.set(-8,8,-8);g.add(peak);
+      // Scrub at the foot
+      [-6,4,10].forEach(function(tx){
+        var bush=E.sphr(1.6,5,E.M.PARKD);bush.position.set(tx,1.1,-1);g.add(bush);
+      });
+      var lb=E.makeLabel('Twelve Apostles');lb.position.set(0,19,0);g.add(lb);
       return g;
     },
   },
