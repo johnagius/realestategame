@@ -19,6 +19,8 @@ var CityDef_Tokyo = {
     ['W',  'HB', 'HB', 'W',  'W',  'HB', 'W' ],
   ],
 
+    landmarkEras: { TTW:'boom', TMP:'gilded' },
+
   landmarkNames: {
     TTW: '🗼 Tokyo Tower',
     TMP: '⛩️ Meiji Shrine',

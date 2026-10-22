@@ -22,6 +22,12 @@
   }
   function hashShape(s) { return [s.model3d, s.ownerId, Math.round(s.condition / 5), s.renovation ? s.renovation.tier : '', s.isListing].join('|'); }
 
+  /* Atmosphere (DESIGN-DIRECTION §4): dusk by default, rain in recessions, fog in the
+     Victorian smog, and the Digital era glows after dark. */
+  var ERA_NIGHT = { victorian: 0.3, gilded: 0.32, crisis: 0.36, boom: 0.3, modern: 0.38, digital: 0.6 };
+  function nightFor(eraId) { return ERA_NIGHT[eraId] != null ? ERA_NIGHT[eraId] : 0.35; }
+  function weatherFor(s) { return (s.cycle === 'recession' || s.cycle === 'depression') ? 'rain' : (s.eraId === 'victorian' ? 'fog' : 'clear'); }
+
   function render3D(el) {
     var host = el.querySelector('.city-view__canvas'), fb = el.querySelector('.city-view__fallback');
     var def = root[DEF[cs.id]], s = PEUI.summary();
@@ -29,12 +35,12 @@
     var props = cityProps(cs.id), q = PEUI.prefs.quality === 'auto' ? undefined : PEUI.prefs.quality;
     var ok = false;
     try {
-      ok = root.City3D.renderCity(def, host, props, { era: s.eraId, playerColor: s.color, rivalColors: PEUI.rivalColors(), quality: q, night: 0.35, autoOrbit: false, labels: true, ambientEvents: false,
+      ok = root.City3D.renderCity(def, host, props, { era: s.eraId, playerColor: s.color, rivalColors: PEUI.rivalColors(), quality: q, night: nightFor(s.eraId), weather: weatherFor(s), autoOrbit: false, labels: true, ambientEvents: false,
         onSelect: function (p) { if (!p) return; if (p.isListing) PEUI.openListing(p.id); else if (p.ownerId === 'player') PEUI.openProperty(p.id); else PEUI.toast(p.name + ' · owned by ' + PEUI.rivalName(p.ownerId)); } });
     } catch (e) { console.warn('3D failed', e); ok = false; }
     fb.classList.toggle('hidden', !!ok);
     if (!ok) PEUI.setText(fb, 'The 3D view could not start (WebGL unavailable).');
-    cs.renderedId = ok ? cs.id : null; cs.era = s.eraId; cs.shapes = {};
+    cs.renderedId = ok ? cs.id : null; cs.era = s.eraId; cs.cycle = s.cycle; cs.shapes = {};
     for (var i = 0; i < props.length; i++) cs.shapes[props[i].id] = hashShape(props[i]);
   }
   function syncProps() {
@@ -45,7 +51,21 @@
       if (cs.shapes[p.id] !== hh) { try { root.City3D.updateProperty(p, { animate: true }); } catch (e) {} cs.shapes[p.id] = hh; }
     }
     var s = PEUI.summary();
-    if (s.eraId !== cs.era) { try { root.City3D.setEra(s.eraId, 1200); } catch (e) {} cs.era = s.eraId; }
+    if (s.eraId !== cs.era) { try { root.City3D.setEra(s.eraId, 1200); root.City3D.setNight(nightFor(s.eraId)); } catch (e) {} cs.era = s.eraId; }
+    if (s.cycle !== cs.cycle) { try { root.City3D.setWeather(weatherFor(s)); } catch (e) {} cs.cycle = s.cycle; }
+  }
+  /* Camera language: a slow push-in on the newest purchase the first time it shows. */
+  function focusNewPurchase() {
+    if (!cs.renderedId || !root.City3D) return;
+    var st = PE().Game.state(); if (!st) return;
+    for (var k in st.properties) {
+      var p = st.properties[k];
+      if (p.ownerId === 'player' && p.cityId === cs.id && p.purchaseYear === st.year && cs.focusedId !== p.id) {
+        cs.focusedId = p.id;
+        try { root.City3D.focus(p.id); } catch (e) {}
+        break;
+      }
+    }
   }
   PEUI.cityUpdateProperty = function () { if (cs.renderedId) syncProps(); };
   PEUI.cityHas = function (id) { return !!(cs.renderedId && cs.shapes[id] !== undefined); };
@@ -118,8 +138,8 @@
     },
     update: function (el) {
       tabs(el); cityPanel(el);
-      if (cs.renderedId !== cs.id) { var self = this; requestAnimationFrame(function () { if (PEUI.current === 'city') render3D(el); }); }
-      else syncProps();
+      if (cs.renderedId !== cs.id) { var self = this; requestAnimationFrame(function () { if (PEUI.current === 'city') { render3D(el); focusNewPurchase(); } }); }
+      else { syncProps(); focusNewPurchase(); }
     },
     unmount: function () { /* renderer stays alive; it pauses itself while hidden */ }
   });

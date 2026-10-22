@@ -23,6 +23,8 @@ var CityDef_Dubai = {
 
   landmarkGround: { BAA:'W' },
 
+    landmarkEras: { BKH:'digital', BAA:'digital' },
+
   landmarkNames: {
     BKH: '🏗️ Burj Khalifa',
     BAA: '⛵ Burj Al Arab',

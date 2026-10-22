@@ -795,7 +795,31 @@ var City3D = {
   _paused: false, _visible: true, _tabVisible: true, _orbit: 0,
   _camTarget: null, _camGoal: null, _zoomGoal: 1, _lastTs: 0, _frameMs: 0,
 
+  _eraOrder: ['victorian', 'gilded', 'crisis', 'boom', 'modern', 'digital'],
+  _eraIdx: function(era) { var i = this._eraOrder.indexOf(era); return i < 0 ? 99 : i; },
+
   _mkRng: function(s) { var sd = s; return function() { sd = ((sd * 1664525) + 1013904223) & 0xffffffff; return (sd >>> 0) / 0xffffffff; }; },
+
+  /* Landmark cell: era-gated landmarks stand as ordinary period buildings until their era. */
+  _placeLandmarkCell: function(cell, cityDef, t, tileType, prop, x, z) {
+    var self = this, lmFn = cityDef.landmarks[t];
+    var gate = cityDef.landmarkEras && cityDef.landmarkEras[t];
+    var lmEraOk = !gate || self._eraIdx(self._era) >= self._eraIdx(gate);
+    if (typeof lmFn === 'function' && lmEraOk) {
+      try {
+        var bg = lmFn.call(self, self._era || 'victorian');
+        if (bg) {
+          bg.position.set(x, 0, z);
+          bg.traverse(function(m) { if (m.isMesh) m.userData.cell = cell; });
+          self._bldgGroup.add(bg); cell.bGrp = bg; cell.landmark = true;
+          self.BNAMES[t] = t;
+          return;
+        }
+      } catch (e) { console.warn('landmark failed', t, e); }
+    }
+    cell.landmark = false; cell.filler = !prop;
+    self._placeBuilding(cell, prop ? tileType : (self.BLDG_TYPES.has(t) ? t : 'ST'), prop, false);
+  },
 
   // Sky gradient texture (as scene.background — camera-independent)
   _makeSky: function() {
@@ -821,7 +845,12 @@ var City3D = {
     g.addColorStop(Math.min(1, hz + 0.18), '#' + deep.getHexString()); g.addColorStop(1, '#' + floor.getHexString());
     c.fillStyle = g; c.fillRect(0, 0, 2, 256);
     if (this._skyTex) this._skyTex.needsUpdate = true;
-    if (this._scene && this._scene.fog) { this._scene.fog.color.copy(bot).lerp(new THREE.Color(P.fog), 0.25); }
+    if (this._scene && this._scene.fog) {
+      this._scene.fog.color.copy(bot).lerp(new THREE.Color(P.fog), 0.25);
+      // weather tint: rain cools and thickens the air, fog goes milk-white
+      if (this._weather === 'rain' && this._weatherK > 0) this._scene.fog.color.lerp(new THREE.Color(0x5d6c7e), 0.35 * this._weatherK);
+      else if (this._weather === 'fog') this._scene.fog.color.lerp(new THREE.Color(0xb9c2c6), 0.55);
+    }
   },
 
   _applyLighting: function() {
@@ -850,6 +879,11 @@ var City3D = {
     this._era = opts.era || 'modern';
     this._night = opts.night != null ? opts.night : 0.55;
     this._horizon = opts.horizon != null ? opts.horizon : 0.42;
+    this._weather = 'clear';
+    this._weatherK = 0;
+    this._rain = null;
+    this._fogBase = { near: 560, far: 1150 };
+    this._fogGoal = { near: 560, far: 1150 };
     this._camDist = 700;
     this._fades = []; this._winMeshes = []; this._signs = []; this._animated = []; this._textures = []; this._skins = [];
     this._winRng = this._mkRng(2718);
@@ -930,6 +964,7 @@ var City3D = {
     this._bindInput(canvas, cam, pivot);
     this._bindVisibility(canvas);
     this._applyLighting();
+    this.setWeather(opts.weather || 'clear');
     this._rng = this._mkRng(31415);
     return true;
   },
@@ -1181,18 +1216,7 @@ var City3D = {
         var cell = { t: tileType, ev: null, evEnd: 0, sp: 1, demo: false, r: r, c: c, x: x, z: z, bGrp: null, evMesh: null, evLight: null,
           propertyId: prop ? prop.id : null, property: prop, filler: isSlot && !prop, landmark: isLandmark };
         if (isSlot) self._placeBuilding(cell, tileType, prop, false);
-        else if (isLandmark) {
-          var lmFn = cityDef.landmarks[t];
-          if (typeof lmFn === 'function') {
-            try {
-              var bg = lmFn.call(self);
-              bg.position.set(x, 0, z);
-              bg.traverse(function(m) { if (m.isMesh) m.userData.cell = cell; });
-              self._bldgGroup.add(bg); cell.bGrp = bg;
-              self.BNAMES[t] = t;
-            } catch (e) { console.warn('landmark failed', t, e); }
-          }
-        }
+        else if (isLandmark) self._placeLandmarkCell(cell, cityDef, t, tileType, prop, x, z);
         grid[r][c] = cell;
       });
     });
@@ -1326,11 +1350,27 @@ var City3D = {
   setEra: function(era, fadeMs) {
     if (!this.ERAS[era]) return;
     var ms = fadeMs == null ? 1200 : fadeMs;
+    var prevEra = this._era;
     this._era = era;
     var self = this;
     (this._skins || []).forEach(function(sk) { if (!sk.ownEra) self._retargetSkin(sk, era, ms); });
     this._applyEraTerrain(era, ms);
     this._applyLighting();
+    // Era-gated landmarks: plots that gain or lose their monument rebuild (city grows with the era)
+    var cityDef = this._cityDef, grid = this._grid;
+    if (cityDef && cityDef.landmarks && grid && this._eraIdx(era) !== this._eraIdx(prevEra)) {
+      for (var r = 0; r < grid.length; r++) for (var c = 0; c < grid[r].length; c++) {
+        var cell = grid[r][c], t = cell.t;
+        if (!cityDef.landmarks[t]) continue;
+        var gate = cityDef.landmarkEras && cityDef.landmarkEras[t];
+        var shouldLandmark = !(gate && this._eraIdx(era) < this._eraIdx(gate));
+        if (shouldLandmark !== !!cell.landmark && !cell.propertyId) {
+          if (cell.bGrp) this._removeBuilding(cell);
+          cell.ev = null; this._clearEvFX(cell); cell.demo = false; cell.sp = 1;
+          this._placeLandmarkCell(cell, cityDef, t, this.BLDG_TYPES.has(t) ? t : 'ST', null, cell.x, cell.z);
+        }
+      }
+    }
   },
 
   _applyEraTerrain: function(era, ms) {
@@ -1345,6 +1385,51 @@ var City3D = {
 
   setNight: function(n) { this._night = Math.max(0, Math.min(1, n)); this._applyLighting(); },
   setAutoOrbit: function(v) { this._orbit = v === true ? 0.08 : (v || 0); },
+
+  /* Weather: 'clear' | 'rain' | 'fog'. Rain lerps in with falling streak points and a
+     closing fog bank; fog is a milky Victorian blanket. Driven per frame in animate. */
+  setWeather: function(kind) {
+    kind = (kind === 'rain' || kind === 'fog') ? kind : 'clear';
+    this._weather = kind;
+    if (kind === 'rain') this._fogGoal = { near: 640, far: 1010 };
+    else if (kind === 'fog') this._fogGoal = { near: 500, far: 860 };
+    else this._fogGoal = { near: this._fogBase.near, far: this._fogBase.far };
+    if (kind === 'rain') this._ensureRain();
+    this._paintSky();
+  },
+  _ensureRain: function() {
+    if (this._rain || !this._scene) return;
+    var low = this._quality === 'low';
+    var n = low ? 1100 : 2400, pos = new Float32Array(n * 3);
+    for (var i = 0; i < n; i++) { pos[i * 3] = (Math.random() - 0.5) * 560; pos[i * 3 + 1] = Math.random() * 220; pos[i * 3 + 2] = (Math.random() - 0.5) * 560; }
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    this._rain = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xbdd5ea, size: low ? 1.8 : 2.2, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false }));
+    this._rain.frustumCulled = false;
+    this._scene.add(this._rain);
+  },
+  _tickWeather: function(dt) {
+    var target = this._weather === 'rain' ? 1 : 0;
+    if (this._weatherK !== target) this._weatherK += (target - this._weatherK) * Math.min(1, dt * 1.6);
+    if (Math.abs(this._weatherK - target) < 0.01) this._weatherK = target;
+    var fog = this._scene && this._scene.fog;
+    if (fog && this._fogGoal) {
+      var k = Math.min(1, dt * 1.4);
+      fog.near += (this._fogGoal.near - fog.near) * k;
+      fog.far += (this._fogGoal.far - fog.far) * k;
+    }
+    if (this._rain) {
+      var show = this._weather === 'rain' && this._weatherK > 0.02;
+      this._rain.visible = show;
+      if (show) {
+        this._rain.material.opacity = 0.65 * this._weatherK;
+        var attr = this._rain.geometry.attributes.position, arr = attr.array;
+        var fall = 230 * dt;
+        for (var i = 1; i < arr.length; i += 3) { arr[i] -= fall; if (arr[i] < 0) arr[i] = 200; }
+        attr.needsUpdate = true;
+      }
+    }
+  },
 
   // ───────────────────────────── Events (ambient FX) ─────────────────────────────
   _addLog: function(txt, col) { this._evLog.unshift({ txt: txt, col: col }); if (this._evLog.length > 5) this._evLog.pop(); },
@@ -1433,6 +1518,9 @@ var City3D = {
       // Water shimmer
       self.M.WATER.shininess = 100 + Math.sin(ts * 0.002) * 30;
 
+      // Weather (rain in, fog banks, rain fall)
+      self._tickWeather(dt);
+
       // Grid cells: events, growth, demolition
       var grid = self._grid;
       for (var r = 0; r < grid.length; r++) for (var c = 0; c < grid[r].length; c++) {
@@ -1499,6 +1587,7 @@ var City3D = {
     this._container = null; this._selCell = null; this._selRing = null; this._sun = null; this._amb = null; this._hemi = null;
     this._stars = null; this._moon = null; this._clouds = null; this._cityDef = null; this._onBuildingClick = null; this._opts = null;
     this._fades = []; this._winMeshes = null; this._signs = null; this._animated = null; this._textures = null; this._skins = null; this._dying = null;
+    this._rain = null; this._weather = 'clear'; this._weatherK = 0; this._fogGoal = null;
     this._terrain = null; this._terrainGroup = null; this._bldgGroup = null; this._orbit = 0; this._zoomGoal = 1; this._frameMs = 0;
     this._dragState = { active: false, prevX: 0, prevY: 0, startX: 0, startY: 0, moved: false };
     this._visible = true; this._tabVisible = true;

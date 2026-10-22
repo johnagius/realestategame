@@ -24,6 +24,8 @@ var CityDef_NewYork = {
   ],
 
   // Landmark display names
+    landmarkEras: { ESB:'crisis', CHR:'crisis', OWT:'digital' },
+
   landmarkNames: {
     ESB: '🏛 Empire State Building',
     CHR: '✦ Chrysler Building',

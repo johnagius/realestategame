@@ -24,6 +24,10 @@ var CityDef_London = {
 
   landmarkGround: { TBR:'W' },
 
+  // Era gating (DESIGN-DIRECTION §4): the city grows with the eras. Tower Bridge
+  // opens 1894 (gilded+), The Shard rises 2012 (digital only); Big Ben stands from 1859.
+  landmarkEras: { TBR:'gilded', SHD:'digital' },
+
   landmarkNames: {
     BIG: '🕐 Big Ben & Parliament',
     TBR: '🌉 Tower Bridge',
