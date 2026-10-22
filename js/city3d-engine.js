@@ -5,7 +5,8 @@
 
    Public API
      City3D.renderCity(cityDef, container, properties, opts)
-       opts = { era, playerColor, rivalColors, onSelect, quality, night, autoOrbit, ambientEvents }
+       opts = { era, playerColor, rivalColors, onSelect, quality, night, autoOrbit, ambientEvents,
+                profile }   // profile: optional per-city art direction, era keys over base (see _prof)
      City3D.setSelected(propertyId)
      City3D.updateProperty(prop, { animate })
      City3D.focus(propertyId)
@@ -66,6 +67,24 @@ var City3D = {
       sky: ['#05081a', '#1b2a66', '#8a4ea8'], fog: 0x101830, haze: 0.2 },
   },
 
+  // City profiles (SKYLINE): optional per-city art direction. Resolved as
+  // era-specific key > base > ERAS palette. Set via opts.profile or cityDef.profile.
+  _profile: null, _profCache: null,
+
+  _prof: function(era) {
+    var p = this._profile;
+    if (!p) return null;
+    var c = this._profCache || (this._profCache = {});
+    if (!c[era]) {
+      var e = {}, k;
+      if (p.base) for (k in p.base) e[k] = p.base[k];
+      if (p[era]) for (k in p[era]) e[k] = p[era][k];
+      if (e.water && p[era] && p[era].water) e.water = Object.assign({}, e.water, p[era].water);
+      c[era] = e;
+    }
+    return c[era];
+  },
+
   // Window colours
   WIN_LIT_PLAYER: 0xffc46e,   // warm
   WIN_LIT_RIVAL: 0xbfe2ff,    // cool
@@ -102,11 +121,14 @@ var City3D = {
       GND: lb(0x1f2230), ROAD: lb(0x1c1f2a), LANE: lb(0xb0a070, { transparent: true, opacity: 0.35 }),
       SIDEW: lb(0x3a3e4c), CURB: lb(0x50546a),
       PARK: lb(0x2a5230), PARKD: lb(0x1e4426), PARKL: lb(0x3a6a38),
+      PARKBLOSSOM: lb(0xd989ad),
       WATER: ph(0x0e2a48, { transparent: true, opacity: 0.9, shininess: 120, specular: 0x6688aa }),
       HARBOR: ph(0x081c34, { transparent: true, opacity: 0.92, shininess: 120, specular: 0x6688aa }),
       COUNTRY: lb(0x4e7a30), COUNTRYD: lb(0x3a5c20),
       LOT: lb(0x2b2e3a),
       LAMP: new THREE.MeshBasicMaterial({ color: 0xffe2a0 }),
+      LAMPNEON_C: new THREE.MeshBasicMaterial({ color: 0x37e2ff }),
+      LAMPNEON_M: new THREE.MeshBasicMaterial({ color: 0xff3ad6 }),
       // FX
       SCAFFOLD: ph(0xd0a040, { shininess: 60 }),
       NET: lb(0x9fbf8a, { transparent: true, opacity: 0.32, side: DS, depthWrite: false }),
@@ -116,6 +138,11 @@ var City3D = {
       SIGNPOST: lb(0x5a4a3a),
     };
     this._eraTerrainKeys = { ground: 'GND', road: 'ROAD', side: 'SIDEW', park: 'PARK' };
+    // Original water colours, restored whenever no profile overrides them
+    this._waterDefaults = {
+      WATER: { color: this.M.WATER.color.getHex(), specular: this.M.WATER.specular.getHex(), opacity: this.M.WATER.opacity },
+      HARBOR: { color: this.M.HARBOR.color.getHex(), specular: this.M.HARBOR.specular.getHex(), opacity: this.M.HARBOR.opacity },
+    };
   },
 
   // ───────────────────────────── Geometry helpers ─────────────────────────────
@@ -307,6 +334,12 @@ var City3D = {
         var hsl = {}; col.getHSL(hsl);
         col.setHSL(hsl.h, hsl.s * (1 - 0.75 * k), hsl.l * (1 - 0.35 * k));
       });
+    }
+    // profile wall-tint variance (toy-model directions): jitter lightness by seed
+    var pr = this._prof(era);
+    if (pr && pr.wallJitter) {
+      var hj = {}; wall.getHSL(hj);
+      wall.setHSL(hj.h, hj.s, Math.max(0, Math.min(1, hj.l + (seed - 0.5) * pr.wallJitter)));
     }
     return { wall: wall, roof: roof, trim: trim, accent: accent, glass: glass, glassOp: glassy ? P.glassOp : 1, led: P.led, glassy: glassy };
   },
@@ -834,8 +867,11 @@ var City3D = {
   _paintSky: function() {
     var cv = this._skyCanvas; if (!cv) return;
     var P = this.ERAS[this._era] || this.ERAS.modern, n = this._night;
+    var pr = this._prof(this._era);
+    var sky = pr && pr.sky ? pr.sky : P.sky;
+    var fogHex = pr && pr.fog != null ? pr.fog : P.fog;
     var c = cv.getContext('2d');
-    var top = new THREE.Color(P.sky[0]), mid = new THREE.Color(P.sky[1]), bot = new THREE.Color(P.sky[2]);
+    var top = new THREE.Color(sky[0]), mid = new THREE.Color(sky[1]), bot = new THREE.Color(sky[2]);
     var nightTop = new THREE.Color(0x03050f), nightMid = new THREE.Color(0x0b1230), nightBot = new THREE.Color(0x1a1a3a);
     top.lerp(nightTop, n); mid.lerp(nightMid, n * 0.9); bot.lerp(nightBot, n * 0.85);
     var g = c.createLinearGradient(0, 0, 0, 256);
@@ -846,25 +882,55 @@ var City3D = {
     c.fillStyle = g; c.fillRect(0, 0, 2, 256);
     if (this._skyTex) this._skyTex.needsUpdate = true;
     if (this._scene && this._scene.fog) {
-      this._scene.fog.color.copy(bot).lerp(new THREE.Color(P.fog), 0.25);
+      this._scene.fog.color.copy(bot).lerp(new THREE.Color(fogHex), 0.25);
       // weather tint: rain cools and thickens the air, fog goes milk-white
       if (this._weather === 'rain' && this._weatherK > 0) this._scene.fog.color.lerp(new THREE.Color(0x5d6c7e), 0.35 * this._weatherK);
       else if (this._weather === 'fog') this._scene.fog.color.lerp(new THREE.Color(0xb9c2c6), 0.55);
     }
+    // profile haze: 0..1 pulls the fog bank in around the city (clear weather only)
+    if (pr && pr.haze != null) {
+      var far = Math.round(1320 - pr.haze * 560), base = { near: far - 580, far: far };
+      this._fogBase = base;
+      if (this._weather === 'clear') this._fogGoal = { near: base.near, far: base.far };
+    }
+  },
+
+  _applyExposure: function() {
+    if (!this._renderer) return;
+    var pr = this._prof(this._era);
+    this._renderer.toneMappingExposure = pr && pr.exposure != null ? pr.exposure : (this._profile ? 1.08 : 1.0);
   },
 
   _applyLighting: function() {
     var n = this._night, P = this.ERAS[this._era] || this.ERAS.modern;
+    var pr = this._prof(this._era);
+    var sInt = pr && pr.sunIntensity != null ? pr.sunIntensity : 1;
+    var aInt = pr && pr.ambIntensity != null ? pr.ambIntensity : 1;
+    var hInt = pr && pr.hemiIntensity != null ? pr.hemiIntensity : 1;
     if (this._sun) {
-      this._sun.color.set(0xffc78a).lerp(new THREE.Color(0x8ea4d6), n);
-      this._sun.intensity = 1.9 - n * 1.3;
+      var sunDay = pr && pr.sunDay != null ? pr.sunDay : 0xffc78a;
+      var sunDusk = pr && pr.sunDusk != null ? pr.sunDusk : 0x8ea4d6;
+      this._sun.color.set(sunDay).lerp(new THREE.Color(sunDusk), n);
+      this._sun.intensity = (1.9 - n * 1.3) * sInt;
       var a = 0.55 + n * 0.5;
       this._sun.position.set(Math.cos(a) * 240, 110 + n * 120, Math.sin(a) * 240);
     }
-    if (this._amb) { this._amb.color.set(0x4a3e58).lerp(new THREE.Color(0x182038), n); this._amb.intensity = 0.7 - n * 0.2; }
-    if (this._hemi) { this._hemi.color.set(0xffd2a0).lerp(new THREE.Color(0x203050), n); this._hemi.groundColor.set(0x3a2a28).lerp(new THREE.Color(0x101418), n); this._hemi.intensity = 0.5 - n * 0.2; }
+    if (this._amb) {
+      var ambDay = pr && pr.ambDay != null ? pr.ambDay : 0x4a3e58;
+      var ambDusk = pr && pr.ambDusk != null ? pr.ambDusk : 0x182038;
+      this._amb.color.set(ambDay).lerp(new THREE.Color(ambDusk), n);
+      this._amb.intensity = (0.7 - n * 0.2) * aInt;
+    }
+    if (this._hemi) {
+      var hemiSky = pr && pr.hemiSky != null ? pr.hemiSky : 0xffd2a0;
+      var hemiGnd = pr && pr.hemiGround != null ? pr.hemiGround : 0x3a2a28;
+      this._hemi.color.set(hemiSky).lerp(new THREE.Color(0x203050), n);
+      this._hemi.groundColor.set(hemiGnd).lerp(new THREE.Color(0x101418), n);
+      this._hemi.intensity = (0.5 - n * 0.2) * hInt;
+    }
     if (this._stars) this._stars.material.opacity = Math.max(0, n - 0.3) * 1.4;
     if (this._moon) this._moon.material.opacity = Math.max(0, n - 0.2) * 1.2;
+    this._applyExposure();
     this._paintSky();
   },
 
@@ -919,6 +985,7 @@ var City3D = {
     renderer.toneMappingExposure = 1.0;
     renderer.outputEncoding = THREE.sRGBEncoding;
     this._renderer = renderer;
+    this._applyExposure();
 
     // Lights
     this._amb = new THREE.AmbientLight(0x5a4a60, 1.0); scene.add(this._amb);
@@ -1124,8 +1191,50 @@ var City3D = {
   },
 
   // ───────────────────────────── Tiles ─────────────────────────────
+  // Tree variants (profile.trees); all stay close to the classic trunk+2-spheres
+  // triangle budget and reuse the shared park materials so batching is unchanged.
+  _tree: function(kind, s) {
+    var M = this.M, out = [];
+    function add(m, x, y, z) { m.position.set(x, y, z); out.push(m); }
+    switch (kind) {
+      case 'palm':
+        add(this.cy(0.26, 0.42, 9 * s, 5, M.HOt), 0, 4.5 * s, 0);
+        var f1 = this.sphr(2.3 * s, 6, M.PARKD); f1.scale.set(1.9, 0.4, 1.9); add(f1, 0, 9.2 * s, 0);
+        var f2 = this.sphr(1.6 * s, 5, M.PARKL); f2.scale.set(1.5, 0.32, 1.5); f2.rotation.z = 0.55; add(f2, -1.9 * s, 8.6 * s, 0.4 * s);
+        var f3 = this.sphr(1.6 * s, 5, M.PARKL); f3.scale.set(1.5, 0.32, 1.5); f3.rotation.z = -0.55; add(f3, 1.9 * s, 8.6 * s, -0.4 * s);
+        break;
+      case 'conifer':
+        add(this.cy(0.22, 0.34, 2.8 * s, 5, M.HOt), 0, 1.4 * s, 0);
+        add(this.cy(0.06, 2.5 * s, 5.6 * s, 7, M.PARKD), 0, 4.8 * s, 0);
+        add(this.cy(0.04, 1.6 * s, 4.2 * s, 7, M.PARKL), 0, 8.4 * s, 0);
+        break;
+      case 'cherry':
+        add(this.cy(0.3, 0.42, 4.2 * s, 5, M.HOt), 0, 2.1 * s, 0);
+        var b1 = this.sphr(3.1 * s, 7, M.PARKBLOSSOM); b1.scale.y = 1.1; add(b1, 0, 5.6 * s, 0);
+        add(this.sphr(2 * s, 6, M.PARKBLOSSOM), 1 * s, 7.2 * s, 0.6 * s);
+        break;
+      case 'acacia':
+        add(this.cy(0.3, 0.46, 6.4 * s, 5, M.HOt), 0, 3.2 * s, 0);
+        var u1 = this.sphr(3.6 * s, 7, M.PARKD); u1.scale.set(2.1, 0.5, 2.1); add(u1, 0, 7.4 * s, 0);
+        var u2 = this.sphr(2.2 * s, 6, M.PARKL); u2.scale.set(1.8, 0.42, 1.8); add(u2, 0.8 * s, 7.9 * s, 0.5 * s);
+        break;
+      case 'scrub':
+        add(this.sphr(1.5 * s, 5, M.PARKL), 0, 1.1 * s, 0);
+        if (s > 1.05) add(this.sphr(1 * s, 5, M.PARKD), 1.2 * s, 0.8 * s, 0.5 * s);
+        break;
+      default: // 'plane' — the original London plane tree
+        add(this.cy(0.4, 0.6, 5 * s, 5, M.HOt), 0, 2.5 * s, 0);
+        var l2 = this.sphr(4.4 * s, 7, M.PARKD); l2.scale.y = 1.25; add(l2, 0, 7.2 * s, 0);
+        add(this.sphr(2.8 * s, 6, M.PARKL), 1.2 * s, 9.6 * s, 0.8 * s);
+    }
+    return out;
+  },
+
   makeTile: function(t, r, c) {
     var g = new THREE.Group(), T = this.TILE, M = this.M, self = this;
+    var pr = this._prof(this._era);
+    var treeKind = pr && pr.trees ? pr.trees : 'plane';
+    var lampKind = pr && pr.lamps ? pr.lamps : 'modern';
     switch (t) {
       case 'W': { var w = this.flatPlane(T, T, M.WATER); w.position.y = -0.3; g.add(w); break; }
       case 'HB': { var hb = this.flatPlane(T, T, M.HARBOR); hb.position.y = -0.3; g.add(hb); break; }
@@ -1137,7 +1246,18 @@ var City3D = {
         });
         var lane = this.flatPlane(0.7, T * 0.5, M.LANE); lane.position.y = 0.06; g.add(lane);
         var lane2 = this.flatPlane(T * 0.5, 0.7, M.LANE); lane2.position.y = 0.06; g.add(lane2);
-        if ((r + c) % 2 === 0) {
+        if (lampKind === 'neon') {
+          // every intersection gets a slim pole; bulb colour alternates by parity
+          var npole = this.cy(0.13, 0.18, 9, 5, M.CONC); npole.position.set(T * 0.36, 4.5, T * 0.36); g.add(npole);
+          var nbulb = this.sphr(0.62, 5, (r + c) % 2 === 0 ? M.LAMPNEON_C : M.LAMPNEON_M);
+          nbulb.position.set(T * 0.36, 9.2, T * 0.36); g.add(nbulb);
+        } else if (lampKind === 'gas') {
+          if ((r + c) % 2 === 0) {
+            var gpost = this.cy(0.16, 0.24, 5.4, 5, M.SIGNPOST); gpost.position.set(T * 0.36, 2.7, T * 0.36); g.add(gpost);
+            var gcap = this.bx(0.9, 0.55, 0.9, M.SIGNPOST, false); gcap.position.set(T * 0.36, 5.6, T * 0.36); g.add(gcap);
+            var gbulb = this.sphr(0.55, 5, M.LAMP); gbulb.position.set(T * 0.36, 5.3, T * 0.36); g.add(gbulb);
+          }
+        } else if ((r + c) % 2 === 0) {
           var pole = this.cy(0.2, 0.26, 8, 5, M.CONC); pole.position.set(T * 0.36, 4, T * 0.36); g.add(pole);
           var arm = this.bx(2.6, 0.2, 0.2, M.CONC, false); arm.position.set(T * 0.36 - 1.3, 8, T * 0.36); g.add(arm);
           var bulb = this.bx(1.1, 0.5, 0.7, M.LAMP, false); bulb.position.set(T * 0.36 - 2.4, 7.8, T * 0.36); g.add(bulb);
@@ -1159,9 +1279,7 @@ var City3D = {
         [[-7, -7], [6, -8], [7, 6], [-8, 6], [0, 9]].forEach(function(a, i) {
           if (i === 4 && rng() < 0.5) return;
           var s = 0.8 + rng() * 0.5;
-          var trunk = self.cy(0.4, 0.6, 5 * s, 5, M.HOt); trunk.position.set(a[0], 2.5 * s, a[1]); g.add(trunk);
-          var lv2 = self.sphr(4.4 * s, 7, M.PARKD); lv2.position.set(a[0], 7.2 * s, a[1]); lv2.scale.y = 1.25; g.add(lv2);
-          var lv3 = self.sphr(2.8 * s, 6, M.PARKL); lv3.position.set(a[0] + 1.2, 9.6 * s, a[1] + 0.8); g.add(lv3);
+          self._tree(treeKind, s).forEach(function(m) { m.position.x += a[0]; m.position.z += a[1]; g.add(m); });
         });
         break;
       }
@@ -1171,14 +1289,40 @@ var City3D = {
         var fence = this.bx(T * 0.9, 0.3, 0.2, M.HOt, false); fence.position.set(0, 1.1, -T * 0.42); g.add(fence);
         for (var j = -3; j <= 3; j++) { var post = this.bx(0.36, 1.8, 0.2, M.HOt, false); post.position.set(j * (T / 7), 0.9, -T * 0.42); g.add(post); }
         if ((r * 3 + c * 5) % 4 === 0) {
-          var trunk2 = this.cy(0.5, 0.6, 7, 6, M.HOt); trunk2.position.set(-8, 3.5, -7); g.add(trunk2);
-          var lv4 = this.sphr(5.5, 7, M.PARKD); lv4.position.set(-8, 9.5, -7); g.add(lv4);
+          this._tree(treeKind, 1.15).forEach(function(m) { m.position.x += -8; m.position.z += -7; g.add(m); });
         }
         break;
       }
       default: g.add(this.flatPlane(T, T, M.GND)); break;
     }
     return g;
+  },
+
+  /* Contact grounding (Skylines-style): one merged radial-gradient quad under every
+     building/landmark lot. One shared material + one draw call; skipped on low quality. */
+  _buildContactShadows: function(cells) {
+    this._contactShadow = null;
+    if (!cells || !cells.length || this._quality === 'low' || !this._terrainGroup) return;
+    var M = this.M;
+    if (!M.SHADOW) {
+      var cv = document.createElement('canvas'); cv.width = cv.height = 128;
+      var c2 = cv.getContext('2d');
+      var g = c2.createRadialGradient(64, 64, 6, 64, 64, 64);
+      g.addColorStop(0, 'rgba(0,0,0,.85)'); g.addColorStop(0.55, 'rgba(0,0,0,.4)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      c2.fillStyle = g; c2.fillRect(0, 0, 128, 128);
+      var tex = this._canvasTex(cv); tex._keep = true;
+      M.SHADOW = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.32, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    }
+    var quads = [];
+    for (var i = 0; i < cells.length; i++) {
+      var q = new THREE.Mesh(new THREE.PlaneGeometry(this.TILE * 0.98, this.TILE * 0.98), M.SHADOW);
+      q.rotation.x = -Math.PI / 2; q.position.set(cells[i].x, 0.08, cells[i].z);
+      quads.push(q);
+    }
+    var mesh = new THREE.Mesh(this._mergeMeshes(quads), M.SHADOW);
+    mesh.renderOrder = 2; mesh.userData.contactShadow = true;
+    this._terrainGroup.add(mesh); this._contactShadow = mesh;
+    quads.forEach(function(q) { q.geometry.dispose(); });
   },
 
   // ───────────────────────────── Build the city ─────────────────────────────
@@ -1195,6 +1339,7 @@ var City3D = {
     this._properties.forEach(function(p, i) { if (i < buildingSlots.length) slotAssignments[buildingSlots[i].r + ',' + buildingSlots[i].c] = p; });
 
     var batches = {};
+    var shadowCells = [];
     this._terrainGroup = new THREE.Group(); this._pivot.add(this._terrainGroup);
     this._bldgGroup = new THREE.Group(); this._pivot.add(this._bldgGroup);
     this._fitCamera(this._container.clientWidth / Math.max(1, this._container.clientHeight));
@@ -1209,6 +1354,7 @@ var City3D = {
         var tileType = isSlot ? (prop ? (prop.model3d || self.PROP_TO_3D[prop.type] || (self.BLDG_TYPES.has(t) ? t : 'ST')) : (t === 'B' ? 'ST' : t)) : t;
         var terrainType = (isSlot || isLandmark) ? 'LOT' : tileType;
         if (isLandmark && cityDef.landmarkGround) terrainType = cityDef.landmarkGround[t] || 'LOT';
+        if ((isSlot || isLandmark) && terrainType === 'LOT' && self._quality !== 'low') shadowCells.push({ x: x, z: z });
         var tg = self.makeTile(terrainType, r, c); tg.position.set(x, 0, z);
         self._batchGroup(tg, batches);
         tg.traverse(function(m) { if (m.isMesh && m.geometry) m.geometry.dispose(); });
@@ -1221,6 +1367,7 @@ var City3D = {
       });
     });
     this._terrain = this._flushBatches(batches, this._terrainGroup);
+    this._buildContactShadows(shadowCells);
     this._applyEraTerrain(this._era, 0);
     if (cityDef.landmarkNames) for (var k in cityDef.landmarkNames) this.BNAMES[k] = cityDef.landmarkNames[k].replace(/^[^\w]+/, '');
     this._grid = grid; this._evLog = []; this._nxtE = 6000;
@@ -1375,12 +1522,28 @@ var City3D = {
 
   _applyEraTerrain: function(era, ms) {
     var P = this.ERAS[era], M = this.M, keys = this._eraTerrainKeys, fades = this._fades;
+    var pr = this._prof(era);
     for (var k in keys) {
       var m = M[keys[k]];
-      if (ms > 0) fades.push({ m: m, from: m.color.clone(), to: new THREE.Color(P[k]), t: 0, ms: ms }); else m.color.set(P[k]);
+      var to = pr && pr[k] != null ? pr[k] : P[k];
+      if (ms > 0) fades.push({ m: m, from: m.color.clone(), to: new THREE.Color(to), t: 0, ms: ms }); else m.color.set(to);
     }
-    var lot = new THREE.Color(P.ground).lerp(new THREE.Color(0xffffff), 0.06);
+    var lot = new THREE.Color(pr && pr.ground != null ? pr.ground : P.ground).lerp(new THREE.Color(0xffffff), 0.06);
     if (ms > 0) fades.push({ m: M.LOT, from: M.LOT.color.clone(), to: lot, t: 0, ms: ms }); else M.LOT.color.copy(lot);
+    // Water / harbour: retint through the same fade mechanism so era changes restore
+    // the palette (or the factory default) instead of leaking the previous profile.
+    var wd = pr && pr.water, self = this;
+    ['WATER', 'HARBOR'].forEach(function(nm) {
+      var wm = M[nm], d = self._waterDefaults[nm];
+      var col = wd && wd.color != null ? wd.color : d.color;
+      var op = wd && wd.opacity != null ? wd.opacity : d.opacity;
+      var sp = wd && wd.specular != null ? wd.specular : d.specular;
+      if (ms > 0) {
+        fades.push({ m: wm, from: wm.color.clone(), to: new THREE.Color(col), t: 0, ms: ms });
+        if (wm.opacity !== op) fades.push({ m: wm, fromOp: wm.opacity, toOp: op, t: 0, ms: ms });
+      } else { wm.color.set(col); wm.opacity = op; }
+      wm.specular.set(sp);
+    });
   },
 
   setNight: function(n) { this._night = Math.max(0, Math.min(1, n)); this._applyLighting(); },
@@ -1595,6 +1758,7 @@ var City3D = {
     this._fades = []; this._winMeshes = null; this._signs = null; this._animated = null; this._textures = null; this._skins = null; this._dying = null;
     this._rain = null; this._weather = 'clear'; this._weatherK = 0; this._fogGoal = null;
     this._terrain = null; this._terrainGroup = null; this._bldgGroup = null; this._orbit = 0; this._zoomGoal = 1; this._frameMs = 0;
+    this._profile = null; this._profCache = null; this._contactShadow = null;
     this._dragState = { active: false, prevX: 0, prevY: 0, startX: 0, startY: 0, moved: false };
     this._visible = true; this._tabVisible = true;
   },
@@ -1603,6 +1767,8 @@ var City3D = {
   renderCity: function(cityDef, container, properties, opts) {
     this.destroy();
     opts = opts || {};
+    this._profile = opts.profile || cityDef.profile || null;
+    this._profCache = {};
     if (!this.initScene(container, opts)) return false;
     this._cityDef = cityDef;
     this.buildCity(cityDef, properties);

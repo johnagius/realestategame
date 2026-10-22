@@ -20,7 +20,10 @@
 <body>
 <div id="wrap">
   <div id="bar">
-    <span>Era:</span>
+    <span>Direction:</span>
+    <button data-dir="a">A</button><button data-dir="b">B</button><button data-dir="c">C</button>
+    <span id="dirname" style="color:#d4a84b;font-weight:700"></span>
+    <span style="margin-left:8px">Era:</span>
     <button data-era="victorian">Victorian</button><button data-era="gilded">Gilded</button><button data-era="crisis">Crisis</button>
     <button data-era="boom">Boom</button><button data-era="modern" class="on">Modern</button><button data-era="digital">Digital</button>
     <span style="margin-left:8px">Quality:</span><button data-q="low">Low</button><button data-q="high" class="on">High</button>
@@ -29,9 +32,9 @@
   </div>
   <div id="city"><div id="stats"></div><div id="sel">Tap a building</div></div>
 </div>
-<script src="js/vendor/three.min.js"></script>
-<script src="js/city3d-engine.js"></script>
-<script src="js/cities/london.js"></script>
+<script src="/js/vendor/three.min.js"></script>
+<script src="/js/city3d-engine.js"></script>
+<script src="/js/cities/london.js"></script>
 <script>
   // London slots in scan order: TH AP CM MN SK HO ST VI PH CM WR TH
   var PROPS = [
@@ -48,16 +51,66 @@
     { id: 'p11', type: 'warehouse', model3d: 'WR', name: 'Docklands Depot', ownerId: null, isListing: true, condition: 42 },
     { id: 'p12', type: 'townhouse', model3d: 'TH', name: 'Kennington Terrace', ownerId: 'rival:okafor', condition: 80 },
   ];
+  // ── Project Skyline direction variants (London, experiment only) ──
+  // ?dir=a|b|c selects the art-direction preset passed as opts.profile.
+  // Note: tree/lamp kinds bake into terrain at render time — use the dir buttons
+  // (full re-render); the era buttons only cross-fade colours.
+  var DIR = ((new URLSearchParams(location.search)).get('dir') || 'c').toLowerCase();
+  var DIRS = {
+    a: { name: 'A · Ledger Craft', profile: {
+      base: { exposure: 1.06, sunDay: 0xffd9a8, sunDusk: 0xd88a5a, sunIntensity: 1.0,
+        ambDay: 0x4a4258, ambDusk: 0x241c2c, hemiSky: 0xffd2a0, hemiGround: 0x4a352c,
+        water: { color: 0x14323e, specular: 0x2a4a56, opacity: 0.92 }, trees: 'plane' },
+      victorian: { sky: ['#241a34', '#7a4632', '#cf8a4a'], fog: 0x7e4c2a, haze: 0.52, lamps: 'gas' },
+      gilded:    { sky: ['#221a36', '#7c4a44', '#cf9462'], fog: 0x7e4e34, haze: 0.45, lamps: 'gas' },
+      crisis:    { sky: ['#1c1a2a', '#54484a', '#9a7a5c'], fog: 0x4e4038, haze: 0.6,  lamps: 'gas' },
+      boom:      { sky: ['#1e2036', '#5c5478', '#cf8a5a'], fog: 0x644e3c, haze: 0.38, lamps: 'modern' },
+      modern:    { sky: ['#141c38', '#3e4670', '#c8825e'], fog: 0x54423a, haze: 0.3,  lamps: 'modern' },
+      digital:   { sky: ['#0a0e22', '#2a3058', '#8a5a8a'], fog: 0x2e2a50, haze: 0.25, lamps: 'neon' },
+    } },
+    b: { name: 'B · Glass Commonwealth', profile: {
+      base: { exposure: 1.1, sunDay: 0xffe2b8, sunDusk: 0x9ab2e0,
+        ambDay: 0x323a4e, ambDusk: 0x1a2238, hemiSky: 0xbcd4ff, hemiGround: 0x3c4a3c,
+        wallJitter: 0.07, water: { color: 0x1d5a8a, specular: 0x99ccee, opacity: 0.9 }, trees: 'plane', lamps: 'modern' },
+      victorian: { sky: ['#1c1c44', '#6a4a6e', '#e89a5a'], fog: 0x4c3c5e, haze: 0.22 },
+      gilded:    { sky: ['#201c4a', '#7a4a78', '#f0a868'], fog: 0x584064, haze: 0.2 },
+      crisis:    { sky: ['#181c34', '#4a5480', '#c8a078'], fog: 0x3c4262, haze: 0.28 },
+      boom:      { sky: ['#16204a', '#5a5a9a', '#f4a860'], fog: 0x444880, haze: 0.16 },
+      modern:    { sky: ['#12224a', '#3f5590', '#e8a06a'], fog: 0x2c3c6e, haze: 0.18 },
+      digital:   { sky: ['#081230', '#243a7e', '#8a5ec0'], fog: 0x1c2a5e, haze: 0.14 },
+    } },
+    c: { name: 'C · Living Weather', profile: {
+      base: { exposure: 1.04, sunDay: 0xfff0dd, sunDusk: 0xe0784a,
+        ambDay: 0x424a5e, ambDusk: 0x181e30, hemiSky: 0xe8e2d8, hemiGround: 0x3a3630,
+        water: { color: 0x0e2436, specular: 0xbbddff, opacity: 0.94 }, trees: 'plane' },
+      victorian: { sky: ['#2c2438', '#6a4a44', '#b98a62'], fog: 0xa08a6a, haze: 0.7,  lamps: 'gas',    road: 0x1a1817, side: 0x322e29 },
+      gilded:    { sky: ['#2a2238', '#6e4a54', '#c08e62'], fog: 0xa48868, haze: 0.6,  lamps: 'gas',    road: 0x1f1c19, side: 0x3b362f },
+      crisis:    { sky: ['#222230', '#4c4a56', '#968a76'], fog: 0x7e786c, haze: 0.78, lamps: 'gas',    road: 0x18181d, side: 0x2c2c31 },
+      boom:      { sky: ['#222842', '#5a5c82', '#c89062'], fog: 0x847876, haze: 0.5,  lamps: 'modern', road: 0x1c1c20, side: 0x3c3a37 },
+      modern:    { sky: ['#182038', '#3c4668', '#b8815e'], fog: 0x6e6a6c, haze: 0.45, lamps: 'modern', road: 0x14161e, side: 0x2d303b },
+      digital:   { sky: ['#0c1226', '#263258', '#7a5890'], fog: 0x3a3a5c, haze: 0.35, lamps: 'neon',   road: 0x0d1016, side: 0x222633 },
+    } },
+  };
+  if (!DIRS[DIR]) DIR = 'c';
+  function dirProfile() { return DIRS[DIR].profile; }
   var state = { era: 'modern', quality: 'high', night: 0.55 };
   function render() {
     City3D.renderCity(CityDef_London, document.getElementById('city'), PROPS, {
       era: state.era, quality: state.quality, night: state.night,
+      profile: dirProfile(),
       playerColor: '#d4a84b', rivalColors: { ashworth: '#3d7bd8', okafor: '#c2455a' },
       onSelect: function(p) { document.getElementById('sel').textContent = p.name + ' · ' + (p.ownerId || 'unowned') + ' · cond ' + p.condition; },
     });
     City3D._onBuildingClick = function(cell) { if (!cell.property) document.getElementById('sel').textContent = City3D.BNAMES[cell.t] || cell.t; };
+    document.getElementById('dirname').textContent = DIRS[DIR].name;
+    document.querySelectorAll('[data-dir]').forEach(function(x) { x.classList.toggle('on', x.dataset.dir === DIR); });
   }
   render();
+  document.querySelectorAll('[data-dir]').forEach(function(b) { b.onclick = function() {
+    DIR = b.dataset.dir;
+    if (history.replaceState) history.replaceState(null, '', '?dir=' + DIR);
+    render();
+  }; });
   document.querySelectorAll('[data-era]').forEach(function(b) { b.onclick = function() {
     document.querySelectorAll('[data-era]').forEach(function(x) { x.classList.remove('on'); }); b.classList.add('on');
     state.era = b.dataset.era; City3D.setEra(state.era, 1200);
