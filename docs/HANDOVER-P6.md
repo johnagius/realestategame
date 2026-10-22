@@ -160,3 +160,31 @@ number from an engine payload; engine calls never throw; screenshots at
 412×915 + 1280×800 for every touched screen; version bumps in the three
 release places + `sw.js` precache for new files. Full release checklist in
 `docs/HANDOVER.md` §5.
+
+## 5. Verified build recipe (Windows, 2026-10)
+
+Capacitor Android debug APK, end to end from a clean checkout (Git Bash):
+
+```
+npm ci                                        # repo root; pins @capacitor/* ^8.5.3
+mkdir -p capacitor-web && cp index.html manifest.json capacitor-web/ \
+  && cp -r css js assets capacitor-web/       # webDir is generated, gitignored
+npx cap sync android                          # creates android-capacitor/capacitor-cordova-android-plugins/
+cd android-capacitor
+ANDROID_HOME=/c/Android JAVA_HOME="C:\\Android\\jdk-21" bash gradlew assembleDebug
+```
+
+Output: `android-capacitor/app/build/outputs/apk/debug/app-debug.apk` (~4.7 MB).
+
+Gotchas verified on this machine:
+- **JDK 21 is required**, not the JDK 17 in PATH — `:capacitor-android` fails
+  with `invalid source release: 21` under JDK 17. Use the SDK-bundled
+  `C:\Android\jdk-21` via `JAVA_HOME`. Gradle 8.14.3 runs fine on it.
+- SDK at `C:\Android` already has platforms android-35/36, build-tools
+  35.0.0/36.0.0 (project wants compileSdk 36) and accepted licences
+  (`sdkmanager.bat --licenses` reports them accepted; newer cmdline-tools say
+  the flag is no longer needed).
+- `capacitor-web/` is gitignored by design; `capacitor-cordova-android-plugins/`
+  is ignored by `android-capacitor/.gitignore`. Neither is committed.
+- Build time: ~80 s warm, longer on first run (Gradle 8.14.3 distribution
+  download).
