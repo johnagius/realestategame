@@ -1,6 +1,22 @@
 /* PROPERTY EMPIRE — Mumbai: Gateway of India, Taj Mahal Palace */
 var CityDef_Mumbai = {
   name:'Mumbai', id:'mumbai',
+
+  // Project Skyline profile (SKYLINE-5): warm haze — dusty rose + saffron
+  // tints, warm-teal sea with a saffron glint, palms. Victorian gets A's warm
+  // gas-lit dusk; Digital gets C's neon lamps + darkest mirror water.
+  // Signature set-piece: the Gateway-of-India arch (GWI, already canonical).
+  profile: {
+    base: { exposure: 1.07, sunDay: 0xffe2b2, sunDusk: 0xff9a50,
+      ambDay: 0x4a3c4a, ambDusk: 0x2a1c2c, hemiSky: 0xf2d4ba, hemiGround: 0x4c3e32,
+      wallJitter: 0.08, sky: ['#2c2046', '#8a5570', '#e8a05c'], fog: 0x6b4c5a, haze: 0.3,
+      water: { color: 0x3a6a78, specular: 0xe8cca4, opacity: 0.9 },
+      ground: 0x35302b, road: 0x2a2724, side: 0x50473d, park: 0x3a552d,
+      trees: 'palm', lamps: 'modern' },
+    victorian: { lamps: 'gas', sunDusk: 0xe87c3c, ambDusk: 0x2e1e26, haze: 0.4 },
+    digital: { lamps: 'neon', water: { color: 0x173840, specular: 0xf2e2ba, opacity: 0.86 } },
+  },
+
   layout:[
     ['CT','CT','CT','CT','CT','CT','CT'],
     ['TH','RD','RD','RD','RD','RD','AP'],

@@ -8,6 +8,21 @@ var CityDef_Sydney = {
   name: 'Sydney',
   id: 'sydney',
 
+  // Project Skyline profile (SKYLINE-5): bright blue harbour, crisp white
+  // (sails/sandstone) against saturated water, palms. Victorian gets A's warm
+  // gas-lit dusk; Digital gets C's neon lamps + darkest mirror water.
+  // Signature set-piece: the harbour bridge arch (HBR, already canonical).
+  profile: {
+    base: { exposure: 1.1, sunDay: 0xfff6e2, sunDusk: 0xffb27a,
+      ambDay: 0x364868, ambDusk: 0x1a2440, hemiSky: 0xd2eaff, hemiGround: 0x46524a,
+      wallJitter: 0.07, sky: ['#123a6e', '#3f8ed2', '#c6ecf4'], fog: 0x5e8aae, haze: 0.12,
+      water: { color: 0x1a7ec0, specular: 0xd2f2ff, opacity: 0.9 },
+      ground: 0x32363c, road: 0x2a2d33, side: 0x8e8a80, park: 0x2f6434,
+      trees: 'palm', lamps: 'modern' },
+    victorian: { lamps: 'gas', sunDusk: 0xff9652, ambDusk: 0x262032, haze: 0.2 },
+    digital: { lamps: 'neon', water: { color: 0x0c3e66, specular: 0xe2f8ff, opacity: 0.86 } },
+  },
+
   layout: [
     ['W',  'W',  'W',  'HBR', 'W',  'W',  'W' ],
     ['W',  'OPH', 'HB', 'HB', 'HB', 'CM', 'W' ],

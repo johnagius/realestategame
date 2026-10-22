@@ -1,6 +1,21 @@
 /* PROPERTY EMPIRE — Monaco: Casino, Grand Prix Circuit */
 var CityDef_Monaco = {
   name:'Monaco', id:'monaco',
+
+  // Project Skyline profile (SKYLINE-5): luxury marina — white + azur, bright
+  // saturated water (R6 pastel-against-water), palms. Victorian gets A's warm
+  // gas-lit dusk; Digital gets C's neon lamps + darkest mirror water.
+  profile: {
+    base: { exposure: 1.09, sunDay: 0xfff2da, sunDusk: 0xffb784,
+      ambDay: 0x3a4c68, ambDusk: 0x1c2642, hemiSky: 0xcfe6ff, hemiGround: 0x4c5a4e,
+      wallJitter: 0.08, sky: ['#14305e', '#3f7ec2', '#cfeaf2'], fog: 0x5e7e9e, haze: 0.13,
+      water: { color: 0x1f8fc0, specular: 0xd8f6ff, opacity: 0.88 },
+      ground: 0x34383e, road: 0x2a2e34, side: 0x7e7e78, park: 0x3e6a3a,
+      trees: 'palm', lamps: 'modern' },
+    victorian: { lamps: 'gas', sunDusk: 0xff9a58, ambDusk: 0x2a2238, haze: 0.21 },
+    digital: { lamps: 'neon', water: { color: 0x0c4a66, specular: 0xeafdff, opacity: 0.85 } },
+  },
+
   layout:[
     ['CT','CT','CT','CT','CT','CT','CT'],
     ['MN','RD','RD','RD','RD','RD','PH'],
@@ -8,12 +23,12 @@ var CityDef_Monaco = {
     ['VI','RD','RD','RD','RD','RD','AP'],
     ['RD','RD','RD','RD','RD','RD','RD'],
     ['CM','RD','TH','RD','HO','RD','ST'],
-    ['W','W','HB','YHT','HB','W','W'],
+    ['W','W','YMC','YHT','HB','W','W'],
     ['W','W','W','W','W','W','W'],
   ],
   // Terrain tile drawn under a landmark (default 'LOT'); water landmarks keep their water
-  landmarkGround: { YHT:'HB' },
-  landmarkNames:{CAS:'🎰 Monte Carlo Casino',YHT:'🛥️ Yacht Harbor'},
+  landmarkGround: { YHT:'HB', YMC:'HB' },
+  landmarkNames:{CAS:'🎰 Monte Carlo Casino',YHT:'🛥️ Yacht Harbor',YMC:'Yacht Marina'},
   landmarks:{
     CAS:function(){
       var g=new THREE.Group(),E=City3D;
@@ -57,6 +72,20 @@ var CityDef_Monaco = {
       // Water lights
       var wl=new THREE.PointLight(0x3080c0,0.6,20);wl.position.set(0,2,0);g.add(wl);
       var lb=E.makeLabel('Yacht Harbor');lb.position.set(0,12,0);g.add(lb);
+      return g;
+    },
+    // SKYLINE-5 signature: yacht-mast cluster — a dense mast forest on the marina
+    YMC:function(){
+      var g=new THREE.Group(),E=City3D;
+      g.add(E.flatPlane(28,28,E.M.HARBOR));
+      // White hulls (shared mansion-trim white)
+      var h1=E.bx(3,1.2,9,E.M.MNt);h1.position.set(-5,0.6,3);g.add(h1);
+      var h2=E.bx(3.5,1.3,10,E.M.MNt);h2.position.set(5,0.65,-2);g.add(h2);
+      // Mast forest (shared flagpole material)
+      [[-8,-4,15],[-2,3,18],[4,-6,14],[9,2,16]].forEach(function(m){
+        var mast=E.cy(0.1,0.16,m[2],4,E.M.FLAGPOLE);mast.position.set(m[0],m[2]/2,m[1]);g.add(mast);
+      });
+      var lb=E.makeLabel('Yacht Marina');lb.position.set(0,22,0);g.add(lb);
       return g;
     },
   },
