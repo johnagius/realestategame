@@ -32,7 +32,7 @@
     growth:     { name: 'Growth',     value: 0.03,  rate: 0.000, vacancy: 1.0, tourismMult: 1.05, next: { boom: 0.25, growth: 0.45, stagnation: 0.3 }, len: [2, 5] },
     stagnation: { name: 'Stagnation', value: 0.00,  rate: -0.005, vacancy: 1.2, tourismMult: 1.00, next: { growth: 0.5, recession: 0.35, boom: 0.15 }, len: [1, 3] },
     recession:  { name: 'Recession',  value: -0.10, rate: -0.010, vacancy: 1.5, tourismMult: 0.92, next: { stagnation: 0.43, growth: 0.45, depression: 0.12 }, len: [1, 2] },
-    depression: { name: 'Depression', value: -0.33, rate: 0.015, vacancy: 2.0, tourismMult: 0.85, next: { stagnation: 0.5, growth: 0.5 }, len: [1, 1] }
+    depression: { name: 'Depression', value: -0.35, rate: 0.015, vacancy: 2.0, tourismMult: 0.85, next: { stagnation: 0.5, growth: 0.5 }, len: [1, 1] }
   };
   /* Guaranteed historical crashes: year -> phase */
   D.scriptedCycles = { 1866: 'recession', 1873: 'depression', 1890: 'recession', 1907: 'recession', 1920: 'recession', 1929: 'depression', 1931: 'recession', 1945: 'stagnation', 1955: 'boom', 1973: 'recession', 1974: 'depression', 1987: 'recession', 1990: 'recession', 2000: 'recession', 2008: 'depression', 2009: 'recession', 2020: 'recession', 2021: 'boom' };
@@ -750,7 +750,7 @@
   // props: number of starting buildings; ltv: their mortgages; cashMult: start cash as a multiple of the family's 1850 cash × price index.
   // cycle: phase during the first year (the crash lands at the first year end); baseRate: starting rate.
   D.scenarios = {
-    crash1929:    { id: 'crash1929', name: 'Black Tuesday', startYear: 1929, cycle: 'depression', baseRate: 0.055, props: 5, ltv: 0.64, cashMult: 0.28, cities: ['london', 'new_york'],
+    crash1929:    { id: 'crash1929', name: 'Black Tuesday', startYear: 1929, cycle: 'depression', baseRate: 0.055, props: 5, ltv: 0.64, cashMult: 0.34, cities: ['london', 'new_york'],
       intro: 'Wall Street has crashed. Your five buildings are 64% borrowed and the bankers whisper that property follows the stock market. Survive 15 years and hand on at least what you started with.' },
     oilshock1973: { id: 'oilshock1973', name: 'Oil Shock', startYear: 1973, cycle: 'recession', baseRate: 0.11, props: 5, ltv: 0.60, cashMult: 0.40, cities: ['london', 'paris'],
       intro: 'OPEC has quadrupled the oil price and the bank rate is heading for 13%. Your loans are variable. Survive 15 years and hand on at least what you started with.' },

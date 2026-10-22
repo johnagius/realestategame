@@ -423,9 +423,10 @@ simulator was tuned against them. They are now canon.
   random listing's true value per year.
 - **Covenants** are evaluated on post-drift values. Bankruptcy by missed
   margin calls = two forced sales within a two-year window.
-- **Depression** is a single −33% year (random recession → depression 12%);
-  scripted crash years are guaranteed (1866, 1873, 1890, 1907, 1920, 1929,
-  1931, 1973–74, 1987, 1990, 2000, 2008–09, 2020).
+- **Depression** is a single −35% year (the top of the §4 band; random
+  recession → depression 12%); scripted crash years are guaranteed (1866,
+  1873, 1890, 1907, 1920, 1929, 1931, 1973–74, 1987, 1990, 2000, 2008–09,
+  2020).
 - **Hidden defects.** Estate, distressed and auction purchases have a 50%
   chance of −5..20 condition after purchase; the Surveyor trait halves it.
   Rivals pre-empt 20% of fresh bargains before the board opens.
@@ -451,8 +452,10 @@ simulator was tuned against them. They are now canon.
   event is pending, and an open auction is auto-withdrawn at year end.
 - **Balance result (100 seeds × 4 families × 2 players × 30 y + 20 × 180 y):**
   all ten §14 targets pass; "~15×" is read as a 10–22× band; competent
-  bankruptcy sits at 5.3%, the bottom of its band, because the scripted player
-  deleverages when the morning paper foreshadows trouble.
+  bankruptcy sits at 7.8%, mid-band, with the depression at −35%; the scripted
+  player still deleverages when the morning paper foreshadows trouble. The
+  Black Tuesday scenario start cash (cashMult 0.34) is calibrated so the
+  deeper depression keeps it winnable in ≥ 40% of seeds and lost in ≥ 20%.
 
 ### 16.1 Decisions added with engine v8.1.0 (Phase 2 engine work)
 
