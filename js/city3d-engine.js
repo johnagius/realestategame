@@ -255,27 +255,31 @@ var City3D = {
     return t;
   },
 
-  // Landmark label sprite (dark pill, gold hairline, serif caption)
+  // Landmark label sprite (dark pill, gold hairline, serif caption) — 2x canvas for
+  // crisp texels; sprite world size unchanged (SKYLINE-10).
   makeLabel: function(text) {
     text = String(text).replace(/^[^\w(]+/, '');
     var cv = document.createElement('canvas');
-    cv.width = 320; cv.height = 72;
+    cv.width = 640; cv.height = 144;
     var c2 = cv.getContext('2d');
-    c2.font = '700 30px "Playfair Display", Georgia, serif';
-    var tw = Math.min(300, c2.measureText(text).width + 44);
-    var x0 = (320 - tw) / 2;
+    c2.font = '700 60px "Playfair Display", Georgia, serif';
+    // Webfonts can still be loading when the city builds: if the fancy face gives
+    // garbage metrics, fall back to system serif so the pill and text always render.
+    if (c2.measureText(text).width < text.length * 4) c2.font = '700 60px Georgia, serif';
+    var tw = Math.min(600, c2.measureText(text).width + 88);
+    var x0 = (640 - tw) / 2;
     c2.fillStyle = 'rgba(8,10,18,.82)';
-    c2.beginPath(); c2.roundRect ? c2.roundRect(x0, 14, tw, 44, 8) : c2.rect(x0, 14, tw, 44); c2.fill();
-    c2.strokeStyle = 'rgba(214,176,86,.85)'; c2.lineWidth = 1.5;
-    c2.beginPath(); c2.roundRect ? c2.roundRect(x0 + 0.75, 14.75, tw - 1.5, 42.5, 7) : c2.rect(x0, 14, tw, 44); c2.stroke();
+    c2.beginPath(); c2.roundRect ? c2.roundRect(x0, 28, tw, 88, 16) : c2.rect(x0, 28, tw, 88); c2.fill();
+    c2.strokeStyle = 'rgba(214,176,86,.85)'; c2.lineWidth = 3;
+    c2.beginPath(); c2.roundRect ? c2.roundRect(x0 + 1.5, 29.5, tw - 3, 85, 15) : c2.rect(x0, 28, tw, 88); c2.stroke();
     c2.fillStyle = '#f3e3b0'; c2.textAlign = 'center'; c2.textBaseline = 'middle';
-    c2.fillText(text, 160, 37);
+    c2.fillText(text, 320, 74);
     var s = new THREE.Sprite(new THREE.SpriteMaterial({ map: this._canvasTex(cv), transparent: true, depthTest: false, depthWrite: false }));
     s.scale.set(30, 6.75, 1);
     s.userData.label = true;
     s.renderOrder = 10;
     return s;
-  },
+},
 
   _glowTex: function() {
     if (this._glowTexCache) return this._glowTexCache;
@@ -854,7 +858,7 @@ var City3D = {
   _cityDef: null, _onBuildingClick: null, _opts: null, _era: 'modern', _night: 0.55,
   _fades: [], _winMeshes: null, _signs: null, _animated: null, _textures: null, _skins: null,
   _paused: false, _visible: true, _tabVisible: true, _orbit: 0,
-  _surround: null, _life: null, _detailQ: null, _detailMeshes: null, _helipadTaken: false,
+  _surround: null, _life: null, _lmAccents: null, _detailQ: null, _detailMeshes: null, _helipadTaken: false,
   _camTarget: null, _camGoal: null, _zoomGoal: 1, _lastTs: 0, _frameMs: 0,
 
   _eraOrder: ['victorian', 'gilded', 'crisis', 'boom', 'modern', 'digital'],
@@ -962,6 +966,11 @@ var City3D = {
     if (this._stars) this._stars.material.opacity = Math.max(0, n - 0.3) * 1.4;
     if (this._moon) this._moon.material.opacity = Math.max(0, n - 0.2) * 1.2;
     this._updatePools();
+    var ak = Math.max(0, Math.min(1, (n - 0.3) / 0.45));
+    (this._lmAccents || []).forEach(function(a) {
+      a.spr.material.opacity = 0.5 * ak;
+      if (a.light) a.light.intensity = 1.8 * ak;
+    });
     this._applyExposure();
     this._paintSky();
   },
@@ -1506,7 +1515,7 @@ var City3D = {
      movers/boats animate in the RAF loop. High: ≤7 calls (≤5 without water);
      low: parked cars + pools only. */
   _buildStreetLife: function() {
-    this._life = null;
+    this._life = null; this._lmAccents = null;
     if (!this._pivot || !this._cityDef) return;
     var def = this._cityDef, T = this.TILE, self = this;
     var GH = def.layout.length, GW = def.layout[0].length;
@@ -1628,6 +1637,45 @@ var City3D = {
     this._updatePools();
   },
 
+
+  /* Landmark night accents (SKYLINE-10): every landmark gets one additive glow at
+     its crown, fading in with night; the first two also carry a real point light
+     (the per-city cap). Digital-era cities get a cyan accent, else warm floodlight.
+     Rebuilt with the city / era; disposed with the pivot. */
+  _clearLmAccents: function() {
+    var self = this;
+    (this._lmAccents || []).forEach(function(a) {
+      self._disposeObj(a.spr);
+      if (a.light) { if (a.light.parent) a.light.parent.remove(a.light); a.light.dispose(); }
+    });
+    this._lmAccents = [];
+  },
+
+  _addLmAccents: function() {
+    this._lmAccents = this._lmAccents || [];
+    if (!this._grid || !this._pivot) return;
+    var nLights = 0;
+    var digital = this._eraIdx(this._era) >= this._eraIdx('digital');
+    var col = digital ? 0x6fe3ff : 0xffc27a;
+    for (var r = 0; r < this._grid.length; r++) for (var c = 0; c < this._grid[r].length; c++) {
+      var cell = this._grid[r][c];
+      if (!cell.landmark || !cell.bGrp) continue;
+      var box = new THREE.Box3().setFromObject(cell.bGrp);
+      var y = Math.min(Math.max(box.max.y * 0.9, 26), 110);
+      var spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: this._glowTex(), color: col, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+      spr.scale.set(30, 30, 1); spr.position.set(cell.x, y, cell.z);
+      this._pivot.add(spr);
+      var light = null;
+      if (nLights < 2) {
+        nLights++;
+        light = new THREE.PointLight(col, 0, 120);
+        light.position.set(cell.x, y * 0.7, cell.z);
+        this._pivot.add(light);
+      }
+      this._lmAccents.push({ spr: spr, light: light });
+    }
+    this._applyLighting(); // fade the new accents in for the current night
+  },
   _updatePools: function() {
     if (this._life && this._life.pools) this._life.pools.opacity = this._night > 0.35 ? 0.2 + 0.22 * this._night : 0;
   },
@@ -1831,6 +1879,7 @@ var City3D = {
     this._applyEraTerrain(this._era, 0);
     if (cityDef.landmarkNames) for (var k in cityDef.landmarkNames) this.BNAMES[k] = cityDef.landmarkNames[k].replace(/^[^\w]+/, '');
     this._grid = grid; this._evLog = []; this._nxtE = 6000;
+    this._clearLmAccents(); this._addLmAccents();
     // Cap label heights so nothing floats off-screen
     var showLabels = !(this._opts && this._opts.labels === false);
     this._bldgGroup.traverse(function(o) { if (o.userData.label) { o.position.y = Math.min(o.position.y, 96); o.visible = showLabels; } });
@@ -1931,6 +1980,7 @@ var City3D = {
     this._placeBuilding(cell, typeKey, prop, animate);
     if (wasSel) this._select(cell);
     this._rebuildDetails();
+    this._clearLmAccents(); this._addLmAccents();
     return true;
   },
 
