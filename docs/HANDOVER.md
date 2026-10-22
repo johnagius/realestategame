@@ -138,8 +138,7 @@ Chromium at `/opt/pw-browsers/chromium` with SwiftShader flags; edit the
 
 ## 9. Exact state at handover
 
-See the final section of this file (appended at the last commit) for the
-commit hash, test count and the state of the Phase 2 engine work.
+See the final section at the end of this file.
 
 ## 10. Working mode for the next AI: full effort, no economising
 
@@ -227,3 +226,13 @@ Order of work:
 - Photo mode for the 3D city with era filters, and the share card built from it.
 - Hard mode: no estimate band, comps only.
 - Local two-player hot-seat (two dynasties, same seed, alternate years).
+
+---
+
+## 9 (final). Exact state at handover
+
+- `main` and `claude/peaceful-bohr-aksms0` point at the same commit (the one carrying this section). Version **v8.1** (`PEUI.VERSION`, `Game.version` 8.1.0, `CACHE_NAME` property-empire-v8.1).
+- Phase 0, 1 and 2 complete. Engine side of P3.2, P3.4, P5.1–P5.5 complete (marriage/alliances/merger, 43 balanced events with pre-warnings and era set-pieces, family rule differences, prestige perks, weekly challenge, era-start scenarios, 45 achievements). **UI for those Phase 3/5 systems is not built yet**: the engine exposes them (`PE.Dynasty.proposeMarriage/mergeWithAlly`, `PE.Game.perks/buyPerk/newChallenge/challengeInfo/scenarios`, `Goals.current().family`, leaderboard `prevRank/rankDelta/allied`) but no screen calls them. That is the first UI job.
+- Verification at handover: `node js/sim/tests.js` → 354 passed, 0 failed. `node js/sim/balance.js` → 10/10 targets and 4/4 family guards pass (table in bible §16.1 era). `tools/playwright/phase2-flow.js` → 0 page errors, 0 console errors at 412/1280/360. `tools/playwright/play.js` (30-year run) → reached the Phase 2 stats with 0 errors, then the *test script* timed out clicking the share-card button under software rendering (element present, Playwright "not stable"); the UI builder's earlier run of the same script passed end to end. Treat it as a harness timing issue to confirm on a real machine, not a known game bug.
+- Known UI nit left: `js/ui/deals.js` still scales the mortgage quote client-side by offer/asking; the engine now accepts `price` in `mortgageQuote` and the UI should pass it (P2.0 note).
+- Save version 2 with a migration from version 1.
