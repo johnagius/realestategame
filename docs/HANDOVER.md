@@ -140,30 +140,87 @@ Chromium at `/opt/pw-browsers/chromium` with SwiftShader flags; edit the
 See the final section of this file (appended at the last commit) for the
 commit hash, test count and the state of the Phase 2 engine work.
 
-## 10. Suggested order of work for the next AI
+## 10. Working mode for the next AI: full effort, no economising
 
-1. Finish/verify anything listed as unverified in §9, then run §4 and push.
-2. **Playtest by hand for ten years** (seed 42) and write down what felt flat. That list should drive priorities more than TASKS.md.
-3. Phase 3 UI (rival portraits and taunts, succession ceremony, bankruptcy arc on the 3D map) on top of the engine systems that exist.
-4. Phase 5 UI (prestige perks store, weekly challenge screen, scenario select) on top of the engine systems that exist.
-5. Phase 6 store readiness (Capacitor, consent, billing, store assets, privacy policy) before any public release.
+The previous AI was deliberately rationed because the owner needed its budget
+elsewhere. **You are not rationed.** The owner's instruction is to go full
+blast on this project. Concretely:
+
+- Finish **every** phase in `docs/TASKS.md` (3 through 7), not just the next
+  one. Treat the plan as a floor, not a ceiling.
+- Do not economise on verification. Run the full balance table (not the quick
+  pass) before every push. Play the game by hand (through the real UI, with
+  Playwright) for at least 30 years after every feature, and look at every
+  screenshot. If a screen looks cheap, fix it before moving on.
+- Do not economise on content. The game needs more of everything that passed
+  the audit: more events (target 80+), more historical set-pieces (every
+  decade should have one), rival taunts and reactions (dozens, per archetype,
+  per era), advisor lines for every "first", district flavour text, property
+  name templates per city and era, achievement descriptions with wit. All text
+  in character and era-appropriate.
+- Do not economise on art. Hand-draw SVG where it raises quality: rival
+  portraits, family crests, district icons, era illustrations for the
+  morning paper, trophies in the 3D city. Fix the 3D landmarks so they match
+  the era (no Shard in 1850). Add weather and a day/night cycle to the city.
+- Do not economise on polish. Every interaction gets motion and sound
+  feedback (money floats, stamps, auction gavel, crash rumble). Every number
+  animates. Every empty state has a line of copy.
+- When a task is "done", ask what a top-grossing tycoon game would have here
+  that this one does not, and add it. Then run the verification again.
+- Playtest with the owner. After each phase, hand them a build and a list of
+  three specific things to try, and ask what felt flat. Their answers outrank
+  `docs/TASKS.md`.
+- Keep the rules in §8 absolute. Full blast means more work, never looser
+  standards: the balance table, the no-pre-satisfied-goals test and the
+  "UI never recomputes engine formulas" rule are what keep the game honest.
+
+Order of work:
+
+1. Verify the repo state (§4) and fix anything red before touching features.
+2. **Playtest by hand for ten years** (seed 42) and write down what felt flat. Fix those first.
+3. Phase 3 UI: rival portraits, taunts and reactions in auctions and the year report, relationship meter, marriage proposal and merger screens, succession ceremony with trait reveal and estate-tax planning, bankruptcy arc with rivals visibly absorbing your buildings on the 3D map. The engine side already exists.
+4. Phase 5 UI: prestige perks store, weekly challenge screen with local leaderboard, scenario select, achievements gallery with 3D trophies. The engine side already exists.
+5. Phase 4: build-to-suit deals, fixed-rate bonds, own bank (Modern era), city traits v2.
+6. Phase 6: Capacitor for Android and iOS, consent, billing, rewarded ads, store assets, privacy policy, soft launch analytics.
+7. Phase 7: live ops (monthly event packs, online weekly leaderboard, dynasty sharing).
+8. Then the backlog in §12.
 
 ## 11. Prompt for the next AI (paste this)
 
 > You are taking over **Property Empire v8**, an HTML5 real-estate dynasty
-> tycoon for Google Play and the App Store, in this repo. Read
-> `docs/HANDOVER.md`, then `docs/REDESIGN.md` (design bible; it is the law),
-> `docs/TASKS.md` (phased plan with acceptance criteria) and `CLAUDE.md`
-> (project rules). Verify the repo state first by running `node js/sim/tests.js`,
-> `node js/sim/balance.js 20 5`, and the Playwright playthrough in
-> `tools/playwright/play.js` against a local server on port 8790. Then work
-> through `docs/TASKS.md` in the order given in `docs/HANDOVER.md` §10: for
-> each task, implement, add tests in `js/sim/tests.js`, keep the balance table
-> green, screenshot every screen you touch at 412×915 and 1280×800 and look at
-> the images, bump the version in the three places listed in `CLAUDE.md`,
-> commit with the task ID in the message, and push to `main`. Never add
-> auto-advance, never add a mechanic that makes a player choice irrelevant,
-> never ship a goal that is already satisfied at game start, never tune a
-> number without the balance table, and never let the UI recompute an engine
-> formula. When the bible is silent, choose the option that gives the player a
-> decision with a non-obvious answer and write that decision into bible §16.
+> tycoon for Google Play and the App Store, in this repo, and you are expected
+> to go full blast: finish every phase, verify everything, and raise quality
+> until it stands next to top-grossing tycoon games. You are not rationed on
+> effort or tokens; the owner wants the finished product. Read
+> `docs/HANDOVER.md` (especially §10, the working mode), then
+> `docs/REDESIGN.md` (design bible; it is the law), `docs/TASKS.md` (plan with
+> acceptance criteria) and `AGENTS.md` (project rules). Verify the repo state
+> first: `node js/sim/tests.js`, `node js/sim/balance.js`, and the Playwright
+> playthrough in `tools/playwright/play.js` against a local server on port
+> 8790. Then work through the order in `docs/HANDOVER.md` §10. For each task:
+> implement completely, add tests in `js/sim/tests.js`, keep the full balance
+> table green, screenshot every screen you touch at 412×915 and 1280×800 and
+> look at the images, fix what looks cheap, bump the version in the three
+> places listed in `AGENTS.md`, commit with the task ID in the message, and
+> push to `main`. After each phase, give the owner a build and three things to
+> try. Never add auto-advance, never add a mechanic that makes a player choice
+> irrelevant, never ship a goal that is already satisfied at game start, never
+> tune a number without the balance table, and never let the UI recompute an
+> engine formula. When the bible is silent, choose the option that gives the
+> player a decision with a non-obvious answer and write it into bible §16.
+
+## 12. Backlog beyond the plan (ideas that passed the pillars)
+
+- Districts as characters: each district gets a one-line personality and a
+  slow arc (gentrification, decline, revival) foreshadowed in the paper.
+- Tenants with names and stories for your first five properties (a letter at
+  year end from a long-term tenant).
+- A "deal of the decade" at each era boundary: one extraordinary listing with
+  a rival bidding war.
+- Family portraits that age with the head; children's traits revealed by
+  small events as they grow.
+- Newspaper front page as the year report cover, with your family in the
+  headlines when you do something big.
+- Photo mode for the 3D city with era filters, and the share card built from it.
+- Hard mode: no estimate band, comps only.
+- Local two-player hot-seat (two dynasties, same seed, alternate years).

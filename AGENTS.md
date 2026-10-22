@@ -15,6 +15,9 @@ Start here, in this order:
 - `tools/playwright/` — browser verification scripts. `tools/3d-testpages/` — renderer test pages.
 - `archive/` — old material, not deployed.
 
+## Working mode
+The owner's instruction: go full blast. Finish every phase in `docs/TASKS.md`, verify with the full balance table and real-UI playthroughs after every feature, look at every screenshot, and raise content, art and polish until it stands next to top-grossing tycoon games. See `docs/HANDOVER.md` §10. Full effort never means looser rules.
+
 ## Commands
 ```
 node js/sim/tests.js            # must stay green

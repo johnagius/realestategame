@@ -351,7 +351,7 @@
     var step = Math.max(1, Math.round(a.currentBid * 0.03));
     if (bidState.bid <= a.currentBid) bidState.bid = Math.round(a.currentBid * 1.05);
     var rounds = h('div', { class: 'auction-rounds', 'aria-label': 'Round ' + a.round + ' of ' + a.maxRounds });
-    for (var i = 0; i < a.maxRounds; i++) rounds.appendChild(h('span', { class: i < a.round ? 'is-done' : '' }));
+    for (var i = 0; i < a.maxRounds; i++) rounds.appendChild(h('span', { class: i < (a.round - 1) ? 'is-done' : '' }));
     var log = h('div', { class: 'auction-log', 'aria-live': 'polite' });
     for (var j = 0; j < a.log.length; j++) log.appendChild(h('div', { text: (a.log[j].who === 'player' ? 'You' : PEUI.rivalName('rival:' + a.log[j].who)) + ' bid ' + fmt.money(a.log[j].bid) }));
     if (PEUI.advisor) PEUI.advisor.trigger('auction', 'auction');
@@ -361,7 +361,7 @@
       h('div', { class: 'kicker', style: 'text-align:center', text: 'Current bid · ' + a.leaderName }),
       h('div', { class: 'auction-bid num', text: fmt.money(a.currentBid) }),
       rounds,
-      h('div', { class: 'small muted', style: 'text-align:center', text: 'Round ' + Math.min(a.round + 1, a.maxRounds) + ' of ' + a.maxRounds + ' · bidding against ' + (a.bidders.length ? a.bidders.join(', ') : 'no one') }),
+      h('div', { class: 'small muted', style: 'text-align:center', text: 'Round ' + Math.min(a.round, a.maxRounds) + ' of ' + a.maxRounds + ' · bidding against ' + (a.bidders.length ? a.bidders.join(', ') : 'no one') }),
       log,
       h('div', { class: 'field' }, [
         h('label', { class: 'field__label', for: 'bid-amount' }, [h('span', { text: 'Your bid' }), h('strong', { id: 'bid-amount-v', text: fmt.money(bidState.bid) })]),
