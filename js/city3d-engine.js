@@ -1340,13 +1340,28 @@ var City3D = {
      valid at every azimuth. ≤4 draw calls (ground, 2 filler tones, skyline);
      quality 'low' keeps ground + skyline only. */
   _surroundPalette: function(pr, P) {
+    var n = this._night;
+    // Night response: zero by day, ~0.65 at dusk (0.72), 1 at full night.
+    var k = Math.max(0, Math.min(1, (n - 0.15) / 0.85));
     var fogC = new THREE.Color(pr && pr.fog != null ? pr.fog : P.fog);
     var gcol = new THREE.Color(pr && pr.ground != null ? pr.ground : P.ground)
       .lerp(fogC, 0.45).lerp(new THREE.Color(0x05070c), 0.25).multiplyScalar(0.82);
     var fill = gcol.clone().lerp(new THREE.Color(0x2a3242), 0.4).multiplyScalar(0.9);
-    var sky = pr && pr.skyline != null ? pr.skyline
-      : fogC.clone().lerp(new THREE.Color(0x141c2c), 0.55).multiplyScalar(0.85).getHex();
-    return { ground: gcol, fill: fill, sky: sky };
+    // Dusk/night: the surround must fall darker and quieter than the lit city —
+    // pull toward the fog hue (kills chroma) then toward black, ~45% darker at dusk.
+    if (k > 0) {
+      [gcol, fill].forEach(function(c) { c.lerp(fogC, 0.2 * k).multiplyScalar(1 - 0.6 * k); });
+    }
+    // Skyline edge: never lighter than the sky it stands against (SKYLINE-TARGET §1).
+    // Clamp silhouette luminance to <=85% of the night-lerped sky bottom colour.
+    var skyArr = pr && pr.sky ? pr.sky : P.sky;
+    var bot = new THREE.Color(skyArr[2]).lerp(new THREE.Color(0x1a1a3a), n * 0.85);
+    var L = new THREE.Color(pr && pr.skyline != null ? pr.skyline
+      : fogC.clone().lerp(new THREE.Color(0x141c2c), 0.55).multiplyScalar(0.85).getHex());
+    var lum = function(c) { return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b; };
+    var cap = lum(bot) * 0.85;
+    if (lum(L) > cap) L.multiplyScalar(cap / lum(L));
+    return { ground: gcol, fill: fill, sky: L.getHex() };
   },
 
   _buildSurroundings: function() {
@@ -1682,7 +1697,7 @@ var City3D = {
     });
   },
 
-  setNight: function(n) { this._night = Math.max(0, Math.min(1, n)); this._applyLighting(); },
+  setNight: function(n) { this._night = Math.max(0, Math.min(1, n)); this._applyLighting(); this._retintSurroundings(this._era, 700); },
   setAutoOrbit: function(v) { this._orbit = v === true ? 0.08 : (v || 0); },
 
   /* Weather: 'clear' | 'rain' | 'fog'. Rain lerps in with falling streak points and a
