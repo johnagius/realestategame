@@ -9,7 +9,18 @@ const shots = new Set();
 let sfx = '412';
 async function shot(page, name, force) { const key = name + '-' + sfx; if (shots.has(key) && !force) return; shots.add(key); await page.screenshot({ path: `${OUT}/${key}.png`, fullPage: false }); }
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-async function act(page, action, extra) { const sel = `[data-action="${action}"]${extra || ''}`; const el = page.locator(sel).first(); if (await el.count() === 0) return false; if (!(await el.isVisible())) return false; if (await el.isDisabled()) return false; await el.click({ timeout: 5000 }); await sleep(120); return true; }
+async function act(page, action, extra) {
+  // A chapter/era title card swallows pointer events; click through it first
+  // (end-of-run cards with end-* actions are left for the caller to choose).
+  for (let i = 0; i < 4; i++) {
+    if (!(await page.locator('#titlecard.is-open').count())) break;
+    if (await page.locator('#titlecard.is-open [data-action="end-heir"], #titlecard.is-open [data-action="end-new"]').count()) break;
+    const next = page.locator('#titlecard.is-open [data-action="titlecard-next"]');
+    if (!(await next.count())) break;
+    await next.click({ timeout: 5000 }).catch(() => {});
+    await sleep(200);
+  }
+  const sel = `[data-action="${action}"]${extra || ''}`; const el = page.locator(sel).first(); if (await el.count() === 0) return false; if (!(await el.isVisible())) return false; if (await el.isDisabled()) return false; await el.click({ timeout: 5000 }); await sleep(120); return true; }
 async function sheetOpen(page) { return page.locator('.sheet.is-open').count().then(n => n > 0); }
 async function sheetId(page) { return page.evaluate(() => (window.PEUI.sheet.id())); }
 async function summary(page) { return page.evaluate(() => PE.Game.summary()); }
