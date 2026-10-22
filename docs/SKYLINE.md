@@ -195,6 +195,22 @@ rolled into the build-out:
   City3D.photo() renders through a temporary perspective rig even from an ortho game.
   Verified: splash before/after + mobile (horizon, skyline edge, surroundings depth),
   london/hong_kong test-page shots, photo() PNG; perspective high 247 calls / 19.2k tris.
+### SKYLINE-12a — quality spike steps 1+2: composer + PBR (2026-10-23, Kimi) — DONE
+- Vendored three.js r128 example files (EffectComposer, RenderPass, ShaderPass,
+  UnrealBloomPass, SSAOPass + shader deps + THREE-LICENSE.md) into js/vendor/.
+  Quality high gets RenderPass -> SSAO (kernelRadius 12, ortho define cleared — the
+  stock shader defaults to perspective depth math) -> UnrealBloom (0.55 day / 0.9
+  night, threshold 0.82; lit windows boosted to 2.0 so they bite) -> custom grade
+  ShaderPass (vignette, S-curve, shadow lift toward the era fog hue, grain, exact
+  sRGB output). Skins are MeshStandardMaterial with per-era roughness/metalness
+  (Victorian brick 0.92/0 -> Modern glass 0.15/0.6 -> Digital 0.08/0.8), roughness/
+  metalness ride the era fade loop; water is Standard 0.12/0.5 with a PMREM sky
+  env map rebuilt per era from the profile palette (roughness pulse = old sheen).
+  Quality low: no composer, no env, unchanged path. Version v8.3.
+- GPU (RTX 5070): 60 fps vsync-locked with the composer; engine frame cost
+  1.65 -> 4.37 ms (headroom to 16.6); scene 248 calls / 19.3k tris. Low unchanged
+  (224 calls / 13.5k, no passes). A/B shots sk12-* (post=0 before pairs) reviewed:
+  night bloom on windows/accents only, SSAO grounds buildings, day graded, 0 errors.
 ### Remaining (audit §2 order)
 
 SKYLINE-7 silhouette variety (largest gap) → SKYLINE-9 mobile hero →

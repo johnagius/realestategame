@@ -33,6 +33,17 @@
   <div id="city"><div id="stats"></div><div id="sel">Tap a building</div></div>
 </div>
 <script src="/js/vendor/three.min.js"></script>
+<script src="/js/vendor/shaders/CopyShader.js"></script>
+<script src="/js/vendor/shaders/LuminosityHighPassShader.js"></script>
+<script src="/js/vendor/shaders/SSAOShader.js"></script>
+<script src="/js/vendor/shaders/GradeShader.js"></script>
+<script src="/js/vendor/math/SimplexNoise.js"></script>
+<script src="/js/vendor/postprocessing/Pass.js"></script>
+<script src="/js/vendor/postprocessing/EffectComposer.js"></script>
+<script src="/js/vendor/postprocessing/RenderPass.js"></script>
+<script src="/js/vendor/postprocessing/ShaderPass.js"></script>
+<script src="/js/vendor/postprocessing/UnrealBloomPass.js"></script>
+<script src="/js/vendor/postprocessing/SSAOPass.js"></script>
 <script src="/js/city3d-engine.js"></script>
 <script src="sketch-layer.js"></script>
 <script src="/js/cities/london.js"></script>
@@ -125,6 +136,7 @@
   };
   var CITY = (qs.get('city') || 'london').toLowerCase();
   var CAM = qs.get('camera') === 'perspective' ? 'perspective' : 'ortho';
+  var POST = qs.get('post') !== '0';
   if (!CITYMAP[CITY]) CITY = 'london';
   function cityDef() { return window[CITYMAP[CITY]]; }
   // Generic props per city: one per building slot, rotating owners/conditions so
@@ -156,7 +168,7 @@
     var def = cityDef();
     document.title = 'City3D test — ' + def.name;
     City3D.renderCity(def, document.getElementById('city'), propsFor(def), {
-      era: state.era, quality: state.quality, night: state.night, camera: CAM,
+      era: state.era, quality: state.quality, night: state.night, camera: CAM, post: POST,
       profile: dirProfile(),
       playerColor: '#d4a84b', rivalColors: { ashworth: '#3d7bd8', okafor: '#c2455a' },
       onSelect: function(p) { document.getElementById('sel').textContent = p.name + ' · ' + (p.ownerId || 'unowned') + ' · cond ' + p.condition; },

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'property-empire-v8.2';
+const CACHE_NAME = 'property-empire-v8.3';
 const ASSETS = [
   './',
   './index.html',
@@ -21,6 +21,17 @@ const ASSETS = [
   './js/ui/advisor.js',
   './js/ui/guide.js',
   './js/vendor/three.min.js',
+    './js/vendor/shaders/CopyShader.js',
+    './js/vendor/shaders/LuminosityHighPassShader.js',
+    './js/vendor/shaders/SSAOShader.js',
+    './js/vendor/shaders/GradeShader.js',
+    './js/vendor/math/SimplexNoise.js',
+    './js/vendor/postprocessing/Pass.js',
+    './js/vendor/postprocessing/EffectComposer.js',
+    './js/vendor/postprocessing/RenderPass.js',
+    './js/vendor/postprocessing/ShaderPass.js',
+    './js/vendor/postprocessing/UnrealBloomPass.js',
+    './js/vendor/postprocessing/SSAOPass.js',
   './js/city3d-engine.js',
   './js/cities/london.js',
   './js/cities/paris.js',

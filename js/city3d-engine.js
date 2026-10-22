@@ -123,8 +123,8 @@ var City3D = {
       SIDEW: lb(0x3a3e4c), CURB: lb(0x50546a),
       PARK: lb(0x2a5230), PARKD: lb(0x1e4426), PARKL: lb(0x3a6a38),
       PARKBLOSSOM: lb(0xd989ad),
-      WATER: ph(0x0e2a48, { transparent: true, opacity: 0.9, shininess: 120, specular: 0x6688aa }),
-      HARBOR: ph(0x081c34, { transparent: true, opacity: 0.92, shininess: 120, specular: 0x6688aa }),
+      WATER: new THREE.MeshStandardMaterial({ color: 0x0e2a48, transparent: true, opacity: 0.9, roughness: 0.12, metalness: 0.5, envMapIntensity: 1.2 }),
+      HARBOR: new THREE.MeshStandardMaterial({ color: 0x081c34, transparent: true, opacity: 0.92, roughness: 0.14, metalness: 0.5, envMapIntensity: 1.2 }),
       COUNTRY: lb(0x4e7a30), COUNTRYD: lb(0x3a5c20),
       LOT: lb(0x2b2e3a),
       LAMP: new THREE.MeshBasicMaterial({ color: 0xffe2a0 }),
@@ -141,8 +141,8 @@ var City3D = {
     this._eraTerrainKeys = { ground: 'GND', road: 'ROAD', side: 'SIDEW', park: 'PARK' };
     // Original water colours, restored whenever no profile overrides them
     this._waterDefaults = {
-      WATER: { color: this.M.WATER.color.getHex(), specular: this.M.WATER.specular.getHex(), opacity: this.M.WATER.opacity },
-      HARBOR: { color: this.M.HARBOR.color.getHex(), specular: this.M.HARBOR.specular.getHex(), opacity: this.M.HARBOR.opacity },
+      WATER: { color: this.M.WATER.color.getHex(), opacity: this.M.WATER.opacity, roughness: 0.12 },
+      HARBOR: { color: this.M.HARBOR.color.getHex(), opacity: this.M.HARBOR.opacity, roughness: 0.14 },
     };
   },
 
@@ -349,15 +349,31 @@ var City3D = {
     return { wall: wall, roof: roof, trim: trim, accent: accent, glass: glass, glassOp: glassy ? P.glassOp : 1, led: P.led, glassy: glassy };
   },
 
+  // Per-era PBR params (SKYLINE-12): matte brick -> glassy digital; glassy types
+  // (SK/PH in boom+) get the mirror-ish treatment with the sky env map.
+  _pbrFor: function(era, glassy) {
+    if (glassy) {
+      if (era === 'digital') return { roughness: 0.08, metalness: 0.8 };
+      if (era === 'boom') return { roughness: 0.2, metalness: 0.5 };
+      if (era === 'modern') return { roughness: 0.15, metalness: 0.6 };
+      return { roughness: 0.3, metalness: 0.4 };
+    }
+    var m = { victorian: { roughness: 0.92, metalness: 0.0 }, gilded: { roughness: 0.8, metalness: 0.02 },
+      crisis: { roughness: 0.85, metalness: 0.02 }, boom: { roughness: 0.6, metalness: 0.06 },
+      modern: { roughness: 0.62, metalness: 0.12 }, digital: { roughness: 0.5, metalness: 0.22 } };
+    return m[era] || m.modern;
+  },
+
   _makeSkin: function(era, typeKey, seed, cond) {
     var c = this._skinColors(era, typeKey, seed, cond);
-    var mk = function(col, o) { var m = new THREE.MeshPhongMaterial(Object.assign({ color: col, shininess: 30 }, o || {})); m.userData.role = true; return m; };
+    var pbr = this._pbrFor(era, c.glassy);
+    var mk = function(col, o) { var m = new THREE.MeshStandardMaterial(Object.assign({ color: col, roughness: pbr.roughness, metalness: pbr.metalness }, o || {})); m.userData.role = true; return m; };
     var sk = {
-      wall: mk(c.wall, c.glassy ? { transparent: true, opacity: c.glassOp, shininess: 110, specular: 0x88aacc } : { shininess: 18 }),
+      wall: mk(c.wall, c.glassy ? { transparent: true, opacity: c.glassOp, roughness: pbr.roughness, metalness: pbr.metalness, envMapIntensity: 1.2 } : {}),
       roof: mk(c.roof, { side: THREE.DoubleSide, shininess: 12 }),
       trim: mk(c.trim, { shininess: 60 }),
       accent: mk(c.accent, { shininess: 50 }),
-      glass: mk(c.glass, { transparent: true, opacity: 0.9, shininess: 120, specular: 0x99bbdd }),
+      glass: mk(c.glass, { transparent: true, opacity: 0.9, roughness: Math.max(0.06, pbr.roughness * 0.7), metalness: pbr.metalness, envMapIntensity: 1.3 }),
       led: null,
       era: era, typeKey: typeKey, seed: seed, cond: cond,
     };
@@ -370,6 +386,9 @@ var City3D = {
   _retargetSkin: function(sk, era, ms) {
     var c = this._skinColors(era, sk.typeKey, sk.seed, sk.cond);
     var pairs = [[sk.wall, c.wall], [sk.roof, c.roof], [sk.trim, c.trim], [sk.accent, c.accent], [sk.glass, c.glass]];
+    var npbr = this._pbrFor(era, c.glassy);
+    fades.push({ m: sk.wall, fromRough: sk.wall.roughness, toRough: npbr.roughness, fromMetal: sk.wall.metalness, toMetal: npbr.metalness, t: 0, ms: ms });
+    fades.push({ m: sk.glass, fromRough: sk.glass.roughness, toRough: Math.max(0.06, npbr.roughness * 0.7), fromMetal: sk.glass.metalness, toMetal: npbr.metalness, t: 0, ms: ms });
     var fades = this._fades;
     pairs.forEach(function(p) {
       fades.push({ m: p[0], from: p[0].color.clone(), to: p[1], t: 0, ms: ms });
@@ -446,7 +465,7 @@ var City3D = {
     var tmp = new THREE.Color();
     // SKYLINE-4: deep dusk (night >= 0.6) makes lit windows burn brighter (intensity only,
     // no sprites — the lit ratio itself is set at build time via the threshold range)
-    var glow = night >= 0.6 ? 1.3 : 1;
+        var glow = night >= 0.6 ? (this._composer ? 2.0 : 1.3) : 1;
     for (var mi = 0; mi < meshes.length; mi++) {
       var mesh = meshes[mi], W = mesh.userData.win;
       var attr = mesh.geometry.attributes.color;
@@ -858,7 +877,7 @@ var City3D = {
   _cityDef: null, _onBuildingClick: null, _opts: null, _era: 'modern', _night: 0.55,
   _fades: [], _winMeshes: null, _signs: null, _animated: null, _textures: null, _skins: null,
   _paused: false, _visible: true, _tabVisible: true, _orbit: 0,
-  _surround: null, _life: null, _detailQ: null, _detailMeshes: null, _helipadTaken: false, _camPersp: false, _camDist: 700, _lmAccents: null,
+  _surround: null, _life: null, _detailQ: null, _detailMeshes: null, _helipadTaken: false, _post: false, _composer: null, _bloom: null, _ssao: null, _grade: null, _env: null, _envRT: null, _envEra: null, _camPersp: false, _camDist: 700, _lmAccents: null,
   _camTarget: null, _camGoal: null, _zoomGoal: 1, _lastTs: 0, _frameMs: 0,
 
   _eraOrder: ['victorian', 'gilded', 'crisis', 'boom', 'modern', 'digital'],
@@ -914,6 +933,7 @@ var City3D = {
     g.addColorStop(Math.min(1, hz + 0.18), '#' + deep.getHexString()); g.addColorStop(1, '#' + floor.getHexString());
     c.fillStyle = g; c.fillRect(0, 0, 2, 256);
     if (this._skyTex) this._skyTex.needsUpdate = true;
+    if (this._grade) this._grade.uniforms.liftColor.value.copy(this._scene && this._scene.fog ? this._scene.fog.color : new THREE.Color(0x1c2240));
     // SKYLINE-4 (critique fix 2): clouds take the sky's mid hue, never grey-white
     if (this._clouds && pr) { var ct = mid.clone().lerp(new THREE.Color(0xffffff), 0.55); for (var ci = 0; ci < this._clouds.length; ci++) this._clouds[ci].material.color.copy(ct); }
     if (this._scene && this._scene.fog) {
@@ -966,6 +986,8 @@ var City3D = {
     if (this._stars) this._stars.material.opacity = Math.max(0, n - 0.3) * 1.4;
     if (this._moon) this._moon.material.opacity = Math.max(0, n - 0.2) * 1.2;
     this._updatePools();
+    if (this._bloom) this._bloom.strength = 0.55 + n * 0.35;
+    if (this._quality !== 'low') this._rebuildEnv();
     var ak = Math.max(0, Math.min(1, (n - 0.3) / 0.45));
     (this._lmAccents || []).forEach(function(a) {
       a.spr.material.opacity = 0.5 * ak;
@@ -976,6 +998,57 @@ var City3D = {
   },
 
   // ───────────────────────────── Scene setup ─────────────────────────────
+  /* SKYLINE-12 post chain (quality high only): render -> SSAO -> bloom -> grade.
+     SSAO ships with the PERSPECTIVE_CAMERA define cleared for our ortho rig.
+     photo() bypasses the composer (its passes hold the live camera). */
+  _initPost: function(w, h) {
+    var comp = new THREE.EffectComposer(this._renderer);
+    comp.addPass(new THREE.RenderPass(this._scene, this._cam));
+    var ssao = new THREE.SSAOPass(this._scene, this._cam, w, h);
+    ssao.kernelRadius = 12; ssao.minDistance = 0.002; ssao.maxDistance = 0.08;
+    if (!this._camPersp) {
+      ssao.ssaoMaterial.defines.PERSPECTIVE_CAMERA = 0;
+      if (ssao.blurMaterial) ssao.blurMaterial.defines.PERSPECTIVE_CAMERA = 0;
+      ssao.ssaoMaterial.needsUpdate = true;
+      if (ssao.blurMaterial) ssao.blurMaterial.needsUpdate = true;
+    }
+    comp.addPass(ssao);
+    this._bloom = new THREE.UnrealBloomPass(new THREE.Vector2(w, h), 0.55, 0.4, 0.82);
+    comp.addPass(this._bloom);
+    this._grade = new THREE.ShaderPass(THREE.GradeShader);
+    this._grade.renderToScreen = true;
+    comp.addPass(this._grade);
+    this._composer = comp; this._ssao = ssao;
+  },
+
+  /* Sky environment map for the PBR materials (SKYLINE-12): a small equirect
+     gradient built from the current era palette + night, prefiltered by PMREM.
+     Cached per era; quality low never builds one. */
+  _rebuildEnv: function() {
+    if (!this._renderer || !this._scene || this._quality === 'low') return;
+    if (this._envEra === this._era && this._env) { this._scene.environment = this._env; return; }
+    var pr = this._prof(this._era) || {}, P = this.ERAS[this._era] || this.ERAS.modern;
+    var sky = pr.sky ? pr.sky : P.sky, n = this._night;
+    var cv = document.createElement('canvas'); cv.width = 256; cv.height = 128;
+    var c = cv.getContext('2d');
+    var top = new THREE.Color(sky[0]).lerp(new THREE.Color(0x03050f), n);
+    var mid = new THREE.Color(sky[1]).lerp(new THREE.Color(0x0b1230), n * 0.9);
+    var bot = new THREE.Color(sky[2]).lerp(new THREE.Color(0x1a1a3a), n * 0.85);
+    var gnd = new THREE.Color(P.ground).lerp(new THREE.Color(0x000000), 0.5 + n * 0.3);
+    var g = c.createLinearGradient(0, 0, 0, 128);
+    g.addColorStop(0, '#' + top.getHexString()); g.addColorStop(0.55, '#' + mid.getHexString());
+    g.addColorStop(0.72, '#' + bot.getHexString()); g.addColorStop(0.78, '#' + gnd.getHexString());
+    g.addColorStop(1, '#' + gnd.getHexString());
+    c.fillStyle = g; c.fillRect(0, 0, 256, 128);
+    var tex = new THREE.CanvasTexture(cv); tex.mapping = THREE.EquirectangularReflectionMapping;
+    var pm = new THREE.PMREMGenerator(this._renderer);
+    var rt = pm.fromEquirectangular(tex);
+    pm.dispose(); tex.dispose();
+    if (this._envRT && this._envRT.dispose) this._envRT.dispose();
+    this._envRT = rt; this._env = rt.texture; this._envEra = this._era;
+    this._scene.environment = this._env;
+  },
+
   initScene: function(container, opts) {
     if (typeof THREE === 'undefined') { console.warn('Three.js not loaded'); return false; }
     this.initMaterials();
@@ -1033,6 +1106,8 @@ var City3D = {
     renderer.toneMappingExposure = 1.0;
     renderer.outputEncoding = THREE.sRGBEncoding;
     this._renderer = renderer;
+    this._post = !low && opts.post !== false && typeof THREE.EffectComposer !== 'undefined';
+    if (this._post) this._initPost(VW, VH);
     this._applyExposure();
 
     // Lights
@@ -1218,6 +1293,7 @@ var City3D = {
       var nW = self._container.clientWidth, nH = self._container.clientHeight;
       if (nW < 1 || nH < 1) return;
       self._renderer.setSize(nW, nH);
+      if (self._composer) { self._composer.setSize(nW, nH); if (self._bloom) self._bloom.setSize(nW, nH); if (self._ssao && self._ssao.setSize) self._ssao.setSize(nW, nH); }
       self._fitCamera(nW / nH);
     };
     window.addEventListener('resize', this._h.resize);
@@ -2064,18 +2140,16 @@ var City3D = {
     // Water / harbour: retint through the same fade mechanism so era changes restore
     // the palette (or the factory default) instead of leaking the previous profile.
     var wd = pr && pr.water, self = this;
-    this._waterSpec = {};
+    this._waterBase = {};
     ['WATER', 'HARBOR'].forEach(function(nm) {
       var wm = M[nm], d = self._waterDefaults[nm];
       var col = wd && wd.color != null ? wd.color : d.color;
       var op = wd && wd.opacity != null ? wd.opacity : d.opacity;
-      var sp = wd && wd.specular != null ? wd.specular : d.specular;
       if (ms > 0) {
         fades.push({ m: wm, from: wm.color.clone(), to: new THREE.Color(col), t: 0, ms: ms });
         if (wm.opacity !== op) fades.push({ m: wm, fromOp: wm.opacity, toOp: op, t: 0, ms: ms });
       } else { wm.color.set(col); wm.opacity = op; }
-      wm.specular.set(sp);
-      self._waterSpec[nm] = wm.specular.clone();   // ripple sheen pulses around this
+      self._waterBase[nm] = d.roughness;
     });
   },
 
@@ -2189,6 +2263,8 @@ var City3D = {
           var f = self._fades[i]; f.t += dt * 1000; var k = f.ms > 0 ? Math.min(1, f.t / f.ms) : 1; var e = k * k * (3 - 2 * k);
           if (f.to) f.m.color.copy(f.from).lerp(f.to, e);
           if (f.toOp != null) f.m.opacity = f.fromOp + (f.toOp - f.fromOp) * e;
+          if (f.toRough != null) f.m.roughness = f.fromRough + (f.toRough - f.fromRough) * e;
+          if (f.toMetal != null) f.m.metalness = f.fromMetal + (f.toMetal - f.fromMetal) * e;
           if (k < 1) keep.push(f);
         }
         self._fades = keep;
@@ -2247,12 +2323,11 @@ var City3D = {
           wparr.needsUpdate = true;
         }
       }
-      // Water shimmer: specular sheen pulsing gently around the profile's base
-      var wsb = self._waterSpec || {};
+      // Water shimmer: roughness pulse around the base (specular sheen of the PBR water)
+      var wsb = self._waterBase || {};
       ['WATER', 'HARBOR'].forEach(function(nm, wi4) {
         var wm2 = self.M[nm]; if (!wm2) return;
-        wm2.shininess = 100 + Math.sin(ts * 0.002 + wi4 * 1.7) * 30;
-        if (wsb[nm]) wm2.specular.copy(wsb[nm]).multiplyScalar(0.8 + 0.35 * (0.5 + 0.5 * Math.sin(ts * 0.0016 + wi4 * 2.1)));
+        if (wsb[nm] != null) wm2.roughness = Math.max(0.05, wsb[nm] * (0.82 + 0.3 * (0.5 + 0.5 * Math.sin(ts * 0.0016 + wi4 * 2.1))));
       });
 
       // Weather (rain in, fog banks, rain fall)
@@ -2287,7 +2362,7 @@ var City3D = {
       // Selection ring pulse
       if (self._selRing && self._selRing.visible) { var sp = self.TILE * (1.03 + Math.sin(ts * 0.005) * 0.03); self._selRing.scale.set(sp, sp, 1); }
       // Rim pulse
-      self._renderer.render(self._scene, self._cam);
+      if (self._composer) self._composer.render(); else self._renderer.render(self._scene, self._cam);
       self._frameMs = self._frameMs * 0.9 + (performance.now() - t0) * 0.1;
     }
     this._animId = requestAnimationFrame(animate);
@@ -2349,7 +2424,7 @@ var City3D = {
     this._fades = []; this._winMeshes = null; this._signs = null; this._animated = null; this._textures = null; this._skins = null; this._dying = null;
     this._rain = null; this._weather = 'clear'; this._weatherK = 0; this._fogGoal = null;
     this._terrain = null; this._terrainGroup = null; this._bldgGroup = null; this._orbit = 0; this._zoomGoal = 1; this._frameMs = 0;
-    this._profile = null; this._profCache = null; this._contactShadow = null; this._surround = null; this._life = null; this._detailQ = null; this._detailMeshes = null; this._lmAccents = null;
+    this._profile = null; this._profCache = null; this._contactShadow = null; this._surround = null; this._life = null; this._detailQ = null; this._detailMeshes = null; this._lmAccents = null; if (this._composer) { this._composer.passes.forEach(function(p) { if (p.dispose) p.dispose(); }); if (this._composer.renderTarget1) this._composer.renderTarget1.dispose(); if (this._composer.renderTarget2) this._composer.renderTarget2.dispose(); } if (this._envRT && this._envRT.dispose) this._envRT.dispose(); this._composer = null; this._bloom = null; this._ssao = null; this._grade = null; this._env = null; this._envRT = null; this._envEra = null; this._post = false;
     this._dragState = { active: false, prevX: 0, prevY: 0, startX: 0, startY: 0, moved: false };
     this._visible = true; this._tabVisible = true;
   },
