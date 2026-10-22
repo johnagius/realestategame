@@ -78,7 +78,12 @@
   State.netWorth = function (ownerId) {
     var s = PE.S(); ownerId = ownerId || 'player';
     var cash = ownerId === 'player' ? s.cash : (s.rivals[ownerId.replace('rival:', '')] || { cash: 0 }).cash;
-    return Math.round(cash + State.assets(ownerId) - State.debt(ownerId));
+    var nw = cash + State.assets(ownerId) - State.debt(ownerId);
+    if (ownerId === 'player') {
+      if (PE.Finance && PE.Finance._bondMarketTotal) nw += PE.Finance._bondMarketTotal(); // bonds count at market value (P4.1)
+      if (s.bank) nw += s.bank.capital; // the bank pool: vault + loans out (P4.2)
+    }
+    return Math.round(nw);
   };
   State.equity = function () { return State.assets('player') - State.debt('player'); };
   State.ltv = function (ownerId) { var a = State.assets(ownerId || 'player'); return a > 0 ? State.debt(ownerId || 'player') / a : 0; };
@@ -136,6 +141,7 @@
       priceIndex: 1,
       cities: {}, properties: {}, owned: { player: [] },
       listings: {}, auction: null, offers: [], boardYear: D.startYear,
+      bonds: [], bank: null,
       rivals: {}, relations: {},
       ranks: { year: D.startYear, byId: {}, prevYear: null, prevById: {} },
       dynasty: null,
@@ -145,7 +151,8 @@
       stats: { bought: 0, sold: 0, belowAsk: 0, auctionsWon: 0, renovations: 0, rebuilds: 0, refinances: 0, forcedSales: 0, forcedSalesThisEra: 0,
                marginCallsMissed: 0, forcedSaleYears: [], negativeCashYears: 0, peakNetWorth: 0, bankruptcies: 0, comebackFrom: 0, flips: 0, brrrr: 0,
                rentTotal: 0, costTotal: 0, firstBuyYear: {}, cityUnlockYear: {}, depressionsSurvived: 0,
-               steals: 0, countersClosed: 0, marginCallsCleared: 0, highLtvYears: 0, rank1Years: 0, educated: 0, marriages: 0, mergers: 0, vultures: 0, cashKingYears: 0, trustSuccessions: 0, evictions: 0, yearlyGoalsDone: 0, rothschildLoans: 0, outbidRivals: {} },
+               steals: 0, countersClosed: 0, marginCallsCleared: 0, highLtvYears: 0, rank1Years: 0, educated: 0, marriages: 0, mergers: 0, vultures: 0, cashKingYears: 0, trustSuccessions: 0, evictions: 0, yearlyGoalsDone: 0, rothschildLoans: 0, outbidRivals: {},
+               builds: 0, buildsDone: 0, bondIncome: 0, bankIncome: 0, bankWriteOffs: 0 },
       history: [],
       lastReport: null,
       perks: perks,

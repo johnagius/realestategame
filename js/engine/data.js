@@ -26,12 +26,13 @@
   D.eraIndex = function (eraId) { for (var i = 0; i < D.eras.length; i++) if (D.eras[i].id === eraId) return i; return 0; };
 
   /* ---------- Market cycle phases (bible §6.4) ---------- */
+  // tourismMult: rent multiplier in tourism cities by cycle (P4.4) — visitors pay in booms, vanish in busts.
   D.cycles = {
-    boom:       { name: 'Boom',       value: 0.08,  rate: 0.010, vacancy: 0.8, next: { stagnation: 0.5, recession: 0.35, growth: 0.15 }, len: [2, 3] },
-    growth:     { name: 'Growth',     value: 0.03,  rate: 0.000, vacancy: 1.0, next: { boom: 0.25, growth: 0.45, stagnation: 0.3 }, len: [2, 5] },
-    stagnation: { name: 'Stagnation', value: 0.00,  rate: -0.005, vacancy: 1.2, next: { growth: 0.5, recession: 0.35, boom: 0.15 }, len: [1, 3] },
-    recession:  { name: 'Recession',  value: -0.10, rate: -0.010, vacancy: 1.5, next: { stagnation: 0.43, growth: 0.45, depression: 0.12 }, len: [1, 2] },
-    depression: { name: 'Depression', value: -0.33, rate: 0.015, vacancy: 2.0, next: { stagnation: 0.5, growth: 0.5 }, len: [1, 1] }
+    boom:       { name: 'Boom',       value: 0.08,  rate: 0.010, vacancy: 0.8, tourismMult: 1.10, next: { stagnation: 0.5, recession: 0.35, growth: 0.15 }, len: [2, 3] },
+    growth:     { name: 'Growth',     value: 0.03,  rate: 0.000, vacancy: 1.0, tourismMult: 1.05, next: { boom: 0.25, growth: 0.45, stagnation: 0.3 }, len: [2, 5] },
+    stagnation: { name: 'Stagnation', value: 0.00,  rate: -0.005, vacancy: 1.2, tourismMult: 1.00, next: { growth: 0.5, recession: 0.35, boom: 0.15 }, len: [1, 3] },
+    recession:  { name: 'Recession',  value: -0.10, rate: -0.010, vacancy: 1.5, tourismMult: 0.92, next: { stagnation: 0.43, growth: 0.45, depression: 0.12 }, len: [1, 2] },
+    depression: { name: 'Depression', value: -0.33, rate: 0.015, vacancy: 2.0, tourismMult: 0.85, next: { stagnation: 0.5, growth: 0.5 }, len: [1, 1] }
   };
   /* Guaranteed historical crashes: year -> phase */
   D.scriptedCycles = { 1866: 'recession', 1873: 'depression', 1890: 'recession', 1907: 'recession', 1920: 'recession', 1929: 'depression', 1931: 'recession', 1945: 'stagnation', 1955: 'boom', 1973: 'recession', 1974: 'depression', 1987: 'recession', 1990: 'recession', 2000: 'recession', 2008: 'depression', 2009: 'recession', 2020: 'recession', 2021: 'boom' };
@@ -93,15 +94,16 @@
     luxury:     { name: 'Luxury',        care: 0.95, stability: 0.85 }
   };
 
-  /* ---------- Cities (8 traits kept from the v7 twelve) ---------- */
+  /* ---------- Cities (8 traits kept from the v7 twelve; P4.4: tourism joins, elite enclave is cut/dormant) ---------- */
   D.cityTraits = {
     rent_control:  { name: 'Rent Control',      desc: 'Rent rises capped at 2%/yr; occupancy +5%.' },
     redevelopment: { name: 'Redevelopment Zone', desc: 'Derelict/Poor stock appreciates faster; renovation −20% cost.' },
-    elite_enclave: { name: 'Elite Enclave',     desc: 'Mansions, villas and penthouses earn +25% rent; other types −20%.' },
+    elite_enclave: { name: 'Elite Enclave',     desc: 'Dormant (P4.4 cut): no city carries it; the old ±rent modifier is removed.' },
     tax_haven:     { name: 'Tax Haven',         desc: 'No property tax; purchase prices +12%.' },
-    tech_hub:      { name: 'Tech Hub',          desc: 'Studios, apartments and offices yield +15% from the Modern era.' },
+    tech_hub:      { name: 'Tech Hub',          desc: 'Studios, apartments and offices yield +15% from the Modern era; district prices drift +0.5%/yr Modern+.' },
     heritage_city: { name: 'Heritage City',     desc: 'Condition never drops below 30; refurbish takes +1 year.' },
     boom_bust:     { name: 'Boom & Bust',       desc: 'Cycle swings ×2. Speculators\' paradise.' },
+    tourism:       { name: 'Tourism',           desc: 'Visitor rents ride the cycle: +10% in a boom, −15% in a depression.' },
     foreign_buyer: { name: 'Foreign Buyer Tax', desc: '+6% purchase surcharge; appreciation +1%/yr.' }
   };
 
@@ -151,7 +153,7 @@
       dd(['Beverly Hills', 'Hollywood', 'Santa Monica', 'Malibu', 'Venice', 'Bel Air', 'Silver Lake', 'Downtown'], [2.4, 1.2, 1.5, 1.8, 0.8, 2.6, 0.7, 0.9], [0, 1, 0, 1, 1, 0, 1, -1])),
     city('sao_paulo', 'São Paulo', 'Brazil', 2, 0.110, 0.006, 0.030, 'tech_hub', 3, 1900,
       dd(['Jardins', 'Vila Madalena', 'Itaim Bibi', 'Pinheiros', 'Moema', 'Brooklin', 'Higienópolis', 'Vila Olímpia'], [1.9, 0.8, 1.4, 1.0, 1.2, 0.7, 1.5, 0.9], [0, 1, 1, 0, 0, 1, 0, 1])),
-    city('miami', 'Miami', 'United States', 2, 0.090, 0.006, 0.029, 'boom_bust', 3, 1920,
+    city('miami', 'Miami', 'United States', 2, 0.090, 0.006, 0.029, 'tourism', 3, 1920,
       dd(['South Beach', 'Brickell', 'Wynwood', 'Coconut Grove', 'Coral Gables', 'Downtown', 'Key Biscayne', 'Edgewater'], [1.8, 1.2, 0.5, 1.3, 1.5, 0.9, 2.0, 0.8], [1, 1, 1, 0, 0, -1, 0, 1])),
     city('dubai', 'Dubai', 'UAE', 3, 0.095, 0.000, 0.039, 'tax_haven', 3, 1970,
       dd(['Downtown', 'Marina', 'Palm Jumeirah', 'JBR', 'Business Bay', 'DIFC', 'Arabian Ranches', 'Creek Harbour'], [1.8, 1.4, 2.4, 1.2, 1.0, 2.0, 0.8, 0.6], [2, 1, 1, 1, 1, 1, 0, 2]))
@@ -325,6 +327,22 @@
     rebuild:   { name: 'Rebuild',   cost: 0.25, years: 2, gain: 100, uplift: 0.45, risk: 0.20, riskKind: 'delay',  riskCost: 0 }
   };
 
+  /* ---------- Build-to-suit (P4.3): commission a building on a plot you own ---------- */
+  // classes map to existing property types; types are [type, fromEraIdx, ...] pairs, first match on eraIdx wins by scanning desc.
+  D.buildClasses = {
+    tenement:  { name: 'Tenement',  desc: 'Dense, cheap, high-yield housing', types: [['tenement', 0], ['apartment', 3]] },
+    workhorse: { name: 'Workhorse', desc: 'The reliable family terrace',      types: [['terrace', 0], ['house', 3]] },
+    prestige:  { name: 'Prestige',  desc: 'A fine address for fine tenants',  types: [['townhouse', 0], ['villa', 1]] }
+  };
+  D.buildClassIds = ['tenement', 'workhorse', 'prestige'];
+  // costFrac × the as-if market value of the finished building; valueMult × era factor on the cost sets the expected true value.
+  D.buildSpecs = {
+    modest:   { name: 'Modest',   costFrac: 0.60, valueMult: 0.95, noise: 0.07, years: 1, condition: 62, delayRisk: 0.10, desc: 'Cheap and quick; the finished building sells at a discount' },
+    standard: { name: 'Standard', costFrac: 0.80, valueMult: 1.10, noise: 0.09, years: 1, condition: 78, delayRisk: 0.15, desc: 'A solid build for the open market' },
+    grand:    { name: 'Grand',    costFrac: 1.10, valueMult: 1.28, noise: 0.15, years: 2, condition: 92, delayRisk: 0.25, desc: 'Costly and slow; lucrative if the district holds' }
+  };
+  D.buildSpecIds = ['modest', 'standard', 'grand'];
+
   /* ---------- Balance constants ---------- */
   D.balance = {
     // listings
@@ -461,7 +479,29 @@
     // P5.3 weekly challenge
     challengeYears: 30,
     // P5.4 scenarios
-    scenarioYears: 15
+    scenarioYears: 15,
+    // P4.1 government bonds (Boom era, 1950+): 5-year fixed coupon at base+0.5%, capped at 30% of net worth
+    bondTermYears: 5,
+    bondCouponAboveBase: 0.005,
+    bondCapPct: 0.30,
+    bondMinBuy: 50,                   // smaller denominations are not worth the clerk's time
+    // P4.2 own bank (Modern era + 'own_bank' perk): lend to rivals at base+2.5–4%, risk write-offs
+    bankMinCapital: 25000,            // × priceIndex, one-time
+    bankSpreadMin: 0.025,
+    bankSpreadMax: 0.04,
+    bankLoanYears: 5,
+    bankMinDeployPct: 0.10,           // new loans only when ≥10% of capital is idle
+    bankMinLoanMult: 250,             // × priceIndex; smaller loans are not worth the paper
+    bankRecallYears: 2,               // recall: outstanding loans repay over this many years
+    // P4.3 build-to-suit (land plots)
+    buildDeveloperFee: 0.10,          // Okonkwo & Sons: +10% cost
+    buildDeveloperDelayMult: 0.5,     // ...for half the delay risk
+    buildEraFactorBase: 1.10,         // delivered value = cost × (base + era.drift × mult) × spec valueMult × district drift ± noise
+    buildEraFactorDriftMult: 4,
+    // P4.4 city traits v2
+    redevelopmentDrift: 0.006,        // below-average districts in redevelopment cities appreciate faster
+    techHubDrift: 0.005,              // Modern+ district price drift in tech hubs
+    foreignBuyerDrift: 0.01           // extra yearly appreciation where foreign money chases stock
   };
 
   /* ---------- Historical scripted events (bible §2, §6.4) ---------- */
@@ -701,7 +741,8 @@
     { id: 'seventh_rival', name: 'Seventh rival', cost: 3, kind: 'mode', desc: 'The Hartwells join the table: richer, sharper and more aggressive than any of the six.' },
     { id: 'purist', name: 'Purist', cost: 4, kind: 'mode', desc: 'No mortgages at all, but yearly goal rewards are doubled.' },
     { id: 'crisis_start', name: 'Crisis start', cost: 3, kind: 'mode', desc: 'Begin in 1929 with a leveraged portfolio, the day before the crash.' },
-    { id: 'second_city', name: 'Second city', cost: 5, kind: 'mode', desc: 'Paris is open from the first day.' }
+    { id: 'second_city', name: 'Second city', cost: 5, kind: 'mode', desc: 'Paris is open from the first day.' },
+    { id: 'own_bank', name: 'Own bank', cost: 6, kind: 'passive', desc: 'From the Modern era, open a private bank: lend your capital to rival families above the bank rate — and lose it when they default.' }
   ];
   D.perkById = function (id) { for (var i = 0; i < D.perks.length; i++) if (D.perks[i].id === id) return D.perks[i]; return null; };
 

@@ -1,0 +1,11 @@
+{
+  "appId": "com.sandstone.propertyempire",
+  "appName": "Property Empire",
+  "webDir": "capacitor-web",
+  "android": {
+    "path": "android-capacitor"
+  },
+  "ios": {
+    "path": "ios"
+  }
+}

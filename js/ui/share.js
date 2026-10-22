@@ -1,7 +1,10 @@
-/* PEUI share — the 1080×1080 dynasty card offered at era ends: family crest,
-   era, net worth, rank, generation and a silhouette of the city. The city is
-   a snapshot of the live 3D renderer when one is alive and readable; otherwise
-   a stylised skyline drawn from the property list. Offered as a PNG download. */
+/* PEUI share — the 1080×1080 dynasty card offered at era ends: the family crest
+   (real heraldry from PEUI.crest, not a placeholder disc), the motto in italic
+   serif beneath it, era, net worth, rank, generation and a silhouette of the
+   city. The city is a snapshot of the live 3D renderer when one is alive and
+   readable; otherwise a stylised skyline drawn from the property list.
+   Offered as a PNG download. shareCard is async: it resolves to the canvas
+   once the crest image (SVG → data URL → Image) is ready. */
 (function (root) {
   var PEUI = root.PEUI, h = PEUI.h, fmt = PEUI.fmt, icon = PEUI.icon;
   function PE() { return root.PE; }
@@ -25,6 +28,31 @@
       if (lit < 8) return null;
       return src;
     } catch (e) { return null; }
+  }
+
+  /* The house motto: player families carry it in PE.Data, rivals in crest.js. */
+  function mottoFor(s) {
+    var fam = (PE().Data.familyById && PE().Data.familyById(s.familyId)) || null;
+    return (fam && fam.motto) || (PEUI.crestMotto ? PEUI.crestMotto(s.familyId) : '') || '';
+  }
+
+  /* PEUI.crest produces an SVG; serialise it to a data URL and load it as an Image.
+     Resolves null (fast — 2 s cap) so the card still renders without heraldry. */
+  function crestImage(s, sm) {
+    return new Promise(function (resolve) {
+      if (!PEUI.crest || typeof XMLSerializer === 'undefined' || typeof Image === 'undefined') return resolve(null);
+      var settled = false;
+      function done(img) { if (settled) return; settled = true; try { clearTimeout(timer); } catch (e) {} resolve(img); }
+      var timer = setTimeout(function () { done(null); }, 2000);
+      try {
+        var svg = PEUI.crest({ id: s.familyId, name: 'House of ' + s.dynasty.surname, color: sm.color, motto: mottoFor(s) }, { size: 64, motto: false });
+        var xml = new XMLSerializer().serializeToString(svg);
+        var img = new Image();
+        img.onload = function () { done(img); };
+        img.onerror = function () { done(null); };
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
+      } catch (e) { done(null); }
+    });
   }
 
   /* Stylised skyline from the property list: your buildings in the family colour, the rest of the city behind. */
@@ -52,8 +80,10 @@
     ctx.fillStyle = '#0a0f1c'; ctx.fillRect(0, base, SZ, SZ - base);
   }
 
+  /* Async: resolves to the finished canvas (or null when there is nothing to share). */
   PEUI.shareCard = function (r) {
-    var s = PE().Game.state(), sm = PEUI.summary(), pf = PE().Game.portfolio(); if (!s || !sm.ok) return null;
+    var s = PE().Game.state(), sm = PEUI.summary(), pf = PE().Game.portfolio();
+    if (!s || !sm.ok) return Promise.resolve(null);
     var cv = document.createElement('canvas'); cv.width = SZ; cv.height = SZ;
     var ctx = cv.getContext('2d');
     // sky
@@ -69,27 +99,41 @@
       ctx.fillStyle = fade; ctx.fillRect(0, 600, SZ, 160); ctx.restore();
       ctx.fillStyle = '#0a0f1c'; ctx.fillRect(0, 1040, SZ, 40);
     } else skyline(ctx, pf.ok ? pf.properties : [], sm.color, 560, 480);
-    // frame and rule
+    // frame
     ctx.strokeStyle = GOLD; ctx.lineWidth = 6; ctx.strokeRect(36, 36, SZ - 72, SZ - 72);
-    ctx.fillStyle = GOLD; ctx.fillRect(SZ / 2 - 120, 262, 240, 3);
-    // crest
-    ctx.beginPath(); ctx.arc(SZ / 2, 170, 70, 0, Math.PI * 2); ctx.fillStyle = sm.color; ctx.fill(); ctx.lineWidth = 5; ctx.strokeStyle = GOLD; ctx.stroke();
-    ctx.fillStyle = '#fff'; ctx.font = font(78, true, 800); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(PEUI.crestLetter(s.dynasty.surname), SZ / 2, 174);
-    // name and era
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = PAPER; ctx.font = font(64, true, 800); ctx.fillText('House of ' + s.dynasty.surname, SZ / 2, 340);
-    ctx.fillStyle = GOLD; ctx.font = font(26, false, 800);
-    var eraName = r && r.eraName ? r.eraName : sm.era, yr = r ? r.year : sm.year;
-    ctx.fillText((r && r.eraChanged ? 'THE ' + eraName.toUpperCase() + ' ERA ENDS · ' : '') + yr, SZ / 2, 396);
-    // stats
-    var stats = [['NET WORTH', fmt.money(r ? r.netWorthAfter : sm.netWorth)], ['RANK', '#' + (r ? r.rank.after : sm.rank) + ' of ' + (Object.keys(s.rivals).length + 1)], ['GENERATION', fmt.ordinal(sm.generation)]];
-    for (var i = 0; i < stats.length; i++) {
-      var x = SZ / 6 + i * SZ / 3;
-      ctx.fillStyle = PAPER2; ctx.font = font(22, false, 800); ctx.fillText(stats[i][0], x, 470);
-      ctx.fillStyle = PAPER; ctx.font = font(52, true, 800); ctx.fillText(stats[i][1], x, 532);
-    }
-    ctx.fillStyle = PAPER2; ctx.font = font(22, false, 700); ctx.fillText('Property Empire · ' + s.startYear + '–' + yr + ' · ' + s.familyName, SZ / 2, SZ - 58);
-    return cv;
+    var motto = mottoFor(s), mottoY = motto ? 304 : 288;
+    return crestImage(s, sm).then(function (img) {
+      // crest top-centre (real heraldry), disc-letter fallback
+      if (img) {
+        var cw = 180, chh = cw * (img.height / Math.max(1, img.width));
+        ctx.drawImage(img, (SZ - cw) / 2, 52, cw, chh);
+      } else {
+        ctx.beginPath(); ctx.arc(SZ / 2, 170, 70, 0, Math.PI * 2); ctx.fillStyle = sm.color; ctx.fill(); ctx.lineWidth = 5; ctx.strokeStyle = GOLD; ctx.stroke();
+        ctx.fillStyle = '#fff'; ctx.font = font(78, true, 800); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(PEUI.crestLetter(s.dynasty.surname), SZ / 2, 174);
+      }
+      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      // motto in italic serif under the crest
+      if (motto) {
+        ctx.fillStyle = GOLD; ctx.font = 'italic 700 27px "Playfair Display", Georgia, serif';
+        ctx.fillText('“' + motto + '”', SZ / 2, mottoY);
+      }
+      // rule
+      ctx.fillStyle = GOLD; ctx.fillRect(SZ / 2 - 120, mottoY + 20, 240, 3);
+      // name and era
+      ctx.fillStyle = PAPER; ctx.font = font(64, true, 800); ctx.fillText('House of ' + s.dynasty.surname, SZ / 2, mottoY + 104);
+      ctx.fillStyle = GOLD; ctx.font = font(26, false, 800);
+      var eraName = r && r.eraName ? r.eraName : sm.era, yr = r ? r.year : sm.year;
+      ctx.fillText((r && r.eraChanged ? 'THE ' + eraName.toUpperCase() + ' ERA ENDS · ' : '') + yr, SZ / 2, mottoY + 158);
+      // stats
+      var stats = [['NET WORTH', fmt.money(r ? r.netWorthAfter : sm.netWorth)], ['RANK', '#' + (r ? r.rank.after : sm.rank) + ' of ' + (Object.keys(s.rivals).length + 1)], ['GENERATION', fmt.ordinal(sm.generation)]];
+      for (var i = 0; i < stats.length; i++) {
+        var x = SZ / 6 + i * SZ / 3;
+        ctx.fillStyle = PAPER2; ctx.font = font(22, false, 800); ctx.fillText(stats[i][0], x, mottoY + 226);
+        ctx.fillStyle = PAPER; ctx.font = font(52, true, 800); ctx.fillText(stats[i][1], x, mottoY + 288);
+      }
+      ctx.fillStyle = PAPER2; ctx.font = font(22, false, 700); ctx.fillText('Property Empire · ' + s.startYear + '–' + yr + ' · ' + s.familyName, SZ / 2, SZ - 58);
+      return cv;
+    });
   };
 
   PEUI.downloadBlob = function (filename, blob) {
@@ -99,12 +143,14 @@
 
   var lastCard = null;
   PEUI.openShareCard = function (r) {
-    var cv = PEUI.shareCard(r); if (!cv) { PEUI.toast('Nothing to share yet.'); return; }
-    lastCard = cv;
-    var s = PE().Game.state();
-    var img = h('img', { class: 'share-preview', alt: 'Dynasty card: House of ' + s.dynasty.surname + ', ' + (r ? r.year : s.year) + ', net worth ' + fmt.money(r ? r.netWorthAfter : PEUI.summary().netWorth), src: cv.toDataURL('image/png') });
-    PEUI.sheet.open({ id: 'share', title: 'Dynasty card', sub: '1080 × 1080 PNG', body: [img, h('p', { class: 'small muted', text: 'Save it, post it, or keep it for the family album.' })],
-      foot: h('div', { class: 'btn-row' }, [PEUI.btn('Close', { cls: 'btn--ghost', action: 'sheet-close' }), PEUI.btn('Download PNG', { cls: 'btn--primary', icon: 'download', action: 'share-download' })]) });
+    PEUI.shareCard(r).then(function (cv) {
+      if (!cv) { PEUI.toast('Nothing to share yet.'); return; }
+      lastCard = cv;
+      var s = PE().Game.state();
+      var img = h('img', { class: 'share-preview', alt: 'Dynasty card: House of ' + s.dynasty.surname + ', ' + (r ? r.year : s.year) + ', net worth ' + fmt.money(r ? r.netWorthAfter : PEUI.summary().netWorth), src: cv.toDataURL('image/png') });
+      PEUI.sheet.open({ id: 'share', title: 'Dynasty card', sub: '1080 × 1080 PNG', body: [img, h('p', { class: 'small muted', text: 'Save it, post it, or keep it for the family album.' })],
+        foot: h('div', { class: 'btn-row' }, [PEUI.btn('Close', { cls: 'btn--ghost', action: 'sheet-close' }), PEUI.btn('Download PNG', { cls: 'btn--primary', icon: 'download', action: 'share-download' })]) });
+    });
   };
   PEUI.actions['share-card'] = function () { PEUI.openShareCard(PEUI.shownReport || PEUI.lastReport || null); };
   PEUI.actions['share-download'] = function () {

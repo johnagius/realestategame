@@ -22,9 +22,13 @@
   },
   "homepage": "https://github.com/johnagius/realestategame#readme",
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/ios": "^8.5.3",
     "playwright": "^1.64.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "axe-core": "^4.14.0"
   }
 }

@@ -27,7 +27,7 @@
       sqm: opts.sqm || R.int(t.sqm[0], t.sqm[1]), condition: opts.condition !== undefined ? opts.condition : R.int(30, 85),
       quality: opts.quality || R.range(0.9, 1.1), trueValue: 0, ownerId: null,
       rentAnnual: 0, rentSetting: 1.0, occupancy: 0, tenantClass: 'clerks', lease: null,
-      mortgage: null, renovation: null, marginCall: null, forSale: null,
+      mortgage: null, renovation: null, buildJob: null, marginCall: null, forSale: null,
       purchasePrice: null, purchaseYear: null, builtYear: opts.builtYear || (s.year - R.int(0, 60)), lastRenovated: 0, history: []
     };
     if (t.id === 'land') p.condition = 50;
@@ -470,10 +470,14 @@
     var s = PE.S(), era = St.era(), cyc = D.cycles[s.cycle.phase];
     for (var cid in s.cities) {
       var c = D.cityById[cid], ds = s.cities[cid].districts, cityMult = c.trait === 'boom_bust' ? 2 : 1, sumG = 0, n = 0;
+      var avgP = 0, dn0, nD = 0;
+      if (c.trait === 'redevelopment') { for (dn0 in ds) { avgP += ds[dn0].ppsqm; nD++; } avgP = nD ? avgP / nD : 0; } // the city's average: below it is the "derelict/poor" stock
       for (var dn in ds) {
         var d = ds[dn];
         var g = c.growth + era.drift + cyc.value * cityMult + d.momentum + R.range(-B.districtNoise, B.districtNoise) + B.pressurePerBuy * d.buysThisYear;
-        if (c.trait === 'foreign_buyer') g += 0.01;
+        if (c.trait === 'foreign_buyer') g += B.foreignBuyerDrift;
+        if (c.trait === 'tech_hub' && St.eraIdx() >= 4) g += B.techHubDrift;
+        if (c.trait === 'redevelopment' && d.ppsqm < avgP) g += B.redevelopmentDrift;
         d.ppsqm = Math.max(0.5, d.ppsqm * (1 + g));
         d.buysThisYear = 0;
         d.momentum += R.normal(0, B.momentumNoise) - B.momentumMeanReversion * d.momentum;

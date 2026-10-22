@@ -1,2 +1,4 @@
 property-empire-recording-*.json
 tools/playwright/out/
+node_modules/
+capacitor-web/

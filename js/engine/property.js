@@ -1,6 +1,7 @@
 /* PE.Property — the physical asset: valuation (district £/sqm × type ×
    condition), rent and occupancy, operating costs, condition decay, the three
-   renovation tiers with overrun/delay risk, and management capacity/managers. */
+   renovation tiers with overrun/delay risk, build-to-suit commissions on land
+   plots (P4.3), and management capacity/managers. */
 (function (root) {
   var PE = root.PE = root.PE || {};
   var D = PE.Data, B = PE.Data.balance, U = PE.util, R = PE.RNG, St = PE.State;
@@ -46,8 +47,7 @@
     var setting = p.lease ? p.lease.setting : p.rentSetting;
     var r = p.trueValue * c.grossYield * t.yieldMult * band.rentFactor * setting;
     // city traits
-    var isLux = (t.id === 'mansion' || t.id === 'villa' || t.id === 'penthouse');
-    if (c.trait === 'elite_enclave') r *= isLux ? 1.25 : 0.8;
+    if (c.trait === 'tourism' && D.cycles[s.cycle.phase]) r *= D.cycles[s.cycle.phase].tourismMult; // visitors ride the cycle (P4.4)
     if (c.trait === 'tech_hub' && St.eraIdx() >= 4 && (t.id === 'studio' || t.id === 'apartment' || t.id === 'office')) r *= 1.15;
     // saturation: owning >30% of a district lowers your yield (bible §6.3)
     if (p.ownerId === 'player') {
@@ -231,6 +231,10 @@
   /* Called at endYear for every property with work in progress. Returns a report line or null. */
   P.progressRenovation = function (p) {
     var s = PE.S();
+    if (p.buildJob) { // a commissioned build (P4.3)
+      if (p.ownerId !== 'player') { p.buildJob = null; p.renovation = null; return { propertyId: p.id, text: p.name + ': the half-built shell stands abandoned.' }; }
+      return P.progressBuild(p);
+    }
     if (!p.renovation) return null;
     var r = p.renovation;
     r.yearsLeft--;
@@ -242,6 +246,111 @@
     P.applyRenovation(p, r.tier);
     line += ' Now ' + P.band(p).name + ', worth ' + U.fmt(p.trueValue) + '.';
     return { propertyId: p.id, text: line };
+  };
+
+  /* ---------- Build-to-suit (P4.3): commission a building on a plot you own ----------
+     Choose a class (the building type the plot becomes) and a spec (cost vs expected
+     value). Cost is staged over the build; the delivered true value is the build cost
+     x the era factor x the spec multiplier x the district's drift during the build,
+     ± noise — so the same commission profits in a rising district and loses in a
+     falling one. The Builder trait cuts cost 15% (bible §7). Okonkwo & Sons charge
+     +10% but halve the delay risk. The renovation flag doubles as the scaffolding
+     flag, so the 3D map shows the site working. */
+  P.buildTargetType = function (cls) {
+    var e = St.eraIdx(), c = D.buildClasses[cls]; if (!c) return null;
+    var t = c.types[0][0];
+    for (var i = 0; i < c.types.length; i++) if (e >= c.types[i][1]) t = c.types[i][0];
+    return t;
+  };
+  P.developerAvailable = function () {
+    var s = PE.S(), rv = s.rivals ? s.rivals.okonkwo : null;
+    if (!rv) return { ok: false, message: 'No builder of that calibre is on the scene.' };
+    if (rv.bankrupt) return { ok: false, message: 'Okonkwo & Sons are bankrupt.' };
+    if (rv.merged) return { ok: false, message: 'Okonkwo & Sons build only for your allied house now.' };
+    return { ok: true, message: '' };
+  };
+  /* The finished building's as-if market value at 'good' condition, quality 1 — the anchor for build cost. */
+  P.buildAsIfValue = function (p, cls) {
+    var t = D.propertyTypes[P.buildTargetType(cls)], d = St.district(p.cityId, p.district);
+    return t && d ? p.sqm * d.ppsqm * t.factor : 0;
+  };
+  P.buildCost = function (p, cls, spec, developer) {
+    var sp = D.buildSpecs[spec]; if (!sp) return 0;
+    var cost = P.buildAsIfValue(p, cls) * sp.costFrac;
+    if (St.hasTrait('builder')) cost *= 0.85;
+    if (developer) cost *= 1 + B.buildDeveloperFee;
+    return Math.max(1, Math.round(cost));
+  };
+  P.buildEraFactor = function () { return U.clamp(B.buildEraFactorBase + St.era().drift * B.buildEraFactorDriftMult, 1, 1.3); };
+  P.commissionQuote = function (propertyId, cls, spec, developer) {
+    var s = PE.S(), p = s.properties[propertyId];
+    if (!p || p.ownerId !== 'player') return PE.fail('Not your property');
+    if (p.type !== 'land') return PE.fail('Only a building plot can take a commission');
+    if (p.renovation || p.buildJob) return PE.fail('Work is already under way here');
+    var c = D.buildClasses[cls], sp = D.buildSpecs[spec];
+    if (!c) return PE.fail('Unknown building class');
+    if (!sp) return PE.fail('Unknown specification');
+    developer = !!developer;
+    var dev = P.developerAvailable();
+    if (developer && !dev.ok) return PE.fail(dev.message);
+    var cost = P.buildCost(p, cls, spec, developer);
+    var stages = sp.years, stageCost = Math.round(cost / stages), lastStage = cost - stageCost * (stages - 1);
+    var expected = Math.round(cost * P.buildEraFactor() * sp.valueMult);
+    return PE.ok({ propertyId: propertyId, cls: cls, spec: spec, developer: developer,
+      className: c.name, classDesc: c.desc, specName: sp.name, specDesc: sp.desc,
+      targetType: P.buildTargetType(cls), targetName: D.propertyTypes[P.buildTargetType(cls)].name,
+      totalCost: cost, stages: stages, stageCost: stageCost, lastStage: lastStage, years: sp.years,
+      delayRiskPct: Math.round(sp.delayRisk * (developer ? B.buildDeveloperDelayMult : 1) * 100),
+      eraFactor: Math.round(P.buildEraFactor() * 100) / 100, condition: sp.condition,
+      expectedValue: expected, lowEstimate: Math.round(expected * (1 - sp.noise)), highEstimate: Math.round(expected * (1 + sp.noise)),
+      developerAvailable: dev.ok, developerReason: dev.message, developerFee: developer ? cost - P.buildCost(p, cls, spec, false) : 0 });
+  };
+  P.commissionBuild = function (propertyId, cls, spec, developer) {
+    var s = PE.S(), p = s.properties[propertyId];
+    var q = P.commissionQuote(propertyId, cls, spec, developer); // validates class, spec, developer and site
+    if (!q.ok) return q;
+    if (s.cash < q.stageCost) return PE.fail('Not enough cash for the first stage (' + U.fmt(q.stageCost) + ')');
+    s.cash -= q.stageCost;
+    var sp = D.buildSpecs[spec];
+    var delayRisk = sp.delayRisk * (q.developer ? B.buildDeveloperDelayMult : 1);
+    var delay = R.chance(delayRisk) ? 1 : 0;
+    var years = sp.years + delay;
+    p.buildJob = { cls: cls, spec: spec, developer: q.developer, targetType: q.targetType, totalCost: q.totalCost, stageCost: q.stageCost, lastStage: q.lastStage, stages: q.stages, paid: 1, yearsLeft: years, delay: delay, ppsqmAtStart: St.district(p.cityId, p.district).ppsqm, started: s.year };
+    p.renovation = { tier: 'build', yearsLeft: years, started: s.year }; // scaffolding on the 3D map
+    s.stats.builds = (s.stats.builds || 0) + 1;
+    var msg = (q.developer ? 'Okonkwo & Sons break ground' : 'Builders break ground') + ' on ' + p.name + ': a ' + q.specName.toLowerCase() + ' ' + q.targetName.toLowerCase() + ', ready in about ' + sp.years + ' year' + (sp.years > 1 ? 's' : '') + '.';
+    return PE.ok({ message: msg, cost: q.stageCost, years: years, job: U.clone(p.buildJob) });
+  };
+  /* endYear: pay the next stage, tick the timer, deliver at completion. Returns a report line or null. */
+  P.progressBuild = function (p) {
+    var s = PE.S(), j = p.buildJob; if (!j) return null;
+    if (j.paid < j.stages) { s.cash -= j.paid === j.stages - 1 ? j.lastStage : j.stageCost; j.paid++; }
+    j.yearsLeft--;
+    if (j.yearsLeft <= 0 && j.delay > 0) {
+      j.delay--; j.yearsLeft = 1; if (p.renovation) p.renovation.yearsLeft = 1;
+      return { propertyId: p.id, text: p.name + ': the ' + D.propertyTypes[j.targetType].name.toLowerCase() + ' build runs a year late.' };
+    }
+    if (j.yearsLeft > 0) { if (p.renovation) p.renovation.yearsLeft = j.yearsLeft; return null; }
+    return { propertyId: p.id, text: P.completeBuild(p) };
+  };
+  P.completeBuild = function (p) {
+    var s = PE.S(), j = p.buildJob, sp = D.buildSpecs[j.spec];
+    var d = St.district(p.cityId, p.district);
+    var driftMult = d ? d.ppsqm / Math.max(0.01, j.ppsqmAtStart) : 1; // the district's move during the build
+    var noise = 1 + R.range(-sp.noise, sp.noise);
+    var value = Math.max(1, Math.round(j.totalCost * P.buildEraFactor() * sp.valueMult * driftMult * noise));
+    p.buildJob = null; p.renovation = null;
+    p.type = j.targetType; p.model3d = D.propertyTypes[p.type].model3d; p.era = St.era().id; p.builtYear = s.year;
+    p.condition = sp.condition; p.quality = 1; p.lastRenovated = s.year;
+    P.revalue(p);
+    p.quality = U.clamp(value / Math.max(1, p.trueValue), 0.5, P.MAX_QUALITY); // land the delivered value on the formula
+    P.revalue(p);
+    p.rentAnnual = P.grossRent(p); p.tenantClass = P.tenantClassFor(p);
+    p.occupancy = P.type(p).canRent && p.condition >= B.unrentableBelow ? B.baseOccupancy : 0;
+    p.history.push({ year: s.year, value: p.trueValue });
+    if (p.history.length > 30) p.history.shift();
+    s.stats.buildsDone = (s.stats.buildsDone || 0) + 1;
+    return 'The ' + D.buildClasses[j.cls].name.toLowerCase() + ' build completes on ' + p.name + ': ' + D.propertyTypes[p.type].name + ' (' + sp.name + ', ' + P.band(p).name + '), worth ' + U.fmt(p.trueValue) + '.';
   };
 
   P.setRent = function (propertyId, setting) {
@@ -263,9 +372,17 @@
   P.view = function (p) {
     var v = U.clone(p); v.conditionLabel = P.band(p).name; v.cityName = D.cityById[p.cityId].name; v.typeName = P.type(p).name;
     v.equity = p.trueValue - (p.mortgage ? p.mortgage.principal : 0); v.ltv = p.mortgage ? p.mortgage.principal / p.trueValue : 0;
-    v.renovationOptions = p.ownerId === 'player' ? P.renovationOptions(p) : [];
+    v.renovationOptions = p.ownerId === 'player' && !p.buildJob ? P.renovationOptions(p) : [];
+    v.buildOptions = p.ownerId === 'player' && p.type === 'land' && !p.renovation && !p.buildJob ? D.buildClassIds.map(function (cid) { return D.buildClasses[cid].name; }) : [];
     return v;
   };
 
   PE.Property = P;
+  /* P4 public calls, guarded with the same wrap pattern as game.js (its wrap list predates Phase 4). */
+  (function (mod, names) {
+    for (var i = 0; i < names.length; i++) (function (n) {
+      var raw = mod[n]; if (typeof raw !== 'function') return;
+      mod[n] = PE.guard(n, raw); mod['_' + n] = raw;
+    })(names[i]);
+  })(P, ['commissionQuote', 'commissionBuild']);
 })(typeof window !== 'undefined' ? window : global);

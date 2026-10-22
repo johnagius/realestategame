@@ -70,6 +70,28 @@
       report.events.push({ uid: inst2.uid, title: inst2.title, kind: 'random' });
       n++;
     }
+    /* P7 live-ops packs: same decision rules and the same yearly cadence as built-ins,
+       but capped at PACK_PER_YEAR per game-year so packs season, not flood, the paper. */
+    var packPool = [];
+    for (var pi = 0; pi < E.packs.length; pi++) {
+      for (var pj = 0; pj < E.packs[pi].events.length; pj++) {
+        var pev = E.packs[pi].events[pj];
+        if (s.year < (pev.minYear || -1e9) || s.year > (pev.maxYear || 1e9)) continue;
+        if (pev.minProps && props < pev.minProps) continue;
+        if (pev.minMembers && members < pev.minMembers) continue;
+        packPool.push(pev);
+      }
+    }
+    var packTries = R.chance(B.randomEventChance) ? 1 : 0; if (packTries && R.chance(0.25)) packTries++;
+    var packN = 0;
+    while (n < B.maxEventsPerYear && packN < E.PACK_PER_YEAR && packTries > 0 && packPool.length) {
+      packTries--;
+      var pws = packPool.map(function (e) { return e.weight || 1; }), pev2 = R.weighted(packPool, pws), pt = E.pickTargets();
+      packPool = packPool.filter(function (x) { return x.id !== pev2.id; });
+      var instP = E.push({ id: pev2.id, title: E.fill(pev2.title, pt), text: E.fill(pev2.text, pt), choices: pev2.choices.map(function (c) { return { label: E.fill(c.label, pt), fx: c.fx }; }), kind: 'pack', targets: { propId: pt.prop ? pt.prop.id : null, cityId: pt.cityId, memberId: pt.member ? pt.member.id : null, rivalId: pt.rivalId || null, type: pt.type } });
+      report.events.push({ uid: instP.uid, title: instP.title, kind: 'pack' });
+      n++; packN++;
+    }
   };
 
   E.pending = function () {
@@ -174,6 +196,148 @@
     if (fx.refurbForTenant && prop) { var rc = PE.Property.renovationCost(prop, 'refurbish'); s.cash -= rc; prop.renovation = { tier: 'refurbish', yearsLeft: 1, cost: rc, overrun: 0, delay: 0, started: s.year }; prop.rentSetting = 1.2; prop.rentLockUntil = s.year + 4; lines.push('Refurbishing ' + prop.name + ' for ' + U.fmt(rc) + '; rent 120% for 4 years.'); }
     if (fx.absorbRival) { var a = fx.absorbRival, n = PE.Rivals.absorb(a.rivalId, a.by, a.price); if (a.by === 'player') s.stats.vultures++; lines.push(a.by === 'player' ? 'You acquire ' + n + ' building(s) for ' + U.fmt(a.price) + '.' : (a.by ? D.rivalById(a.by).name + ' absorb the portfolio.' : 'The banks take the portfolio.')); }
     return lines;
+  };
+
+  /* ---------- Live-ops event packs (P7; docs/live-ops.md) ----------
+     Packs are data-only JSON: no new mechanics, only the fx vocabulary applyFx
+     already implements. registerPack validates against FX_VOCABULARY (kept in
+     sync with applyFx above; js/sim/tests.js cross-checks both directions).
+     Resolution semantics are untouched: pack events are pushed, pended and
+     resolved through the same paths as built-in random events. */
+  E.PACK_PER_YEAR = 2;          // per-game cap: at most this many pack events in any year
+  var PACK_MAX_EVENTS = 50;
+  E.packs = [];                 // registered packs, session-lifetime
+
+  function fxNum(v) { return typeof v === 'number' && isFinite(v); }
+  function fxInt(v) { return fxNum(v) && Math.round(v) === v; }
+  function fxProb(v) { return fxNum(v) && v >= 0 && v <= 1; }
+  function fxBool(v) { return v === true || v === false; }
+  function fxStr(v) { return typeof v === 'string' && v.length > 0; }
+  function fxOpt(v) { return v === undefined || v === null; }
+  function fxShape(req, o) {
+    return function (v) {
+      if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+      for (var k in req) { if (!req[k](v[k])) return false; }
+      for (var k2 in v) {
+        if (k2 in req) continue;
+        if (o && k2 in o) { if (!fxOpt(v[k2]) && !o[k2](v[k2])) return false; }
+        else return false;
+      }
+      return true;
+    };
+  }
+  /* key → validator; mirrors every `fx.<key>` read in applyFx. */
+  E.FX_VOCABULARY = {
+    reputation: fxNum, cashPct: fxNum, cashPctNW: fxNum, donatePct: fxNum,
+    rentBoost: fxNum, decay: fxNum, giftLand: fxNum, cashFixed: fxNum,
+    giftProperty: fxShape({ pct: fxNum }, { city: fxStr, type: fxStr, condition: fxNum }),
+    unlockCity: fxStr, repayPct: fxNum,
+    gamble: fxShape({ p: fxProb, win: fxNum, lose: fxNum }),
+    gambleNW: fxShape({ p: fxProb }, { win: fxNum, lose: fxNum, loseWin: fxNum, loseRep: fxNum }),
+    repGamble: fxShape({ p: fxProb, lose: fxNum }, { win: fxNum }),
+    propQuality: fxNum,
+    propGamble: fxShape({ p: fxProb }, { winCond: fxNum, loseCostPct: fxNum, loseCond: fxNum, loseRep: fxNum }),
+    propValueGamble: fxShape({ p: fxProb, win: fxNum, lose: fxNum }),
+    propRent: fxNum, propVacantYears: fxInt,
+    districtShock: fxNum, districtMomentum: fxInt,
+    districtShockChance: fxShape({ p: fxProb, shock: fxNum }),
+    districtMomentumChance: fxShape({ p: fxProb, years: fxInt }),
+    petition: fxShape({ p: fxProb, shock: fxNum, factor: fxNum }),
+    sellPropFee: fxNum, sellToRival: fxNum, debtForgive: fxNum, insuredYears: fxInt,
+    evictionCity: fxBool, evictionDistrict: fxBool,
+    namedRelation: fxShape({ id: fxStr, delta: fxNum }),
+    sellWeakest: fxNum, count: fxInt, sellMostLeveraged: fxNum, sellCommercial: fxNum,
+    refiBest: fxBool, refiAll: fxNum, rentAll: fxNum, cityRent: fxNum, cityVacancy: fxNum,
+    vacancyYears: fxInt, commercialRent: fxBool, bombInsured: fxBool, surveyorYears: fxInt,
+    convertAmort: fxBool, fixAll: fxBool, extraDistressed: fxInt, extraLand: fxInt,
+    warLease: fxInt, bombRisk: fxBool, renoDiscountYears: fxInt,
+    cityMomentum: fxShape({ city: fxStr, years: fxInt }),
+    convertOffice: fxBool, lease: fxShape({ years: fxInt, setting: fxNum }),
+    propCostPct: fxNum, propCondition: fxNum, sellProp: fxNum,
+    forcedSaleChance: fxShape({ p: fxProb, factor: fxNum }),
+    revealBest: fxBool, memberTrait: fxStr, rivalRelation: fxNum,
+    inheritProperty: fxShape({ ltv: fxNum }),
+    fireManager: fxBool, refurbForTenant: fxBool,
+    absorbRival: fxShape({ rivalId: fxStr, by: fxStr, price: fxNum })
+  };
+  /* Validate one fx object; returns an array of problem strings (empty = valid). */
+  E.validateFx = function (fx) {
+    var problems = [];
+    if (!fx || typeof fx !== 'object' || Array.isArray(fx)) return ['fx must be an object'];
+    for (var k in fx) {
+      var v = E.FX_VOCABULARY[k];
+      if (!v) { problems.push('unknown fx key "' + k + '"'); continue; }
+      if (!v(fx[k])) problems.push('fx "' + k + '" has the wrong shape');
+    }
+    return problems;
+  };
+
+  E.registerPack = function (pack) {
+    if (!pack || typeof pack !== 'object' || Array.isArray(pack)) return PE.fail('Pack must be an object');
+    if (typeof pack.id !== 'string' || !/^[a-z0-9][a-z0-9_-]{1,31}$/.test(pack.id)) return PE.fail('Pack id must be 2–32 chars of lowercase letters, digits, "-" or "_"');
+    if (typeof pack.name !== 'string' || !pack.name.trim()) return PE.fail('Pack needs a name');
+    if (!Array.isArray(pack.events) || !pack.events.length) return PE.fail('Pack needs at least one event');
+    if (pack.events.length > PACK_MAX_EVENTS) return PE.fail('Pack has ' + pack.events.length + ' events (max ' + PACK_MAX_EVENTS + ')');
+    for (var i = 0; i < E.packs.length; i++) if (E.packs[i].id === pack.id) return PE.fail('Pack "' + pack.id + '" is already registered');
+    var seen = {};
+    for (var j = 0; j < pack.events.length; j++) {
+      var ev = pack.events[j];
+      if (!ev || typeof ev !== 'object') return PE.fail('Event ' + (j + 1) + ' must be an object');
+      if (typeof ev.id !== 'string' || !/^[A-Za-z0-9:_-]{2,64}$/.test(ev.id)) return PE.fail('Event ' + (j + 1) + ': id must be 2–64 chars of letters, digits, ":", "-" or "_"');
+      if (seen[ev.id]) return PE.fail('Duplicate event id "' + ev.id + '"');
+      seen[ev.id] = 1;
+      if (D.randomEventById && D.randomEventById(ev.id)) return PE.fail('Event id "' + ev.id + '" collides with a built-in event');
+      for (var q = 0; q < E.packs.length; q++) for (var w = 0; w < E.packs[q].events.length; w++) if (E.packs[q].events[w].id === ev.id) return PE.fail('Event id "' + ev.id + '" collides with pack "' + E.packs[q].id + '"');
+      if (ev.kind && ev.kind !== 'random') return PE.fail('Event "' + ev.id + '": pack events are random events (kind must be "random")');
+      if (typeof ev.title !== 'string' || !ev.title.trim()) return PE.fail('Event "' + ev.id + '" needs a title');
+      if (typeof ev.text !== 'string' || !ev.text.trim()) return PE.fail('Event "' + ev.id + '" needs text');
+      if (ev.weight !== undefined && !(fxNum(ev.weight) && ev.weight > 0)) return PE.fail('Event "' + ev.id + '": weight must be a positive number');
+      if (ev.minYear !== undefined && !fxInt(ev.minYear)) return PE.fail('Event "' + ev.id + '": minYear must be an integer year');
+      if (ev.maxYear !== undefined && !fxInt(ev.maxYear)) return PE.fail('Event "' + ev.id + '": maxYear must be an integer year');
+      if (ev.minYear !== undefined && ev.maxYear !== undefined && ev.minYear > ev.maxYear) return PE.fail('Event "' + ev.id + '": minYear is after maxYear');
+      if (ev.minProps !== undefined && !(fxInt(ev.minProps) && ev.minProps >= 0)) return PE.fail('Event "' + ev.id + '": minProps must be a non-negative integer');
+      if (ev.minMembers !== undefined && !(fxInt(ev.minMembers) && ev.minMembers >= 0)) return PE.fail('Event "' + ev.id + '": minMembers must be a non-negative integer');
+      if (!Array.isArray(ev.choices) || ev.choices.length < 2) return PE.fail('Event "' + ev.id + '" needs at least 2 choices');
+      if (ev.choices.length > 4) return PE.fail('Event "' + ev.id + '" has too many choices (max 4)');
+      for (var c = 0; c < ev.choices.length; c++) {
+        var ch = ev.choices[c];
+        if (!ch || typeof ch.label !== 'string' || !ch.label.trim()) return PE.fail('Event "' + ev.id + '" choice ' + (c + 1) + ' needs a label');
+        var problems = E.validateFx(ch.fx || {});
+        if (problems.length) return PE.fail('Event "' + ev.id + '" choice ' + (c + 1) + ': ' + problems.join('; '));
+      }
+    }
+    E.packs.push(pack);
+    return PE.ok({ message: 'Pack "' + pack.name + '" registered (' + pack.events.length + ' events).', pack: pack, packs: E.packs.length });
+  };
+
+  /* Fetch a pack JSON from a URL and register it — how ops ships a pack without an
+     app update (see docs/live-ops.md). Guards: size (default 64 KiB) and time
+     (default 5 s). Always resolves to {ok,...}; never rejects. */
+  E.fetchPack = function (url, opts) {
+    opts = opts || {};
+    var maxBytes = fxNum(opts.maxBytes) && opts.maxBytes > 0 ? opts.maxBytes : 65536;
+    var timeoutMs = fxNum(opts.timeoutMs) && opts.timeoutMs > 0 ? opts.timeoutMs : 5000;
+    return new Promise(function (resolve) {
+      function fail(message, extra) { var r = PE.fail(message); if (extra) for (var k in extra) r[k] = extra[k]; resolve(r); }
+      if (typeof root.fetch !== 'function') return fail('fetch is not available in this environment');
+      var timer = null, settled = false;
+      function clear() { if (timer) { clearTimeout(timer); timer = null; } settled = true; }
+      if (typeof setTimeout === 'function') timer = setTimeout(function () { if (!settled) { settled = true; fail('Timed out fetching pack (' + timeoutMs + ' ms)'); } }, timeoutMs);
+      try {
+        root.fetch(url).then(function (res) {
+          if (!res || !res.ok) { clear(); return fail('Pack request failed' + (res && res.status ? ' (HTTP ' + res.status + ')' : '')); }
+          return res.text().then(function (body) {
+            clear();
+            if (typeof body !== 'string') return fail('Pack response is not text');
+            if (body.length > maxBytes) return fail('Pack is ' + body.length + ' bytes (max ' + maxBytes + ')');
+            var pack; try { pack = JSON.parse(body); } catch (e) { return fail('Pack is not valid JSON'); }
+            var r = E.registerPack(pack);
+            if (!r.ok) return fail(r.message);
+            resolve(PE.ok({ message: 'Pack "' + pack.name + '" fetched and registered.', pack: pack }));
+          });
+        }).catch(function (e) { if (!settled) { clear(); fail('Pack fetch failed: ' + (e && e.message ? e.message : e)); } });
+      } catch (e) { if (!settled) { clear(); fail('Pack fetch failed: ' + (e && e.message ? e.message : e)); } }
+    });
   };
 
   /* ---------- Morning paper (bible §2) ---------- */

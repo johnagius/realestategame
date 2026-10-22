@@ -55,9 +55,11 @@
     cf.rent = rent; cf.costs = costs; s.cash += rent - costs;
     s.lastRent = s.thisRent || 0; s.thisRent = rent;
     s.stats.rentTotal += rent; s.stats.costTotal += costs;
-    // 2. Debt service, savings, wealth tax
+    // 2. Debt service, savings, bonds, the family bank, wealth tax
     cf.debtService = PE.Finance.service('player'); s.cash -= cf.debtService;
     cf.interest = PE.Finance.savingsInterest();
+    cf.interest += PE.Finance.bondYearly(rep);        // coupons + maturing face (P4.1)
+    var bankY = PE.Finance.bankYearly(rep); if (bankY) cf.interest += bankY.income; // loan interest (P4.2)
     var wt = T.wealthTax(); s.cash -= wt; cf.taxes += wt;
     // 3. Sales on the market, covenants
     PE.Market.resolveSales(rep);
@@ -72,6 +74,7 @@
     rep.warnings = PE.Finance.covenants(rep);
     // 5. Rivals, dynasty
     PE.Rivals.yearly(rep);
+    PE.Finance.bankWriteOffs(rep); // a borrower that just went bankrupt defaults on its loan (P4.2)
     var dl = PE.Dynasty.yearly(rep); for (i = 0; i < dl.length; i++) rep.lines.push(dl[i]);
     rep.succession = rep.dynasty.some(function (d) { return d.kind === 'succession'; });
     // 6. Goals (evaluated on the year just played)

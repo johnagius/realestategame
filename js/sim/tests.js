@@ -514,7 +514,7 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
 /* ---------- 19. P5.2 Prestige perks ---------- */
 (function () {
   var PE = load(), D = PE.Data;
-  check('≥ 8 perks costing 1–5 points, each with a kind', D.perks.length >= 8 && D.perks.every(function (p) { return p.cost >= 1 && p.cost <= 5 && (p.kind === 'passive' || p.kind === 'mode') && p.desc; }));
+  check('≥ 8 perks costing 1–8 points, each with a kind (own_bank is the deliberate 6-point capstone)', D.perks.length >= 8 && D.perks.every(function (p) { return p.cost >= 1 && p.cost <= 8 && (p.kind === 'passive' || p.kind === 'mode') && p.desc; }));
   var lst = PE.Game.perks();
   check('Game.perks lists before a game exists with legacyPoints and owned/affordable flags', lst.ok && lst.legacyPoints === 0 && lst.perks.length === D.perks.length && lst.perks.every(function (p) { return p.owned === false && p.affordable === false; }));
   check('buyPerk refuses unaffordable, unknown and duplicate purchases', !PE.Game.buyPerk('old_money').ok && !PE.Game.buyPerk('nope').ok);
@@ -758,6 +758,328 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
     P2.Goals.evaluate(rep);
     return rep.goals.achieved.length === 1 && P2.S().comeback === null && rep.lines.join().indexOf('rebuilt') >= 0;
   })());
+})();
+
+/* ---------- P6.3 Save slots + import ---------- */
+(function () {
+  var PE = fresh('chen', 701), pl = require('./players.js')(PE);
+  playYears(PE, pl, 3);
+  var snap = JSON.stringify(PE.S());
+  check('P6.3: default save writes slot 1 (pe_v8_save_1) and round-trips', (function () {
+    PE.Game.save(); PE.S().cash = -1; PE.S().year = 1700;
+    var ld = PE.Game.load();
+    return ld.ok && JSON.stringify(PE.S()) === snap && PE.Storage.has() && PE.Storage.has(1);
+  })());
+  check('P6.3: slots are independent (save/load slots 2 and 3)', (function () {
+    PE.Storage.save(PE.S(), 2); PE.S().cash = 4242; PE.Storage.save(PE.S(), 3);
+    var s2 = PE.Storage.load(2), s3 = PE.Storage.load(3);
+    var ok = s2 && s3 && s2.cash !== 4242 && s3.cash === 4242 && s2.year === s3.year;
+    PE.Storage.remove(2); PE.Storage.remove(3);
+    return ok && !PE.Storage.has(2) && !PE.Storage.has(3) && PE.Storage.has(1);
+  })());
+  check('P6.3: invalid slots resolve to null and fail cleanly; strings stay verbatim keys', PE.Storage.resolveKey(0) === null && PE.Storage.resolveKey(4) === null && PE.Storage.resolveKey('custom_key') === 'custom_key' && PE.Storage.save(PE.S(), 9) === false && PE.Storage.load(9) === null && !PE.Storage.has(9));
+  check('P6.3: listSaves reports all three slots with meta', (function () { var l = PE.Storage.listSaves(); return l.length === 3 && l[0].slot === 1 && l[0].key === 'pe_v8_save_1' && l[0].exists === true && l[0].familyName && l[0].year === PE.S().year && l[1].exists === false && l[1].corrupt === false; })());
+  check('P6.3: a legacy pe_v8_save migrates into slot 1 once, then the legacy key is gone', (function () {
+    var P2 = load(); P2.Game.newGame({ familyId: 'silva', seed: 5 });
+    P2.Storage.useBackend({ _m: {}, get: function (k) { return this._m.hasOwnProperty(k) ? this._m[k] : null; }, set: function (k, v) { this._m[k] = v; return true; }, remove: function (k) { delete this._m[k]; } });
+    P2.Storage.save(P2.S(), P2.Storage.LEGACY_KEY); /* what a pre-P6.3 build wrote */
+    var r = P2.Game.load();
+    return r.ok && P2.S().familyId === 'silva' && P2.Storage.has(1) && !P2.Storage.has(P2.Storage.LEGACY_KEY) && P2.Storage.migrateLegacy() === false;
+  })());
+  check('P6.3: importSave validates the payload and the slot choice', (function () {
+    var P3 = load(); P3.Game.newGame({ familyId: 'vanderbilt', seed: 6 });
+    var exported = JSON.stringify({ saveVersion: P3.Storage.SAVE_VERSION, savedAt: 1850, state: P3.S() });
+    var P4 = load();
+    var bad = [
+      P4.Storage.importSave('not json', 2),
+      P4.Storage.importSave('{"a":1}', 2),
+      P4.Storage.importSave({ saveVersion: 99, state: { familyId: 'chen' } }, 2),
+      P4.Storage.importSave({ saveVersion: 2, state: { bogus: true } }, 2),
+      P4.Storage.importSave({ saveVersion: 2, state: { familyId: 'chen' } }, 7),
+      P4.Storage.importSave(null, 2)
+    ];
+    var okBad = bad.every(function (r) { return r && r.ok === false && typeof r.message === 'string'; });
+    var good = P4.Storage.importSave(exported, 2), loaded = P4.Storage.load(2);
+    var P5 = load(), good1 = P5.Storage.importSave(JSON.parse(exported));
+    return okBad && good.ok && good.slot === 2 && loaded && loaded.familyId === 'vanderbilt' && good1.ok && good1.slot === 1 && P5.Storage.has(1);
+  })());
+  check('P6.3: Game back-compat — no-slot save/load/hasSave/deleteSave unchanged', (function () {
+    var P6 = load(); P6.Game.newGame({ familyId: 'chen', seed: 9 });
+    P6.Game.save(); var h = P6.Game.hasSave().hasSave; P6.S().cash = -5; P6.Game.load();
+    var ok = h === true && P6.S().cash !== -5;
+    P6.Game.deleteSave();
+    return ok && P6.Game.hasSave().hasSave === false && !P6.Game.load().ok;
+  })());
+})();
+
+/* ---------- P6.5 l10n scaffolding ---------- */
+(function () {
+  var vm = require('vm');
+  function loadL10n(PE, ls) {
+    var ctx = { console: console, PE: PE, Math: Math, JSON: JSON, Object: Object, Array: Array, String: String, localStorage: ls, CustomEvent: function (type, d) { this.type = type; this.detail = d; } };
+    ctx.global = ctx; ctx.window = undefined;
+    vm.createContext(ctx);
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'engine', 'l10n.js'), 'utf8'), ctx, { filename: 'l10n.js' });
+    return PE;
+  }
+  var ls = (function () { var m = {}; return { getItem: function (k) { return m.hasOwnProperty(k) ? m[k] : null; }, setItem: function (k, v) { m[k] = String(v); }, removeItem: function (k) { delete m[k]; } }; })();
+  var PE = load(); PE.Game.newGame({ familyId: 'chen', seed: 1 });
+  loadL10n(PE, ls);
+  check('P6.5: default locale is en-GB and T returns the fallback', PE.locale() === 'en-GB' && PE.T('nav.deals', 'Deals') === 'Deals' && PE.T('missing.key') === 'missing.key');
+  check('P6.5: setLocale switches and T translates; unknown locales are refused', (function () {
+    var ok = PE.setLocale('fr') === true && PE.locale() === 'fr' && PE.T('nav.deals', 'Deals') === 'Affaires' && PE.T('settings.title', 'Settings') === 'Réglages';
+    var refused = PE.setLocale('de') === false && PE.setLocale('fr-FR') === false && PE.locale() === 'fr';
+    PE.setLocale('en-GB');
+    return ok && refused && PE.T('nav.deals', 'Deals') === 'Deals';
+  })());
+  check('P6.5: the locale persists across reloads via localStorage', (function () {
+    PE.setLocale('fr');
+    var PE2 = load(); loadL10n(PE2, ls);
+    var ok = PE2.locale() === 'fr';
+    PE2.setLocale('en-GB');
+    return ok;
+  })());
+  check('P6.5: fr covers the 40 core demo keys', (function () {
+    var keys = ['nav.deals', 'nav.city', 'nav.portfolio', 'nav.dynasty', 'nav.rivals', 'hud.cash', 'hud.net_worth', 'hud.end_year', 'hud.year_menu', 'settings.title', 'settings.sound', 'settings.quality', 'settings.theme', 'settings.guide', 'settings.export', 'settings.import', 'settings.delete_save', 'settings.close', 'common.ok', 'common.cancel', 'common.close', 'common.confirm', 'common.back', 'common.buy', 'common.sell', 'common.save', 'common.loading', 'menu.continue', 'menu.new_game', 'menu.how_to_play', 'menu.settings', 'menu.challenge', 'menu.scenarios', 'deals.title', 'deals.make_offer', 'deals.appraise', 'deals.auction', 'year.end_year', 'year.report', 'year.skip_quiet'];
+    var d = PE.L10N.dict.fr;
+    return keys.every(function (k) { return typeof d[k] === 'string' && d[k].length > 0; });
+  })());
+  check('P6.5: apply() translates [data-t] nodes; data-t-fallback keeps two-way switching exact', (function () {
+    var nodes = [];
+    function mk(key, fb, text) { var n = { attrs: { 'data-t': key }, textContent: text }; if (fb !== undefined) n.attrs['data-t-fallback'] = fb; n.getAttribute = function (k) { return this.attrs.hasOwnProperty(k) ? this.attrs[k] : null; }; nodes.push(n); return n; }
+    var a = mk('nav.deals', 'Deals', 'Deals'), b = mk('nav.city', 'City', 'City'), c = mk('unknown.thing', undefined, 'Stay');
+    var fakeRoot = { querySelectorAll: function () { return nodes; } };
+    PE.setLocale('fr'); var n1 = PE.L10N.apply(fakeRoot);
+    var frOk = a.textContent === 'Affaires' && b.textContent === 'Ville' && c.textContent === 'Stay';
+    PE.setLocale('en-GB'); var n2 = PE.L10N.apply(fakeRoot);
+    var enOk = a.textContent === 'Deals' && b.textContent === 'City' && c.textContent === 'Stay';
+    return n1 === 3 && n2 === 3 && frOk && enOk;
+  })());
+})();
+
+/* ---------- P6.7 analytics ring buffer ---------- */
+(function () {
+  var PE = load();
+  check('P6.7: track appends {e, p, t} and refuses invalid events without throwing', (function () {
+    PE.Analytics.clear();
+    var ok1 = PE.Analytics.track('year_reached', { year: 1851 }) === true;
+    var ev = PE.Analytics.events();
+    var ok2 = ev.length === 1 && ev[0].e === 'year_reached' && ev[0].p.year === 1851 && typeof ev[0].t === 'string';
+    var ok3 = PE.Analytics.track() === false && PE.Analytics.track(42) === false;
+    PE.Analytics.track('x', [1]); PE.Analytics.track('y', 'str');
+    var rest = PE.Analytics.events();
+    var ok4 = Object.keys(rest[1].p).length === 0 && Object.keys(rest[2].p).length === 0;
+    return ok1 && ok2 && ok3 && ok4;
+  })());
+  check('P6.7: the ring buffer caps at 200 and drops the oldest', (function () {
+    PE.Analytics.clear();
+    for (var i = 0; i < 250; i++) PE.Analytics.track('ev', { i: i });
+    var ev = PE.Analytics.events();
+    return ev.length === 200 && ev[0].p.i === 50 && ev[ev.length - 1].p.i === 249;
+  })());
+  check('P6.7: events survive a JSON round-trip', (function () { var ev = PE.Analytics.events(); return JSON.stringify(JSON.parse(JSON.stringify(ev))) === JSON.stringify(ev); })());
+  check('P6.7: flush delivers via the hook and clears; failed delivery keeps events', (function () {
+    PE.Analytics.onFlush = function () { return false; };
+    var kept = PE.Analytics.flush(), n1 = PE.Analytics.count();
+    PE.Analytics.onFlush = function (q) { return q.length === 200; };
+    var sent = PE.Analytics.flush(), n2 = PE.Analytics.count();
+    PE.Analytics.onFlush = null;
+    return kept === 0 && n1 === 200 && sent === 200 && n2 === 0 && PE.Analytics.flush() === 0;
+  })());
+})();
+
+/* ---------- P7. Live-ops: event packs, leaderboard, city packs ---------- */
+/* loadWith: the js/sim/load.js harness plus extra engine files evaluated in the same
+   context (lb.js / pack-demo.js are not in ORDER.txt; they load after game.js). */
+function loadWith(extra) {
+  var vm = require('vm'), dir = path.join(__dirname, '..', 'engine');
+  var order = load.order().concat(extra || []);
+  var ctx = { console: console, Math: Math, JSON: JSON, Object: Object, Array: Array, String: String, Number: Number, Error: Error, Infinity: Infinity, NaN: NaN, Date: Date, parseInt: parseInt, parseFloat: parseFloat, isNaN: isNaN, isFinite: isFinite, Promise: Promise, setTimeout: setTimeout, clearTimeout: clearTimeout };
+  ctx.global = ctx; ctx.window = undefined;
+  vm.createContext(ctx);
+  for (var i = 0; i < order.length; i++) vm.runInContext(fs.readFileSync(path.join(dir, order[i]), 'utf8'), ctx, { filename: order[i] });
+  return ctx;
+}
+
+(function () {
+  /* FX vocabulary stays in sync with applyFx, both directions. */
+  var PE = load(), src = fs.readFileSync(path.join(__dirname, '..', 'engine', 'events.js'), 'utf8');
+  var used = {};
+  function scan(fx) { if (fx && typeof fx === 'object') for (var k in fx) used[k] = 1; }
+  PE.Data.randomEvents.forEach(function (e) { e.choices.forEach(function (c) { scan(c.fx); }); });
+  PE.Data.historicalEvents.forEach(function (e) { (e.choices || []).forEach(function (c) { scan(c.fx); }); });
+  for (var era in PE.Data.eraSetPieces) (PE.Data.eraSetPieces[era].choices || []).forEach(function (c) { scan(c.fx); });
+  var vocab = PE.Events.FX_VOCABULARY;
+  var missing = Object.keys(used).filter(function (k) { return !vocab[k]; });
+  var dead = Object.keys(vocab).filter(function (k) { return src.indexOf('fx.' + k) < 0; });
+  check('P7: every fx key used by built-in events is in the pack vocabulary', missing.length === 0, missing);
+  check('P7: every pack-vocabulary key is applied in applyFx', dead.length === 0, dead);
+  check('P7: validateFx flags unknown keys', (function () { var p = PE.Events.validateFx({ bogusKey: 1 }); return p.length === 1 && /unknown fx key/.test(p[0]); })());
+})();
+
+(function () {
+  /* Pack registration + validation. */
+  var ctx = loadWith(['pack-demo.js']), PE = ctx.PE;
+  check('P7: demo pack ships 5 events and stays unregistered by default', !!(PE.Events.DEMO_PACK && PE.Events.DEMO_PACK.events.length === 5) && PE.Events.packs.length === 0);
+  var okPack = PE.Events.registerPack(PE.Events.DEMO_PACK);
+  check('P7: registerPack accepts the demo pack', okPack.ok === true && PE.Events.packs.length === 1, okPack);
+  check('P7: duplicate pack id is rejected', PE.Events.registerPack(PE.Events.DEMO_PACK).ok === false);
+  function tryPack(p) { return PE.Events.registerPack(p); }
+  var base = { id: 't1', name: 'Test', events: [{ id: 't1:a', title: 'T', text: 'x', choices: [{ label: '1', fx: {} }, { label: '2', fx: {} }] }] };
+  check('P7: minimal valid pack registers', tryPack(JSON.parse(JSON.stringify(base))).ok === true);
+  var seq = 0;
+  function bad(mutate, why) {
+    var p = JSON.parse(JSON.stringify(base)); p.id = 'bad' + (seq); p.events[0].id = 'bad' + seq + ':a'; seq++;
+    mutate(p);
+    var r = tryPack(p);
+    check('P7: rejected — ' + why, r.ok === false, r);
+  }
+  bad(function (p) { p.id = 'T1!'; }, 'bad pack id');
+  bad(function (p) { p.events[0].choices[0].fx = { noSuchFx: 1 }; }, 'unknown fx key');
+  bad(function (p) { p.events[0].choices = [{ label: 'only', fx: {} }]; }, 'a one-choice event');
+  bad(function (p) { p.events[0].minYear = 1900; p.events[0].maxYear = 1850; }, 'minYear after maxYear');
+  bad(function (p) { p.events[0].weight = 0; }, 'non-positive weight');
+  bad(function (p) { p.events[0].kind = 'historical'; }, 'pack events must be kind "random"');
+  bad(function (p) { p.events[0].id = 'fire'; }, 'collision with a built-in event id');
+  bad(function (p) { p.events[0].choices[0].fx = { gamble: { p: 2, win: 1, lose: 1 } }; }, 'out-of-domain probability');
+  bad(function (p) { p.events[0].choices[0].fx = { lease: { years: 3 } }; }, 'compound fx missing a required key');
+  var unk = (function () { var p = JSON.parse(JSON.stringify(base)); p.id = 'badf'; p.events[0].id = 'badf:a'; p.events[0].choices[0].fx = { noSuchFx: 1 }; return tryPack(p); })();
+  check('P7: unknown fx key rejected with ok:false and a message', !unk.ok && /unknown fx key/.test(unk.message), unk);
+})();
+
+(function () {
+  /* Pool merge + per-year cap, driven through rollYearly for 1850–2029. */
+  var ctx = loadWith(['pack-demo.js']), PE = ctx.PE, B = PE.Data.balance;
+  PE.Events.registerPack(PE.Events.DEMO_PACK);
+  var g = PE.Game.newGame({ familyId: 'chen', seed: 99 });
+  check('P7: newGame ok with a pack registered', g.ok === true);
+  var s = PE.S(), St = PE.State;
+  for (var i = 0; i < 6; i++) { var p = PE.Market.genProperty('london', { type: i % 2 ? 'terrace' : 'shop', condition: 70 }); p.purchasePrice = p.trueValue; p.purchaseYear = s.year; St.setOwner(p, 'player'); PE.Property.initTenancy(p); }
+  var builtIns = PE.Data.randomEvents.length, totalPack = 0, worst = 0, packUid = null;
+  for (var y = 1850; y <= 2029; y++) {
+    s.year = y;
+    var rep = { events: [] };
+    PE.Events.rollYearly(rep, false);
+    var pk = rep.events.filter(function (e) { return e.kind === 'pack'; });
+    totalPack += pk.length;
+    worst = Math.max(worst, rep.events.length);
+    if (pk.length && !packUid) packUid = pk[0].uid;
+    s.events.pending = [];
+  }
+  check('P7: built-in event list is untouched by packs', PE.Data.randomEvents.length === builtIns);
+  check('P7: pack events appear across 180 seeded years', totalPack > 0, totalPack);
+  check('P7: at most 2 pack events in any year, never beyond maxEventsPerYear total', totalPack > 0 && worst <= B.maxEventsPerYear);
+  var found = null;
+  for (var y2 = 1890; y2 < 2020 && !found; y2++) {
+    s.year = y2; s.events.pending = [];
+    var rep2 = { events: [] };
+    PE.Events.rollYearly(rep2, false);
+    for (var q = 0; q < s.events.pending.length; q++) if (s.events.pending[q].kind === 'pack') { found = s.events.pending[q]; break; }
+    if (!found) s.events.pending = [];
+  }
+  check('P7: a rolled pack event resolves through the normal path', !!found && PE.Events.resolve(found.uid, 0).ok === true, found && found.id);
+})();
+
+(function () {
+  /* fetchPack guards, run in a child process because they are promise-based. */
+  var script = [
+    "var fs=require('fs'),path=require('path'),vm=require('vm');",
+    "var dir=path.join(process.cwd(),'..','engine');",
+    "var order=fs.readFileSync(path.join(dir,'ORDER.txt'),'utf8').split(/\\r?\\n/).filter(Boolean);",
+    "var ctx={console:console,Math:Math,JSON:JSON,Object:Object,Array:Array,String:String,Number:Number,Error:Error,Infinity:Infinity,NaN:NaN,Date:Date,parseInt:parseInt,parseFloat:parseFloat,isNaN:isNaN,isFinite:isFinite,Promise:Promise,setTimeout:setTimeout,clearTimeout:clearTimeout};",
+    "ctx.global=ctx;ctx.window=undefined;vm.createContext(ctx);",
+    "order.forEach(function(f){vm.runInContext(fs.readFileSync(path.join(dir,f),'utf8'),ctx,{filename:f});});",
+    "var PE=ctx.PE;",
+    "var pack={id:'net',name:'Network Pack',events:[{id:'net:a',title:'A',text:'b',choices:[{label:'x',fx:{reputation:1}},{label:'y',fx:{}}]}]};",
+    "var results={};",
+    "function ok(res){return !!res.ok;}",
+    "ctx.fetch=function(){return Promise.resolve({ok:true,status:200,text:function(){return Promise.resolve(JSON.stringify(pack));}});};",
+    "PE.Events.fetchPack('https://example.test/p.json').then(function(r){results.good=r.ok&&PE.Events.packs.length===1;",
+    " ctx.fetch=function(){return Promise.resolve({ok:true,status:200,text:function(){return Promise.resolve(JSON.stringify(pack).replace('Network Pack','N')+' '.repeat(70000));}});};",
+    " return PE.Events.fetchPack('https://example.test/big.json');}).then(function(r){results.oversize=!r.ok&&/max/.test(r.message);",
+    " ctx.fetch=function(){return Promise.resolve({ok:true,status:200,text:function(){return Promise.resolve('{not json');}});};",
+    " return PE.Events.fetchPack('https://example.test/bad.json');}).then(function(r){results.badjson=!r.ok&&/JSON/.test(r.message);",
+    " ctx.fetch=function(){return Promise.resolve({ok:false,status:500,text:function(){return Promise.resolve('');}});};",
+    " return PE.Events.fetchPack('https://example.test/500.json');}).then(function(r){results.http=!r.ok&&/HTTP 500/.test(r.message);",
+    " var bad=JSON.parse(JSON.stringify(pack));bad.id='net2';bad.events[0].id='net2:a';bad.events[0].choices[0].fx={nope:1};",
+    " ctx.fetch=function(){return Promise.resolve({ok:true,status:200,text:function(){return Promise.resolve(JSON.stringify(bad));}});};",
+    " return PE.Events.fetchPack('https://example.test/badfx.json');}).then(function(r){results.badfx=!r.ok&&/unknown fx key/.test(r.message);",
+    " ctx.fetch=function(){return new Promise(function(){});};",
+    " return PE.Events.fetchPack('https://example.test/slow.json',{timeoutMs:80});}).then(function(r){results.timeout=!r.ok&&/Timed out/.test(r.message);",
+    " console.log('FETCHTESTS '+JSON.stringify(results));});"
+  ].join('\n');
+  var out = require('child_process').execFileSync(process.execPath, ['-e', script], { cwd: __dirname, encoding: 'utf8', timeout: 30000 });
+  var m = out.match(/FETCHTESTS (\{.*\})/), results = m ? JSON.parse(m[1]) : {};
+  check('P7: fetchPack registers a valid pack', results.good === true, out);
+  check('P7: fetchPack size guard rejects an oversize pack', results.oversize === true);
+  check('P7: fetchPack rejects invalid JSON', results.badjson === true);
+  check('P7: fetchPack rejects an HTTP error', results.http === true);
+  check('P7: fetchPack rejects unknown fx keys', results.badfx === true);
+  check('P7: fetchPack time guard rejects a slow host', results.timeout === true);
+})();
+
+(function () {
+  /* Leaderboard: submit/rank/sort/persist + recordChallenge integration. */
+  var ctx = loadWith(['lb.js']), PE = ctx.PE;
+  check('P7: LB exposes submit/board/hook', PE.LB && typeof PE.LB.submit === 'function' && typeof PE.LB.board === 'function' && typeof PE.LB.hook === 'function');
+  check('P7: submit validates its entry', PE.LB.submit({ score: 'x' }).ok === false);
+  var r1 = PE.LB.submit({ name: 'Ada', score: 1200, year: 1879, gens: 2, week: '2030-W01' });
+  var r2 = PE.LB.submit({ name: 'Ben', score: 2400, year: 1879, gens: 1, week: '2030-W01' });
+  check('P7: submit returns the rank at submission time', r1.ok && r2.ok && r1.rank === 1 && r2.rank === 1, [r1.rank, r2.rank]);
+  var b = PE.LB.board('2030-W01');
+  check('P7: board sorts descending with entry shape {rank,name,score,year,gens}', b.ok && b.board.length === 2 && b.board[0].name === 'Ben' && b.board[0].score === 2400 && b.board[1].rank === 2 && b.board[0].year === 1879 && b.board[0].gens === 1);
+  check('P7: board is stored across calls (local persistence)', PE.LB.board('2030-W01').board.length === 2 && PE.LB.board('2030-W01').you === null);
+  for (var i = 0; i < 105; i++) PE.LB.submit({ name: 'Bot' + i, score: i, week: '2030-W02' });
+  var cap = PE.LB.board('2030-W02');
+  check('P7: a week keeps the top 100', cap.board.length === 100 && cap.board[0].score === 104 && cap.top.name === 'Bot104');
+  for (var w = 1; w <= 13; w++) PE.LB.submit({ name: 'W', score: w, week: '2031-W' + (w < 10 ? '0' : '') + w });
+  check('P7: only the newest 12 weeks are kept', PE.LB.board('2031-W01').board.length === 0 && PE.LB.board('2031-W13').board.length === 1);
+  /* the recordChallenge wrapper: one submission per finished challenge */
+  var ctx2 = loadWith(['lb.js']), P2 = ctx2.PE;
+  var ng = P2.Game.newChallenge({ week: '2031-W50' });
+  var s2 = P2.S(), hooked = [];
+  P2.LB.hook(function (r) { hooked.push(r); });
+  var c = P2.Game.recordChallenge();
+  var lb = P2.LB.board('2031-W50');
+  check('P7: recordChallenge wrapper submits the finished run', ng.ok && c && lb.you && lb.you.score === s2.challenge.score && lb.you.name === 'You' && lb.you.year === s2.year && lb.you.gens === s2.dynasty.generation, lb.you);
+  check('P7: the wrapper fires hooks and never double-submits', hooked.length === 1 && hooked[0].ok === true && P2.Game.recordChallenge() === null && P2.LB.board('2031-W50').board.length === 1);
+  var direct = P2.LB.submit({ name: 'Zoe', score: 99999, week: '2031-W50' });
+  check('P7: a better entry takes rank 1', direct.ok && P2.LB.board('2031-W50').board[0].name === 'Zoe');
+})();
+
+(function () {
+  /* City packs: registerPack validation. */
+  var PE = load();
+  var g0 = PE.Game.newGame({ familyId: 'chen', seed: 3 });
+  var fake = { id: 'testville', name: 'Testville', country: 'Nowhere', trait: 'tech_hub', tier: 2, availableFrom: 1900, basePpsqm: 10, grossYield: 0.08, taxRate: 0.01, growth: 0.02, districts: [{ name: 'Alpha', mult: 1, trend: 0 }, { name: 'Beta', mult: 0.6, trend: 1 }, { name: 'Gamma', mult: 1.8, trend: 2 }, { name: 'Delta', mult: 0.4, trend: -1 }] };
+  var r = PE.Cities.registerPack(fake);
+  check('P7: a valid city pack registers', r.ok === true, r);
+  var g = PE.Game.newGame({ familyId: 'chen', seed: 3 });
+  check('P7: the next new game initialises the pack city state', g.ok === true && !!PE.S().cities.testville && Object.keys(PE.S().cities.testville.districts).length === 4);
+  check('P7: the pack city appears in Cities.list with its trait', PE.Cities.list().cities.some(function (c) { return c.id === 'testville' && c.traitName === 'Tech Hub' && c.availableFrom === 1900; }));
+  var info = PE.Cities.info('testville');
+  check('P7: the pack city plays by the normal economy (cost + rep gate)', info.cost > 0 && info.repRequired > 0);
+  function bad(def) { return !PE.Cities.registerPack(def).ok; }
+  var d;
+  d = JSON.parse(JSON.stringify(fake)); d.id = 'london'; check('P7: duplicate city id rejected', bad(d));
+  d = JSON.parse(JSON.stringify(fake)); d.id = 'badville'; d.trait = 'nope'; check('P7: unknown trait rejected', bad(d));
+  d = JSON.parse(JSON.stringify(fake)); d.id = 'badville'; d.tier = 5; check('P7: bad tier rejected', bad(d));
+  d = JSON.parse(JSON.stringify(fake)); d.id = 'badville'; d.availableFrom = 1750; check('P7: bad availableFrom rejected', bad(d));
+  d = JSON.parse(JSON.stringify(fake)); d.id = 'badville'; d.districts = d.districts.slice(0, 2); check('P7: fewer than 4 districts rejected', bad(d));
+  d = JSON.parse(JSON.stringify(fake)); d.id = 'badville'; d.districts[0].trend = 7; check('P7: bad district trend rejected', bad(d));
+  d = JSON.parse(JSON.stringify(fake)); d.id = 'badville'; d.districts.push({ name: 'Alpha', mult: 1, trend: 0 }); check('P7: duplicate district name rejected', bad(d));
+})();
+
+(function () {
+  /* Pillar 1 for packs: the Monte-Carlo check passes on every demo-pack event. */
+  var mc = require('./eventsmc.js');
+  var ctx = loadWith(['pack-demo.js']), PE = ctx.PE;
+  var fails = [];
+  PE.Events.DEMO_PACK.events.forEach(function (ev) {
+    var problems = mc.judge(mc.evaluate(load, ev, 40));
+    if (problems.length) fails.push(ev.id + ': ' + problems.join('; '));
+  });
+  check('P7: MC check passes for every demo-pack event', fails.length === 0, fails);
 })();
 
 /* ---------- Summary ---------- */
