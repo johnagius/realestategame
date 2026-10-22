@@ -4,7 +4,8 @@ Start here, in this order:
 1. `docs/HANDOVER.md` — current state, how to run and verify, known gaps, the suggested order of work.
 2. `docs/REDESIGN.md` — the design bible. It is the law. Section 13 is the engine contract, section 14 the balance targets, section 16 the decisions already made.
 3. `docs/TASKS.md` — phased plan with acceptance criteria. Mark tasks `[x]` with the commit hash.
-4. `docs/AUDIT.md` — why the previous game failed; do not reintroduce what it cut.
+4. `docs/DESIGN-DIRECTION.md` — binding art direction and the design process (references, three directions, side-by-side critique). Design is the weak axis; push it hardest.
+5. `docs/AUDIT.md` — why the previous game failed; do not reintroduce what it cut.
 
 ## Layout
 - `js/engine/` — game engine (`PE.*` globals, load order in `ORDER.txt`). Pure, seeded, headless. All tunables in `js/engine/data.js` (`PE.Data.balance`).

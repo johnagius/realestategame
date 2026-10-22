@@ -24,6 +24,7 @@ the plan are done and deployed to `main`. Phases 3–7 remain.
 |---|---|
 | `docs/REDESIGN.md` | Design bible: pillars, rules, numbers, engine contract (§13), balance targets (§14), master prompt (§15), implementation decisions (§16) |
 | `docs/TASKS.md` | Phased task list with acceptance criteria and status |
+| `docs/DESIGN-DIRECTION.md` | Art direction brief and the process for design that goes beyond the default (binding) |
 | `docs/AUDIT.md` + `docs/audit/*.md` | The full audit of v7 (economy, presentation, engineering) with evidence |
 | `js/engine/` | The game engine. `PE.*` globals, load order in `ORDER.txt`. Pure, seeded, no DOM. All tunables in `data.js` (`PE.Data.balance`) |
 | `js/sim/` | Node harness: `tests.js` (unit tests), `balance.js` (bible §14 table), `players.js` (scripted competent/naive players), `load.js` |
@@ -158,6 +159,7 @@ blast on this project. Concretely:
   per era), advisor lines for every "first", district flavour text, property
   name templates per city and era, achievement descriptions with wit. All text
   in character and era-appropriate.
+- **Design is the weak axis; push it hardest.** `docs/DESIGN-DIRECTION.md` is binding: a named art direction (a Victorian ledger that grows into a glass skyline), era colour scripts, six signature moments to build as set-pieces, and a mandatory process (references, three directions, side-by-side critique, delight audit). Never ship a screen that looks like a framework default.
 - Do not economise on art. Hand-draw SVG where it raises quality: rival
   portraits, family crests, district icons, era illustrations for the
   morning paper, trophies in the 3D city. Fix the 3D landmarks so they match
@@ -192,7 +194,8 @@ Order of work:
 > to go full blast: finish every phase, verify everything, and raise quality
 > until it stands next to top-grossing tycoon games. You are not rationed on
 > effort or tokens; the owner wants the finished product. Read
-> `docs/HANDOVER.md` (especially §10, the working mode), then
+> `docs/HANDOVER.md` (especially §10, the working mode), `docs/DESIGN-DIRECTION.md`
+> (binding art direction and design process), then
 > `docs/REDESIGN.md` (design bible; it is the law), `docs/TASKS.md` (plan with
 > acceptance criteria) and `AGENTS.md` (project rules). Verify the repo state
 > first: `node js/sim/tests.js`, `node js/sim/balance.js`, and the Playwright
