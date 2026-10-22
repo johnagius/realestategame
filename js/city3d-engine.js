@@ -114,6 +114,7 @@ var City3D = {
       WRw: ph(0x6a7868), WRr: ph(0x7a9880, { side: DS }),
       SKw: ph(0x7090b0, { transparent: true, opacity: 0.95 }), SKr: ph(0x90b0d0, { transparent: true, opacity: 0.95 }), SKt: ph(0xc0e0f8),
       CONC: ph(0x8a8690, { shininess: 10 }), BRICK: ph(0x905a38), SOL: ph(0x70a870),
+      TANKW: ph(0x6a4a30, { shininess: 20 }),
       WIN: lb(0xd8f0ff, { emissive: 0x3a5070 }),
       WINLIT: lb(0xffe8a0, { emissive: 0x503800 }),
       WINOFF: lb(0x131c26),
@@ -512,6 +513,7 @@ var City3D = {
     var step = this.bx(2.8, 0.4, 1.6, M.CONC); step.position.set(0, 0.2, -D / 2 - 1.2); g.add(step);
     this._addWinSimple(g, W, H, D, Math.max(1, Math.floor(H / 5)), 2);
     g.userData.dims = { W: W, H: H + H * 0.6, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
+    this._roofline(g, 'HO', s, sk, { W: W, D: D, H: H, roofH: H * 0.6, topY: 0 });
     return g;
   },
 
@@ -540,6 +542,7 @@ var City3D = {
     var tank = this.cy(1.8, 1.8, 3.6, 10, sk.accent); tank.position.set(-W * 0.25, H + H * 0.22 + 1.8, -D * 0.2); g.add(tank);
     this._addWinSimple(g, W, H, D, floors, 3);
     g.userData.dims = { W: W, H: H + H * 0.22 + 4, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
+    this._roofline(g, 'AP', s, sk, { W: W, D: D, H: H + H * 0.22, roofH: 0, topY: 0 });
     return g;
   },
 
@@ -555,6 +558,7 @@ var City3D = {
     this._addWinSimple(g, W, H, D, Math.floor(H / 7), 4);
     if (sk.led) { var led = this.bx(W + 0.3, 0.5, D + 0.3, sk.led, false); led.position.y = H - 0.5; g.add(led); led.userData.role = 'led'; }
     g.userData.dims = { W: W, H: H + H * 0.44 + 18, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
+    this._roofline(g, 'PH', s, sk, { W: W, D: D, H: H + H * 0.44, roofH: 0, topY: H + H * 0.44 + 18 });
     return g;
   },
 
@@ -569,6 +573,7 @@ var City3D = {
     var door = this.bx(1.8, 3, 0.25, M.WINOFF, false); door.position.set(0, 2.9, -D / 2 - 0.13); g.add(door);
     this._addWinSimple(g, W, H, D, Math.floor(H / 5.5), 2);
     g.userData.dims = { W: W, H: H + H * 0.28, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
+    this._roofline(g, 'TH', s, sk, { W: W, D: D, H: H, roofH: H * 0.28, topY: 0 });
     return g;
   },
 
@@ -586,6 +591,7 @@ var City3D = {
     var terrace = this.bx(W + 4, 0.5, D + 4, M.CONC); terrace.position.y = 0.25; g.add(terrace);
     this._addWinSimple(g, W, H, D, Math.floor(H / 6), 2);
     g.userData.dims = { W: W + 4, H: H + H * 0.42, D: D + 4 }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
+    this._roofline(g, 'VI', s, sk, { W: W, D: D, H: H, roofH: H * 0.42, topY: 0 });
     return g;
   },
 
@@ -610,6 +616,7 @@ var City3D = {
     var ped = this.gabledRoof(W + 0.4, 3.5, 2.6, sk.trim); ped.position.set(0, H * 0.38 + 1.8, -D / 2 - 1.2); g.add(ped);
     this._addWinSimple(g, W, H, D, Math.floor(H / 7), 3);
     g.userData.dims = { W: W * 1.46, H: H + H * 0.22, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
+    this._roofline(g, 'MN', s, sk, { W: W, D: D, H: H, roofH: H * 0.22, topY: 0 });
     return g;
   },
 
@@ -624,6 +631,7 @@ var City3D = {
     this._addWinSimple(g, W, H * 0.5, D, 1, 3, H * 0.5);
     if (sk.led) { var led = this.bx(W * 0.8, 0.35, 0.35, sk.led, false); led.position.set(0, H * 0.72 + H * 0.1 + 0.2, -D / 2 - 0.2); g.add(led); }
     g.userData.dims = { W: W, H: H + 1.4, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
+    this._roofline(g, 'CM', s, sk, { W: W, D: D, H: H, roofH: 0, tankY: H + 1.4, topY: 0 });
     return g;
   },
 
@@ -640,25 +648,42 @@ var City3D = {
     var ch = this.cy(0.9, 1.1, 10, 8, sk.accent); ch.position.set(W * 0.35, H + 4, D * 0.3); g.add(ch);
     this._addWinSimple(g, W, H * 0.5, D, 1, 4, H * 0.5);
     g.userData.dims = { W: W, H: H + H * 0.3, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
+    this._roofline(g, 'WR', s, sk, { W: W, D: D, H: H, roofH: H * 0.3, topY: 0 });
     return g;
   },
 
   buildSkyscraper: function(s, sk) {
     var g = new THREE.Group(), M = this.M;
     var W = 16, H = 50 + s * 18, D = 14;
-    var body = this.bx(W, H, D, sk.wall); body.position.y = H / 2; g.add(body);
-    this._mullions(g, W, H, D, 5, sk.trim);
-    var s1 = this.bx(W * 0.76, H * 0.28, D * 0.76, sk.wall); s1.position.y = H + H * 0.14; g.add(s1);
-    var s2 = this.bx(W * 0.5, H * 0.16, D * 0.5, sk.wall); s2.position.y = H + H * 0.28 + H * 0.08; g.add(s2);
-    var c1 = this.bx(W + 0.8, 0.8, D + 0.8, sk.trim, false); c1.position.y = H + 0.4; g.add(c1);
-    var c2 = this.bx(W * 0.76 + 0.8, 0.7, D * 0.76 + 0.8, sk.trim, false); c2.position.y = H + H * 0.28 + 0.35; g.add(c2);
-    var spire = this.cy(0, 1.1, 20, 6, sk.trim); spire.position.y = H + H * 0.44 + 10; g.add(spire);
-    this._addWinSimple(g, W, H, D, Math.floor(H / 8), 4);
-    this._addWinSimple(g, W * 0.76, H * 0.28, D * 0.76, 2, 3, H);
-    if (sk.led) {
-      [H, H + H * 0.28].forEach(function(y, i) { var w = i ? W * 0.76 : W, d = i ? D * 0.76 : D; var led = City3D.bx(w + 0.3, 0.45, d + 0.3, sk.led, false); led.position.y = y - 0.6; g.add(led); });
+    // Seeded setback massing: 2–3 tiers, total height unchanged, every tier windowed
+    var rng = this._mkRng(401 + Math.floor(s * 1e6));
+    var tiers = [[1, 0.58], [0.74, 0.24], [0.18]];
+    if (rng() < 0.4) tiers = [[1, 0.66], [0.68, 0.34]];
+    else if (rng() < 0.4) tiers = [[1, 0.62], [0.78, 0.22], [0.55, 0.16]];
+    else tiers[2] = [0.5, 0.18];
+    var baseH = H * tiers[0][1];
+    var body = this.bx(W, baseH, D, sk.wall); body.position.y = baseH / 2; g.add(body);
+    this._mullions(g, W, baseH, D, 5, sk.trim);
+    var tops = [0], cy2 = baseH;
+    for (var ti = 1; ti < tiers.length; ti++) {
+      var tw = W * tiers[ti][0], th = H * tiers[ti][1], td = D * tiers[ti][0];
+      var t = this.bx(tw, th, td, sk.wall); t.position.y = cy2 + th / 2; g.add(t);
+      var cor = this.bx(tw + 0.8, 0.7, td + 0.8, sk.trim, false); cor.position.y = cy2 + 0.35; g.add(cor);
+      tops.push(cy2);
+      this._addWinSimple(g, tw, th, td, Math.max(1, Math.round(th / 8)), 3, cy2);
+      cy2 += th;
     }
-    g.userData.dims = { W: W, H: H + H * 0.44 + 20, D: D }; g.userData.roofY = H; g.userData.bodyW = W; g.userData.bodyD = D;
+    var spire = this.cy(0, 1.1, 20, 6, sk.trim); spire.position.y = cy2 + 10; g.add(spire);
+    this._addWinSimple(g, W, baseH, D, Math.max(2, Math.floor(baseH / 8)), 4);
+    if (sk.led) {
+      tops.forEach(function(y, i) {
+        if (!i) return;
+        var w2 = W * tiers[i][0] + 0.3, d2 = D * tiers[i][0] + 0.3;
+        var led = City3D.bx(w2, 0.45, d2, sk.led, false); led.position.y = y - 0.6; g.add(led);
+      });
+    }
+    g.userData.dims = { W: W, H: cy2 + 20, D: D }; g.userData.roofY = cy2; g.userData.bodyW = W; g.userData.bodyD = D;
+    this._roofline(g, 'SK', s, sk, { W: W, D: D, H: cy2, roofH: 0, topY: cy2 + 20 });
     return g;
   },
 
@@ -829,7 +854,7 @@ var City3D = {
   _cityDef: null, _onBuildingClick: null, _opts: null, _era: 'modern', _night: 0.55,
   _fades: [], _winMeshes: null, _signs: null, _animated: null, _textures: null, _skins: null,
   _paused: false, _visible: true, _tabVisible: true, _orbit: 0,
-  _surround: null, _life: null,
+  _surround: null, _life: null, _detailQ: null, _detailMeshes: null, _helipadTaken: false,
   _camTarget: null, _camGoal: null, _zoomGoal: 1, _lastTs: 0, _frameMs: 0,
 
   _eraOrder: ['victorian', 'gilded', 'crisis', 'boom', 'modern', 'digital'],
@@ -1607,6 +1632,155 @@ var City3D = {
     if (this._life && this._life.pools) this._life.pools.opacity = this._night > 0.35 ? 0.2 + 0.22 * this._night : 0;
   },
 
+  /* ── Silhouette variety (SKYLINE-7) ──
+     Era/type roofline detail, seeded by s. Shared-material parts (chimneys, water
+     tanks, plant rooms, antennae, helipads) queue into ONE merged mesh per material
+     across the whole city; skin-material parts (cornices, bays, awning supports)
+     merge per building and are tagged so _rebuildDetails can replace them when a
+     building changes or the era shifts. Low quality: chimneys + setbacks only. */
+  _roofline: function(g, typeKey, s, sk, d) {
+    var self = this;
+    var e = sk.era, ei = this._eraIdx(e), low = this._quality === 'low';
+    var rng = this._mkRng(73001 + Math.floor(s * 1e6) + typeKey.length * 977);
+    var sd = function(mat, meshes) {   // per-building skin-material merge
+      var m = new THREE.Mesh(self._mergeMeshes(meshes), mat);
+      m.castShadow = true; m.userData.roofline = true; g.add(m);
+      meshes.forEach(function(x) { x.geometry.dispose(); });
+    };
+    // chimneys (victorian/gilded pitched roofs) — kept on low quality
+    if (ei <= this._eraIdx('gilded') && (typeKey === 'HO' || typeKey === 'TH' || typeKey === 'VI' || typeKey === 'MN')) {
+      var n = typeKey === 'MN' ? 2 + Math.floor(rng() * 3) : 1 + Math.floor(rng() * 3);
+      for (var i = 0; i < n; i++) {
+        var cx2 = (rng() - 0.5) * d.W * 0.62, cz2 = (rng() - 0.5) * 2.5;
+        var ch = new THREE.Mesh(new THREE.BoxGeometry(1.4, 5, 1.4), this.M.BRICK);
+        ch.position.set(cx2, d.H + d.roofH * 0.3 + 2.2, cz2);
+        var cap = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.5, 1.9), this.M.WINOFF);
+        cap.position.set(cx2, d.H + d.roofH * 0.3 + 4.9, cz2);
+        this._detail(this.M.BRICK, [ch], g); this._detail(this.M.WINOFF, [cap], g);
+      }
+    }
+    if (low) return;
+    // shopfront awning supports (all eras; the awning slab itself is built into CM)
+    if (typeKey === 'CM') {
+      var supA = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.7, 0.18), this.M.SIGNPOST); supA.position.set(-d.W * 0.38, d.H * 0.42 - 1.0, -d.D / 2 - 2.9);
+      var supB = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.7, 0.18), this.M.SIGNPOST); supB.position.set(d.W * 0.38, d.H * 0.42 - 1.0, -d.D / 2 - 2.9);
+      this._detail(this.M.SIGNPOST, [supA, supB], g);
+    }
+    // gilded cornices + bays
+    if (e === 'gilded' && (typeKey === 'TH' || typeKey === 'AP')) {
+      var cor = new THREE.Mesh(new THREE.BoxGeometry(d.W + 0.9, 0.7, d.D + 0.9), sk.trim);
+      cor.position.y = d.H - 0.4;
+      var corSet = [cor];
+      if (typeKey === 'TH') {
+        var bn = 1 + Math.floor(rng() * 2);
+        for (var b = 0; b < bn; b++) {
+          var bay = new THREE.Mesh(new THREE.BoxGeometry(1.7, d.H * 0.4, 1.1), sk.trim);
+          bay.position.set((b - (bn - 1) / 2) * d.W * 0.36, d.H * 0.42, -d.D / 2 - 0.5);
+          corSet.push(bay);
+        }
+      }
+      sd(sk.trim, corSet);
+    }
+    // water tanks: modern era everywhere, and New York in any era
+    if ((e === 'modern' || (this._cityDef && this._cityDef.id === 'new_york')) && (typeKey === 'AP' || typeKey === 'CM' || typeKey === 'WR')) {
+      var ty = d.tankY != null ? d.tankY : d.H;
+      var tx = (rng() - 0.5) * d.W * 0.4, tz = (rng() - 0.5) * d.D * 0.4;
+      var tb = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 3, 9), this.M.TANKW);
+      tb.position.set(tx, ty + 1.6, tz);
+      var tc = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 1.7, 1.5, 9), this.M.TANKW);
+      tc.position.set(tx, ty + 3.8, tz);
+      this._detail(this.M.TANKW, [tb, tc], g);
+    }
+    // plant rooms / AC (modern flat commercial + warehouse roofs)
+    if (e === 'modern' && (typeKey === 'CM' || typeKey === 'WR')) {
+      var pr2 = [];
+      for (var p2 = 0; p2 < 1 + Math.floor(rng() * 2); p2++) {
+        var pw = 2 + rng() * 2.5, ph2 = 1.2 + rng() * 1.4;
+        var pb = new THREE.Mesh(new THREE.BoxGeometry(pw, ph2, 2 + rng() * 2), this.M.CONC);
+        pb.position.set((rng() - 0.5) * d.W * 0.5, d.H + ph2 / 2, (rng() - 0.5) * d.D * 0.5);
+        pr2.push(pb);
+      }
+      var vent = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.6, 7), this.M.CONC);
+      vent.position.set((rng() - 0.5) * d.W * 0.4, d.H + 0.8, (rng() - 0.5) * d.D * 0.4);
+      pr2.push(vent);
+      this._detail(this.M.CONC, pr2, g);
+    }
+    // antenna + tip light (digital towers); ONE helipad per city, first tall tower claims it
+    if (e === 'digital' && (typeKey === 'SK' || typeKey === 'PH')) {
+      var mast = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.22, 14, 5), this.M.WINOFF);
+      mast.position.set(d.W * 0.18, d.topY - 10, 0);
+      var tip = new THREE.Mesh(new THREE.SphereGeometry(0.45, 5, 4), this.M.LAMP);
+      tip.position.set(d.W * 0.18, d.topY - 2.8, 0);
+      this._detail(this.M.WINOFF, [mast], g); this._detail(this.M.LAMP, [tip], g);
+      if (typeKey === 'SK' && !this._helipadTaken) {
+        this._helipadTaken = true;
+        var pad = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 0.3, 16), this.M.WINOFF);
+        pad.position.set(0, d.H + 0.15, 0);
+        var ring = new THREE.Mesh(new THREE.CylinderGeometry(5.5, 5.5, 0.26, 16), this.M.CONC);
+        ring.position.set(0, d.H + 0.1, 0);
+        this._detail(this.M.CONC, [ring], g); this._detail(this.M.WINOFF, [pad], g);
+      }
+    }
+  },
+
+  // Shared-material details: queue during buildCity (one merge per material at the
+  // end), merge locally per building after the city is built (renovations etc.).
+  _detail: function(mat, meshes, bg) {
+    if (this._detailQ) { this._detailQ.push({ mat: mat, meshes: meshes, bg: bg }); return; }
+    var m = new THREE.Mesh(this._mergeMeshes(meshes), mat);
+    m.castShadow = true; m.userData.roofline = true; bg.add(m);
+    meshes.forEach(function(x) { x.geometry.dispose(); });
+  },
+
+  _flushDetails: function() {
+    var q = this._detailQ; this._detailQ = null;
+    this._detailMeshes = this._detailMeshes || [];
+    if (!q || !q.length) return;
+    var byMat = {};
+    q.forEach(function(e) {
+      var k = e.mat.uuid;
+      (byMat[k] = byMat[k] || { mat: e.mat, list: [] }).list.push(e);
+    });
+    for (var k2 in byMat) {
+      var b = byMat[k2], meshes = [];
+      b.list.forEach(function(e) {
+        e.bg.updateMatrix();
+        e.meshes.forEach(function(m2) {
+          m2.updateMatrix();
+          var w = new THREE.Mesh(m2.geometry, b.mat);
+          w.matrix.copy(e.bg.matrix).multiply(m2.matrix);
+          w.matrixAutoUpdate = false; w.updateMatrix = function() {};
+          meshes.push(w);
+        });
+      });
+      var mesh = new THREE.Mesh(this._mergeMeshes(meshes), b.mat);
+      mesh.castShadow = true; mesh.userData.roofline = true;
+      this._bldgGroup.add(mesh); this._detailMeshes.push(mesh);
+      b.list.forEach(function(e) { e.meshes.forEach(function(m2) { m2.geometry.dispose(); }); });
+    }
+  },
+
+  /* Rebuild the whole detail layer (era change, renovation, demolition, landmark
+     swap). Skin details are re-created per building from their stored seeds. */
+  _rebuildDetails: function() {
+    if (!this._bldgGroup || !this._grid) return;
+    var self = this;
+    (this._detailMeshes || []).forEach(function(m) { self._disposeObj(m); });
+    this._detailMeshes = [];
+    this._detailQ = []; this._helipadTaken = false;
+    var roofH = { HO: 0.6, TH: 0.28, VI: 0.42, MN: 0.22 };
+    this._bldgGroup.children.forEach(function(bg) {
+      if (!bg.userData || !bg.userData.skin || bg.userData.dying) return;
+      for (var i = bg.children.length - 1; i >= 0; i--) {
+        if (bg.children[i].userData && bg.children[i].userData.roofline) self._disposeObj(bg.children[i]);
+      }
+      var sk = bg.userData.skin, dims = bg.userData.dims || { W: 14, H: 20, D: 14 }, tk = bg.userData.typeKey;
+      self._roofline(bg, tk, sk.seed, sk, { W: dims.W, D: dims.D, H: bg.userData.roofY != null ? bg.userData.roofY : dims.H,
+        roofH: (roofH[tk] || 0) * (bg.userData.roofY != null ? bg.userData.roofY : dims.H), topY: dims.H });
+    });
+    this._flushDetails();
+  },
+
   // ───────────────────────────── Build the city ─────────────────────────────
   buildCity: function(cityDef, properties) {
     if (!this._pivot) return;
@@ -1622,6 +1796,7 @@ var City3D = {
 
     var batches = {};
     var shadowCells = [];
+    this._detailQ = []; this._helipadTaken = false;
     this._terrainGroup = new THREE.Group(); this._pivot.add(this._terrainGroup);
     this._bldgGroup = new THREE.Group(); this._pivot.add(this._bldgGroup);
     this._fitCamera(this._container.clientWidth / Math.max(1, this._container.clientHeight));
@@ -1650,6 +1825,7 @@ var City3D = {
     });
     this._terrain = this._flushBatches(batches, this._terrainGroup);
     this._buildContactShadows(shadowCells);
+    this._flushDetails();
     this._buildSurroundings();
     this._buildStreetLife();
     this._applyEraTerrain(this._era, 0);
@@ -1754,6 +1930,7 @@ var City3D = {
     } else this._removeBuilding(cell);
     this._placeBuilding(cell, typeKey, prop, animate);
     if (wasSel) this._select(cell);
+    this._rebuildDetails();
     return true;
   },
 
@@ -1787,6 +1964,7 @@ var City3D = {
     (this._skins || []).forEach(function(sk) { if (!sk.ownEra) self._retargetSkin(sk, era, ms); });
     this._applyEraTerrain(era, ms);
     this._retintSurroundings(era, ms);
+    this._rebuildDetails();
     this._applyLighting();
     // Era-gated landmarks: plots that gain or lose their monument rebuild (city grows with the era)
     var cityDef = this._cityDef, grid = this._grid;
@@ -2024,7 +2202,7 @@ var City3D = {
           else { cell.bGrp.position.x = cell.x; cell.bGrp.position.z = cell.z; }
           if (cell.ev === 'FLOOD' && cell.evMesh) cell.evMesh.position.y = 1.5 + Math.sin(ts * 0.0014) * 1.4;
           if (!cell.demo && cell.sp < 1) { cell.sp = Math.min(1, cell.sp + dt * 0.9); var e2 = 1 - Math.pow(1 - cell.sp, 3); cell.bGrp.scale.y = e2; }
-          if (cell.demo) { cell.sp = Math.max(0, cell.sp - dt * 0.8); cell.bGrp.scale.y = cell.sp; if (cell.sp <= 0) { self._removeBuilding(cell); cell.demo = false; cell.t = 'EMPTY'; cell.sp = 1; } }
+          if (cell.demo) { cell.sp = Math.max(0, cell.sp - dt * 0.8); cell.bGrp.scale.y = cell.sp; if (cell.sp <= 0) { self._removeBuilding(cell); self._rebuildDetails(); cell.demo = false; cell.t = 'EMPTY'; cell.sp = 1; } }
         }
       }
       // Dying buildings (replaced with animation)
@@ -2086,7 +2264,7 @@ var City3D = {
     this._fades = []; this._winMeshes = null; this._signs = null; this._animated = null; this._textures = null; this._skins = null; this._dying = null;
     this._rain = null; this._weather = 'clear'; this._weatherK = 0; this._fogGoal = null;
     this._terrain = null; this._terrainGroup = null; this._bldgGroup = null; this._orbit = 0; this._zoomGoal = 1; this._frameMs = 0;
-    this._profile = null; this._profCache = null; this._contactShadow = null; this._surround = null; this._life = null;
+    this._profile = null; this._profCache = null; this._contactShadow = null; this._surround = null; this._life = null; this._detailQ = null; this._detailMeshes = null;
     this._dragState = { active: false, prevX: 0, prevY: 0, startX: 0, startY: 0, moved: false };
     this._visible = true; this._tabVisible = true;
   },

@@ -167,6 +167,21 @@ rolled into the build-out:
   modern-day 237–239 calls / 18.7k tris; engine cost 1.36 → 1.49 ms avg (noise-level).
   Motion verified: mover + boat positions sampled 3 s apart — both moved.
 
+### SKYLINE-7 — silhouette variety (2026-10-22, Kimi) — DONE
+- `_roofline()` adds era/type roof furniture, seeded per building: victorian/gilded
+  chimneys (1–4, shared brick batch), gilded cornices + bays, water tanks (modern +
+  always NYC: cylinder + cone, one shared wood material), modern plant rooms/AC,
+  digital antenna + tip light and ONE helipad per city (first tall tower claims it),
+  seeded 2–3 setback tiers on skyscrapers (total height unchanged, every tier
+  windowed), awning supports under the existing commercial awnings. Shared-material
+  parts batch into one mesh per material city-wide via `_detail`/`_flushDetails`;
+  `_rebuildDetails()` re-derives everything on era change / renovation / demolition.
+  Mansion porticos and the commercial awning slabs already existed (P6) — not doubled.
+  +5–7 calls / +0.5k tris high; low keeps chimneys + setbacks only. London high
+  244 calls / 19.2k tris, low 232 / 13.4k, engine cost unchanged (1.49 → 1.39 ms avg).
+  Verified by zoomed crops (chimneys/cornice/bays/tank/setbacks/antenna) + probes
+  (detail batches survive setEra and updateProperty rebuilds).
+
 ### Remaining (audit §2 order)
 
 SKYLINE-7 silhouette variety (largest gap) → SKYLINE-9 mobile hero →

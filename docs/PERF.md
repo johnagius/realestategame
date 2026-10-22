@@ -137,3 +137,6 @@ triangles per city (quality high; on low it is ground + skyline edge only,
 SKYLINE-6 (cars/boats/pools/ripple) adds ≤7 calls / ≤0.4k tris high, ≤2 on
 low; London high 239 calls / 18.7k tris, engine cost 1.36 → 1.49 ms avg
 (GPU, within run-to-run noise; vsync-locked 60 fps unchanged).
+SKYLINE-7 (silhouette variety) adds ≤7 calls / ≤0.5k tris high (≤3 on low —
+chimneys + setbacks only): London high 244 calls / 19.2k tris, low 232 / 13.4k;
+engine cost 1.49 → 1.39 ms avg.
