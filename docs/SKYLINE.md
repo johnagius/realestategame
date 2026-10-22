@@ -75,13 +75,34 @@ cities afterwards.
 
 | # | Direction | One line | Verdict |
 |---|---|---|---|
-| A | *Ledger Craft* | Warm matte Victorian etching brought to 3D: tight haze, ink-blue shadows, brass accents, gaslight lamps | TBD |
-| B | *Glass Commonwealth* | Crisp modern toy-model clarity: bright graded sky, saturated water, clean specular, neon night signage | TBD |
-| C | *Living Weather* | Atmosphere-first: fog banks, rain sheen, drifting cloud shadow tint, light that changes with the economy | TBD |
+| A | *Ledger Craft* | Warm matte Victorian etching brought to 3D: tight haze, ink-blue shadows, brass accents, gaslight lamps | **Steal, don't adopt.** Warm gas-lit dusk is the best Victorian-evening treatment of the three; at day the warm fog fights listing readability. Its dusk treatment is merged into the winner as the victorian/gilded evening grade. |
+| B | *Glass Commonwealth* | Crisp modern toy-model clarity: bright graded sky, saturated water, clean specular, neon night signage | **WINNER.** Photographs best in every cell of the grid: blue→peach sky against saturated water gives instant depth (R6 Townscaper principle), dark ambient makes the sun read, contact shadows ground every building without murk. Only credible look at the tiny in-game viewport. Preset lives in `tools/3d-testpages/city.html`; to be rolled into `js/cities/london.js` as its profile. |
+| C | *Living Weather* | Atmosphere-first: fog banks, rain sheen, drifting cloud shadow tint, light that changes with the economy | **Steal, don't adopt.** At haze 0.7+ the scene collapses into one grey-milk mass; buildings lose contrast. Its neon lamp idea and rain-slick night water are merged into the winner for the Digital era. |
 
-## 3. Side-by-side critique (step 3 — fill in)
+Evidence: `tools/playwright/out/skyline/dirs/{a,b,c}-{victorian,modern,digital}-{day,dusk}.png`
+(18 shots, reviewed). Commit `d4fc0bd` (SKYLINE-2). Worst cell: 253 draw calls,
+13 592 tris — inside budget.
 
-Chosen direction vs a top-tycoon reference screenshot; top 3 gaps and fixes.
+**Chosen direction: B "Glass Commonwealth", with A's warm dusk for
+victorian/gilded evenings and C's neon lamps + mirror-water for Digital night.**
+
+## 3. Side-by-side critique (step 3)
+
+Chosen direction B, reviewed against the R1–R6 steal list and a top-tycoon
+reference frame (Anno 1800 docklands at dusk). Top 3 gaps found, with fixes
+rolled into the build-out:
+
+1. **Night windows under-sell.** At dusk the lit-window rate reads sparse and
+   flat; Anno's streets glow. Fix: raise `_updateWindows` lit ratio at
+   night≥0.6, warm player windows more, add the emissive boost from
+   HANDOVER-KIMI §4.1 (no per-window sprites — intensity only).
+2. **Sky is a gradient and nothing else.** Cloud sprites sit at 0.07–0.13
+   opacity — invisible in day shots. Fix: cloud opacity ×2 day, tint toward
+   the profile's sky mid colour (R3: hue-tinted, never grey-white).
+3. **Ground plane is dead space.** Reference games put colour variance into
+   ground/parks. Fix: per-profile `ground`/`park` overrides already exist —
+   author them per city (R6 ramps) and add the signature set-piece per city
+   so each skyline has one authored focal object (mission §4.2).
 
 ## 4. Roll-out & verification (steps 4–7 — fill in)
 
