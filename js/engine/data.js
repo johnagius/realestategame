@@ -201,7 +201,15 @@
     { id: 'martinez',   name: 'The Bourbon-Martinez', archetype: 'Slumlord', color: '#E07A5F', wealthMult: 1.0, noise: 0.10, leverage: 0.50, floor: 0.95, bidMult: 0.86, aggression: 0.6, prefers: 'cheap',    sells: 'rarely',  renovates: false, lends: false },
     { id: 'okonkwo',    name: 'The Okonkwos',     archetype: 'Builder',    color: '#2A9D8F', wealthMult: 0.8, noise: 0.08, leverage: 0.55, floor: 1.00, bidMult: 0.96, aggression: 0.7, prefers: 'derelict', sells: 'rebuilt', renovates: true,  lends: false }
   ];
-  D.rivalById = function (id) { for (var i = 0; i < D.rivals.length; i++) if (D.rivals[i].id === id) return D.rivals[i]; return null; };
+  /* Optional rivals unlocked by prestige perks (P5.2). Harder than any of the six. */
+  D.extraRivals = [
+    { id: 'hartwell', name: 'The Hartwells', archetype: 'Magnate', color: '#5B2A86', wealthMult: 5.0, noise: 0.04, leverage: 0.50, floor: 1.02, bidMult: 1.03, aggression: 0.9, prefers: 'any', sells: 'boom', renovates: true, lends: false, perk: 'seventh_rival' }
+  ];
+  D.rivalById = function (id) {
+    for (var i = 0; i < D.rivals.length; i++) if (D.rivals[i].id === id) return D.rivals[i];
+    for (var j = 0; j < D.extraRivals.length; j++) if (D.extraRivals[j].id === id) return D.extraRivals[j];
+    return null;
+  };
 
   /* ---------- Managers (bible §6.1) ---------- */
   D.managers = [
@@ -361,7 +369,34 @@
     expansionRepStep: 4,
     // comeback
     comebackCashPct: 0.10,
-    comebackReputation: 40
+    comebackReputation: 40,
+    // P3.2 marriage / alliance / relations (relations run −100..100; rv.relation 0..100 is the UI view)
+    marriageMinAge: 18,
+    marriageMaxAge: 40,
+    marriageMinReputation: 50,
+    marriageRefusalRep: -6,
+    marriageRefusalRelation: -20,
+    marriageAcceptRelation: 30,
+    marriageCooldownYears: 5,
+    mergerCost: 0.15,                 // estate-tax-like share of the ally's net worth, paid in cash
+    mergerWindowYears: 20,            // merger allowed in the last 20 years of the run (or when the head is 65+)
+    mergerHeadAge: 65,
+    mergerLegacyMult: 0.25,           // legacy score × (1 + 0.25 per merger)
+    relationOutbid: -8,               // you outbid a rival at auction
+    relationOutbidBy: -2,             // a rival outbid you
+    relationSoldTo: 8,                // you accepted their offer
+    relationDeclined: -4,
+    relationEviction: -5,             // you evicted tenants in a city where they hold buildings
+    relationDrift: 1,                 // relations mean-revert toward 0 by this much a year
+    // P3.4 events v2
+    prewarnAccuracy: 0.6,             // chance the paper foreshadows a set-piece a year ahead
+    // P5.2 perks
+    perkOldMoneyLtv: 0.05,
+    perkPuristGoalMult: 2,
+    // P5.3 weekly challenge
+    challengeYears: 30,
+    // P5.4 scenarios
+    scenarioYears: 15
   };
 
   /* ---------- Historical scripted events (bible §2, §6.4) ---------- */
@@ -409,57 +444,214 @@
       choices: [{ label: 'Waive 20% of commercial rent this year (+6 reputation)', fx: { commercialRent: 0.8, reputation: 6 } }, { label: 'Evict commercial defaulters (−8 reputation, rent held)', fx: { reputation: -8 } }, { label: 'Sell a shop or office at 95%', fx: { sellCommercial: 0.95 } }] }
   ];
 
-  /* ---------- Random events with choices (bible §2, §6.6) ---------- */
-  // weight: relative frequency. minProps: only when portfolio is large enough. The resolver in events.js applies fx.
+  /* ---------- Historical pre-warnings (P3.4): the paper foreshadows the 12 biggest set-pieces a year ahead ---------- */
+  D.prewarns = {
+    1866: 'Discount houses are said to be dangerously extended. Bankers whisper of trouble next year.',
+    1873: 'Vienna\'s bourse wobbles; railway shares are falling in New York. Trouble is whispered.',
+    1890: 'Argentine bonds are quietly being dumped in the City. Bankers whisper of trouble.',
+    1907: 'New York trust companies are rumoured to be short of gold. Trouble may cross the Atlantic.',
+    1914: 'The chancelleries of Europe are mobilising. Tenants talk of enlisting.',
+    1929: 'Wall Street has never been higher. A few bankers whisper of trouble.',
+    1939: 'Gas masks are being issued. Builders expect requisitions.',
+    1946: 'Ministers promise a rebuilding programme once the war is won.',
+    1973: 'The oil producers are meeting in Vienna. Bankers whisper of trouble with rates.',
+    1989: 'Crowds gather at the Berlin Wall. Eastern districts may open up.',
+    2008: 'American mortgage bonds are souring. Lenders whisper of trouble next year.',
+    2020: 'A new virus is spreading in Asia. Shopkeepers are nervous.'
+  };
+  for (var hi = 0; hi < D.historicalEvents.length; hi++) if (D.prewarns[D.historicalEvents[hi].year]) D.historicalEvents[hi].prewarn = D.prewarns[D.historicalEvents[hi].year];
+
+  /* ---------- Era-transition set-pieces (P3.4): one event with two choices when the era changes ---------- */
+  D.eraSetPieces = {
+    gilded:  { title: 'The Gilded Age', text: 'Electric light, steel frames and new money. Apartment blocks and villas appear on the board; the old Victorian stock looks tired beside them.',
+      choices: [{ label: 'Modernise the portfolio (pay 3% of net worth; every building +8 condition)', fx: { cashPctNW: -0.03, decay: -8 } }, { label: 'Keep the Victorian character (+3 reputation; buildings age as they are)', fx: { reputation: 3 } }] },
+    crisis:  { title: 'Crisis and war', text: 'The thirties open with banks failing and lenders cutting loan-to-value to 60%. Cash buyers inherit the earth.',
+      choices: [{ label: 'Pay down 15% of every mortgage while you still can', fx: { repayPct: 0.15 } }, { label: 'Hold cash for the bargains (3 extra distressed listings next year)', fx: { extraDistressed: 3 } }] },
+    boom:    { title: 'The long boom', text: 'Full employment, motorways and mortgages for everyone. Suburbs sprawl and the planners condemn the old tenements.',
+      choices: [{ label: 'Bet on the suburbs (3 extra plots next year; renovations −30% for 3 years)', fx: { extraLand: 3, renoDiscountYears: 3 } }, { label: 'Bet on the centre (every building +5 condition; +2 reputation)', fx: { decay: -5, reputation: 2 } }] },
+    modern:  { title: 'Big Bang', text: 'The banks are deregulated, the docks are redeveloped and towers rise. Credit is cheap today and dear tomorrow.',
+      choices: [{ label: 'Fix every variable mortgage (+1% rate; immune to the next spike)', fx: { fixAll: true } }, { label: 'Stay variable and refinance everything to 70%', fx: { refiAll: 0.7 } }] },
+    digital: { title: 'The platform era', text: 'Short lets, online listings and global buyers. Tenants move with their phones; so do bargains.',
+      choices: [{ label: 'List on the platforms (rents +10% this year; −2 reputation with the council)', fx: { rentBoost: 0.10, reputation: -2 } }, { label: 'Keep long leases (+3 reputation; every building +4 condition from settled tenants)', fx: { reputation: 3, decay: -4 } }] }
+  };
+
+  /* ---------- Random events with choices (bible §2, §6.6; v2 in P3.4) ---------- */
+  // weight: relative frequency. minProps: only when portfolio is large enough. fromEra/toEra gate by era index.
+  // Every choice set is tuned so expected values (net worth + reputation + durable effects, see js/sim/eventsmc.js)
+  // sit within ±20% of each other while the risk, reputation and time profiles differ. The resolver in events.js applies fx.
   D.randomEvents = [
+    // --- tenants and buildings ---
     { id: 'long_lease', weight: 3, minProps: 1, title: 'A tenant proposes a long lease', text: '{prop}\'s tenant offers a 6-year lease at a fixed rent, 5% above today\'s.',
       choices: [{ label: 'Accept: fixed rent 6 years, never vacant, no rent rises', fx: { lease: { years: 6, setting: 1.05 } } }, { label: 'Decline: keep flexible', fx: {} }] },
     { id: 'lawsuit', weight: 2, minProps: 2, title: 'A tenant sues', text: 'A tenant at {prop} is injured on a rotten stair and sues for damages.',
-      choices: [{ label: 'Settle: pay 3% of net worth', fx: { cashPctNW: -0.03 } }, { label: 'Fight it (55%: pay nothing; 45%: pay 8% and −5 reputation)', fx: { gambleNW: { p: 0.55, win: 0, lose: 0.08, loseRep: 5 } } }] },
+      choices: [{ label: 'Settle: pay 3% of net worth', fx: { cashPctNW: -0.03 } }, { label: 'Fight it (55%: pay nothing; 45%: pay 5% of net worth and −4 reputation)', fx: { gambleNW: { p: 0.55, win: 0, lose: 0.05, loseRep: 4 } } }] },
     { id: 'fire', weight: 2, minProps: 1, title: 'Fire!', text: 'A kitchen fire guts part of {prop}.',
-      choices: [{ label: 'Repair at once (pay 6% of its value, condition unchanged)', fx: { propCostPct: 0.06 } }, { label: 'Leave it (condition −30)', fx: { propCondition: -30 } }] },
-    { id: 'charity', weight: 2, minProps: 0, title: 'The hospital appeal', text: 'The governors of the city hospital ask the family for a subscription.',
-      choices: [{ label: 'Give 2% of net worth (+7 reputation)', fx: { cashPctNW: -0.02, reputation: 7 } }, { label: 'Give nothing (−2 reputation)', fx: { reputation: -2 } }] },
-    { id: 'compulsory', weight: 1, minProps: 2, title: 'Compulsory purchase', text: 'The council wants {prop} for a new road and offers 110% of value.',
-      choices: [{ label: 'Accept 110% (no agent fee)', fx: { sellProp: 1.10 } }, { label: 'Refuse (−3 reputation; 50%: forced sale at 95%)', fx: { reputation: -3, forcedSaleChance: { p: 0.5, factor: 0.95 } } }] },
+      choices: [{ label: 'Repair at once (pay 8% of its value, condition kept)', fx: { propCostPct: 0.08 } }, { label: 'Leave the scars (condition −12, value −3%)', fx: { propCondition: -12, propQuality: -0.03 } }, { label: 'Claim on the parish insurance (35%: repaired for free; 65%: pay 8% and −3 reputation)', fx: { propGamble: { p: 0.35, loseCostPct: 0.08, loseRep: 3 } } }] },
+    { id: 'windfall_tenant', weight: 2, minProps: 2, title: 'A famous tenant', text: 'A celebrated author wants {prop} and will pay 30% over the rent — but wants it Prime.',
+      choices: [{ label: 'Refurbish for them (pay refurbish cost; rent setting 1.2 locked 4 years)', fx: { refurbForTenant: true } }, { label: 'Decline', fx: {} }] },
+    { id: 'subsidence', weight: 1, minProps: 2, title: 'Subsidence', text: 'Cracks run up the wall of {prop}. The surveyor shrugs.',
+      choices: [{ label: 'Underpin now (pay 4% of its value)', fx: { propCostPct: 0.04 } }, { label: 'Monitor it (50%: it stops; 50%: condition −15 next spring)', fx: { propGamble: { p: 0.5, loseCond: 15 } } }] },
+    { id: 'squatters', weight: 2, minProps: 2, title: 'Squatters', text: 'A family has moved into the empty rooms at {prop} and will not leave.',
+      choices: [{ label: 'Let them stay as tenants at 80% rent (+1 reputation)', fx: { propRent: 0.8, reputation: 1 } }, { label: 'Have the bailiffs clear them (−2 reputation; rivals with buildings in {district} tut)', fx: { reputation: -2, evictionDistrict: true } }, { label: 'Pay them to go (pay 2% of its value)', fx: { propCostPct: 0.02 } }] },
+    { id: 'rent_strike', weight: 2, minProps: 3, title: 'Rent strike', text: 'Tenants across your {city} buildings refuse to pay until rents are cut.',
+      choices: [{ label: 'Cut rents to 80% in {city} (+1 reputation)', fx: { cityRent: 0.8, reputation: 1 } }, { label: 'Evict the ringleaders and re-let at 110% (−2 reputation; occupancy −10% this year; rivals in {city} tut)', fx: { reputation: -2, cityVacancy: 0.1, cityRent: 1.1, evictionCity: true } }] },
+    { id: 'model_tenant', weight: 2, minProps: 1, title: 'A model tenant', text: 'The tenant at {prop} has looked after the place like their own. They ask for a 10-year lease at today\'s rent.',
+      choices: [{ label: 'Grant it (10 years at 105%, never vacant, no rises)', fx: { lease: { years: 10, setting: 1.05 } } }, { label: 'Offer 3 years at 95% instead', fx: { lease: { years: 3, setting: 0.95 } } }] },
+    { id: 'plague_house', weight: 1, minProps: 2, toEra: 2, title: 'Fever in the house', text: 'Typhus has broken out at {prop}. The parish wants it emptied and fumigated.',
+      choices: [{ label: 'Empty it for a year and fumigate (no rent this year; +3 reputation)', fx: { propVacantYears: 1, reputation: 3 } }, { label: 'Keep the tenants and pay the doctor (pay 3% of its value; −2 reputation)', fx: { propCostPct: 0.03, reputation: -2 } }] },
+    { id: 'conversion', weight: 2, minProps: 2, fromEra: 1, title: 'A conversion opportunity', text: 'An architect says {prop} could be split into more units for a modest outlay.',
+      choices: [{ label: 'Convert (pay 6% of its value; value +5%, rent +)', fx: { propCostPct: 0.06, propQuality: 0.05 } }, { label: 'Leave it as it is', fx: {} }] },
+    { id: 'antique_find', weight: 1, minProps: 1, toEra: 3, title: 'Behind the panelling', text: 'Workmen at {prop} find a cache of old coins and silver behind the panelling.',
+      choices: [{ label: 'Sell them quietly (+1.5% of net worth)', fx: { cashPctNW: 0.015 } }, { label: 'Hand them to the museum (+6 reputation)', fx: { reputation: 6 } }, { label: 'Auction them publicly (50%: +2.5% of net worth; 50%: +0.5%)', fx: { gambleNW: { p: 0.5, win: 0.025, loseWin: 0.005 } } }] },
+    { id: 'roof', weight: 2, minProps: 1, title: 'The roof', text: 'The roof of {prop} will not survive another winter.',
+      choices: [{ label: 'New roof (pay 6% of its value; condition +4)', fx: { propCostPct: 0.06, propCondition: 4 } }, { label: 'Patch and pray (pay 1%; 60%: fine; 40%: condition −15 after the storms)', fx: { propCostPct: 0.01, propGamble: { p: 0.6, loseCond: 15 } } }] },
+    // --- city and market ---
+    { id: 'compulsory', weight: 1, minProps: 2, title: 'Compulsory purchase', text: 'The council wants {prop} for a new road and offers 105% of value.',
+      choices: [{ label: 'Accept 105% (no agent fee)', fx: { sellProp: 1.05 } }, { label: 'Refuse and petition (−1 reputation; 50%: the road is re-routed and the district gains 5%; 50%: forced sale at value)', fx: { reputation: -1, petition: { p: 0.5, shock: 0.05, factor: 1.0 } } }] },
     { id: 'insider', weight: 3, minProps: 0, title: 'A word from the agent', text: 'An agent offers, for a fee, to tell you exactly what the best listing on the board is worth.',
       choices: [{ label: 'Pay 1% of cash for the true value', fx: { cashPct: -0.01, revealBest: true } }, { label: 'Trust your own eye', fx: {} }] },
+    { id: 'tramline', weight: 2, minProps: 1, title: 'A new tramline', text: 'The corporation will run a tramline through {district}, {city} if landlords contribute to the works.',
+      choices: [{ label: 'Subscribe 2% of net worth (the district trends up for 4 years)', fx: { cashPctNW: -0.02, districtMomentum: 4 } }, { label: 'Let others pay (−1 reputation; 50%: the line is built anyway)', fx: { reputation: -1, districtMomentumChance: { p: 0.5, years: 4 } } }] },
+    { id: 'factory', weight: 2, minProps: 1, toEra: 3, title: 'A factory next door', text: 'A tannery is to open beside {prop}. The smell will carry.',
+      choices: [{ label: 'Object at the hearing (pay 0.2% of net worth in lawyers; 60%: stopped; 40%: district −6%)', fx: { cashPctNW: -0.002, districtShockChance: { p: 0.4, shock: -0.06 } } }, { label: 'Buy shares in the tannery instead (district −6%; +1.5% of net worth in dividends)', fx: { districtShock: -0.06, cashPctNW: 0.015 } }] },
+    { id: 'gentrify', weight: 2, minProps: 2, title: 'Artists move in', text: 'Painters and writers are taking cheap rooms in {district}, {city}. The landlords are divided.',
+      choices: [{ label: 'Let to them at 90% (the district trends up next year)', fx: { propRent: 0.9, districtMomentum: 1 } }, { label: 'Raise rents to 110% before the rush (−1 reputation; keen tenants pay a premium: +0.5% of net worth)', fx: { propRent: 1.1, reputation: -1, cashPctNW: 0.005 } }] },
+    { id: 'bubble_talk', weight: 2, minProps: 2, title: 'Bubble talk', text: 'Every dinner party in {city} is about property prices. A broker offers to sell {prop} to a syndicate at 108% of value.',
+      choices: [{ label: 'Sell at 108% (agent fee applies)', fx: { sellPropFee: 1.08 } }, { label: 'Hold; it is worth more next year (50%: +12% value; 50%: −4%)', fx: { propValueGamble: { p: 0.5, win: 0.12, lose: 0.04 } } }] },
+    { id: 'planning', weight: 2, minProps: 1, fromEra: 3, title: 'Planning permission', text: 'The planners will allow an extra storey on {prop} — for a contribution.',
+      choices: [{ label: 'Pay the contribution (5% of its value; value +7%)', fx: { propCostPct: 0.05, propQuality: 0.07 } }, { label: 'Appeal instead (free; 40%: granted, value +7%; 60%: refused)', fx: { propValueGamble: { p: 0.4, win: 0.07, lose: 0 } } }] },
+    { id: 'auction_rumour', weight: 2, minProps: 1, title: 'A word at the club', text: 'A bankrupt merchant\'s portfolio is to be broken up next year. You could get in first.',
+      choices: [{ label: 'Retain the receiver (pay 1% of net worth; 2 extra distressed listings next year)', fx: { cashPctNW: -0.01, extraDistressed: 2 } }, { label: 'Wait for the auction', fx: {} }] },
+    { id: 'rival_district', weight: 2, minProps: 2, title: '{rival} want your district', text: '{rival} are buying everything in {district}, {city}. Prices there are moving.',
+      choices: [{ label: 'Sell them {prop} at 108% (relation +)', fx: { sellToRival: 1.08, rivalRelation: 12 } }, { label: 'Dig in (district +4% from their buying; relation −)', fx: { districtShock: 0.04, rivalRelation: -10 } }] },
+    { id: 'harbour', weight: 1, minProps: 2, title: 'New docks', text: 'A harbour expansion is planned for {city}. Warehouses will boom; genteel districts will lose their view.',
+      choices: [{ label: 'Lobby for it (pay 1% of net worth; +4 reputation with the merchants)', fx: { cashPctNW: -0.01, reputation: 4 } }, { label: 'Lobby against it (−1 reputation; 40%: stopped and {district} keeps its view, trending up 2 years)', fx: { reputation: -1, districtMomentumChance: { p: 0.4, years: 2 } } }] },
+    { id: 'flood', weight: 1, minProps: 2, title: 'The river rises', text: 'Floods have reached the cellars across {city}.',
+      choices: [{ label: 'Pump and dry every building (pay 1.5% of net worth; condition kept)', fx: { cashPctNW: -0.015 } }, { label: 'Let them dry on their own (every building −3 condition)', fx: { decay: 3 } }] },
+    { id: 'exhibition', weight: 1, minProps: 1, title: 'The city hosts an exhibition', text: '{city} will host a great fair next summer. Visitors need rooms.',
+      choices: [{ label: 'Let short to visitors (rents +10% this year; tenants churn: every building −2 condition)', fx: { rentBoost: 0.10, decay: 2 } }, { label: 'Keep your tenants (+1 reputation)', fx: { reputation: 1 } }] },
+    { id: 'tax_assessor', weight: 2, minProps: 3, title: 'The assessor calls', text: 'The city is reassessing property for tax. Your buildings have been valued generously.',
+      choices: [{ label: 'Appeal (pay 0.4% of net worth; 60%: no extra tax; 40%: pay 2% anyway)', fx: { cashPctNW: -0.004, gambleNW: { p: 0.6, win: 0, lose: 0.02 } } }, { label: 'Pay the extra assessment (1.5% of net worth; +1 reputation)', fx: { cashPctNW: -0.015, reputation: 1 } }] },
+    // --- finance ---
+    { id: 'bank_call', weight: 2, minProps: 2, minDebt: true, title: 'The bank manager', text: 'Your lender is nervous and invites you to lunch. He would like to see less of your name on his books.',
+      choices: [{ label: 'Repay 10% of every mortgage (lender reassured)', fx: { repayPct: 0.10 } }, { label: 'Charm him (−2 reputation if it fails: 50%; relation with the Rothschilds +)', fx: { repGamble: { p: 0.5, win: 1, lose: 2 }, namedRelation: { id: 'rothschild', delta: 6 } } }] },
+    { id: 'bond_tip', weight: 2, minProps: 1, title: 'A tip from the Exchange', text: 'A broker friend swears the next issue of government stock will be oversubscribed.',
+      choices: [{ label: 'Put 10% of cash in (60%: +25% on it; 40%: −15%)', fx: { gamble: { p: 0.6, win: 0.025, lose: 0.015 } } }, { label: 'Keep your powder dry', fx: {} }] },
+    { id: 'debt_forgiven', weight: 1, minProps: 2, minDebt: true, title: 'A clerical error', text: 'The bank\'s ledger shows your largest mortgage as smaller than it is.',
+      choices: [{ label: 'Say nothing (the error stands: largest loan −5%; 30% chance of a −6 reputation scandal later)', fx: { debtForgive: 0.05, repGamble: { p: 0.7, win: 0, lose: 6 } } }, { label: 'Report it (+2 reputation; relation with the Rothschilds +)', fx: { reputation: 2, namedRelation: { id: 'rothschild', delta: 8 } } }] },
+    { id: 'partner', weight: 2, minProps: 1, title: 'A joint venture', text: '{rival} invites you into a development syndicate.',
+      choices: [{ label: 'Invest 10% of cash (65%: +40% back next year; 35%: lose it; relation +)', fx: { gamble: { p: 0.65, win: 0.04, lose: 0.10 }, rivalRelation: 10 } }, { label: 'Decline politely', fx: { rivalRelation: -3 } }] },
+    { id: 'insurance_offer', weight: 2, minProps: 3, fromEra: 1, title: 'An insurance broker', text: 'A broker offers a policy over the whole portfolio against fire and flood.',
+      choices: [{ label: 'Insure (pay 0.8% of net worth; no fire or flood events for 10 years)', fx: { cashPctNW: -0.008, insuredYears: 10 } }, { label: 'Self-insure', fx: {} }] },
+    { id: 'rate_lock', weight: 2, minProps: 2, minDebt: true, fromEra: 3, title: 'A fixed-rate offer', text: 'Your lender offers to fix every variable loan at today\'s rate plus 1%.',
+      choices: [{ label: 'Fix everything (+1% rate; immune to spikes)', fx: { fixAll: true } }, { label: 'Stay variable', fx: {} }] },
+    { id: 'inheritance', weight: 1, minProps: 0, title: 'A cousin dies', text: 'A distant cousin leaves you a mortgaged {type}. The bank wants its interest.',
+      choices: [{ label: 'Accept the property and its 85% mortgage (one bad year from a margin call)', fx: { inheritProperty: { ltv: 0.85 } } }, { label: 'Renounce it (+2 reputation among the other heirs)', fx: { reputation: 2 } }] },
+    // --- dynasty and reputation ---
+    { id: 'charity', weight: 2, minProps: 0, title: 'The hospital appeal', text: 'The governors of the city hospital ask the family for a subscription.',
+      choices: [{ label: 'Subscribe 2% of net worth (+6 reputation)', fx: { cashPctNW: -0.02, reputation: 6 } }, { label: 'Send regrets (−2 reputation)', fx: { reputation: -2 } }] },
     { id: 'heir_debts', weight: 1, minProps: 1, minMembers: 2, title: 'Gambling debts', text: '{member} has lost heavily at cards. The creditors are not gentle people.',
       choices: [{ label: 'Pay the debts (4% of net worth)', fx: { cashPctNW: -0.04 } }, { label: 'Refuse (−8 reputation; {member} gains Spendthrift)', fx: { reputation: -8, memberTrait: 'spendthrift' } }] },
-    { id: 'rent_strike', weight: 2, minProps: 3, title: 'Rent strike', text: 'Tenants across your {city} buildings refuse to pay until rents are cut.',
-      choices: [{ label: 'Cut rents to 90% in {city} (+4 reputation)', fx: { cityRent: 0.9, reputation: 4 } }, { label: 'Evict the ringleaders (−7 reputation; occupancy −20% this year)', fx: { reputation: -7, cityVacancy: 0.2 } }] },
-    { id: 'partner', weight: 2, minProps: 1, title: 'A joint venture', text: '{rival} invites you into a development syndicate.',
-      choices: [{ label: 'Invest 10% of cash (65%: +30% back next year; 35%: lose it; relation +)', fx: { gamble: { p: 0.65, win: 0.03, lose: 0.10 }, rivalRelation: 10 } }, { label: 'Decline politely', fx: { rivalRelation: -3 } }] },
-    { id: 'inheritance', weight: 1, minProps: 0, title: 'A cousin dies', text: 'A distant cousin leaves you a mortgaged {type}. The bank wants its interest.',
-      choices: [{ label: 'Accept the property and its 80% mortgage', fx: { inheritProperty: { ltv: 0.8 } } }, { label: 'Renounce it', fx: {} }] },
     { id: 'manager_fraud', weight: 1, minProps: 6, title: 'The manager\'s books', text: 'Your manager in {city} has been skimming rents.',
-      choices: [{ label: 'Prosecute (lose 2% of cash, +3 reputation, manager fired)', fx: { cashPct: -0.02, reputation: 3, fireManager: true } }, { label: 'Quietly dismiss him (lose 5% of cash, manager fired)', fx: { cashPct: -0.05, fireManager: true } }] },
-    { id: 'windfall_tenant', weight: 2, minProps: 2, title: 'A famous tenant', text: 'A celebrated author wants {prop} and will pay 30% over the rent — but wants it Prime.',
-      choices: [{ label: 'Refurbish for them (pay refurbish cost; rent setting 1.2 locked 4 years)', fx: { refurbForTenant: true } }, { label: 'Decline', fx: {} }] }
+      choices: [{ label: 'Prosecute (lose 5% of cash to the courts, +3 reputation, manager fired)', fx: { cashPct: -0.05, reputation: 3, fireManager: true } }, { label: 'Quietly dismiss him (lose 2% of cash, manager fired)', fx: { cashPct: -0.02, fireManager: true } }] },
+    { id: 'scandal', weight: 1, minProps: 2, minMembers: 2, title: 'A scandal', text: '{member} has been seen in company the newspapers find irresistible.',
+      choices: [{ label: 'Buy the editor\'s silence (pay 1% of net worth)', fx: { cashPctNW: -0.01 } }, { label: 'Brazen it out (50%: it blows over; 50%: −4 reputation)', fx: { repGamble: { p: 0.5, win: 0, lose: 4 } } }] },
+    { id: 'society_wedding', weight: 1, minProps: 1, minMembers: 2, title: 'A society wedding', text: 'A good family would welcome {member} — if the wedding is grand enough.',
+      choices: [{ label: 'A grand wedding (pay 1.5% of net worth; +6 reputation)', fx: { cashPctNW: -0.015, reputation: 6 } }, { label: 'A quiet ceremony (+1 reputation)', fx: { reputation: 1 } }] },
+    { id: 'political_office', weight: 1, minProps: 3, title: 'Stand for office', text: 'The party asks the head of the family to stand for the council.',
+      choices: [{ label: 'Stand (pay 1% of net worth; 50%: elected, +10 reputation; 50%: lose, +1)', fx: { cashPctNW: -0.01, repGamble: { p: 0.5, win: 10, lose: -1 } } }, { label: 'Decline (+1 reputation for modesty)', fx: { reputation: 1 } }] },
+    { id: 'portrait', weight: 1, minProps: 1, title: 'A portrait', text: 'A fashionable painter offers to paint the head of the family.',
+      choices: [{ label: 'Commission it (pay 0.6% of net worth; +2 reputation)', fx: { cashPctNW: -0.006, reputation: 2 } }, { label: 'Decline', fx: {} }] },
+    { id: 'rival_feud', weight: 2, minProps: 2, title: 'Words with {rival}', text: 'At the club, {rival} accuse you of stealing their tenants.',
+      choices: [{ label: 'Make peace over dinner (pay 0.3% of net worth; relation +)', fx: { cashPctNW: -0.003, rivalRelation: 12 } }, { label: 'Tell them where to go (−1 reputation; relation −; +0.5% of net worth in poached tenants)', fx: { reputation: -1, rivalRelation: -12, cashPctNW: 0.005 } }] },
+    { id: 'rival_gift', weight: 1, minProps: 1, title: '{rival} send a gift', text: '{rival} send a case of wine and a note suggesting the families should be friends.',
+      choices: [{ label: 'Accept and reciprocate (pay 0.3% of net worth; relation +)', fx: { cashPctNW: -0.003, rivalRelation: 10 } }, { label: 'Return it unopened (relation −; +1 reputation for independence)', fx: { rivalRelation: -8, reputation: 1 } }] },
+    { id: 'press', weight: 2, minProps: 4, title: 'The press', text: 'A newspaper is writing about slum landlords in {city}. Your name may appear.',
+      choices: [{ label: 'Patch every building (pay 2.5% of net worth; +2 reputation; every building +2 condition)', fx: { cashPctNW: -0.025, reputation: 2, decay: -2 } }, { label: 'Ignore the story (50%: nothing; 50%: −5 reputation)', fx: { repGamble: { p: 0.5, win: 0, lose: 5 } } }] },
+    { id: 'apprentice', weight: 1, minProps: 2, minMembers: 2, title: 'An apprenticeship', text: '{member} wants to learn the trade with a surveyor rather than at school.',
+      choices: [{ label: 'Pay the premium (pay 1% of net worth; comps noise halved 5 years)', fx: { cashPctNW: -0.01, surveyorYears: 5 } }, { label: 'Keep them at home (+1 reputation)', fx: { reputation: 1 } }] }
   ];
+  D.randomEventById = function (id) { for (var i = 0; i < D.randomEvents.length; i++) if (D.randomEvents[i].id === id) return D.randomEvents[i]; return null; };
 
-  /* ---------- Achievements (none satisfied at start for any family) ---------- */
+  /* ---------- Achievements v2 (P5.5): none satisfied at start for any family or scenario ---------- */
+  // category: deals | finance | survival | dynasty | cities | rivals. rare: the six hardest.
   D.achievements = [
-    { id: 'first_deal', name: 'First Deal', desc: 'Buy a property below asking price.' },
-    { id: 'auction_winner', name: 'Hammer Down', desc: 'Win an auction against a rival.' },
-    { id: 'flipper', name: 'Flipper', desc: 'Sell a property for 30% more than you paid.' },
-    { id: 'brrrr', name: 'Recycler', desc: 'Refinance a renovated property and recover your deposit.' },
-    { id: 'portfolio_5', name: 'Landlord', desc: 'Own 5 properties.' },
-    { id: 'portfolio_15', name: 'Magnate', desc: 'Own 15 properties.' },
-    { id: 'portfolio_40', name: 'Empire', desc: 'Own 40 properties.' },
-    { id: 'second_city', name: 'Abroad', desc: 'Unlock a second city.' },
-    { id: 'five_cities', name: 'Jet Set', desc: 'Unlock five cities.' },
-    { id: 'all_cities', name: 'The World', desc: 'Unlock every city.' },
-    { id: 'survivor', name: 'Survivor', desc: 'Come through a depression without a forced sale while holding debt.' },
-    { id: 'generation_2', name: 'Heir', desc: 'Pass the empire to a second generation.' },
-    { id: 'generation_4', name: 'Dynasty', desc: 'Reach the fourth generation.' },
-    { id: 'rank_1', name: 'Top of the Pile', desc: 'Lead the leaderboard.' },
-    { id: 'rebuilder', name: 'Rebuilder', desc: 'Complete a Rebuild.' },
-    { id: 'tower', name: 'Skyline', desc: 'Own a tower.' },
-    { id: 'wealth_100x', name: 'Hundredfold', desc: 'Net worth 100× your starting cash.' },
-    { id: 'reputation_90', name: 'Pillar of Society', desc: 'Reputation 90.' },
-    { id: 'comeback', name: 'Phoenix', desc: 'Rebuild net worth to the pre-bankruptcy peak after continuing as the heir.' }
+    { id: 'first_deal', name: 'First Deal', category: 'deals', desc: 'Buy a property below asking price.' },
+    { id: 'auction_winner', name: 'Hammer Down', category: 'deals', desc: 'Win an auction against a rival.' },
+    { id: 'flipper', name: 'Flipper', category: 'deals', desc: 'Sell a property for 30% more than you paid.' },
+    { id: 'bargain_hunter', name: 'Bargain Hunter', category: 'deals', desc: 'Buy a property for 75% of its true value or less.' },
+    { id: 'ten_deals', name: 'Dealmaker', category: 'deals', desc: 'Buy 10 properties.' },
+    { id: 'fifty_deals', name: 'Wheeler-Dealer', category: 'deals', desc: 'Buy 50 properties.' },
+    { id: 'counter_closer', name: 'Closer', category: 'deals', desc: 'Close 5 deals by meeting a counter-offer.' },
+    { id: 'brrrr', name: 'Recycler', category: 'finance', desc: 'Refinance a renovated property and recover your deposit.' },
+    { id: 'refinancer', name: 'Refinancer', category: 'finance', desc: 'Refinance 10 times.' },
+    { id: 'debt_free', name: 'Unencumbered', category: 'finance', desc: 'Own 5 or more properties with no mortgage on any of them.' },
+    { id: 'high_wire', name: 'High Wire', category: 'finance', desc: 'Carry a portfolio LTV above 65% for 3 consecutive years without a forced sale.' },
+    { id: 'covenant_kept', name: 'Covenant Kept', category: 'finance', desc: 'Clear a margin call by repaying the shortfall.' },
+    { id: 'survivor', name: 'Survivor', category: 'survival', desc: 'Come through a depression without a forced sale while holding debt.' },
+    { id: 'two_depressions', name: 'Twice Bitten', category: 'survival', desc: 'Survive two depressions with debt and no forced sale.' },
+    { id: 'cash_king', name: 'Cash is King', category: 'survival', desc: 'Hold cash of 30% of net worth or more through a depression year.' },
+    { id: 'centenarian', name: 'Centenarian', category: 'survival', desc: 'Keep the house going for 100 years.' },
+    { id: 'the_long_game', name: 'The Long Game', category: 'survival', rare: true, desc: 'Reach the end of the campaign with the house standing.' },
+    { id: 'comeback', name: 'Phoenix', category: 'survival', desc: 'Rebuild net worth to the pre-bankruptcy peak after continuing as the heir.' },
+    { id: 'portfolio_5', name: 'Landlord', category: 'deals', desc: 'Own 5 properties.' },
+    { id: 'portfolio_15', name: 'Magnate', category: 'deals', desc: 'Own 15 properties.' },
+    { id: 'portfolio_40', name: 'Empire', category: 'deals', rare: true, desc: 'Own 40 properties.' },
+    { id: 'rebuilder', name: 'Rebuilder', category: 'deals', desc: 'Complete a Rebuild.' },
+    { id: 'tower', name: 'Skyline', category: 'cities', desc: 'Own a tower.' },
+    { id: 'wealth_100x', name: 'Hundredfold', category: 'finance', desc: 'Net worth 100× your starting cash.' },
+    { id: 'wealth_1000x', name: 'Thousandfold', category: 'finance', rare: true, desc: 'Net worth 1,000× your starting cash.' },
+    { id: 'generation_2', name: 'Heir', category: 'dynasty', desc: 'Pass the empire to a second generation.' },
+    { id: 'generation_4', name: 'Dynasty', category: 'dynasty', desc: 'Reach the fourth generation.' },
+    { id: 'generation_6', name: 'Old Family', category: 'dynasty', rare: true, desc: 'Reach the sixth generation.' },
+    { id: 'scholar', name: 'Scholar', category: 'dynasty', desc: 'Educate three members of the family.' },
+    { id: 'matchmaker', name: 'Matchmaker', category: 'dynasty', desc: 'Marry an heir into a rival family.' },
+    { id: 'merger', name: 'The Great Merger', category: 'dynasty', rare: true, desc: 'Fold an allied family\'s portfolio into your own.' },
+    { id: 'trust_fund', name: 'Trust Fund', category: 'dynasty', desc: 'Pass a succession with a family trust in place.' },
+    { id: 'reputation_90', name: 'Pillar of Society', category: 'dynasty', desc: 'Reputation 90.' },
+    { id: 'second_city', name: 'Abroad', category: 'cities', desc: 'Unlock a second city.' },
+    { id: 'five_cities', name: 'Jet Set', category: 'cities', desc: 'Unlock five cities.' },
+    { id: 'ten_cities', name: 'Globetrotter', category: 'cities', desc: 'Unlock ten cities.' },
+    { id: 'all_cities', name: 'The World', category: 'cities', rare: true, desc: 'Unlock every city.' },
+    { id: 'world_citizen', name: 'World Citizen', category: 'cities', desc: 'Own property in five cities at once.' },
+    { id: 'district_king', name: 'King of the District', category: 'cities', desc: 'Own 30% of a district\'s stock.' },
+    { id: 'rank_1', name: 'Top of the Pile', category: 'rivals', desc: 'Lead the leaderboard.' },
+    { id: 'top_dog_decade', name: 'Top Dog', category: 'rivals', desc: 'Lead the leaderboard for 10 consecutive years.' },
+    { id: 'nemesis', name: 'Nemesis', category: 'rivals', desc: 'Outbid the same rival at auction five times.' },
+    { id: 'vulture', name: 'Vulture', category: 'rivals', desc: 'Buy a bankrupt rival\'s portfolio from the receiver.' },
+    { id: 'friend_of_banks', name: 'Friend of the Banks', category: 'rivals', desc: 'Borrow from the Rothschilds.' },
+    { id: 'peacemaker', name: 'Peacemaker', category: 'rivals', desc: 'Be on good terms (relation 70+) with four rival families at once.' }
   ];
+  D.achievementById = function (id) { for (var i = 0; i < D.achievements.length; i++) if (D.achievements[i].id === id) return D.achievements[i]; return null; };
+
+  /* ---------- Prestige perks (P5.2): bought with legacy points; each changes a rule ---------- */
+  // kind 'passive' perks apply to every new game once owned; 'mode' perks must be chosen with newGame({perks:[...]}).
+  D.perks = [
+    { id: 'family_solicitor', name: 'Family solicitor', cost: 2, kind: 'passive', desc: 'Comparable-sale noise halved: your estimate band is twice as tight.' },
+    { id: 'old_money', name: 'Old money', cost: 3, kind: 'passive', desc: 'Lenders advance 5% more: the LTV cap rises by 5 points.' },
+    { id: 'thick_skin', name: 'Thick skin', cost: 2, kind: 'passive', desc: 'Reputation losses are halved.' },
+    { id: 'builders_guild', name: 'Builders\' guild', cost: 2, kind: 'passive', desc: 'Renovation overrun and delay risk halved.' },
+    { id: 'town_crier', name: 'Town crier', cost: 1, kind: 'passive', desc: 'The morning paper foreshadows crashes and set-pieces far more reliably.' },
+    { id: 'patient_capital', name: 'Patient capital', cost: 1, kind: 'passive', desc: 'Savings earn the full bank rate instead of 2% below it.' },
+    { id: 'seventh_rival', name: 'Seventh rival', cost: 3, kind: 'mode', desc: 'The Hartwells join the table: richer, sharper and more aggressive than any of the six.' },
+    { id: 'purist', name: 'Purist', cost: 4, kind: 'mode', desc: 'No mortgages at all, but yearly goal rewards are doubled.' },
+    { id: 'crisis_start', name: 'Crisis start', cost: 3, kind: 'mode', desc: 'Begin in 1929 with a leveraged portfolio, the day before the crash.' },
+    { id: 'second_city', name: 'Second city', cost: 5, kind: 'mode', desc: 'Paris is open from the first day.' }
+  ];
+  D.perkById = function (id) { for (var i = 0; i < D.perks.length; i++) if (D.perks[i].id === id) return D.perks[i]; return null; };
+
+  /* ---------- Era-start scenarios (P5.4): a leveraged portfolio on the eve of a crash ---------- */
+  // props: number of starting buildings; ltv: their mortgages; cashMult: start cash as a multiple of the family's 1850 cash × price index.
+  // cycle: phase during the first year (the crash lands at the first year end); baseRate: starting rate.
+  D.scenarios = {
+    crash1929:    { id: 'crash1929', name: 'Black Tuesday', startYear: 1929, cycle: 'depression', baseRate: 0.055, props: 4, ltv: 0.60, cashMult: 0.35, cities: ['london', 'new_york'],
+      intro: 'Wall Street has crashed. Your buildings are 60% borrowed and the bankers whisper that property follows the stock market. Survive 15 years and hand on at least what you started with.' },
+    oilshock1973: { id: 'oilshock1973', name: 'Oil Shock', startYear: 1973, cycle: 'recession', baseRate: 0.11, props: 5, ltv: 0.62, cashMult: 0.35, cities: ['london', 'paris'],
+      intro: 'OPEC has quadrupled the oil price and the bank rate is heading for 13%. Your loans are variable. Survive 15 years and hand on at least what you started with.' },
+    gfc2008:      { id: 'gfc2008', name: 'The Credit Crunch', startYear: 2008, cycle: 'depression', baseRate: 0.05, props: 5, ltv: 0.66, cashMult: 0.30, cities: ['london', 'new_york'],
+      intro: 'Lehman Brothers has failed and every lender is calling covenants. Survive 15 years and hand on at least what you started with.' }
+  };
+  D.scenarioById = function (id) { return D.scenarios[id] || null; };
 
   /* ---------- Campaign tiers (bible §8) ---------- */
   D.campaignTiers = [

@@ -58,6 +58,7 @@
     end.disabled = blocked;
     PEUI.setText(end.querySelector('span'), s.pendingEvents ? 'Decide' : 'End year');
     document.documentElement.style.setProperty('--player', s.color);
+    if (PEUI.guide) PEUI.guide.syncHud();
   };
 
   PEUI.buildNav = function () {

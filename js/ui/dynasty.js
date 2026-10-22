@@ -40,6 +40,7 @@
       fam.appendChild(row);
     }
     inner.appendChild(fam);
+    if (PEUI.appraisal) inner.appendChild(PEUI.appraisal.card());
 
     if (d.deaths.length) {
       var hist = h('section', { class: 'card card--flat', 'aria-label': 'Past heads' });
@@ -90,6 +91,7 @@
     body.push(h('button', { type: 'button', class: 'toggle', 'data-action': 'set-sound', 'aria-pressed': String(!!p.sound) }, [h('span', {}, [icon('sound'), ' Sound effects']), h('span', { class: 'toggle__knob' })]));
     body.push(h('div', { class: 'settings__row' }, [h('span', { text: '3D quality' }), seg('3D quality', [['auto', 'Auto'], ['low', 'Low'], ['high', 'High']], p.quality, 'set-quality')]));
     body.push(h('div', { class: 'settings__row' }, [h('span', { text: 'Theme' }), seg('Theme', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], p.theme, 'set-theme')]));
+    body.push(h('div', { class: 'settings__row' }, [h('span', { text: 'First-years guide' }), PEUI.btn('Show again', { cls: 'btn--secondary btn--sm', icon: 'sparkle', action: 'guide-reset' })]));
     body.push(h('div', { class: 'settings__row' }, [h('span', { text: 'Export save as JSON' }), PEUI.btn('Export', { cls: 'btn--secondary btn--sm', icon: 'download', action: 'set-export' })]));
     body.push(h('div', { class: 'settings__row' }, [h('span', { text: 'Delete the saved game' }), PEUI.btn('Delete', { cls: 'btn--danger btn--sm', icon: 'trash', action: 'set-delete' })]));
     body.push(h('p', { class: 'small muted', text: 'Property Empire ' + PEUI.VERSION + ' · engine ' + PE().Game.version + '. Saves live on this device.' }));

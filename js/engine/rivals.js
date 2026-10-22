@@ -10,15 +10,51 @@
   Rv.owner = function (id) { return 'rival:' + id; };
   Rv.def = function (id) { return D.rivalById(id); };
 
+  /* ---------- Relations (P3.2): s.relations[id] runs −100..100; rv.relation (0..100) is the view the UI shows ---------- */
+  Rv.relationView = function (rel) { return Math.round(U.clamp(50 + rel / 2, 0, 100)); };
+  Rv.adjustRelation = function (id, delta, why) {
+    var s = PE.S(), rv = s.rivals[id]; if (!rv || !delta) return 0;
+    var before = s.relations[id] || 0;
+    s.relations[id] = Math.round(U.clamp(before + delta, -100, 100));
+    rv.relation = Rv.relationView(s.relations[id]);
+    if (why) rv.lastRelationChange = { year: s.year, delta: delta, why: why };
+    return s.relations[id] - before;
+  };
+  Rv.setRelation = function (id, value) { var s = PE.S(); return Rv.adjustRelation(id, value - (s.relations[id] || 0)); };
+  Rv.allies = function () { var s = PE.S(), out = []; for (var id in s.rivals) if (s.rivals[id].allied && !s.rivals[id].bankrupt) out.push(id); return out; };
+  /* The city where a rival holds the most buildings (its first office when it holds none). */
+  Rv.favouriteCity = function (id) {
+    var s = PE.S(), rv = s.rivals[id], props = St.ownedProps(Rv.owner(id)), counts = {}, best = null;
+    for (var i = 0; i < props.length; i++) { counts[props[i].cityId] = (counts[props[i].cityId] || 0) + 1; if (!best || counts[props[i].cityId] > counts[best]) best = props[i].cityId; }
+    return best || (rv && rv.cities[0]) || 'london';
+  };
+  /* Rivals holding buildings in a city resent evictions there (relation driver). */
+  Rv.evictionIn = function (cityId, district) {
+    var s = PE.S(), hit = [];
+    for (var id in s.rivals) { if (s.rivals[id].bankrupt) continue; if (St.ownedProps(Rv.owner(id)).some(function (p) { return p.cityId === cityId && (!district || p.district === district); })) { Rv.adjustRelation(id, B.relationEviction, 'evictions'); hit.push(id); } }
+    s.stats.evictions++;
+    return hit;
+  };
+  /* Rank history for the leaderboard (P2.0): called at the end of every year and at newGame. */
+  Rv.snapshotRanks = function () {
+    var s = PE.S(), rows = Rv._leaderboardRaw(), byId = {};
+    for (var i = 0; i < rows.length; i++) byId[rows[i].id] = rows[i].rank;
+    if (s.ranks.year !== s.year || !s.ranks.byId.player) { s.ranks.prevYear = s.ranks.byId.player ? s.ranks.year : null; s.ranks.prevById = s.ranks.byId.player ? s.ranks.byId : {}; }
+    s.ranks.year = s.year; s.ranks.byId = byId;
+  };
+
   Rv.create = function (fam) {
-    var s = PE.S();
-    for (var i = 0; i < D.rivals.length; i++) {
-      var rd = D.rivals[i], wealth = fam.startCash * rd.wealthMult * B.rivalStartWealthMult;
-      var rv = { id: rd.id, cash: Math.round(wealth * 0.45), relation: 50 + (St.hasTrait('charmer') ? 10 : 0), cities: ['london'], bankrupt: false, bankruptYear: null, lastAction: 'Watching the market.', mistakeYear: 0, stats: { bought: 0, sold: 0 }, windfalls: 0 };
+    var s = PE.S(), defs = D.rivals.slice();
+    for (var x = 0; x < D.extraRivals.length; x++) if (St.hasPerk(D.extraRivals[x].perk)) defs.push(D.extraRivals[x]);
+    var home = St.unlockedCities();
+    for (var i = 0; i < defs.length; i++) {
+      var rd = defs[i], wealth = s.startCash * rd.wealthMult * B.rivalStartWealthMult;
+      var rv = { id: rd.id, cash: Math.round(wealth * 0.45), relation: 50, cities: home.slice(), bankrupt: false, bankruptYear: null, merged: false, mergedYear: null, allied: false, lastAction: 'Watching the market.', mistakeYear: 0, stats: { bought: 0, sold: 0 }, windfalls: 0 };
       s.rivals[rd.id] = rv;
+      s.relations[rd.id] = 0; Rv.adjustRelation(rd.id, St.hasTrait('charmer') ? 20 : 0);
       var budget = wealth * 0.55, n = R.int(1, 3);
       for (var k = 0; k < n; k++) {
-        var p = PE.Market.genProperty('london', { condition: R.int(35, 80) });
+        var p = PE.Market.genProperty(home[k % home.length], { condition: R.int(35, 80) });
         var target = budget / n, scale = target / p.trueValue;
         p.sqm = Math.round(U.clamp(p.sqm * scale, D.propertyTypes[p.type].sqm[0], D.propertyTypes[p.type].sqm[1]));
         PE.Property.revalue(p); PE.Property.initTenancy(p);
@@ -59,7 +95,7 @@
     var s = PE.S(), out = [];
     for (var id in s.rivals) {
       var rv = s.rivals[id], rd = Rv.def(id);
-      if (rv.bankrupt || rv.cities.indexOf(l.cityId) < 0 || l.sellerRivalId === id) continue;
+      if (rv.bankrupt || rv.allied || rv.cities.indexOf(l.cityId) < 0 || l.sellerRivalId === id) continue; // an ally never bids against you
       if (St.propertyCount(Rv.owner(id)) >= B.rivalMaxProperties) continue;
       var pref = Rv.wants(rv, l); if (!pref) continue;
       var ap = Rv.appraise(rv, l), maxBid = Math.round(ap * rd.bidMult * (pref > 1 ? 1.02 : 1));
@@ -83,7 +119,6 @@
     St.setOwner(p, Rv.owner(id));
     PE.Property.initTenancy(p);
     rv.stats.bought++;
-    if (rd.prefers === 'cheap') { s.rivals[id].relation = s.rivals[id].relation; }
   };
   /* The player accepted a rival's offer. */
   Rv.paid = function (id, price, p) {
@@ -116,6 +151,11 @@
     var ids = Object.keys(s.rivals);
     for (var i = 0; i < ids.length; i++) Rv.runRival(s.rivals[ids[i]], report);
     Rv.rubberBand(report);
+    // relations drift back toward neutral (allies stay warm)
+    for (var k = 0; k < ids.length; k++) {
+      var rel = s.relations[ids[k]] || 0, floor = s.rivals[ids[k]].allied ? 30 : -100;
+      if (rel > floor) Rv.adjustRelation(ids[k], rel > 0 ? -Math.min(B.relationDrift, rel - floor) : Math.min(B.relationDrift, -rel));
+    }
   };
 
   Rv.runRival = function (rv, report) {
@@ -309,14 +349,18 @@
     }
   };
 
+  /* Leaderboard rows. prevRank/rankDelta come from the engine's end-of-year snapshot (P2.0): rankDelta > 0 means climbed.
+     A rival merged into the player's house (P3.2) is dropped from the table. */
   Rv._leaderboardRaw = function () {
-    var s = PE.S(), rows = [{ id: 'player', name: s.familyName, netWorth: St.netWorth('player'), properties: St.propertyCount('player'), cities: St.citiesWithProps('player'), lastAction: s.lastReport ? s.lastReport.headline : 'A new dynasty begins.', color: s.color, isPlayer: true, bankrupt: s.status === 'bankrupt' }];
+    var s = PE.S(), rows = [{ id: 'player', name: s.familyName, netWorth: St.netWorth('player'), properties: St.propertyCount('player'), cities: St.citiesWithProps('player'), lastAction: s.lastReport ? s.lastReport.headline : 'A new dynasty begins.', color: s.color, isPlayer: true, bankrupt: s.status === 'bankrupt', allied: false, relation: undefined, relationScore: undefined }];
     for (var id in s.rivals) {
       var rv = s.rivals[id], rd = Rv.def(id);
-      rows.push({ id: id, name: rd.name, archetype: rd.archetype, color: rd.color, netWorth: rv.bankrupt ? 0 : St.netWorth(Rv.owner(id)), properties: St.propertyCount(Rv.owner(id)), cities: rv.cities.length, lastAction: rv.lastAction, relation: rv.relation, bankrupt: rv.bankrupt, isPlayer: false });
+      if (rv.merged) continue;
+      rows.push({ id: id, name: rd.name, archetype: rd.archetype, color: rd.color, netWorth: rv.bankrupt ? 0 : St.netWorth(Rv.owner(id)), properties: St.propertyCount(Rv.owner(id)), cities: rv.cities.length, lastAction: rv.lastAction, relation: rv.relation, relationScore: s.relations[id] || 0, allied: !!rv.allied, bankrupt: rv.bankrupt, isPlayer: false });
     }
     rows.sort(function (a, b) { return b.netWorth - a.netWorth; });
-    for (var i = 0; i < rows.length; i++) rows[i].rank = i + 1;
+    var prev = (s.ranks && s.ranks.prevById) || {};
+    for (var i = 0; i < rows.length; i++) { rows[i].rank = i + 1; rows[i].prevRank = prev[rows[i].id] || null; rows[i].rankDelta = rows[i].prevRank ? rows[i].prevRank - rows[i].rank : 0; }
     return rows;
   };
 

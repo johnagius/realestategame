@@ -48,6 +48,7 @@
     if (s.eraId !== cs.era) { try { root.City3D.setEra(s.eraId, 1200); } catch (e) {} cs.era = s.eraId; }
   }
   PEUI.cityUpdateProperty = function () { if (cs.renderedId) syncProps(); };
+  PEUI.cityHas = function (id) { return !!(cs.renderedId && cs.shapes[id] !== undefined); };
 
   function cityPanel(el) {
     var list = PE().Cities.list(); if (!list.ok) return;

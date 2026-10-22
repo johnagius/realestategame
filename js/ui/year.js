@@ -38,16 +38,25 @@
     PEUI.closeMenu();
     endYear();
   };
+  /* Leaderboard snapshot before the year resolves, so the report can name who you passed or lost to. */
+  function ranksNow() { var lb = PE().Rivals.leaderboard(), out = {}; if (lb.ok) for (var i = 0; i < lb.leaderboard.length; i++) out[lb.leaderboard[i].id] = { rank: lb.leaderboard[i].rank, name: lb.leaderboard[i].name }; return out; }
+  function rankMoves(before) {
+    var after = ranksNow(), me = after.player ? after.player.rank : 0, was = before.player ? before.player.rank : me, passed = [], lostTo = [];
+    for (var id in after) { if (id === 'player' || !before[id]) continue; var b = before[id].rank, a = after[id].rank; if (b < was && a > me) passed.push(after[id].name); if (b > was && a < me) lostTo.push(after[id].name); }
+    return { passed: passed, lostTo: lostTo };
+  }
   function endYear() {
     var s = PE().Game.state(); if (!s) return;
     if (s.status === 'bankrupt') { showEnd(); return; }
     if (s.status === 'ended') { showEnd(); return; }
+    var before = ranksNow();
     var r = PE().Game.endYear();
     if (!r.ok) {
       if (r.needsDecision) { showEvent(function () { endYear(); }); return; }
       if (r.bankrupt || r.ended) { showEnd(); return; }
       PEUI.toast(r.message, 'danger'); return;
     }
+    r.rankMoves = rankMoves(before);
     PEUI.save();
     if (root.AdManager && root.AdManager.countMonth) root.AdManager.countMonth();
     if (r.eraChanged) PEUI.sound('eraChange'); else if (r.equityChange > 0) PEUI.sound('coin'); else PEUI.sound('negative');
@@ -59,6 +68,43 @@
     maybeAd();
     showEvent(function () { PEUI.refresh(); });
     if (PEUI.current !== 'deals') PEUI.render('deals'); else PEUI.refresh();
+  }
+
+  /* ---------- Count-up for money figures (skipped under reduced motion) ---------- */
+  function reducedMotion() { return root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  function countUp(el, value, format) {
+    el.classList.add('count');
+    if (reducedMotion() || !isFinite(value) || Math.abs(value) < 10) { el.textContent = format(value); return; }
+    var start = null, dur = 900, from = 0;
+    el.textContent = format(0);
+    function step(t) {
+      if (!start) start = t;
+      var k = Math.min(1, (t - start) / dur), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = format(Math.round(from + (value - from) * e));
+      if (k < 1) requestAnimationFrame(step); else el.classList.add('count--done');
+    }
+    requestAnimationFrame(step);
+  }
+
+  /* ---------- Headline illustration: one of six scenes chosen by the dominant event ---------- */
+  function sceneKind(r) {
+    var s = PE().Game.state();
+    if (r.bankrupt || r.warnings.length) return 'warning';
+    if (r.succession) return 'succession';
+    if (r.eraChanged) return 'era';
+    var pct = r.netWorthBefore > 0 ? r.equityChange / r.netWorthBefore : 0;
+    if (r.cycle === 'depression' || pct <= -0.1 || r.deals.some(function (d) { return d.kind === 'forced_sale'; })) return 'crash';
+    var bought = false; if (s) for (var id in s.properties) { var p = s.properties[id]; if (p.ownerId === 'player' && p.purchaseYear === r.year && p.purchasePrice) { bought = true; break; } }
+    if (bought || r.deals.some(function (d) { return d.kind === 'sale'; }) || r.goals.achieved.length) return 'deal';
+    return 'quiet';
+  }
+  var SCENE_LABEL = { deal: 'A deal done: keys change hands', crash: 'A crash: the market falls', succession: 'A succession: the next generation', era: 'A new era: the skyline changes', warning: 'A warning from the bank', quiet: 'A quiet year in the city' };
+  function scene(kind) {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'scene scene--' + kind); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', SCENE_LABEL[kind]); svg.setAttribute('viewBox', '0 0 240 120');
+    var use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', 'assets/report/' + kind + '.svg#scene'); use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', 'assets/report/' + kind + '.svg#scene');
+    svg.appendChild(use); return svg;
   }
   function presentReport(r, done) {
     var steps = [];
@@ -101,18 +147,32 @@
   }
   function reportBody(r) {
     var inner = h('div', { class: 'report__inner' });
-    inner.appendChild(h('div', { class: 'report__head' }, [h('div', { class: 'report__year', text: String(r.year) }), h('div', { class: 'report__era', text: r.eraName + ' · ' + PE().Data.cycles[r.cycle].name }), h('h1', { class: 'report__headline', text: r.headline })]));
+    var head = h('div', { class: 'report__head' });
+    head.appendChild(scene(sceneKind(r)));
+    head.appendChild(h('div', { class: 'report__year', text: String(r.year) }));
+    head.appendChild(h('div', { class: 'report__era', text: r.eraName + ' · ' + PE().Data.cycles[r.cycle].name }));
+    head.appendChild(h('h1', { class: 'report__headline', text: r.headline }));
+    inner.appendChild(head);
+    if (PEUI.advisor) { var bub = PEUI.advisor.mount('report'); if (bub) inner.appendChild(bub); }
     var warns = r.warnings.map(function (w) { if (w === 'negative_cash') return 'Cash is negative. Sell or borrow before next year.'; if (w.indexOf('margin_call:') === 0) { var p = PE().Game.state().properties[w.split(':')[1]]; return 'Margin call on ' + (p ? p.name : 'a property') + ': inject cash this year or the bank force-sells it.'; } return w; });
     for (var i = 0; i < warns.length; i++) inner.appendChild(h('div', { class: 'note note--danger', role: 'alert' }, [icon('warning'), h('span', { text: warns[i] })]));
     var eq = h('section', { class: 'card stack' });
+    var nwEl = h('span', { class: 'stat__value num' }), eqEl = h('span', { class: 'stat__value num ' + (r.equityChange >= 0 ? 'pos' : 'neg') }), cashEl = h('span', { class: 'stat__value num ' + (r.cashAfter < 0 ? 'neg' : '') });
     eq.appendChild(h('div', { class: 'stat-grid stat-grid--3' }, [
-      h('div', { class: 'stat' }, [h('span', { class: 'stat__label', text: 'Net worth' }), h('span', { class: 'stat__value num', text: fmt.money(r.netWorthAfter) })]),
-      h('div', { class: 'stat' }, [h('span', { class: 'stat__label', text: 'Equity change' }), h('span', { class: 'stat__value num ' + (r.equityChange >= 0 ? 'pos' : 'neg'), text: fmt.signed(r.equityChange) })]),
-      h('div', { class: 'stat' }, [h('span', { class: 'stat__label', text: 'Cash' }), h('span', { class: 'stat__value num ' + (r.cashAfter < 0 ? 'neg' : ''), text: fmt.money(r.cashAfter) })])
+      h('div', { class: 'stat' }, [h('span', { class: 'stat__label', text: 'Net worth' }), nwEl]),
+      h('div', { class: 'stat' }, [h('span', { class: 'stat__label', text: 'Equity change' }), eqEl]),
+      h('div', { class: 'stat' }, [h('span', { class: 'stat__label', text: 'Cash' }), cashEl])
     ]));
-    var mv = r.rank.before - r.rank.after;
-    eq.appendChild(h('div', { class: 'rank-move ' + (mv > 0 ? 'pos' : mv < 0 ? 'neg' : '') }, [h('span', { text: 'Rank #' + r.rank.before }), icon(mv > 0 ? 'arrow-up' : mv < 0 ? 'arrow-down' : 'arrow-flat', null, mv > 0 ? 'up' : mv < 0 ? 'down' : 'unchanged'), h('span', { text: '#' + r.rank.after })]));
-    eq.appendChild(cashFlowTable(r.cashFlow));
+    countUp(nwEl, r.netWorthAfter, fmt.money); countUp(eqEl, r.equityChange, fmt.signed); countUp(cashEl, r.cashAfter, fmt.money);
+    if (PEUI.guide) { var eqLine = PEUI.guide.equityLine(r); if (eqLine) eq.appendChild(eqLine); }
+    var mv = r.rank.before - r.rank.after, rm = r.rankMoves || { passed: [], lostTo: [] };
+    var rank = h('div', { class: 'rank-move ' + (mv > 0 ? 'pos' : mv < 0 ? 'neg' : '') }, [h('span', { text: 'Rank #' + r.rank.before }), icon(mv > 0 ? 'arrow-up' : mv < 0 ? 'arrow-down' : 'arrow-flat', null, mv > 0 ? 'up' : mv < 0 ? 'down' : 'unchanged'), h('span', { text: '#' + r.rank.after })]);
+    eq.appendChild(rank);
+    var who = mv > 0 && rm.passed.length ? 'You passed ' + rm.passed.join(' and ') + '.' : mv < 0 && rm.lostTo.length ? 'You lost ground to ' + rm.lostTo.join(' and ') + '.' : mv ? (mv > 0 ? 'Up ' + mv + ' place' + (mv > 1 ? 's' : '') + '.' : 'Down ' + (-mv) + ' place' + (mv < -1 ? 's' : '') + '.') : 'Rank unchanged.';
+    eq.appendChild(h('div', { class: 'rank-move__who small ' + (mv > 0 ? 'pos' : mv < 0 ? 'neg' : 'muted'), text: who }));
+    var cft = cashFlowTable(r.cashFlow);
+    var cells = cft.querySelectorAll('td.num'); if (cells.length) { countUp(cells[0], r.cashFlow.rent, fmt.money); countUp(cells[cells.length - 1], r.cashFlow.net, fmt.money); }
+    eq.appendChild(cft);
     var vc = h('div', { class: 'chips' }); for (var c in r.valuesByCity) vc.appendChild(PEUI.chip(PEUI.cityName(c) + ' ' + (r.valuesByCity[c] >= 0 ? '+' : '') + r.valuesByCity[c] + '%', r.valuesByCity[c] >= 0 ? 'success' : 'danger', r.valuesByCity[c] >= 0 ? 'arrow-up' : 'arrow-down'));
     eq.appendChild(h('div', { class: 'row row--wrap' }, [h('span', { class: 'small muted', text: 'Values:' }), vc]));
     eq.appendChild(h('div', { class: 'small muted', text: 'Next year: ' + PE().Data.cycles[r.cycleAfter].name + ', bank rate ' + (r.baseRateAfter * 100).toFixed(1) + '%' }));
@@ -125,27 +185,37 @@
     var dyn = section('The family', r.lines, 'crown'); if (dyn) inner.appendChild(dyn);
     var evs = section('Events', r.events.map(function (e) { return e.title + (e.kind === 'historical' ? ' (history)' : ''); }), 'warning'); if (evs) inner.appendChild(evs);
     var rv = section('The rivals', r.rivalsMoves.map(function (m) { return m.name + ': ' + m.text; }), 'users'); if (rv) inner.appendChild(rv);
+    if (PEUI.appraisal) { var reveals = r.appraisalReveals || (r.appraisalReveals = PEUI.appraisal.sweep(r.year)); var ap = section('Your appraisals', reveals.map(function (x) { return x.text; }), 'percent'); if (ap) inner.appendChild(ap); }
     inner.appendChild(h('p', { class: 'report__cliff', text: r.cliffhanger }));
     return inner;
   }
   function showReport(r, next) {
     var el = document.getElementById('report'); PEUI.empty(el);
+    PEUI.shownReport = r; if (!r.preview) PEUI.lastReport = r;
+    if (PEUI.advisor && !r.preview) PEUI.advisor.onReport(r);
     var sc = h('div', { class: 'report__scroll', tabindex: '0' }, reportBody(r)); el.appendChild(sc);
     var label = r.bankrupt ? 'See what remains' : r.ended ? 'The end of the campaign' : 'Continue to ' + (r.year + 1);
-    el.appendChild(h('div', { class: 'report__foot' }, PEUI.btn(label, { cls: 'btn--primary btn--lg', icon: 'skip', action: 'report-next' })));
+    var foot = h('div', { class: 'report__foot' }), row = h('div', { class: 'btn-row report__foot-row' });
+    if (r.eraChanged || r.ended) row.appendChild(PEUI.btn('Share card', { cls: 'btn--secondary btn--lg', icon: 'download', action: 'share-card' }));
+    row.appendChild(PEUI.btn(label, { cls: 'btn--primary btn--lg', icon: 'skip', action: 'report-next' }));
+    foot.appendChild(row); el.appendChild(foot);
     el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false'); sc.scrollTop = 0;
     reportNext = function () { el.classList.remove('is-open'); el.setAttribute('aria-hidden', 'true'); reportNext = null; next(); };
-    var b = el.querySelector('.report__foot .btn'); if (b) b.focus();
+    var b = el.querySelector('.report__foot [data-action="report-next"]'); if (b) b.focus();
   }
   var reportNext = null;
   PEUI.actions['report-next'] = function () { if (reportNext) reportNext(); };
+  /* Preview a report object without advancing the game (screenshots, QA). */
+  PEUI._previewReport = function (r, done) { r.preview = true; showReport(r, done || function () {}); };
 
   /* ---------- Skip quiet years ---------- */
   PEUI.actions['skip-quiet'] = function () {
     PEUI.closeMenu(); if (PEUI.sheet.isOpen()) PEUI.sheet.close();
     var s = PE().Game.state(); if (!s || s.status !== 'playing') { endYear(); return; }
     if (s.events.pending.length) { showEvent(function () { PEUI.actions['skip-quiet'](); }); return; }
+    var before = ranksNow();
     var r = PE().Game.skipQuietYears(5); if (!r.ok) { PEUI.toast(r.message, 'danger'); return; }
+    if (r.reports.length) r.reports[r.reports.length - 1].rankMoves = rankMoves(before);
     PEUI.save();
     if (root.AdManager && root.AdManager.countMonth) for (var k = 0; k < r.reports.length; k++) root.AdManager.countMonth();
     if (!r.reports.length) { PEUI.toast(r.stopped || 'Something needs your decision first.'); showEvent(function () { PEUI.refresh(); }); return; }

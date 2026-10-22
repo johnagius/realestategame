@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="240" height="120" viewBox="0 0 240 120">
+  <symbol id="scene" viewBox="0 0 240 120">
+    <!-- A succession: the family tree, an empty chair, the crown passed on. -->
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 100h200"/>
+      <circle cx="120" cy="30" r="10"/>
+      <path d="M120 40v14M84 54h72M84 54v10M156 54v10M120 54v10"/>
+      <circle cx="84" cy="72" r="8"/>
+      <circle cx="120" cy="72" r="8"/>
+      <circle cx="156" cy="72" r="8"/>
+      <path d="M84 80v20M120 80v20M156 80v20"/>
+      <path d="M36 100V70h18v30M36 70l9-8 9 8"/>
+      <path d="M186 100V70h18v30M186 70l9-8 9 8"/>
+      <path d="M40 78h10M40 88h10M190 78h10M190 88h10"/>
+    </g>
+    <g style="fill:var(--scene-accent, #D9B45C)">
+      <path d="M108 16l5 5 7-9 7 9 5-5-2 10h-20z"/>
+      <path d="M110 64h20l-1 4h-18z"/>
+      <path d="M146 64h20l-1 4h-18z"/>
+    </g>
+  </symbol>
+  <use xlink:href="#scene" href="#scene" width="240" height="120" style="color:#1D1A16"/>
+</svg>

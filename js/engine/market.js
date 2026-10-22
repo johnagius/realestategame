@@ -101,6 +101,7 @@
   M.compsNoise = function () {
     var s = PE.S(), n = B.compsNoise;
     if (St.hasTrait('surveyor') || (s.flags.surveyorUntil && s.year < s.flags.surveyorUntil)) n *= 0.5;
+    if (St.hasPerk('family_solicitor')) n *= 0.5;
     return n;
   };
   M.genComps = function (p) {
@@ -149,10 +150,17 @@
     var cities = St.unlockedCities();
     for (var i = 0; i < cities.length; i++) M.topUpCity(cities[i], byCity[cities[i]] || 0, target, bp);
     s.flags.extraDistressed = 0;
-    // Chen merchant network / marriage alliance: one true value revealed per year for free
+    // Chen merchant network: one true value revealed per year for free
     var all = M.listingArray(null);
-    s.flags.chenRevealId = null;
-    if (all.length && (s.familyId === 'chen' || (s.dynasty && s.dynasty.alliances && s.dynasty.alliances.length))) { var pick = R.pick(all); pick.revealed = true; s.flags.chenRevealId = pick.id; }
+    s.flags.chenRevealId = null; s.flags.allyRevealId = null;
+    if (all.length && s.familyId === 'chen') { var pick = R.pick(all); pick.revealed = true; s.flags.chenRevealId = pick.id; }
+    // Marriage alliance (P3.2): the ally's agents reveal one listing a year in that family's favourite city
+    var allies = PE.Rivals.allies();
+    if (all.length && allies.length) {
+      var ally = R.pick(allies), fav = PE.Rivals.favouriteCity(ally), pool = all.filter(function (l) { return l.cityId === fav && !l.revealed; });
+      if (!pool.length) pool = all.filter(function (l) { return !l.revealed; });
+      if (pool.length) { var pick2 = R.pick(pool); pick2.revealed = true; s.flags.allyRevealId = pick2.id; }
+    }
     s.boardYear = s.year;
   };
 
@@ -217,7 +225,7 @@
     var arr = M.listingArray(cityId), out = [];
     for (var i = 0; i < arr.length; i++) out.push(M.listingView(arr[i]));
     out.sort(function (a, b) { return a.askingPrice - b.askingPrice; });
-    return PE.ok({ listings: out, boardYear: s.boardYear, revealedId: s.flags.chenRevealId });
+    return PE.ok({ listings: out, boardYear: s.boardYear, revealedId: s.flags.chenRevealId, allyRevealedId: s.flags.allyRevealId || null });
   };
   M.insiderTip = function (listingId) {
     var s = PE.S(), l = s.listings[listingId];
@@ -235,7 +243,7 @@
   };
   M.cashNeeded = function (l, price, financing) {
     var principal = 0;
-    if (financing && financing.ltv > 0) principal = Math.round(Math.min(price, l.trueValue) * U.clamp(financing.ltv, 0, PE.Finance.maxLtv('player')));
+    if (financing && financing.ltv > 0 && !St.hasPerk('purist')) principal = Math.round(Math.min(price, l.trueValue) * U.clamp(financing.ltv, 0, PE.Finance.maxLtv('player')));
     return { duty: M.stampDuty(l, price), principal: principal, cash: price + M.stampDuty(l, price) - principal };
   };
   M.acceptFloor = function (l) {
@@ -271,6 +279,7 @@
       St.setOwner(l, 'player');
       s.stats.bought++;
       if (price < asking) s.stats.belowAsk++;
+      if (price <= l.trueValue * 0.75) s.stats.steals++;
       if (!s.stats.firstBuyYear[s.stats.bought]) s.stats.firstBuyYear[s.stats.bought] = s.year;
       s.reputation = U.clamp(s.reputation + (St.hasTrait('charmer') ? 0.6 : 0.3), 0, 100);
     } else {
@@ -304,6 +313,7 @@
       var bidders = PE.Rivals.contest(l, price);
       if (bidders.length) return M.startAuction(l, price, financing, false, bidders);
       var res = M.buy(l, price, financing, 'player');
+      if (accepting) s.stats.countersClosed++;
       return PE.ok({ outcome: 'accepted', price: price, property: PE.Property.view(res.property), defect: res.defect, message: 'Offer of ' + U.fmt(price) + ' accepted for ' + res.property.name + '.' + (res.defect ? ' The survey finds rot: condition −' + res.defect + '.' : '') });
     }
     if (r >= floor - B.counterWindow) {
@@ -311,7 +321,7 @@
       l.counterPrice = counter;
       return PE.ok({ outcome: 'countered', counterPrice: counter, message: 'The seller counters at ' + U.fmt(counter) + '.' });
     }
-    s.reputation = U.clamp(s.reputation - B.lowballRepHit, 0, 100);
+    St.rep(-B.lowballRepHit);
     return PE.ok({ outcome: 'rejected', message: 'The seller is insulted by ' + U.fmt(price) + ' and shows you the door.' });
   };
 
@@ -339,9 +349,10 @@
     a.currentBid = bid; a.leader = 'rival:' + best.id; a.log.push({ who: best.id, bid: bid });
     return { rivalId: best.id, bid: bid };
   };
+  /* round is 1-based: the round the player is about to bid in (1..maxRounds); bidsMade counts bids already placed. */
   M.auctionView = function (a) {
     var s = PE.S(), l = s.listings[a.listingId];
-    return { id: a.id, listingId: a.listingId, name: l ? l.name : '', round: a.round, maxRounds: B.auctionRounds, currentBid: a.currentBid, leader: a.leader, leaderName: a.leader === 'player' ? 'You' : D.rivalById(a.leader.replace('rival:', '')).name, bidders: a.bidders.map(function (b) { return D.rivalById(b.id).name; }), log: a.log };
+    return { id: a.id, listingId: a.listingId, name: l ? l.name : '', round: Math.min(a.round + 1, B.auctionRounds), bidsMade: a.round, maxRounds: B.auctionRounds, currentBid: a.currentBid, leader: a.leader, leaderName: a.leader === 'player' ? 'You' : D.rivalById(a.leader.replace('rival:', '')).name, bidders: a.bidders.map(function (b) { return D.rivalById(b.id).name; }), log: a.log };
   };
   M.bid = function (auctionId, price) {
     var s = PE.S(), a = s.auction;
@@ -355,14 +366,25 @@
     var resp = M.rivalResponse(a, price);
     if (!resp) {
       var res = M.buy(l, price, a.financing, 'player'); s.auction = null; s.stats.auctionsWon++;
+      M.outbidRivals(a);
       return PE.ok({ outcome: 'won', price: price, round: a.round, currentBid: price, property: PE.Property.view(res.property), message: 'Going, going, gone. ' + res.property.name + ' for ' + U.fmt(price) + '.' });
     }
     if (a.round >= B.auctionRounds) {
       M.buy(l, resp.bid, null, 'rival:' + resp.rivalId); s.auction = null;
       var rv = s.rivals[resp.rivalId]; rv.lastAction = 'Outbid you at auction for ' + l.name;
+      PE.Rivals.adjustRelation(resp.rivalId, B.relationOutbidBy);
       return PE.ok({ outcome: 'outbid', round: a.round, currentBid: resp.bid, winner: resp.rivalId, message: D.rivalById(resp.rivalId).name + ' takes it at ' + U.fmt(resp.bid) + '.' });
     }
     return PE.ok({ outcome: 'continue', round: a.round, currentBid: resp.bid, auction: M.auctionView(a), message: D.rivalById(resp.rivalId).name + ' raises to ' + U.fmt(resp.bid) + '.' });
+  };
+  /* The player won against these bidders: they resent it (P3.2 relation driver). */
+  M.outbidRivals = function (a) {
+    var s = PE.S();
+    for (var i = 0; i < a.bidders.length; i++) {
+      var id = a.bidders[i].id; if (!s.rivals[id]) continue;
+      PE.Rivals.adjustRelation(id, B.relationOutbid);
+      s.stats.outbidRivals[id] = (s.stats.outbidRivals[id] || 0) + 1;
+    }
   };
   M.withdraw = function (auctionId) {
     var s = PE.S(), a = s.auction;
@@ -432,14 +454,14 @@
     if (idx < 0) return PE.fail('No such offer');
     var o = s.offers[idx], p = s.properties[o.propertyId], rv = s.rivals[o.rivalId];
     s.offers.splice(idx, 1);
-    if (!accept) { rv.relation = U.clamp(rv.relation - 2, 0, 100); return PE.ok({ accepted: false, message: 'Offer declined.' }); }
+    if (!accept) { PE.Rivals.adjustRelation(o.rivalId, B.relationDeclined); return PE.ok({ accepted: false, message: 'Offer declined.' }); }
     if (!p || p.ownerId !== 'player') return PE.fail('Property no longer yours');
     if (p.renovation) return PE.fail('Finish the works first');
     var q = M.saleQuote(p, o.price / (p.trueValue * M.saleMood()));
     q.price = o.price;
     M.completeSale(p, q, 'rival:' + o.rivalId, null);
     PE.Rivals.paid(o.rivalId, o.price, p);
-    rv.relation = U.clamp(rv.relation + 4, 0, 100);
+    PE.Rivals.adjustRelation(o.rivalId, B.relationSoldTo);
     return PE.ok({ accepted: true, price: q.price, fees: q.fees, tax: q.tax, cashGained: q.cashGained, message: 'Sold ' + p.name + ' to ' + D.rivalById(o.rivalId).name + ' for ' + U.fmt(q.price) + '.' });
   };
 

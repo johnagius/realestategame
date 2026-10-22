@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="240" height="120" viewBox="0 0 240 120">
+  <symbol id="scene" viewBox="0 0 240 120">
+    <!-- A quiet year: a lamp-lit street at dusk, smoke from a chimney, a moon in the accent colour. -->
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 100h200"/>
+      <path d="M44 100V62l16-14 16 14v38M76 100V58l16-14 16 14v42"/>
+      <path d="M52 70h6v6h-6zM66 70h6v6h-6zM84 66h6v6h-6zM98 66h6v6h-6zM56 100V88h8v12M88 100V86h8v14"/>
+      <path d="M54 52v-10h5v6M86 48v-10h5v6"/>
+      <path d="M56 42c0-6 4-6 4-12s-4-6-4-12"/>
+      <path d="M140 100V70h26v30M176 100V64h22v36"/>
+      <path d="M146 78h5v5h-5zM156 78h5v5h-5zM182 72h4v4h-4zM190 72h4v4h-4zM182 84h4v4h-4zM190 84h4v4h-4z"/>
+      <path d="M122 100V62M118 62h8M122 62v-6"/>
+      <path d="M116 56h12l-2-8h-8z"/>
+    </g>
+    <g style="fill:var(--scene-accent, #D9B45C)">
+      <path d="M196 20a12 12 0 1 0 10 18 10 10 0 0 1-10-18z"/>
+      <rect x="150" y="92" width="6" height="8"/>
+      <rect x="120" y="50" width="4" height="4"/>
+    </g>
+  </symbol>
+  <use xlink:href="#scene" href="#scene" width="240" height="120" style="color:#1D1A16"/>
+</svg>

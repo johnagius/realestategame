@@ -65,6 +65,7 @@
     var t = P.type(p), s = PE.S(), c = P.city(p);
     if (!t.canRent || p.condition < B.unrentableBelow) return 0;
     if (p.renovation && p.renovation.tier !== 'patch') return 0;
+    if (p.vacantUntil && s.year < p.vacantUntil) return 0;
     if (p.lease) return 1.0;
     if (s.flags.warLeaseUntil && s.year < s.flags.warLeaseUntil && p.ownerId === 'player') return 1.0;
     var vacancy = 1 - B.baseOccupancy;
@@ -76,7 +77,7 @@
     if (ctx && ctx.mgmt === 'manager') vacancy *= (1 - 0.4 * (ctx.quality || 0.6));
     if (c.trait === 'rent_control') vacancy -= 0.03;
     if (s.flags.vacancyUntil && s.year < s.flags.vacancyUntil && p.ownerId === 'player') vacancy *= 2;
-    if (s.flags.cityVacancyYear === s.year && s.flags.cityVacancyCity === p.cityId && p.ownerId === 'player') vacancy += 0.2;
+    if (s.flags.cityVacancyYear === s.year && s.flags.cityVacancyCity === p.cityId && p.ownerId === 'player') vacancy += s.flags.cityVacancyAmount || 0.2;
     var tc = D.tenantClasses[p.tenantClass] || D.tenantClasses.clerks;
     vacancy += (1 - tc.stability) * 0.1;
     vacancy += R.range(-0.02, 0.02);
@@ -189,7 +190,7 @@
       if (p.type === 'land' && k !== 'rebuild') continue;
       if (k === 'patch' && p.condition >= 100) continue;
       var years = t.years; if (k === 'refurbish' && P.city(p).trait === 'heritage_city') years += 1;
-      out.push({ tier: k, name: t.name, cost: P.renovationCost(p, k), years: years, conditionGain: t.gain, uplift: t.uplift, risk: t.risk, riskKind: t.riskKind });
+      out.push({ tier: k, name: t.name, cost: P.renovationCost(p, k), years: years, conditionGain: t.gain, uplift: t.uplift, risk: t.risk * (St.hasPerk('builders_guild') ? 0.5 : 1), riskKind: t.riskKind });
     }
     return out;
   };
@@ -206,8 +207,9 @@
     var years = t.years; if (tier === 'refurbish' && P.city(p).trait === 'heritage_city') years += 1;
     if (years === 0) { P.applyRenovation(p, tier); return PE.ok({ message: D.renovation[tier].name + ' done. Condition now ' + Math.round(p.condition) + ' (' + P.band(p).name + ').', cost: cost, property: p }); }
     // Risk is rolled now but revealed at completion.
-    var overrun = tier === 'refurbish' && R.chance(t.risk) ? Math.round(cost * t.riskCost) : 0;
-    var delay = tier === 'rebuild' && R.chance(t.risk) ? 1 : 0;
+    var risk = t.risk * (St.hasPerk('builders_guild') ? 0.5 : 1);
+    var overrun = tier === 'refurbish' && R.chance(risk) ? Math.round(cost * t.riskCost) : 0;
+    var delay = tier === 'rebuild' && R.chance(risk) ? 1 : 0;
     p.renovation = { tier: tier, yearsLeft: years, cost: cost, overrun: overrun, delay: delay, started: s.year };
     p.occupancy = 0;
     return PE.ok({ message: t.name + ' started; ready in ' + years + ' year' + (years > 1 ? 's' : '') + '.', cost: cost, property: p });
@@ -251,7 +253,7 @@
     if (P.city(p).trait === 'rent_control' && setting > p.rentSetting + 0.02) setting = Math.round((p.rentSetting + 0.02) * 100) / 100;
     var was = p.rentSetting;
     p.rentSetting = setting;
-    if (setting > 1.1 && p.condition < 40 && setting > was) s.reputation = U.clamp(s.reputation - 1, 0, 100); // slumlording
+    if (setting > 1.1 && p.condition < 40 && setting > was) St.rep(-1); // slumlording
     p.rentAnnual = P.grossRent(p);
     p.tenantClass = P.tenantClassFor(p);
     return PE.ok({ message: 'Rent set to ' + Math.round(setting * 100) + '% of market.', rentAnnual: p.rentAnnual, rentSetting: setting });

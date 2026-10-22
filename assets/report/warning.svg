@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="240" height="120" viewBox="0 0 240 120">
+  <symbol id="scene" viewBox="0 0 240 120">
+    <!-- A warning from the bank: a letter under the door of the bank's portico, wax seal in the accent colour. -->
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 100h200"/>
+      <path d="M60 100V46h120v54"/>
+      <path d="M52 46l68-22 68 22"/>
+      <path d="M72 54v46M96 54v46M144 54v46M168 54v46"/>
+      <path d="M108 100V70h24v30"/>
+      <path d="M60 100h120"/>
+      <path d="M186 82h36v26h-36z"/>
+      <path d="M186 82l18 14 18-14"/>
+    </g>
+    <g style="fill:var(--scene-accent, #D9B45C)">
+      <circle cx="204" cy="100" r="5"/>
+      <path d="M114 34l6 6 6-6-6-10z"/>
+    </g>
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M120 78v10M120 92v1"/>
+    </g>
+  </symbol>
+  <use xlink:href="#scene" href="#scene" width="240" height="120" style="color:#1D1A16"/>
+</svg>

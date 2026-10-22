@@ -65,7 +65,7 @@ body { overflow: hidden; }
   position: fixed; top: 0; left: 0; right: 0; z-index: 50; background: var(--hud-bg); color: var(--hud-ink);
   padding-top: var(--safe-top); box-shadow: 0 2px 10px rgba(0,0,0,0.25);
 }
-.hud__inner { height: var(--hud-h); max-width: var(--content-max); margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 44px 20px; align-items: center; column-gap: var(--sp-2); padding: 0 var(--sp-3); }
+.hud__inner { position: relative; height: var(--hud-h); max-width: var(--content-max); margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 44px 20px; align-items: center; column-gap: var(--sp-2); padding: 0 var(--sp-3); }
 .hud__stats { display: contents; }
 .hud__row { grid-row: 1; grid-column: 1; }
 .hud__chips { grid-column: 1 / -1; grid-row: 2; }

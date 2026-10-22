@@ -114,6 +114,7 @@
       inner.appendChild(h('div', { id: 'deal-goals', class: 'span' }));
       var boardWrap = h('section', { class: 'stack span', 'aria-label': 'Deal board' });
       boardWrap.appendChild(h('div', { class: 'section-head' }, [h('h2', { text: 'Deal board' }), h('span', { class: 'muted small', id: 'deal-count' })]));
+      boardWrap.appendChild(h('div', { id: 'deal-guide', class: 'stack' }));
       boardWrap.appendChild(h('div', { class: 'tabs', id: 'deal-tabs', role: 'tablist' }));
       var tools = h('div', { class: 'board-tools' });
       var seg = h('div', { class: 'seg', id: 'deal-sort', role: 'group', 'aria-label': 'Sort' });
@@ -133,6 +134,8 @@
       var pp = el.querySelector('#deal-paper'), key = s.year + ':' + (s.paper || []).length;
       if (pp.dataset.key !== key) { PEUI.empty(pp); pp.appendChild(paper(s)); pp.dataset.key = key; }
       var gg = el.querySelector('#deal-goals'); PEUI.empty(gg); gg.appendChild(goals());
+      var dg = el.querySelector('#deal-guide'); PEUI.empty(dg);
+      if (PEUI.guide) { var c1 = PEUI.guide.callout('end'); if (c1) dg.appendChild(c1); var c2 = PEUI.guide.callout('board'); if (c2) dg.appendChild(c2); }
       board(el);
     }
   });
@@ -167,10 +170,12 @@
     box.appendChild(h('div', { class: 'kicker', text: 'Comparable sales' }));
     var comps = h('div', { class: 'stack stack--2' });
     for (var j = 0; j < ap.comps.length; j++) {
-      var c = ap.comps[j];
-      comps.appendChild(h('div', { class: 'comp' }, [h('span', { class: 'comp__t', text: c.district + ' · ' + PE().Data.propertyTypes[c.type].name }), h('span', { class: 'comp__v', text: fmt.psqm(c.pricePerSqm) }), h('span', { class: 'comp__s', text: c.sqm + ' m² · sold ' + c.year + ' · about ' + fmt.money(c.pricePerSqm * c.sqm) })]));
+      var c = ap.comps[j], target = PEUI.appraisal ? PEUI.appraisal.compTarget(c) : null;
+      var kids = [h('span', { class: 'comp__t', text: c.district + ' · ' + PE().Data.propertyTypes[c.type].name }), h('span', { class: 'comp__v', text: fmt.psqm(c.pricePerSqm) }), h('span', { class: 'comp__s', text: c.sqm + ' m² · sold ' + c.year + ' · about ' + fmt.money(c.pricePerSqm * c.sqm) + (target ? ' · tap to see it on the map' : '') })];
+      comps.appendChild(target ? h('button', { type: 'button', class: 'comp comp--tap', 'data-action': 'comp-focus', 'data-id': target, 'aria-label': 'Show ' + c.district + ' comparable on the city map' }, kids) : h('div', { class: 'comp' }, kids));
     }
     box.appendChild(comps);
+    if (PEUI.guide) { var gc = PEUI.guide.callout('appraisal', { listing: l, appraisal: ap }); if (gc) box.appendChild(gc); }
     var est = h('div', { class: 'est-band' + (ap.revealed ? ' est-band--revealed' : '') });
     if (ap.revealed) est.appendChild(h('div', { style: 'grid-column:1/-1;text-align:center' }, [h('div', { class: 'est-band__l', text: 'True value (revealed)' }), h('div', { class: 'est-band__v', text: fmt.money(ap.estimate) })]));
     else {
@@ -179,6 +184,7 @@
       est.appendChild(h('div', {}, [h('div', { class: 'est-band__l', text: 'High' }), h('div', { class: 'est-band__v', text: fmt.money(ap.highEstimate) })]));
     }
     box.appendChild(est);
+    if (!ap.revealed && PEUI.appraisal) box.appendChild(PEUI.appraisal.field(l, ap));
     var ratio = l.askingPrice / ap.estimate;
     box.appendChild(h('div', { class: 'note ' + (ratio < 0.93 ? 'note--success' : ratio > 1.07 ? 'note--warn' : '') }, [icon(ratio < 0.93 ? 'sparkle' : 'info'), h('span', { text: 'Asking is ' + Math.abs(Math.round((ratio - 1) * 100)) + '% ' + (ratio < 1 ? 'below' : 'above') + ' your estimate.' })]));
     if (!ap.revealed) box.appendChild(PEUI.btn('Insider tip: reveal true value (1 per year)', { cls: 'btn--secondary btn--block', icon: 'key', action: 'insider-tip', 'data-id': l.id }));
@@ -220,6 +226,7 @@
     lf.appendChild(h('label', { class: 'field__label', for: 'offer-ltv' }, [h('span', { text: 'Mortgage (loan to value)' }), h('strong', { id: 'offer-ltv-v', text: Math.round(offer.ltv * 100) + '%' })]));
     lf.appendChild(PEUI.range({ id: 'offer-ltv', min: 0, max: Math.round((q ? q.maxLtv : l.maxLtv) * 100), step: 5, value: Math.round(offer.ltv * 100), 'data-input': 'offer-ltv' }));
     box.appendChild(lf);
+    box.appendChild(h('div', { id: 'offer-guide' }, PEUI.guide ? PEUI.guide.callout('ltv', { listing: l, quote: q }) : null));
     var seg = h('div', { class: 'seg seg--block', role: 'group', 'aria-label': 'Mortgage type' });
     seg.appendChild(h('button', { type: 'button', class: 'seg__btn', 'data-action': 'offer-type', 'data-type': 'io', 'aria-pressed': String(offer.type === 'io' && !offer.fixed), text: 'Interest-only' }));
     seg.appendChild(h('button', { type: 'button', class: 'seg__btn', 'data-action': 'offer-type', 'data-type': 'amort', 'aria-pressed': String(offer.type === 'amort' && !offer.fixed), text: 'Amortising 25y' }));
@@ -259,6 +266,7 @@
     PEUI.setText(document.getElementById('offer-ltv-v'), Math.round(offer.ltv * 100) + '%');
     var o = document.getElementById('offer-odds'), odds = oddsFor(l); if (o) { PEUI.empty(o); o.appendChild(h('span', { text: 'Odds' })); o.appendChild(PEUI.bar(odds.frac, odds.kind)); o.appendChild(h('span', { text: odds.text })); }
     var qp = document.getElementById('offer-quote'); if (qp) { PEUI.empty(qp); qp.appendChild(quotePanel(l, q, fs, s)); }
+    var og = document.getElementById('offer-guide'); if (og && PEUI.guide) { PEUI.empty(og); PEUI.append(og, PEUI.guide.callout('ltv', { listing: l, quote: q })); }
     var segs = document.querySelectorAll('#offer-panel .seg__btn'); for (var i = 0; i < segs.length; i++) { var t = segs[i].dataset.type; segs[i].setAttribute('aria-pressed', String(t === 'fixed' ? offer.fixed : (offer.type === t && !offer.fixed))); }
     var foot = PEUI.sheet.foot(); if (foot) { PEUI.empty(foot); foot.appendChild(offerFoot(l)); }
   }
@@ -268,11 +276,12 @@
     var ap = PE().Market.appraise(id); if (!ap.ok) { PEUI.toast(ap.message, 'danger'); return; }
     if (offer.id !== id) {
       var mid = l.revealed ? l.trueValue : Math.round((l.lowEstimate + l.highEstimate) / 2);
-      offer.id = id; offer.price = Math.max(Math.round(l.askingPrice * 0.6), Math.min(Math.round(l.askingPrice * 1.2), l.counterPrice || mid));
+      offer.id = id; offer.price = Math.max(Math.round(l.askingPrice * 0.6), Math.min(Math.round(l.askingPrice * 1.2), l.counterPrice || Math.min(mid, l.askingPrice)));
       if (l.seller === 'auction') offer.price = l.askingPrice;
       offer.ltv = Math.round(l.maxLtv * 20) / 20; offer.type = 'io'; offer.fixed = false;
     }
     var body = [];
+    if (PEUI.advisor) { if (affordability(l, PEUI.summary().cash).text === 'Stretch deal') PEUI.advisor.trigger('stretch', 'listing'); body.push(PEUI.advisor.mount('listing')); }
     if (note) body.push(h('div', { class: 'note note--info' }, [icon('info'), h('span', { text: note })]));
     body.push(statsGrid(l, ap));
     body.push(h('div', { class: 'chips' }, [PEUI.chip(l.sellerName, l.seller === 'auction' ? 'gold' : null, l.seller === 'auction' ? 'gavel' : 'person'), PEUI.chip(l.era.charAt(0).toUpperCase() + l.era.slice(1) + ' · built ' + l.builtYear, 'outline')]));
@@ -306,8 +315,10 @@
   function handleOutcome(r, l) {
     if (r.outcome === 'accepted' || r.outcome === 'won') {
       PEUI.sound('purchase'); PEUI.confetti(40); PEUI.toast(r.message, 'success');
+      var reveal = PEUI.appraisal ? PEUI.appraisal.reveal(r.property.id, null, r.property.trueValue, PEUI.summary().year, { defect: r.defect }) : null;
       var body = PEUI.sheet.open({ id: 'bought', title: 'Yours', sub: r.property.name, body: [
         h('div', { class: 'note note--success' }, [icon('check'), h('span', { text: r.message })]),
+        reveal ? h('div', { class: 'note note--info reveal' }, [icon('percent'), h('span', { text: reveal.text })]) : null,
         h('div', { class: 'stat-grid' }, [stat('Paid', fmt.money(r.price)), stat('Now worth', fmt.money(r.property.trueValue)), stat('Condition', r.property.conditionLabel + (r.defect ? ' (defect −' + r.defect + ')' : '')), stat('Mortgage', r.property.mortgage ? fmt.money(r.property.mortgage.principal) : 'None')]),
         r.defect ? h('div', { class: 'note note--warn' }, [icon('warning'), h('span', { text: 'The survey found hidden problems: condition dropped by ' + r.defect + '.' })]) : null
       ], foot: h('div', { class: 'btn-row' }, [PEUI.btn('Back to deals', { cls: 'btn--secondary', action: 'sheet-close' }), PEUI.btn('Open property', { cls: 'btn--primary', action: 'open-property', 'data-id': r.property.id, icon: 'building' })]) });
@@ -341,7 +352,9 @@
     for (var i = 0; i < a.maxRounds; i++) rounds.appendChild(h('span', { class: i < a.round ? 'is-done' : '' }));
     var log = h('div', { class: 'auction-log', 'aria-live': 'polite' });
     for (var j = 0; j < a.log.length; j++) log.appendChild(h('div', { text: (a.log[j].who === 'player' ? 'You' : PEUI.rivalName('rival:' + a.log[j].who)) + ' bid ' + fmt.money(a.log[j].bid) }));
+    if (PEUI.advisor) PEUI.advisor.trigger('auction', 'auction');
     var body = [
+      PEUI.advisor ? PEUI.advisor.mount('auction') : null,
       message ? h('div', { class: 'note note--warn' }, [icon('gavel'), h('span', { text: message })]) : null,
       h('div', { class: 'kicker', style: 'text-align:center', text: 'Current bid · ' + a.leaderName }),
       h('div', { class: 'auction-bid num', text: fmt.money(a.currentBid) }),

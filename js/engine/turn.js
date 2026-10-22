@@ -12,7 +12,7 @@
     var s = PE.S();
     return { year: s.year, era: St.era().id, eraName: St.era().name, cashFlow: { rent: 0, costs: 0, debtService: 0, taxes: 0, interest: 0, net: 0 }, equityChange: 0, netWorthBefore: 0, netWorthAfter: 0, cashBefore: s.cash, cashAfter: 0,
       valuesByCity: {}, deals: [], rivalsMoves: [], events: [], dynasty: [], lines: [], goals: { achieved: [], progress: [] }, rank: { before: 0, after: 0 }, warnings: [], cliffhanger: '', headline: '', needsDecision: false, decisions: [],
-      cycle: s.cycle.phase, cycleAfter: '', baseRate: s.baseRate, baseRateAfter: 0, eraChanged: false, succession: false, bankrupt: false, ended: false, paper: [] };
+      cycle: s.cycle.phase, cycleAfter: '', baseRate: s.baseRate, baseRateAfter: 0, eraChanged: false, eraSetPiece: null, succession: false, bankrupt: false, ended: false, paper: [], scenario: null, challenge: null };
   };
 
   T.advanceCycle = function () {
@@ -77,6 +77,10 @@
     // 6. Goals (evaluated on the year just played)
     PE.Goals.evaluate(rep);
     if (wasDepression && s.cycle.phase !== 'depression' && debtAtStart > 0 && s.stats.forcedSalesThisEra === 0) s.stats.depressionsSurvived++;
+    if (wasDepression && s.cash >= 0.3 * Math.max(1, St.netWorth('player'))) s.stats.cashKingYears++;
+    // achievement counters (P5.5): leverage carried without a forced sale, years at #1
+    if (St.ltv('player') > 0.65 && !rep.deals.some(function (d) { return d.kind === 'forced_sale'; })) s.stats.highLtvYears++; else s.stats.highLtvYears = 0;
+    if (St.rank() === 1) s.stats.rank1Years++; else s.stats.rank1Years = 0;
     // 7. Bankruptcy (bible §9)
     cf.net = rent - costs - cf.debtService - cf.taxes + cf.interest;
     if (s.cash < 0) { s.stats.negativeCashYears++; rep.warnings.push('negative_cash'); } else s.stats.negativeCashYears = 0;
@@ -94,13 +98,23 @@
     var newEra = St.era();
     if (newEra.id !== oldEra) { rep.eraChanged = true; s.eraId = newEra.id; s.stats.forcedSalesThisEra = 0; PE.Goals.assignEra(); rep.lines.push('A new era: ' + newEra.name + '.'); }
     if (s.year > s.endYear) { s.status = s.status === 'bankrupt' ? 'bankrupt' : 'ended'; rep.ended = true; }
+    // Scenario (P5.4) and weekly challenge (P5.3) outcomes
+    if (s.scenario) {
+      if (s.status === 'bankrupt') s.scenario.result = 'lost';
+      else if (rep.ended) s.scenario.result = St.netWorth('player') >= s.scenario.targetNetWorth ? 'won' : 'lost';
+      rep.scenario = U.clone(s.scenario);
+      if (s.scenario.result) { rep.headline = s.scenario.result === 'won' ? 'You came through the ' + s.scenario.name + ' with the house intact.' : 'The ' + s.scenario.name + ' beat the House of ' + s.dynasty.surname + '.'; }
+    }
+    if (s.challenge) { s.challenge.score = PE.Goals.challengeScore(); rep.challenge = U.clone(s.challenge); if (rep.ended || rep.bankrupt) PE.Game.recordChallenge(); }
+    // the end-of-year leaderboard snapshot feeds prevRank / rankDelta next year
+    PE.Rivals.snapshotRanks();
     // 9. New year: board, events, goal, paper
     if (s.status === 'playing') {
       PE.Market.refreshBoard();
-      PE.Events.rollYearly(rep);
+      PE.Events.rollYearly(rep, rep.eraChanged);
       PE.Goals.assignYearly();
       rep.paper = PE.Events.makePaper();
-    }
+    } else if (rep.ended && !rep.bankrupt) PE.Goals.checkAchievements(rep); // 'The Long Game' is checked on the final report
     // 10. Report
     s.cash = Math.round(s.cash);
     rep.netWorthAfter = St.netWorth('player'); rep.equityChange = rep.netWorthAfter - rep.netWorthBefore; rep.cashAfter = s.cash; rep.rank.after = St.rank();
@@ -135,7 +149,8 @@
     rep.needsDecision = dec.length > 0;
     if (!rep.headline) {
       var ch = rep.equityChange, pct = rep.netWorthBefore > 0 ? Math.round(ch / rep.netWorthBefore * 100) : 0;
-      if (rep.succession) rep.headline = 'A new head of the family.';
+      if (rep.eraSetPiece) rep.headline = rep.eraSetPiece.title + ': a new era begins.';
+      else if (rep.succession) rep.headline = 'A new head of the family.';
       else if (rep.deals.some(function (d) { return d.kind === 'forced_sale'; })) rep.headline = 'The bank came calling.';
       else if (rep.cycle === 'depression') rep.headline = 'Depression: values fell across the board.';
       else if (rep.goals.achieved.some(function (g) { return g.kind === 'campaign'; })) rep.headline = rep.goals.achieved.filter(function (g) { return g.kind === 'campaign'; })[0].desc;

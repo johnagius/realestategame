@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="240" height="120" viewBox="0 0 240 120">
+  <symbol id="scene" viewBox="0 0 240 120">
+    <!-- A crash: the ticker line falls through the skyline; a cloud over the city. -->
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 100h200"/>
+      <path d="M36 100V66h22v34M70 100V54h26v46M108 100V72h20v28M140 100V48h30v52M182 100V62h24v38"/>
+      <path d="M42 74h6M42 84h6M78 62h6M86 62h6M78 74h6M86 74h6M114 80h6M148 58h6M156 58h6M148 70h6M156 70h6M148 82h6M156 82h6M190 70h6M190 82h6"/>
+      <path d="M60 24c-6 0-10 4-10 9 0 3 1 5 3 6h40c5 0 8-4 8-8s-4-8-9-8c-1-8-8-12-14-12-8 0-14 6-15 12-1 0-2 1-3 1z"/>
+    </g>
+    <g fill="none" style="stroke:var(--scene-accent, #D9B45C)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M24 30l30 6 26-2 22 24 20 10 24 16 26 6 22 8"/>
+      <path d="M186 90l8 8 8-8"/>
+    </g>
+    <g style="fill:var(--scene-accent, #D9B45C)">
+      <circle cx="24" cy="30" r="3.5"/>
+    </g>
+  </symbol>
+  <use xlink:href="#scene" href="#scene" width="240" height="120" style="color:#1D1A16"/>
+</svg>

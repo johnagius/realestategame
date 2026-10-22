@@ -79,6 +79,8 @@
       var sm = el.querySelector('#pf-summary'); PEUI.empty(sm);
       sm.appendChild(h('section', { class: 'card stat-grid stat-grid--3', 'aria-label': 'Portfolio summary' }, [stat('Properties', String(r.properties.length)), stat('Assets', fmt.money(fs.assets)), stat('Debt', fmt.money(fs.debt), fs.debt ? 'neg' : ''), stat('Portfolio LTV', Math.round(fs.ltv * 100) + '%', fs.ltv > 0.78 ? 'neg' : ''), stat('Debt service', fmt.money(fs.annualDebtService) + '/yr'), stat('Quote rate', (fs.quoteRate * 100).toFixed(2) + '%')]));
       var wb = el.querySelector('#pf-warn'); PEUI.empty(wb);
+      if (PEUI.advisor) { if (s.offers > 0) PEUI.advisor.trigger('rival_offer', 'portfolio'); var bub = PEUI.advisor.mount('portfolio'); if (bub) wb.appendChild(bub); }
+      if (PEUI.guide) { var gc = PEUI.guide.callout('portfolio'); if (gc) wb.appendChild(gc); }
       for (var w = 0; w < fs.covenantWarnings.length; w++) { var cw = fs.covenantWarnings[w]; wb.appendChild(h('div', { class: 'note ' + (cw.kind === 'margin_call' ? 'note--danger' : 'note--warn') }, [icon('warning'), h('span', { class: 'grow', text: cw.text }), PEUI.btn('Open', { cls: 'btn--secondary btn--sm', action: 'open-property', 'data-id': cw.propertyId })])); }
       if (s.cash < 0) wb.appendChild(h('div', { class: 'note note--danger' }, [icon('warning'), h('span', { text: 'Cash is negative. Two years without cash and nothing to sell means bankruptcy.' })]));
       offersBlock(el);
@@ -142,6 +144,7 @@
     }
     // Renovate
     body.push(h('div', { class: 'kicker', text: 'Renovate' }));
+    if (PEUI.guide) body.push(PEUI.guide.callout('renovate', { property: p }));
     var ro = p.renovationOptions || [];
     if (!ro.length) body.push(h('p', { class: 'small muted', text: 'Nothing to do here.' }));
     for (var i = 0; i < ro.length; i++) {
@@ -159,6 +162,7 @@
     // Finance
     if (!p.renovation) {
       body.push(h('div', { class: 'kicker', text: p.mortgage ? 'Refinance' : 'Borrow against it' }));
+      if (PEUI.guide) body.push(PEUI.guide.callout('refinance', { property: p }));
       var q = PE().Finance.mortgageQuote(id, ps.refiLtv, p.mortgage ? p.mortgage.type : 'io');
       var maxRefi = Math.min(B.refinanceLtv, fs.maxLtv);
       body.push(h('div', { class: 'field' }, [h('label', { class: 'field__label', for: 'refi-ltv' }, [h('span', { text: 'New loan to value' }), h('strong', { id: 'refi-v', text: Math.round(ps.refiLtv * 100) + '%' })]), PEUI.range({ id: 'refi-ltv', min: 0, max: Math.round(maxRefi * 100), step: 5, value: Math.round(ps.refiLtv * 100), 'data-input': 'refi-ltv' })]));

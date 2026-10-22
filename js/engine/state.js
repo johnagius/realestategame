@@ -83,6 +83,14 @@
     return U.sum(State.ownedProps(ownerId || 'player'), function (p) { return p.mortgage ? PE.Finance.annualPayment(p.mortgage) : 0; });
   };
   State.hasTrait = function (t) { var h = PE.S().dynasty.head; return h && h.traits.indexOf(t) >= 0; };
+  State.hasPerk = function (id) { var s = PE.S(); return !!(s && s.perks && s.perks.indexOf(id) >= 0); };
+  /* Every reputation change goes through here: 'Thick skin' halves losses; clamps 0..100. Returns the applied delta. */
+  State.rep = function (delta) {
+    var s = PE.S(); if (!delta) return 0;
+    if (delta < 0 && State.hasPerk('thick_skin')) delta = delta / 2;
+    var before = s.reputation; s.reputation = U.clamp(s.reputation + delta, 0, 100);
+    return s.reputation - before;
+  };
   State.rank = function () {
     var s = PE.S(), nw = State.netWorth('player'), rank = 1;
     for (var id in s.rivals) if (!s.rivals[id].bankrupt && State.netWorth('rival:' + id) > nw) rank++;
@@ -101,10 +109,20 @@
     var fam = D.familyById(opts.familyId || 'chen');
     if (!fam) throw new Error('Unknown family ' + opts.familyId);
     var seed = opts.seed === undefined ? 12345 : opts.seed;
+    var perks = (opts.perks || []).filter(function (id) { return !!D.perkById(id); });
+    var scenario = opts.scenario ? D.scenarioById(opts.scenario) : null;
+    if (opts.scenario && !scenario) throw new Error('Unknown scenario ' + opts.scenario);
+    if (!scenario && perks.indexOf('crisis_start') >= 0) scenario = D.scenarios.crash1929;
+    var startYear = scenario ? scenario.startYear : D.startYear;
+    var endYear = scenario ? Math.min(D.endYear, startYear + B.scenarioYears) : (opts.endYear || D.endYear);
     var s = {
       saveVersion: PE.Storage.SAVE_VERSION,
       seed: seed, rng: PE.RNG.hashSeed(seed),
-      year: D.startYear, startYear: D.startYear, endYear: D.endYear,
+      year: D.startYear, startYear: startYear, endYear: endYear,
+      mode: scenario ? 'scenario' : (opts.challenge ? 'challenge' : 'campaign'),
+      scenario: scenario ? { id: scenario.id, name: scenario.name, startYear: startYear, winYear: endYear, targetNetWorth: 0, result: null } : null,
+      challenge: opts.challenge ? { week: opts.challenge.week, seed: seed, endYear: endYear, score: 0, recorded: false } : null,
+      legacyRecorded: false,
       eraId: 'victorian', status: 'playing', endReason: null,
       familyId: fam.id, familyName: fam.name, color: fam.color,
       cash: fam.startCash, startCash: fam.startCash, startNetWorth: 0,
@@ -115,18 +133,20 @@
       priceIndex: 1,
       cities: {}, properties: {}, owned: { player: [] },
       listings: {}, auction: null, offers: [], boardYear: D.startYear,
-      rivals: {},
+      rivals: {}, relations: {},
+      ranks: { year: D.startYear, byId: {}, prevYear: null, prevById: {} },
       dynasty: null,
       events: { pending: [], thisYear: 0, log: [], modifiers: {} },
       paper: [],
-      goals: { yearly: null, era: null, eraDone: {}, campaignTier: 0, achievements: [], history: [] },
+      goals: { yearly: null, era: null, eraDone: {}, campaignTier: 0, achievements: [], history: [], family: null },
       stats: { bought: 0, sold: 0, belowAsk: 0, auctionsWon: 0, renovations: 0, rebuilds: 0, refinances: 0, forcedSales: 0, forcedSalesThisEra: 0,
                marginCallsMissed: 0, forcedSaleYears: [], negativeCashYears: 0, peakNetWorth: 0, bankruptcies: 0, comebackFrom: 0, flips: 0, brrrr: 0,
-               rentTotal: 0, costTotal: 0, firstBuyYear: {}, cityUnlockYear: {}, depressionsSurvived: 0 },
+               rentTotal: 0, costTotal: 0, firstBuyYear: {}, cityUnlockYear: {}, depressionsSurvived: 0,
+               steals: 0, countersClosed: 0, marginCallsCleared: 0, highLtvYears: 0, rank1Years: 0, educated: 0, marriages: 0, mergers: 0, vultures: 0, cashKingYears: 0, trustSuccessions: 0, evictions: 0, yearlyGoalsDone: 0, rothschildLoans: 0, outbidRivals: {} },
       history: [],
       lastReport: null,
-      perks: opts.perks || [],
-      flags: { insiderUsedYear: 0, chenRevealId: null, warLeaseUntil: 0, vacancyUntil: 0, renoDiscountUntil: 0, surveyorUntil: 0, bombInsured: false, extraDistressed: 0, extraLand: 0 }
+      perks: perks,
+      flags: { insiderUsedYear: 0, chenRevealId: null, allyRevealId: null, warLeaseUntil: 0, vacancyUntil: 0, renoDiscountUntil: 0, surveyorUntil: 0, bombInsured: false, insuredUntil: 0, extraDistressed: 0, extraLand: 0 }
     };
     PE._state = s;
     PE.RNG.bind(s);
@@ -142,9 +162,13 @@
       s.cities[c.id] = cs;
     }
     State.refreshTrends();
+    // Scenario: move the world forward to the start year (prices, rates, era) before anything is bought
+    if (scenario) State.fastForward(startYear, scenario);
+    s.ranks.year = s.year;
 
     // Dynasty
     s.dynasty = PE.Dynasty.create(fam, opts.traitId);
+    if (fam.id === 'armstrong' && !scenario) PE.Goals.assignFamily();
 
     // Family perks
     if (fam.perk === 'free_derelict') {
@@ -159,20 +183,68 @@
       a2.name = 'Camden Row Cottage'; State.setOwner(a2, 'player'); a2.purchasePrice = a2.trueValue; a2.purchaseYear = s.year - 8;
       a2.mortgage = { principal: Math.round(a2.trueValue * 0.55), rate: 0.045, type: 'io', yearsLeft: 0, lender: 'Coutts & Co', fixed: false, since: s.year - 3 };
     }
+    if (scenario) State.scenarioPortfolio(fam, scenario);
+    if (State.hasPerk('second_city') && !s.cities.paris.unlocked) { s.cities.paris.unlocked = true; s.cities.paris.unlockedYear = s.year; s.stats.cityUnlockYear.paris = s.year; }
+    if (State.hasPerk('purist')) { var pur = State.playerProps(); for (var qi = 0; qi < pur.length; qi++) pur[qi].mortgage = null; }
     for (var pi = 0, pp = State.playerProps(); pi < pp.length; pi++) PE.Property.initTenancy(pp[pi]);
 
     // Rivals
     PE.Rivals.create(fam);
+    PE.Rivals.snapshotRanks();
 
     // Market board, goals, paper
     PE.Market.refreshBoard();
     s.startNetWorth = State.netWorth('player');
     s.stats.peakNetWorth = s.startNetWorth;
+    if (s.scenario) s.scenario.targetNetWorth = s.startNetWorth;
     PE.Goals.assignYearly();
     PE.Goals.assignEra();
     PE.Events.makePaper();
+    if (scenario) {
+      // the set-piece of the start year is pending on day one, and the paper tells the story
+      var h0 = null; for (var hi = 0; hi < D.historicalEvents.length; hi++) if (D.historicalEvents[hi].year === startYear) h0 = D.historicalEvents[hi];
+      if (h0) PE.Events.push({ id: 'hist_' + h0.year, title: h0.title, text: h0.text, choices: h0.choices, kind: 'historical' });
+      s.paper.unshift({ kind: 'headline', text: scenario.intro });
+    }
     s.history.push({ year: s.year, netWorth: s.startNetWorth, cash: s.cash, debt: State.debt('player'), rank: State.rank(), props: State.propertyCount('player') });
     return s;
+  };
+
+  /* Scenario support (P5.4): advance the world deterministically to a later start year.
+     Prices and the index grow at each era's mean rate (no cycles), rates sit at the era centre. */
+  State.fastForward = function (toYear, scenario) {
+    var s = PE.S();
+    while (s.year < toYear) {
+      var era = D.eraFor(s.year);
+      for (var cid in s.cities) {
+        var c = D.cityById[cid], ds = s.cities[cid].districts;
+        for (var dn in ds) ds[dn].ppsqm *= 1 + c.growth + era.drift + 0.012;
+      }
+      s.priceIndex *= 1 + 0.028 + era.drift + 0.008;
+      s.year++;
+    }
+    s.eraId = D.eraFor(s.year).id;
+    s.baseRate = scenario && scenario.baseRate ? scenario.baseRate : D.eraFor(s.year).baseRate;
+    s.boardYear = s.year; s.ranks.year = s.year;
+    s.cycle = { phase: scenario ? scenario.cycle : 'growth', yearsLeft: 1, prev: 'boom', hint: null };
+    if (scenario && scenario.cities) for (var i = 0; i < scenario.cities.length; i++) { var cs = s.cities[scenario.cities[i]]; if (cs && !cs.unlocked && D.cityById[scenario.cities[i]].availableFrom <= s.year) { cs.unlocked = true; cs.unlockedYear = s.year; s.stats.cityUnlockYear[scenario.cities[i]] = s.year; } }
+    for (var k in s.cities) if (s.cities[k].unlocked) s.cities[k].unlockedYear = s.year;
+    State.refreshTrends();
+  };
+  /* A pre-built leveraged portfolio for a scenario start: cash and buildings scaled to the price level. */
+  State.scenarioPortfolio = function (fam, sc) {
+    var s = PE.S(), cities = State.unlockedCities(), cashBase = fam.startCash * s.priceIndex;
+    s.cash = Math.round(cashBase * sc.cashMult); s.startCash = Math.round(cashBase);
+    for (var i = 0; i < sc.props; i++) {
+      var cid = cities[i % cities.length];
+      var p = PE.Market.genProperty(cid, { condition: PE.RNG.int(45, 80) });
+      var target = cashBase * PE.RNG.range(0.5, 0.9), scale = target / p.trueValue, t = D.propertyTypes[p.type];
+      p.sqm = Math.round(U.clamp(p.sqm * scale, t.sqm[0], t.sqm[1])); PE.Property.revalue(p);
+      p.purchasePrice = p.trueValue; p.purchaseYear = s.year - PE.RNG.int(2, 12);
+      p.mortgage = PE.Finance.makeMortgage('player', Math.round(p.trueValue * sc.ltv), 'io', false);
+      p.mortgage.since = s.year - 3; p.mortgage.lastRefi = s.year - 3;
+      State.setOwner(p, 'player');
+    }
   };
 
   /* Trend arrows 1..5 are a noisy view of momentum (bible §3.2). */
