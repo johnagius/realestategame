@@ -190,3 +190,36 @@ SKYLINE-10 labels + landmark lights → SKYLINE-11 perspective rig for splash/ph
 Perf budget (this machine has a GPU — measure, don't assume):
 `getStats()` ≤ ~250 draw calls, ≤ ~25k triangles, frameMs ≤ 16 on
 `quality:'high'` desktop, ≤ 33ms on `quality:'low'`.
+
+### Review after SKYLINE-8 (2026-10-22 evening, Claude, fresh render of `6930352`)
+
+Rendered: City screen 1850/1965/2025 at 412×915 and 1280×800 (quality `low`, which is
+what mid-range phones get), splash, and `city.html?city=` for tokyo/paris/dubai/new_york
+at `high`. Tests 445/445, no page errors. Per-city identity now reads (Tokyo Tower +
+cherry lane, Paris café row + Eiffel, NYC Empire/Chrysler, Dubai palms), cars/boats/
+lamp pools and chimneys all visible. Good wave. Three things to fix before SKYLINE-9,
+in order:
+
+1. **Skyline silhouettes read as pale ghost pillars, not a skyline.** In
+   `_buildSurroundings` the edge material `L` is `MeshLambertMaterial({ color: pal.sky })`
+   and sits at the fog's far end, so it renders *lighter* than the sky behind it, as
+   translucent light rectangles. On `low` the filler mass is skipped, so the in-game
+   phone view shows only these pillars floating in the sky (see City screen 1850/2025),
+   and on the splash they stand behind the title. They are also too tall: `h2 = 35 +
+   rng() * 60` reaches the top of the frame and dwarfs Big Ben.
+   Fix: colour = sky-mid × 0.55–0.7 (always darker than the sky at that height), set
+   `fog: false` on that material or lerp its colour toward sky-top yourself; heights
+   18–55; on `low` either draw the cheap filler too (it is one merged mesh) or drop the
+   skyline edge as well, never pillars alone; on the splash (`hero: true`) halve their
+   height or skip them so the title stays clean.
+2. **Day clouds are hard-edged grey polygons** (Dubai modern day, also visible at the
+   top of New York). They look like untextured geometry. Clouds must stay soft sprites
+   with the radial canvas texture; if these are the new mesh clouds, give them the
+   sprite texture + additive soft edges or revert to sprites.
+3. **NYC signature crowding** (already on your known-weak list): Statue of Liberty is
+   planted inside a city lot between brownstones; move it onto a water/harbour tile at
+   the island's edge, and stagger the four tall labels so they do not stack.
+
+Also: eleven pushes to `main` since v8.2 with no bump — `CACHE_NAME` is unchanged, so
+returning players keep stale files. Bump to v8.3 with the next code push (CLAUDE.md rule).
+Draw-call overages (13 of 120 cells, worst +14) are acceptable; triangles are fine.
