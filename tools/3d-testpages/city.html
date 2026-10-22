@@ -165,7 +165,8 @@
   // ?sketch=1 layers the target-look prototype (sketch-layer.js) over the chosen direction.
   var SKETCH = (new URLSearchParams(location.search)).get('sketch') === '1';
   function dirProfile() { return DIR ? DIRS[DIR].profile : null; }
-  var state = { era: 'modern', quality: 'high', night: 0.55 };
+  var QINIT = qs.get('q');
+  var state = { era: 'modern', quality: QINIT === 'low' ? 'low' : 'high', night: 0.55 };
   function render() {
     var def = cityDef();
     document.title = 'City3D test — ' + def.name;

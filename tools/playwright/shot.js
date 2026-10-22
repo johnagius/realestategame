@@ -9,10 +9,13 @@ const { spawn } = require('child_process');
 const ROOT = path.join(__dirname, '..', '..');
 const OUT = path.join(__dirname, 'out', 'skyline');
 const PORT = 8793;
-const [city, era, time] = process.argv.slice(2);
+const [city, era, time] = process.argv.slice(2, 5);
+const extra = process.argv.slice(5);
+const q = extra.find(a => a === 'low' || a === 'high') || null;
+const outArg = extra.find(a => a !== q) || null;
 if (!city || !era || !time) { console.error('usage: shot.js <city> <era> <day|dusk>'); process.exit(1); }
 const night = time === 'dusk' ? 0.72 : 0.12;
-const out = path.join(OUT, process.argv[5] || `${city}-${era}-${time}.png`);
+const out = path.join(OUT, outArg || `${city}-${era}-${time}.png`);
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -22,7 +25,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   const browser = await launch();
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-    await page.goto(`http://127.0.0.1:${PORT}/tools/3d-testpages/city.html?city=${city}`);
+    await page.goto(`http://127.0.0.1:${PORT}/tools/3d-testpages/city.html?city=${city}${q ? '&q=' + q : ''}`);
     await page.waitForFunction(() => window.City3D && City3D._renderer, { timeout: 15000 });
     await page.evaluate(([e, n]) => { City3D.setEra(e, 0); City3D.setNight(n); }, [era, night]);
     await sleep(1500);

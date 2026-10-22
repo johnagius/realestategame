@@ -1151,8 +1151,14 @@ var City3D = {
     if (this._envEra === this._era && this._env) { this._scene.environment = this._env; return; }
     var pr = this._prof(this._era) || {}, P = this.ERAS[this._era] || this.ERAS.modern;
     var sky = pr.sky ? pr.sky : P.sky, n = this._night;
-    var cv = document.createElement('canvas'); cv.width = 256; cv.height = 128;
+    var cv = document.createElement('canvas'); cv.width = 512; cv.height = 192;
     var c = cv.getContext('2d');
+    var puffs = [[90,110,40],[150,88,52],[215,100,46],[280,84,54],[350,96,48],[415,110,40],[120,120,36],[250,118,42],[330,120,36],[185,122,34],[385,124,32],[455,100,34]];
+    puffs.forEach(function(pf) {
+      var g = c.createRadialGradient(pf[0], pf[1], pf[2] * 0.1, pf[0], pf[1], pf[2]);
+      g.addColorStop(0, 'rgba(255,255,255,.5)'); g.addColorStop(0.55, 'rgba(255,255,255,.18)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = g; c.fillRect(0, 0, 512, 192);
+    });
     var top = new THREE.Color(sky[0]).lerp(new THREE.Color(0x03050f), n);
     var mid = new THREE.Color(sky[1]).lerp(new THREE.Color(0x0b1230), n * 0.9);
     var bot = new THREE.Color(sky[2]).lerp(new THREE.Color(0x1a1a3a), n * 0.85);
@@ -1329,7 +1335,7 @@ var City3D = {
     for (var i = 0; i < n; i++) {
       var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: (this._profile ? 0.16 : 0.07) + Math.random() * 0.07, depthWrite: false, fog: false, color: 0xe6d8e4 }); // SKYLINE-4: profiles get visible, sky-tinted clouds
       var s = new THREE.Sprite(mat);
-      var w = 60 + Math.random() * 70;
+      var w = 85 + Math.random() * 95;
       s.scale.set(w, w * 0.32, 1);
       s.position.set((Math.random() - 0.5) * 520, 150 + Math.random() * 70, (Math.random() - 0.5) * 520);
       s.userData.speed = 0.4 + Math.random() * 0.6;
@@ -1612,8 +1618,9 @@ var City3D = {
     var L = new THREE.Color(pr && pr.skyline != null ? pr.skyline
       : fogC.clone().lerp(new THREE.Color(0x141c2c), 0.55).multiplyScalar(0.85).getHex());
     var lum = function(c) { return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b; };
-    var cap = lum(bot) * 0.85;
+    var cap = lum(bot) * (this._quality === 'low' ? 0.7 : 0.85);
     if (lum(L) > cap) L.multiplyScalar(cap / lum(L));
+    if (this._quality === 'low') L.multiplyScalar(0.9);
     return { ground: gcol, fill: fill, sky: L.getHex() };
   },
 
@@ -1685,10 +1692,11 @@ var City3D = {
     // visible height sliver at z ≈ -175..-120 (nearer and they cover the island,
     // farther and they project above the frame), so the edge stands there, in
     // front of the ground's fade band.
-    var L = new THREE.MeshLambertMaterial({ color: pal.sky });
+    var L = new THREE.MeshLambertMaterial({ color: pal.sky }); if (low) L.fog = false; // low: crisp dark skyline, no haze wash
     var spires = [];
-    for (var i = 0; i < 14; i++) {
-      var sx = -380 + rng() * 600, sz = -175 + rng() * 55, h2 = 35 + rng() * 60, parts = [];
+    var nSpires = low ? 22 : 14;
+    for (var i = 0; i < nSpires; i++) {
+      var sx = (low ? -420 + rng() * 710 : -380 + rng() * 600), sz = -175 + rng() * 55, h2 = 35 + rng() * 60, parts = [];
       if (kind === 'hills') {   // layered ridge cones, town boxes at the foot
         var r1 = 16 + rng() * 22;
         parts.push(new THREE.Mesh(new THREE.CylinderGeometry(0, r1, h2 * 0.85, 7), L)); parts[0].position.set(0, h2 * 0.425, 0);
