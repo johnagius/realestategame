@@ -1,8 +1,25 @@
 /* PROPERTY EMPIRE — Rome: Colosseum, St. Peter's Basilica */
 var CityDef_Rome = {
   name:'Rome', id:'rome',
+  // Project Skyline art direction (SKYLINE-5): terracotta + ochre walls under a warm
+  // golden sun, umbrella pines (acacia). Era key > base > ERAS (City3D._prof);
+  // Victorian/Gilded gas-lit warm dusk, Digital neon + dark mirror water
+  // (docs/SKYLINE.md §2, direction B).
+  profile:{
+    base:{ exposure:1.1, sunDay:0xffd998, sunDusk:0xdf9a5c,
+      ambDay:0x3a3346, ambDusk:0x221c2e, hemiSky:0xd4c8ea, hemiGround:0x4a3c30,
+      wallJitter:0.08, water:{color:0x2a5e66,specular:0xb8dcd8,opacity:0.88},
+      sky:['#1a1a3e','#7a567a','#f2a45c'], fog:0x584648, haze:0.15,
+      ground:0x2e2a23, road:0x27221e, side:0x4d453a, park:0x33512a,
+      trees:'acacia', lamps:'modern' },
+    victorian:{ sky:['#1c1838','#7a4e62','#f0a05e'], fog:0x563f4c, haze:0.22, lamps:'gas',
+      sunDusk:0xe09652, ambDusk:0x281e28 },
+    gilded:{ lamps:'gas', sunDusk:0xe09652 },
+    digital:{ sky:['#0c1030','#332e6e','#7a4a9a'], fog:0x201c44, haze:0.12, lamps:'neon',
+      water:{color:0x14283c,specular:0xd8e8f0,opacity:0.85} },
+  },
   layout:[
-    ['CP','CP','CP','CT','CT','CP','CP'],
+    ['CP','CP','AQD','CT','CT','CP','CP'],
     ['TH','RD','RD','RD','RD','RD','AP'],
     ['CM','RD','COL','RD','PH','RD','SK'],
     ['RD','RD','RD','RD','RD','RD','RD'],
@@ -11,7 +28,9 @@ var CityDef_Rome = {
     ['ST','RD','CM','RD','TH','RD','WR'],
     ['CT','CT','CT','CT','CT','CT','CT'],
   ],
-  landmarkNames:{COL:'🏛️ Colosseum',SPB:'⛪ St. Peter\'s'},
+  // Terrain tile drawn under a landmark (default 'LOT'); the ruin keeps its park
+  landmarkGround:{AQD:'CP'},
+  landmarkNames:{COL:'🏛️ Colosseum',SPB:'⛪ St. Peter\'s',AQD:'Aqueduct Ruin'},
   landmarks:{
     COL:function(){
       var g=new THREE.Group(),E=City3D;
@@ -65,6 +84,24 @@ var CityDef_Rome = {
         }
       });
       var lb=E.makeLabel("St. Peter's");lb.position.set(0,38,0);g.add(lb);
+      return g;
+    },
+    // Aqueduct ruin — three standing arches, one fallen span (park edge)
+    AQD:function(){
+      var g=new THREE.Group(),E=City3D;
+      var Ms=new THREE.MeshPhongMaterial({color:0xc4ac84,shininess:20});
+      // Standing piers + one broken stump
+      [-7.5,-2.5,2.5].forEach(function(px){
+        var pier=E.bx(2.4,9,2.4,Ms);pier.position.set(px,4.5,0);g.add(pier);
+      });
+      var stump=E.bx(2.4,4,2.4,Ms);stump.position.set(7.5,2,0);g.add(stump);
+      // Two surviving arch lintels; the third span has fallen
+      [-5,0].forEach(function(ax){
+        var arch=E.bx(7.4,1.8,2.2,Ms);arch.position.set(ax,9.9,0);g.add(arch);
+      });
+      // Fallen block
+      var fall=E.bx(2.2,1.6,2,Ms);fall.rotation.y=0.5;fall.position.set(7.6,0.8,3.4);g.add(fall);
+      var lb=E.makeLabel('Aqueduct Ruin');lb.position.set(0,14,0);g.add(lb);
       return g;
     },
   },

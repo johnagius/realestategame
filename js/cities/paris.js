@@ -8,25 +8,45 @@ var CityDef_Paris = {
   name: 'Paris',
   id: 'paris',
 
+  // Project Skyline art direction (SKYLINE-5): warm cream Haussmann facades,
+  // blue-grey zinc roofs, plane trees. Resolved by City3D._prof: era key > base >
+  // ERAS palette. Victorian/Gilded evenings go gas-lit and warm; Digital goes neon
+  // with dark mirror water (docs/SKYLINE.md §2, direction B).
+  profile: {
+    base: { exposure: 1.08, sunDay: 0xffe6bc, sunDusk: 0x9ca8d8,
+      ambDay: 0x363a4e, ambDusk: 0x1c2034, hemiSky: 0xc2d2f4, hemiGround: 0x46403a,
+      wallJitter: 0.07, water: { color: 0x27586e, specular: 0xa8d0e0, opacity: 0.9 },
+      sky: ['#1a1e44', '#7c6684', '#f4b284'], fog: 0x584c5c, haze: 0.16,
+      ground: 0x2b2925, road: 0x252221, side: 0x4b453c, park: 0x30512a,
+      trees: 'plane', lamps: 'modern' },
+    victorian: { sky: ['#1e1a3e', '#7a5468', '#efa266'], fog: 0x54445a, haze: 0.24, lamps: 'gas',
+      sunDusk: 0xdd9058, ambDusk: 0x261f2c },
+    gilded: { lamps: 'gas', sunDusk: 0xdd9058 },
+    digital: { sky: ['#0a0f2e', '#2c3a80', '#6a54b0'], fog: 0x1c2850, haze: 0.12, lamps: 'neon',
+      water: { color: 0x10263e, specular: 0xd8ecff, opacity: 0.86 } },
+  },
+
   layout: [
     ['CP', 'CP', 'CP', 'ARC', 'CP', 'CP', 'CP'],
     ['TH', 'RD', 'RD', 'RD', 'RD', 'RD', 'AP'],
     ['CM', 'RD', 'MN', 'RD', 'SK', 'RD', 'PH'],
-    ['RD', 'RD', 'RD', 'EIF', 'RD', 'RD', 'RD'],
+    ['RD', 'RD', 'RD', 'EIF', 'RD', 'CAF', 'RD'],
     ['W',  'W',  'W',  'W',  'NTD', 'W',  'W' ],
     ['HO', 'RD', 'RD', 'RD', 'RD', 'RD', 'VI'],
     ['ST', 'RD', 'CM', 'RD', 'TH', 'RD', 'WR'],
     ['CT', 'CT', 'CT', 'CP', 'CP', 'CT', 'CT'],
   ],
 
-  // Terrain tile drawn under a landmark (default 'LOT'); water landmarks keep their water
+  // Terrain tile drawn under a landmark (default 'LOT'); water landmarks keep their water,
+  // the café row keeps its road
 
-  landmarkGround: { NTD:'W' },
+  landmarkGround: { NTD: 'W', CAF: 'RD' },
 
   landmarkNames: {
     EIF: '🗼 Eiffel Tower',
     NTD: '⛪ Notre-Dame',
     ARC: '🏛️ Arc de Triomphe',
+    CAF: 'Boulevard Café Row',
   },
 
   landmarks: {
@@ -164,6 +184,28 @@ var CityDef_Paris = {
       ul.position.set(0, 5, 0); g.add(ul);
 
       var lb = E.makeLabel('Arc de Triomphe'); lb.position.set(0, H + 12, 0); g.add(lb);
+      return g;
+    },
+
+    // Boulevard café row — cream shopfront with signature red awnings (terrain stays road)
+    CAF: function() {
+      var g = new THREE.Group(), E = City3D;
+      var Mawn = new THREE.MeshPhongMaterial({ color: 0xa82820, shininess: 25 });
+
+      // Shopfront block (cream Haussmann stone)
+      var shop = E.bx(22, 7, 6, E.M.MNw); shop.position.set(0, 3.5, -8.5); g.add(shop);
+
+      // Street-level windows along the front
+      [-7.5, 0, 7.5].forEach(function(wx) {
+        var win = E.bx(4.6, 2.6, 0.3, E.M.WINOFF, false); win.position.set(wx, 2.6, -5.35); g.add(win);
+      });
+
+      // Red awnings tilted toward the street
+      [-7.5, 0, 7.5].forEach(function(ax) {
+        var awn = E.bx(6, 0.3, 3, Mawn); awn.rotation.x = 0.5; awn.position.set(ax, 4.7, -4.4); g.add(awn);
+      });
+
+      var lb = E.makeLabel('Boulevard Café Row'); lb.position.set(0, 12, 0); g.add(lb);
       return g;
     },
   },

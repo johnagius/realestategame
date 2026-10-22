@@ -1,8 +1,25 @@
 /* PROPERTY EMPIRE — Barcelona: Sagrada Família, Park Güell */
 var CityDef_Barcelona = {
   name:'Barcelona', id:'barcelona',
+  // Project Skyline art direction (SKYLINE-5): warm sand walls, saturated Mediterranean
+  // water, one Gaudí mosaic-colour pop, palm trees. Era key > base > ERAS (City3D._prof);
+  // Victorian/Gilded gas-lit warm dusk, Digital neon + dark mirror sea
+  // (docs/SKYLINE.md §2, direction B).
+  profile:{
+    base:{ exposure:1.09, sunDay:0xffe0a6, sunDusk:0xd89c62,
+      ambDay:0x363446, ambDusk:0x1e1c2e, hemiSky:0xbfd2f2, hemiGround:0x4c4234,
+      wallJitter:0.08, water:{color:0x1868a0,specular:0xb0e0f4,opacity:0.9},
+      sky:['#12204a','#4a6a9e','#f8b878'], fog:0x565064, haze:0.14,
+      ground:0x2c2924, road:0x252320, side:0x4b453c, park:0x2f5329,
+      trees:'palm', lamps:'modern' },
+    victorian:{ sky:['#1a1a40','#6a5570','#f4a96a'], fog:0x524656, haze:0.21, lamps:'gas',
+      sunDusk:0xde9456, ambDusk:0x241f2c },
+    gilded:{ lamps:'gas', sunDusk:0xde9456 },
+    digital:{ sky:['#0a1232','#27387c','#5a4eb0'], fog:0x1a2450, haze:0.11, lamps:'neon',
+      water:{color:0x0e3050,specular:0xd8f0ff,opacity:0.87} },
+  },
   layout:[
-    ['CP','CP','PGU','CT','CT','CP','CP'],
+    ['CP','CP','PGU','CT','CT','GAU','CP'],
     ['TH','RD','RD','RD','RD','RD','AP'],
     ['CM','RD','SAG','RD','SK','RD','HO'],
     ['RD','RD','RD','RD','RD','RD','RD'],
@@ -11,7 +28,9 @@ var CityDef_Barcelona = {
     ['ST','RD','WR','RD','TH','RD','AP'],
     ['W','W','HB','W','W','HB','W'],
   ],
-  landmarkNames:{SAG:'⛪ Sagrada Família',PGU:'🦎 Park Güell'},
+  // Terrain tile drawn under a landmark (default 'LOT'); the spire keeps its park
+  landmarkGround:{GAU:'CP'},
+  landmarkNames:{SAG:'⛪ Sagrada Família',PGU:'🦎 Park Güell',GAU:'Gaudí Mosaic Spire'},
   landmarks:{
     SAG:function(){
       var g=new THREE.Group(),E=City3D;
@@ -66,6 +85,25 @@ var CityDef_Barcelona = {
         var lv=E.sphr(3.5,5,E.M.PARKD);lv.position.set(tx,5.5,tx*0.4);g.add(lv);
       });
       var lb=E.makeLabel('Park Güell');lb.position.set(0,16,0);g.add(lb);
+      return g;
+    },
+    // Gaudí mosaic spire — tapering sand-stone shaft with trencadís colour bands (park edge)
+    GAU:function(){
+      var g=new THREE.Group(),E=City3D;
+      var Msand=new THREE.MeshPhongMaterial({color:0xd8c49a,shininess:25});
+      var Mgold=new THREE.MeshPhongMaterial({color:0xe0c050,emissive:0x302000,shininess:80});
+      // Stepped base + tapering shaft (offset clear of the park path)
+      var base=E.cy(3,3.8,2.2,8,Msand);base.position.set(-3,1.1,0);g.add(base);
+      var shaft=E.cy(1.5,2.3,13,7,Msand);shaft.position.set(-3,8.7,0);g.add(shaft);
+      // Trencadís mosaic bands — the one Gaudí colour pop (radii ride the shaft taper)
+      [[4.6,2.32,0x2080c0],[7.6,2.14,0xe04020],[10.6,1.95,0xe0c020]].forEach(function(b){
+        var band=E.cy(b[1],b[1],0.9,7,new THREE.MeshPhongMaterial({color:b[2],shininess:60}));
+        band.position.set(-3,b[0],0);g.add(band);
+      });
+      // Cone tip + golden orb
+      var tip=E.cy(0,1.6,4.5,7,Msand);tip.position.set(-3,17.45,0);g.add(tip);
+      var orb=E.sphr(1.1,6,Mgold);orb.position.set(-3,20.6,0);g.add(orb);
+      var lb=E.makeLabel('Gaudí Mosaic Spire');lb.position.set(-3,25,0);g.add(lb);
       return g;
     },
   },

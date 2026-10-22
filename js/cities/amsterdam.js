@@ -1,17 +1,35 @@
 /* PROPERTY EMPIRE — Amsterdam: Canal Houses, Windmill */
 var CityDef_Amsterdam = {
   name:'Amsterdam', id:'amsterdam',
+  // Project Skyline art direction (SKYLINE-5): canal-blue water dominant, gabled-house
+  // brick tint variance, plane trees. Era key > base > ERAS (City3D._prof); Victorian/Gilded
+  // gas-lit warm dusk, Digital neon + dark mirror canals (docs/SKYLINE.md §2, direction B).
+  profile:{
+    base:{ exposure:1.07, sunDay:0xffe2b2, sunDusk:0x96a6d6,
+      ambDay:0x323c4e, ambDusk:0x1a2236, hemiSky:0xb6d0f0, hemiGround:0x3c4640,
+      wallJitter:0.08, water:{color:0x1d6a8c,specular:0xa8dcf0,opacity:0.9},
+      sky:['#121c40','#46587e','#e0a172'], fog:0x464c60, haze:0.2,
+      ground:0x27272b, road:0x222327, side:0x40424a, park:0x2d4e2a,
+      trees:'plane', lamps:'modern' },
+    victorian:{ sky:['#1a1a3c','#6a5266','#e89c64'], fog:0x4c4256, haze:0.27, lamps:'gas',
+      sunDusk:0xd88e56, ambDusk:0x24202e },
+    gilded:{ lamps:'gas', sunDusk:0xd88e56 },
+    digital:{ sky:['#081026','#1f3670','#3f5aa8'], fog:0x16244a, haze:0.14, lamps:'neon',
+      water:{color:0x0e2f42,specular:0xd0f0ff,opacity:0.87} },
+  },
   layout:[
     ['CP','CP','CT','CT','CT','CP','CP'],
     ['TH','RD','RD','RD','RD','RD','TH'],
-    ['CNL','W','W','W','W','W','WML'],
+    ['CNL','W','W','WFA','W','W','WML'],
     ['AP','RD','RD','RD','RD','RD','CM'],
     ['RD','RD','SK','RD','MN','RD','RD'],
     ['HO','RD','RD','RD','RD','RD','PH'],
     ['ST','RD','VI','RD','CM','RD','WR'],
     ['CT','CT','CP','CP','CP','CT','CT'],
   ],
-  landmarkNames:{CNL:'🏠 Canal Houses',WML:'🌷 Windmill'},
+  // Terrain tile drawn under a landmark (default 'LOT'); the arcade keeps its canal water
+  landmarkGround:{WFA:'W'},
+  landmarkNames:{CNL:'🏠 Canal Houses',WML:'🌷 Windmill',WFA:'Waterfront Arcade'},
   landmarks:{
     CNL:function(){
       var g=new THREE.Group(),E=City3D;
@@ -55,6 +73,23 @@ var CityDef_Amsterdam = {
         tulip.position.set(-6+i*1.8,0.6,-9);g.add(tulip);
       }
       var lb=E.makeLabel('Windmill');lb.position.set(0,28,0);g.add(lb);
+      return g;
+    },
+    // Waterfront arcade — stone quay + brick colonnade where the canal meets the lots
+    WFA:function(){
+      var g=new THREE.Group(),E=City3D;
+      var Mstone=new THREE.MeshPhongMaterial({color:0xb8a888,shininess:25});
+      // Water base (canal tile keeps its water)
+      g.add(E.flatPlane(28,28,E.M.WATER));
+      // Stone quay along the landward edge
+      var quay=E.bx(24,1.2,9,Mstone);quay.position.set(0,0.6,-7);g.add(quay);
+      // Arcade colonnade
+      [-8,-4,0,4,8].forEach(function(cx){
+        var col=E.cy(0.55,0.7,5.5,6,E.M.BRICK);col.position.set(cx,3.95,-7);g.add(col);
+      });
+      // Entablature beam
+      var beam=E.bx(22,1.4,2.2,Mstone);beam.position.set(0,7.4,-7);g.add(beam);
+      var lb=E.makeLabel('Waterfront Arcade');lb.position.set(0,12,-7);g.add(lb);
       return g;
     },
   },
