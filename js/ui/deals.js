@@ -14,6 +14,7 @@
     var bleak = s.cycle === 'recession' || s.cycle === 'depression';
     var p = h('section', { class: 'paper' + (bleak ? ' paper--crash' : ''), 'aria-label': 'Morning paper' });
     p.appendChild(h('div', { class: 'paper__mast' }, [h('span', { class: 'paper__name', text: 'The ' + PEUI.cityName('london') + ' Gazette' }), h('span', { class: 'paper__date', text: '1 January ' + s.year })]));
+    p.appendChild(h('div', { class: 'paper__ornament', 'aria-hidden': 'true' }, h('i')));
     var lines = h('div', { class: 'paper__lines' });
     var arr = s.paper || [];
     if (!arr.length) lines.appendChild(h('div', { class: 'paper__line muted', text: 'Nothing of note this morning.' }));

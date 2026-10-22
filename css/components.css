@@ -341,3 +341,97 @@ button { -webkit-tap-highlight-color: transparent; }
 .report--newsprint { filter: grayscale(0.55) contrast(0.94); }
 .report--newsprint .card, .report--newsprint .report__head { border-style: dashed; }
 .paper--crash { filter: grayscale(0.6) contrast(0.95); border-style: dashed; }
+
+/* ========================================
+   HIGH-END POLISH — material, not flat
+   (DESIGN-DIRECTION §2.1/§2.2: gold is a gradient,
+   paper has grain, type does the talking)
+   ======================================== */
+
+/* Gold leaf on every gold surface: gradient + inner bevel + hairline */
+.btn--gold, .hud__end, .hud__chip--gold {
+  background-image: linear-gradient(180deg, #F2D98A 0%, var(--gold) 48%, #B8902F 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 252, 240, 0.65), inset 0 -1px 0 rgba(90, 60, 10, 0.35), 0 2px 10px rgba(217, 180, 92, 0.35);
+  text-shadow: 0 1px 0 rgba(255, 248, 220, 0.35);
+}
+:root[data-era="crisis"] .btn--gold, :root[data-era="crisis"] .hud__end { background-image: linear-gradient(180deg, #D96A4E 0%, #B3402A 55%, #8F2E1E 100%); text-shadow: 0 1px 0 rgba(255,220,200,0.3); }
+:root[data-era="digital"] .btn--gold, :root[data-era="digital"] .hud__end { background-image: linear-gradient(180deg, #54D4E8 0%, #2FC6DE 55%, #0A6E80 100%); text-shadow: 0 1px 0 rgba(220,250,255,0.35); }
+
+/* Cards: engraved hairline + deckled top sheen, not a bare drop shadow */
+.card { position: relative; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 0 0 1px rgba(0, 0, 0, 0.015), var(--shadow-1); }
+.card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0) 26%); }
+.card--flat::after, .rival::after { display: none; }
+
+/* Chips: struck metal, not flat pills */
+.chip { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 1px 0 rgba(0, 0, 0, 0.04); border: 1px solid rgba(0, 0, 0, 0.06); }
+.chip--gold { border-color: rgba(138, 100, 24, 0.35); }
+:root[data-era="digital"] .chip { border-color: rgba(255,255,255,0.12); box-shadow: inset 0 1px 0 rgba(255,255,255,0.14); }
+
+/* Display type moments: tighter, more confident */
+.section-head h2, .deal__type, .prop__name, .city-card__name, .paper__name { letter-spacing: 0.2px; }
+.kicker { letter-spacing: 1.6px; }
+.num { font-feature-settings: 'lnum' 1, 'tnum' 1; }
+
+/* HUD: gold hairline + deep base */
+.hud { border-bottom: 1px solid transparent; background-image: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0) 40%); }
+.hud::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: linear-gradient(90deg, transparent, var(--gold) 30%, var(--gold) 70%, transparent); opacity: 0.55; }
+
+/* Sheets rise like paper off the desk */
+.sheet { box-shadow: 0 -18px 60px rgba(10, 8, 4, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
+
+/* Morning paper: broadsheet masthead with double rules + ornament */
+.paper__mast { border-bottom: 3px double var(--ink); padding-bottom: var(--sp-2); position: relative; }
+.paper__mast::after { content: ''; position: absolute; left: 0; right: 0; bottom: -7px; height: 1px; background: var(--ink); opacity: 0.7; }
+.paper__name { font-size: var(--fs-5); letter-spacing: 0.5px; }
+.paper__ornament { display: flex; align-items: center; gap: var(--sp-2); margin: var(--sp-2) 0 var(--sp-1); color: var(--ink-3); }
+.paper__ornament::before, .paper__ornament::after { content: ''; flex: 1; height: 1px; background: var(--line-strong); }
+.paper__ornament i { width: 7px; height: 7px; background: var(--gold); transform: rotate(45deg); display: inline-block; box-shadow: 0 0 0 2px var(--gold-soft); }
+.paper__line--headline::first-letter { font-size: 1.35em; line-height: 1; }
+@media (min-width: 640px) { .paper__lines { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-1) var(--sp-4); } .paper__line--headline { grid-column: 1 / -1; } }
+.paper--crash { background-image: radial-gradient(rgba(0,0,0,0.16) 1px, transparent 1.4px); background-size: 5px 5px; }
+
+/* Deal cards: era-accent spine + tactile press */
+.deal { border-left: 3px solid var(--gold); }
+.deal:active { transform: scale(0.995); }
+.card--tap:hover { border-color: var(--line-strong); box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), var(--shadow-2); }
+
+/* Tabs: gold underline slides in */
+.tab { position: relative; }
+.tab[aria-selected="true"]::after { content: ''; position: absolute; left: var(--sp-2); right: var(--sp-2); bottom: 3px; height: 2px; border-radius: 2px; background: var(--gold); }
+
+/* Title cards: fleuron ornament between kicker and title */
+.titlecard__t { text-wrap: balance; }
+.titlecard__inner::before { content: ''; width: 74px; height: 12px; background:
+  linear-gradient(90deg, transparent 0, var(--gold) 0) left center / 26px 1px no-repeat,
+  linear-gradient(90deg, var(--gold) 0, transparent 0) right center / 26px 1px no-repeat; position: relative; }
+.titlecard__inner::after { content: ''; width: 8px; height: 8px; background: var(--gold); transform: rotate(45deg); margin-top: -11px; box-shadow: 0 0 0 3px rgba(217, 180, 92, 0.22); }
+
+/* Year report: the front page gets a column rule on wide screens */
+@media (min-width: 760px) {
+  .report__inner .card--flat { border-left: 1px solid var(--line); padding-left: var(--sp-4); }
+}
+
+/* App vignette for depth */
+#app::after { content: ''; position: fixed; inset: 0; z-index: 60; pointer-events: none; background: radial-gradient(120% 90% at 50% 8%, transparent 62%, rgba(12, 8, 2, 0.14) 100%); }
+
+/* Start screen: gilded title */
+.sp-title em { background: linear-gradient(180deg, #F6E3AC, #D9B45C 55%, #A87F28); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.45)); }
+
+/* Ledger rulings behind the lists — the book of accounts */
+.screen__scroll { background-image: repeating-linear-gradient(180deg, transparent 0 27px, rgba(30, 20, 8, 0.028) 27px 28px); }
+:root[data-era="digital"] .screen__scroll { background-image: repeating-linear-gradient(180deg, transparent 0 27px, rgba(255, 255, 255, 0.03) 27px 28px); }
+
+/* Deal cards: clippings pinned to the board */
+#deal-list .deal:nth-child(odd) { transform: rotate(-0.28deg); }
+#deal-list .deal:nth-child(even) { transform: rotate(0.24deg); }
+#deal-list .deal { transition: transform var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease); }
+#deal-list .deal:hover { transform: rotate(0deg) translateY(-1px); }
+#deal-list .deal::before { content: ''; position: absolute; top: -5px; left: 22px; width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #E9C767, #8A6418); box-shadow: 0 1px 2px rgba(0,0,0,0.3); z-index: 1; }
+:root[data-era="digital"] #deal-list .deal::before { background: radial-gradient(circle at 35% 30%, #54D4E8, #0A6E80); }
+
+/* Segmented control: pressed letterpress active state */
+.seg__btn[aria-pressed="true"] { box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.18); background: var(--surface-3); }
+
+/* Guide callout: clipped note, not a flat banner */
+.callout { position: relative; transform: rotate(-0.3deg); box-shadow: var(--shadow-1); }
+.callout::before { content: ''; position: absolute; top: -6px; left: 50%; margin-left: -5px; width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #E9C767, #8A6418); box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
