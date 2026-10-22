@@ -267,3 +267,8 @@ button { -webkit-tap-highlight-color: transparent; }
 .report__foot-row { width: 100%; max-width: 640px; }
 .report__foot-row .btn--secondary { flex: 0 1 auto; }
 .share-preview { display: block; width: 100%; max-width: 420px; aspect-ratio: 1 / 1; margin: 0 auto; border-radius: var(--r-2); box-shadow: var(--shadow-2); }
+
+/* ---------- Heraldic crests (DESIGN-DIRECTION §5) ---------- */
+.crestsvg { display: block; flex: none; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.28)); }
+.head-card .crestsvg { grid-row: 1 / span 2; }
+.fam__crest, .sp-dynasty-crest { background: none; border-radius: 0; box-shadow: none; width: auto; height: auto; }

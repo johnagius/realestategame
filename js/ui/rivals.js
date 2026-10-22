@@ -14,7 +14,7 @@
     var prev = snap.prev[r.id], move = prev ? prev - r.rank : 0;
     var c = h('div', { class: 'card rival' + (r.isPlayer ? ' rival--player' : ''), 'aria-label': r.name + ', rank ' + r.rank });
     c.appendChild(h('div', {}, [h('div', { class: 'rival__rank', text: '#' + r.rank }), h('div', { class: 'rival__move ' + (move > 0 ? 'pos' : move < 0 ? 'neg' : 'muted') }, [icon(move > 0 ? 'arrow-up' : move < 0 ? 'arrow-down' : 'arrow-flat', 'ic--sm', move > 0 ? 'Up ' + move : move < 0 ? 'Down ' + (-move) : 'No change'), move ? String(Math.abs(move)) : ''])]));
-    c.appendChild(h('span', { class: 'crest', style: 'background:' + r.color, text: PEUI.crestLetter(r.name) }));
+    c.appendChild(PEUI.crest(r.isPlayer ? { id: PE().S().familyId, name: r.name, color: r.color } : { id: r.id, name: r.name, color: r.color }, { size: 40 }));
     var name = h('div', { class: 'rival__name' }, [r.name]);
     if (r.isPlayer) name.appendChild(PEUI.badge('You', 'gold'));
     if (r.bankrupt) name.appendChild(PEUI.badge('Bankrupt', 'danger'));

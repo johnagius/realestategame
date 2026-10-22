@@ -11,7 +11,8 @@
     var d = PE().Dynasty.summary(), s = PEUI.summary(), g = PE().Goals.current(); if (!d.ok) return;
     var inner = el.querySelector('.screen__inner'); PEUI.empty(inner);
     var head = h('section', { class: 'card stack', 'aria-label': 'Head of the family' });
-    head.appendChild(h('div', { class: 'head-card' }, [h('span', { class: 'crest', style: 'background:' + s.color, text: PEUI.crestLetter(d.surname) }), h('div', { class: 'head-card__name', text: d.head.name + ' ' + d.surname }), h('div', { class: 'small muted', text: 'Head of the family · age ' + d.head.age + ' · ' + fmt.ordinal(d.generation) + ' generation' + (d.head.educated ? ' · educated' : '') })]));
+    var famDef = PE().Data.familyById(PE().S().familyId);
+    head.appendChild(h('div', { class: 'head-card' }, [PEUI.crest({ id: PE().S().familyId, name: 'House ' + d.surname, color: s.color, motto: famDef ? famDef.motto : '' }, { size: 46, motto: true }), h('div', { class: 'head-card__name', text: d.head.name + ' ' + d.surname }), h('div', { class: 'small muted', text: 'Head of the family · age ' + d.head.age + ' · ' + fmt.ordinal(d.generation) + ' generation' + (d.head.educated ? ' · educated' : '') })]));
     head.appendChild(traitChips(d.head.traits));
     head.appendChild(h('div', { class: 'stat-grid stat-grid--3' }, [stat('Reputation', Math.round(d.reputation) + ' / 100'), stat('Estate tax', Math.round(d.estateTaxRate * 100) + '%' + (d.trust ? ' (trust)' : '')), stat('Risk this year', d.mortality.toFixed(1) + '%', d.mortality > 8 ? 'neg' : '')]));
     head.appendChild(h('div', { class: 'meter' }, [h('span', { text: 'Reputation' }), PEUI.bar(d.reputation / 100, d.reputation >= 70 ? 'success' : d.reputation >= 40 ? 'info' : 'danger'), h('span', { text: d.reputation >= 70 ? 'Respected' : d.reputation >= 40 ? 'Known' : 'Suspect' })]));
