@@ -70,7 +70,7 @@
   --hud-ink-2: #C4BCAD;  /* 8.5:1 on hud-bg */
   --hud-line: rgba(255, 255, 255, 0.10);
   --gold: #D9B45C;
-  --gold-ink: #8A6418;   /* 4.6:1 on white: gold used as text */
+  --gold-ink: #84600F;   /* 5.7:1 on white, 4.7:1 on gold-soft: gold used as text */
   --gold-soft: #F6ECCF;
   --primary: #1F2733;
   --primary-ink: #F4EFE4;
@@ -174,10 +174,10 @@
   --bg: #F1E8D3; --surface: #FAF4E4; --surface-2: #EBDFC2; --surface-3: #DECFA9;
   --ink: #2A2016; --ink-2: #584B39; --ink-3: #6E6049;
   --line: #D8C9A6; --line-strong: #BCA877;
-  --gold: #C29A3B; --gold-ink: #8A6418; --gold-soft: #F3E7C6;
+  --gold: #C29A3B; --gold-ink: #84600F; --gold-soft: #F3E7C6;
   --primary: #5A1F24; --primary-ink: #F7EFDD; --primary-hover: #6E2A30;
   --hud-bg: #2A2016; --hud-ink: #F1E8D3; --hud-ink-2: #CBB98F;
-  --focus: #8A6418;
+  --focus: #84600F;
 }
 /* --- Gilded 1900–1929: ivory, green-black, gold leaf, bottle green --- */
 :root[data-era="gilded"] {
