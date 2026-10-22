@@ -34,6 +34,7 @@
 </div>
 <script src="/js/vendor/three.min.js"></script>
 <script src="/js/city3d-engine.js"></script>
+<script src="sketch-layer.js"></script>
 <script src="/js/cities/london.js"></script>
 <script>
   // London slots in scan order: TH AP CM MN SK HO ST VI PH CM WR TH
@@ -92,6 +93,8 @@
     } },
   };
   if (!DIRS[DIR]) DIR = 'c';
+  // ?sketch=1 layers the target-look prototype (sketch-layer.js) over the chosen direction.
+  var SKETCH = (new URLSearchParams(location.search)).get('sketch') === '1';
   function dirProfile() { return DIRS[DIR].profile; }
   var state = { era: 'modern', quality: 'high', night: 0.55 };
   function render() {
@@ -104,6 +107,7 @@
     City3D._onBuildingClick = function(cell) { if (!cell.property) document.getElementById('sel').textContent = City3D.BNAMES[cell.t] || cell.t; };
     document.getElementById('dirname').textContent = DIRS[DIR].name;
     document.querySelectorAll('[data-dir]').forEach(function(x) { x.classList.toggle('on', x.dataset.dir === DIR); });
+    if (SKETCH && window.SkylineSketch) setTimeout(function() { SkylineSketch.apply(); }, 60);
   }
   render();
   document.querySelectorAll('[data-dir]').forEach(function(b) { b.onclick = function() {
