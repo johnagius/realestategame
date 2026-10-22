@@ -1,4 +1,4 @@
-const CACHE_NAME = 'property-empire-v8.3';
+const CACHE_NAME = 'property-empire-v8.4';
 const ASSETS = [
   './',
   './index.html',
@@ -32,6 +32,18 @@ const ASSETS = [
     './js/vendor/postprocessing/ShaderPass.js',
     './js/vendor/postprocessing/UnrealBloomPass.js',
     './js/vendor/postprocessing/SSAOPass.js',
+    './js/vendor/loaders/GLTFLoader.js',
+    './assets/models/sub/kenney-sub-b.glb',
+    './assets/models/sub/kenney-sub-c.glb',
+    './assets/models/sub/kenney-sub-g.glb',
+    './assets/models/sub/Textures/colormap.png',
+    './assets/models/com/kenney-com-a.glb',
+    './assets/models/com/kenney-com-d.glb',
+    './assets/models/com/kenney-com-i.glb',
+    './assets/models/com/kenney-com-l.glb',
+    './assets/models/com/kenney-sky-a.glb',
+    './assets/models/com/kenney-sky-b.glb',
+    './assets/models/com/Textures/colormap.png',
   './js/city3d-engine.js',
   './js/cities/london.js',
   './js/cities/paris.js',

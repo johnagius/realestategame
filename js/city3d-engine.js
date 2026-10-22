@@ -710,7 +710,89 @@ var City3D = {
     return g;
   },
 
+  /* Authored building models (SKYLINE-12b): Kenney City Kit (CC0, assets/models).
+     High quality + opts.assets !== false only; procedural builders are the fallback
+     for missing types, early eras (no glass towers before the Boom) and quality low.
+     Geometry/textures are shared across instances (userData.shared / _keep). */
+  KIT_MAP: {
+    MN: { f: '/assets/models/com/kenney-com-i.glb', w: 19, minEra: 'boom' },
+    CM: { f: '/assets/models/com/kenney-com-a.glb', w: 14, minEra: 'boom' },
+    AP: { f: '/assets/models/com/kenney-com-l.glb', w: 15, minEra: 'boom' },
+    SK: { f: '/assets/models/com/kenney-sky-b.glb', w: 16, minEra: 'boom' },
+    PH: { f: '/assets/models/com/kenney-sky-a.glb', w: 17, minEra: 'boom' },
+    WR: { f: '/assets/models/com/kenney-com-d.glb', w: 16, minEra: 'boom' },
+  },
+
+  _useKit: function(typeKey) {
+    if (!this._assetsOn || !this._kitCache) return null;
+    var k = this.KIT_MAP[typeKey];
+    if (!k) return null;
+    if (k.minEra && this._eraIdx(this._era) < this._eraIdx(k.minEra)) return null;
+    return this._kitCache[k.f] || null;
+  },
+
+  _preloadKit: function() {
+    this._kitCache = {}; this._kitLive = [];
+    if (!this._assetsOn || typeof THREE.GLTFLoader === 'undefined') return;
+    var loader = new THREE.GLTFLoader(), self = this, files = {};
+    Object.keys(this.KIT_MAP).forEach(function(t) { files[self.KIT_MAP[t].f] = 1; });
+    Object.keys(files).forEach(function(f) {
+      loader.load(f, function(g) {
+        g.scene.traverse(function(o) {
+          if (o.isMesh) {
+            o.geometry.userData.shared = true;
+            if (o.material.map) o.material.map._keep = true;
+          }
+        });
+        self._kitCache[f] = g.scene;
+        self._swapKitBuildings();
+      }, undefined, function() { console.warn('kit model failed to load', f); });
+    });
+  },
+
+  // Replace procedural fallbacks with their loaded kit models (in place, no anim).
+  _swapKitBuildings: function() {
+    if (!this._grid) return;
+    for (var r = 0; r < this._grid.length; r++) for (var c = 0; c < this._grid[r].length; c++) {
+      var cell = this._grid[r][c];
+      if (!cell.bGrp || !cell.bGrp.userData.procedural) continue;
+      if (!this._useKit(cell.t) && !this._useKit(this.PROP_TO_3D[cell.t] || cell.t)) continue;
+      var prop = cell.property;
+      this._removeBuilding(cell);
+      this._placeBuilding(cell, cell.t, prop, false);
+    }
+  },
+
+  _buildFromKit: function(typeKey, kitScene, sk) {
+    var k = this.KIT_MAP[typeKey], g = new THREE.Group();
+    var inst = kitScene.clone(true);
+    var mats = [];
+    inst.traverse(function(o) {
+      if (o.isMesh) {
+        o.material = o.material.clone();
+        o.material.roughness = 0.85; o.material.metalness = 0.04;
+        if (o.material.emissive) { o.material.emissive = new THREE.Color(0xffc27a); o.material.emissiveMap = o.material.map; o.material.emissiveIntensity = 0; }
+        mats.push(o.material);
+        o.castShadow = true; o.receiveShadow = true;
+      }
+    });
+    var box = new THREE.Box3().setFromObject(inst);
+    var dimX = box.max.x - box.min.x, dimY = box.max.y - box.min.y, dimZ = box.max.z - box.min.z;
+    var ctr = box.getCenter();
+    var sc = k.w / Math.max(dimX, dimZ);
+    inst.scale.setScalar(sc);
+    inst.position.set(-ctr.x * sc, -box.min.y * sc, -ctr.z * sc);
+    g.add(inst);
+    g.userData.dims = { W: dimX * sc, H: dimY * sc, D: dimZ * sc };
+    g.userData.roofY = dimY * sc; g.userData.bodyW = dimX * sc; g.userData.bodyD = dimZ * sc;
+    g.userData.kitMats = mats;
+    if (this._kitLive) this._kitLive.push({ mats: mats });
+    return g;
+  },
+
   buildByType: function(typeKey, seed, skin) {
+    var kit = this._useKit(typeKey);
+    if (kit) return this._buildFromKit(typeKey, kit, skin);
     var sk = skin || this._makeSkin(this._era || 'modern', this._normType(typeKey), seed, 80);
     switch (typeKey) {
       case 'house': case 'HO': return this.buildHouse(seed, sk);
@@ -877,7 +959,7 @@ var City3D = {
   _cityDef: null, _onBuildingClick: null, _opts: null, _era: 'modern', _night: 0.55,
   _fades: [], _winMeshes: null, _signs: null, _animated: null, _textures: null, _skins: null,
   _paused: false, _visible: true, _tabVisible: true, _orbit: 0,
-  _surround: null, _life: null, _detailQ: null, _detailMeshes: null, _helipadTaken: false, _post: false, _composer: null, _bloom: null, _ssao: null, _grade: null, _env: null, _envRT: null, _envEra: null, _camPersp: false, _camDist: 700, _lmAccents: null,
+  _surround: null, _life: null, _detailQ: null, _detailMeshes: null, _helipadTaken: false, _post: false, _composer: null, _bloom: null, _ssao: null, _grade: null, _env: null, _envRT: null, _envEra: null, _camPersp: false, _camDist: 700, _lmAccents: null, _assetsOn: false, _kitCache: null, _kitLive: null,
   _camTarget: null, _camGoal: null, _zoomGoal: 1, _lastTs: 0, _frameMs: 0,
 
   _eraOrder: ['victorian', 'gilded', 'crisis', 'boom', 'modern', 'digital'],
@@ -1108,6 +1190,8 @@ var City3D = {
     this._renderer = renderer;
     this._post = !low && opts.post !== false && typeof THREE.EffectComposer !== 'undefined';
     if (this._post) this._initPost(VW, VH);
+    this._assetsOn = !low && opts.assets !== false && typeof THREE.GLTFLoader !== 'undefined';
+    this._preloadKit();
     this._applyExposure();
 
     // Lights
@@ -1986,6 +2070,7 @@ var City3D = {
     var sk = this._makeSkin(era, tileType, seed, cond);
     sk.ownEra = !!(prop && prop.era && this.ERAS[prop.era]);
     var bg = this.buildByType(tileType, seed, sk);
+    bg.userData.procedural = !bg.userData.kitMats;
     bg.userData.skin = sk; bg.userData.typeKey = tileType;
     this._skins.push(sk);
     this._dressBuilding(bg, prop, cell);
@@ -2000,7 +2085,7 @@ var City3D = {
   _disposeObj: function(obj) {
     var self = this;
     obj.traverse(function(o) {
-      if (o.geometry) o.geometry.dispose();
+      if (o.geometry && !(o.geometry.userData && o.geometry.userData.shared)) o.geometry.dispose();
       if (o.material) {
         var mats = Array.isArray(o.material) ? o.material : [o.material];
         mats.forEach(function(m) {
@@ -2272,6 +2357,13 @@ var City3D = {
 
       // Windows
       self._updateWindows(self._night, ts);
+      if (self._kitLive && self._kitLive.length) {
+        var ke = Math.pow(self._night, 1.7) * 0.5;
+        for (var ki2 = 0; ki2 < self._kitLive.length; ki2++) {
+          var km = self._kitLive[ki2].mats;
+          for (var kj = 0; kj < km.length; kj++) km[kj].emissiveIntensity = ke;
+        }
+      }
 
       // Signs: billboard about Y + pulse
       if (self._signs.length) {
@@ -2424,7 +2516,7 @@ var City3D = {
     this._fades = []; this._winMeshes = null; this._signs = null; this._animated = null; this._textures = null; this._skins = null; this._dying = null;
     this._rain = null; this._weather = 'clear'; this._weatherK = 0; this._fogGoal = null;
     this._terrain = null; this._terrainGroup = null; this._bldgGroup = null; this._orbit = 0; this._zoomGoal = 1; this._frameMs = 0;
-    this._profile = null; this._profCache = null; this._contactShadow = null; this._surround = null; this._life = null; this._detailQ = null; this._detailMeshes = null; this._lmAccents = null; if (this._composer) { this._composer.passes.forEach(function(p) { if (p.dispose) p.dispose(); }); if (this._composer.renderTarget1) this._composer.renderTarget1.dispose(); if (this._composer.renderTarget2) this._composer.renderTarget2.dispose(); } if (this._envRT && this._envRT.dispose) this._envRT.dispose(); this._composer = null; this._bloom = null; this._ssao = null; this._grade = null; this._env = null; this._envRT = null; this._envEra = null; this._post = false;
+    this._profile = null; this._profCache = null; this._contactShadow = null; this._surround = null; this._life = null; this._detailQ = null; this._detailMeshes = null; this._lmAccents = null; if (this._composer) { this._composer.passes.forEach(function(p) { if (p.dispose) p.dispose(); }); if (this._composer.renderTarget1) this._composer.renderTarget1.dispose(); if (this._composer.renderTarget2) this._composer.renderTarget2.dispose(); } if (this._envRT && this._envRT.dispose) this._envRT.dispose(); this._composer = null; this._bloom = null; this._ssao = null; this._grade = null; this._env = null; this._envRT = null; this._envEra = null; this._post = false; this._assetsOn = false; this._kitCache = null; this._kitLive = null;
     this._dragState = { active: false, prevX: 0, prevY: 0, startX: 0, startY: 0, moved: false };
     this._visible = true; this._tabVisible = true;
   },

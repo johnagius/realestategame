@@ -6,7 +6,7 @@
   var PEUI = root.PEUI = root.PEUI || {};
   var doc = root.document;
 
-  PEUI.VERSION = 'v8.3';
+  PEUI.VERSION = 'v8.4';
   PEUI.SPRITE = 'assets/icons.svg';
 
   /* ---------- Formatting (one money formatter, engine currency) ---------- */

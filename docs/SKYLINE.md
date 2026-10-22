@@ -211,6 +211,18 @@ rolled into the build-out:
   1.65 -> 4.37 ms (headroom to 16.6); scene 248 calls / 19.3k tris. Low unchanged
   (224 calls / 13.5k, no passes). A/B shots sk12-* (post=0 before pairs) reviewed:
   night bloom on windows/accents only, SSAO grounds buildings, day graded, 0 errors.
+### SKYLINE-12b — authored building models, London (2026-10-23, Kimi) — DONE
+- Kenney City Kit (Suburban + Commercial, CC0 — assets/models/LICENSE) vendored as
+  GLB + shared colormaps under assets/models/{sub,com}/; r128 GLTFLoader vendored.
+  City3D loads the kit on quality high (opt-out ?assets=0), era-gated to boom+ for
+  the commercial/tower types (no kit glass towers before the Boom; TH/HO/VI stay
+  procedural — the kit suburban houses are 0.6:1 stubs vs our 1.8:1 terraces and
+  read broken mixed in). Heavy variants (>1k tris) swapped for the kit's own
+  low-detail set (~150 tris). Swap-in on load; procedural fallback for low/missing;
+  shared geometry/textures guarded in the disposal flow; per-instance material
+  clones carry the night emissive (atlas emissiveMap, night^1.7 x 0.5). Version v8.4.
+- Numbers (GPU): modern-day high 201 calls (-47) / 20.7k tris, frameMsEMA 3.26,
+  60 fps locked; low unchanged 234 / 13.4k. Shots sk12b-* reviewed.
 ### Remaining (audit §2 order)
 
 SKYLINE-7 silhouette variety (largest gap) → SKYLINE-9 mobile hero →

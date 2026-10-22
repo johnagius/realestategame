@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SKYLINE-12 spike sheet</title>
+<style>
+  body { margin: 0; background: #0b0d18; color: #e8e4da; font-family: Georgia, serif; padding: 22px 26px; }
+  h1 { font-size: 22px; margin: 0 0 2px; }
+  .sub { color: #9aa0b4; font-size: 12px; margin-bottom: 16px; font-family: Arial, sans-serif; }
+  .row { display: flex; gap: 14px; margin-bottom: 14px; align-items: flex-start; }
+  .cell { flex: 1; }
+  .cell img { width: 100%; display: block; border: 1px solid #2a2f45; }
+  .tag { font-family: Arial, sans-serif; font-size: 12px; letter-spacing: .12em; margin-bottom: 5px; }
+  .tag b { color: #f0c96a; }
+  .tag .before { color: #8a90a8; }
+  .mobile { width: 300px; flex: none; }
+  .mobile img { width: 100%; display: block; border: 1px solid #2a2f45; }
+  .foot { color: #9aa0b4; font-size: 11px; font-family: Arial, sans-serif; margin-top: 6px; }
+</style>
+</head>
+<body>
+<h1>Project Skyline — quality spike (SSAO &middot; bloom &middot; grade &middot; PBR)</h1>
+<div class="sub">London &middot; BEFORE = composer off (?post=0), AFTER = SKYLINE-12a chain &middot; 1280&times;800 desktop + 412&times;915 mobile</div>
+
+<div class="row">
+  <div class="cell">
+    <div class="tag"><b>VICTORIAN 1850 &middot; DUSK</b> &mdash; <span class="before">BEFORE</span></div>
+    <img src="../playwright/out/skyline/sk12-victorian-dusk-before.png" alt="">
+  </div>
+  <div class="cell">
+    <div class="tag"><b>VICTORIAN 1850 &middot; DUSK</b> &mdash; AFTER</div>
+    <img src="../playwright/out/skyline/sk12-victorian-dusk.png" alt="">
+  </div>
+</div>
+
+<div class="row">
+  <div class="cell">
+    <div class="tag"><b>MODERN 2000 &middot; DAY</b> &mdash; <span class="before">BEFORE</span></div>
+    <img src="../playwright/out/skyline/sk12-modern-day-before.png" alt="">
+  </div>
+  <div class="cell">
+    <div class="tag"><b>MODERN 2000 &middot; DAY</b> &mdash; AFTER</div>
+    <img src="../playwright/out/skyline/sk12-modern-day.png" alt="">
+  </div>
+</div>
+
+<div class="row">
+  <div class="cell">
+    <div class="tag"><b>DIGITAL 2030 &middot; NIGHT</b> &mdash; <span class="before">BEFORE</span></div>
+    <img src="../playwright/out/skyline/sk12-digital-night-before.png" alt="">
+  </div>
+  <div class="cell">
+    <div class="tag"><b>DIGITAL 2030 &middot; NIGHT</b> &mdash; AFTER</div>
+    <img src="../playwright/out/skyline/sk12-digital-night.png" alt="">
+  </div>
+</div>
+
+<div class="row">
+  <div class="cell">
+    <div class="tag"><b>VICTORIAN 1850 &middot; DUSK &middot; MOBILE 412&times;915</b> &mdash; AFTER</div>
+    <img src="../playwright/out/skyline/sk12-victorian-dusk-mobile.png" alt="">
+  </div>
+  <div class="cell">
+    <div class="tag"><b>READ</b></div>
+    <div class="foot">
+      After = RenderPass &rarr; SSAO &rarr; UnrealBloom (0.55 day / 0.9 night, threshold 0.82)
+      &rarr; grade (vignette, S-curve, fog-hue shadow lift, grain) &middot; MeshStandardMaterial
+      skins with per-era roughness/metalness &middot; PMREM sky env map rebuilt per era.
+      Night: bloom bites on lit windows, neon and landmark accents only. 60 fps vsync-locked
+      on the RTX 5070 with the composer; quality low runs with no passes, unchanged.
+    </div>
+  </div>
+</div>
+</body>
+</html>
