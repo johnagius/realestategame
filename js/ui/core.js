@@ -132,6 +132,7 @@
   var toastEl = null, toastTimer = null, toastLast = { text: '', count: 0, at: 0 };
   PEUI.toast = function (text, kind) {
     if (!text) return;
+    if (kind !== 'danger' && document.getElementById('titlecard') && document.getElementById('titlecard').classList.contains('is-open')) return;
     if (!toastEl) { toastEl = PEUI.h('div', { class: 'toast', role: 'status', 'aria-live': 'polite' }); doc.body.appendChild(toastEl); }
     var now = Date.now();
     if (toastLast.text === text && now - toastLast.at < 4000) toastLast.count++; else { toastLast.text = text; toastLast.count = 1; }

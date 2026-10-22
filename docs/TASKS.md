@@ -39,7 +39,8 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 - [ ] **P3.1 Rival personalities visible** — portraits (SVG), one-line taunts/reactions in auctions and year report, relationship meter, "offer on their property" flow. Acceptance: ≥ 1 rival interaction per 2 years in sim; leaderboard rank at year 30 in #2–#4 band.
 - [x] **P3.2 Marriage/alliance** — propose marriage of an heir to a rival family: alliance grants deal intel and a late-game merger option; refusal costs reputation. _(engine done v8.1; UI pending unless noted)_
-- [ ] **P3.3 Succession ceremony** — heir choice screen with trait reveal, estate tax breakdown, trust/charity planning, "new chapter" title card.
+- [x] **P3.3 Succession ceremony** — heir choice screen with trait reveal, estate tax breakdown, trust/charity planning, "new chapter" title card. _(P3.3: ceremony with ink tree, wax-seal reveal and tax breakdown; charity endowment engine+UI per bible §7)_
+  Quick balance (node js/sim/balance.js 20 5): 10/10 targets PASS, 4/4 family guards PASS.
 - [x] **P3.4 Events v2** — 40+ city events with two non-dominant choices, 12 historical set-pieces 1850–2030 with pre-warnings in the morning paper, era transition set-pieces that re-skin the 3D city live. _(engine done v8.1; UI pending unless noted)_
 - [ ] **P3.5 Bankruptcy/comeback arc** — rivals absorb your buildings visibly on the 3D map; comeback run has a bespoke yearly goal track.
 

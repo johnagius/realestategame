@@ -346,7 +346,7 @@ PE.Property.renovate(propertyId, tier)
 PE.Property.setRent(propertyId, setting)
 PE.Property.hireManager(cityId, managerId) / fireManager(cityId)
 
-PE.Dynasty.summary() / chooseHeir(memberId) / educate(memberId) / setupTrust()
+PE.Dynasty.summary() / chooseHeir(memberId) / educate(memberId) / setupTrust() / toggleCharity()
 PE.Rivals.leaderboard()                            → [{ id, name, netWorth, properties, cities, lastAction }]
 PE.Goals.current()                                 → { yearly, era, campaign }
 PE.Events.pending()                                → Event|null ; PE.Events.resolve(eventId, choiceIndex)
@@ -457,6 +457,7 @@ simulator was tuned against them. They are now canon.
 ### 16.1 Decisions added with engine v8.1.0 (Phase 2 engine work)
 
 - **Relations** with each rival are a −100..100 scale (`s.relations`): outbidding them at auction −8, being outbid −2, accepting their offer +8, declining −4, evictions in their city or district −5, marriage +30, refused proposal −20; drift 1/yr toward 0, allies never fall below 30.
+- **Charity endowment** (bible §7, engine v8.2): `Dynasty.toggleCharity()` endows 1% of net worth per year, +2 reputation per year, and cuts 5 points off the estate-tax rate (applied after the trust halving).
 - **Marriage**: an unmarried non-head aged 18–40 may be proposed to a rival with relation ≥ 0 when reputation ≥ 50; acceptance 35% + 0.4%/relation ± wealth ratio (+8% Charmer), 5-year cooldown per rival after refusal. An ally never contests your deals and reveals one listing a year in its favourite city.
 - **Merger** with an ally is allowed in the last 20 years or when the head is 65+, costs 15% of the ally's net worth, folds its portfolio and cash into yours, removes it from the leaderboard, and multiplies legacy score by 1 + 0.25 per merger.
 - **Events v2**: 43 random events, ≤ 2 per year; a Monte-Carlo check (`js/sim/eventsmc.js`) enforces that no choice dominates on both expected value and variance. Twelve historical set-pieces are pre-warned a year ahead in the morning paper with the standard 45% foreshadow noise (95% with the Town Crier perk). Each era change queues a two-choice set-piece.

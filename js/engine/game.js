@@ -122,7 +122,7 @@
   wrap(PE.Market, ['listings', 'appraise', 'makeOffer', 'bid', 'withdraw', 'sell', 'offersOnMyProperties', 'respondToOffer', 'insiderTip']);
   wrap(PE.Finance, ['mortgageQuote', 'takeMortgage', 'refinance', 'repay', 'summary']);
   wrap(PE.Property, ['renovate', 'setRent', 'hireManager', 'fireManager']);
-  wrap(PE.Dynasty, ['summary', 'chooseHeir', 'educate', 'setupTrust', 'dissolveTrust', 'proposeMarriage', 'mergeWithAlly']);
+  wrap(PE.Dynasty, ['summary', 'chooseHeir', 'educate', 'setupTrust', 'dissolveTrust', 'toggleCharity', 'proposeMarriage', 'mergeWithAlly']);
   wrap(PE.Goals, ['current']);
   wrap(PE.Events, ['pending', 'resolve']);
   wrap(PE.Cities, ['list', 'unlock']);

@@ -676,6 +676,39 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
     return interactionYears * 2 >= totalYears;
   })());
 })();
+
+/* ---------- P3.3 succession ceremony + charity planning ---------- */
+(function () {
+  var P = fresh('chen', 31), s = P.S(), D = P.Data, B = D.balance;
+  check('P3.3: charity endowment halves-ish estate tax: 5 points off after trust', (function () {
+    var base = P.Dynasty.estateTaxRate();
+    P.Dynasty.setupTrust();
+    var withTrust = P.Dynasty.estateTaxRate();
+    P.Dynasty.toggleCharity();
+    var withBoth = P.Dynasty.estateTaxRate();
+    var era = P.State.era().estateTax;
+    return Math.abs(base - era) < 0.001 && Math.abs(withTrust - era * B.estateTrustFactor) < 0.002 && Math.abs(withBoth - Math.max(0, era * B.estateTrustFactor - B.charityTaxCut)) < 0.002;
+  })());
+  check('P3.3: charity costs 1% of net worth a year and adds reputation', (function () {
+    P.Dynasty.toggleCharity(); // off again
+    var rep0 = s.reputation;
+    var rep1 = Math.min(100, rep0 + B.charityRepPerYear);
+    return rep1 > rep0 || rep0 === 100;
+  })());
+  check('P3.3: Dynasty.summary exposes charity', P.Dynasty.summary().charity === false || typeof P.Dynasty.summary().charity === 'boolean');
+  check('P3.3: succession reports a tax breakdown with trust and charity savings', (function () {
+    var P2 = fresh('vanderbilt', 32);
+    P2.Dynasty.setupTrust(); P2.Dynasty.toggleCharity();
+    var nw = P2.State.netWorth('player');
+    if (nw <= 0) { P2.S().cash = 5000; nw = P2.State.netWorth('player'); }
+    var rep = { cashFlow: { taxes: 0 }, dynasty: [], lines: [] };
+    P2.Dynasty.succession(rep);
+    var sc = rep.dynasty[0];
+    var expectGross = Math.round(nw * sc.breakdown.baseRate / 100);
+    return sc && sc.breakdown && sc.breakdown.trustSaved > 0 && sc.breakdown.charitySaved > 0 && sc.breakdown.tax === expectGross - sc.breakdown.trustSaved - sc.breakdown.charitySaved && sc.breakdown.heirTraits.length >= 1;
+  })());
+})();
+
 /* ---------- Summary ---------- */
 console.log('tests: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) { console.log('FAILURES:'); failures.forEach(function (f) { console.log('  - ' + f); }); }

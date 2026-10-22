@@ -117,7 +117,7 @@
   function presentReport(r, done) {
     var steps = [];
     if (r.eraChanged) steps.push(function (next) { titleCard('A new era', PE().Data.eraFor(r.year + 1).name, 'Year ' + (r.year + 1) + '. New property types, finance tools and a new skyline.', next); });
-    if (r.succession) { var sc = r.dynasty.filter(function (d) { return d.kind === 'succession'; })[0]; steps.push(function (next) { titleCard('Succession', sc ? sc.heir + ' inherits' : 'A new head of the family', (sc ? 'Generation ' + sc.generation + '. Estate tax paid: ' + fmt.money(sc.tax) + '.' : '') + ' A new chapter begins.', next); }); }
+    if (r.succession) { var sc = r.dynasty.filter(function (d) { return d.kind === 'succession'; })[0]; steps.push(function (next) { ceremony(sc, next); }); }
     steps.push(function (next) { showReport(r, next); });
     (function run(i) { if (i >= steps.length) { done(); return; } steps[i](function () { run(i + 1); }); })(0);
   }
@@ -132,6 +132,54 @@
     titleNext = function () { el.classList.remove('is-open'); el.setAttribute('aria-hidden', 'true'); titleNext = null; next(); };
     btn.focus();
   }
+  /* ---------- Succession ceremony (P3.3): ink tree, wax-seal reveal, estate-tax breakdown ---------- */
+  function ceremony(sc, next) {
+    var el = document.getElementById('titlecard'); PEUI.empty(el);
+    var b = (sc && sc.breakdown) || {};
+    var inner = h('div', { class: 'titlecard__inner ceremony' });
+    inner.appendChild(h('div', { class: 'titlecard__k', text: 'The next generation' }));
+    /* ink tree: the old head struck through, the line of succession drawn to the heir */
+    var NS = 'http://www.w3.org/2000/svg';
+    var tree = document.createElementNS(NS, 'svg');
+    tree.setAttribute('viewBox', '0 0 260 74'); tree.setAttribute('class', 'ceremony__tree'); tree.setAttribute('aria-hidden', 'true');
+    tree.innerHTML = '<path d="M130 6 C 96 22, 78 34, 74 52" class="ink"/><path d="M130 6 C 164 22, 182 34, 186 52" class="ink ink--to-heir"/><circle cx="130" cy="7" r="4" class="inkdot"/><circle cx="74" cy="56" r="4" class="inkdot inkdot--old"/><circle cx="186" cy="56" r="4" class="inkdot inkdot--heir"/><text x="130" y="-2" class="inktext" text-anchor="middle"></text>';
+    inner.appendChild(tree);
+    inner.appendChild(h('div', { class: 'ceremony__names' }, [
+      h('div', { class: 'ceremony__old' }, [h('span', { class: 'ceremony__oldname', text: (b.oldHead || 'The old head') + ', ' + (b.oldAge || '') }), h('span', { class: 'ceremony__strike', 'aria-hidden': 'true' })]),
+      h('div', { class: 'ceremony__arrow', text: 'the house passes to' })
+    ]));
+    /* wax seal over the heir reveal */
+    var seal = h('div', { class: 'waxseal', 'aria-hidden': 'true' }, [h('i', { class: 'waxseal__half waxseal__half--l' }), h('i', { class: 'waxseal__half waxseal__half--r' }), h('span', { class: 'waxseal__initial', text: PEUI.crestLetter(sc ? sc.heir : '?') })]);
+    var traitChips = h('div', { class: 'chips chips--center' });
+    (b.heirTraits || []).forEach(function (t) { var td = PE().Data.traits[t]; if (td) traitChips.appendChild(PEUI.chip(td.name, td.positive ? 'gold' : 'danger', td.positive ? 'star' : 'warning')); });
+    var reveal = h('div', { class: 'ceremony__reveal' }, [
+      h('h1', { class: 'titlecard__t', text: sc ? sc.heir : 'The heir' }),
+      h('p', { class: 'titlecard__s', text: 'Head of the family · generation ' + (sc ? sc.generation : '') + (b.heirAge ? ' · age ' + b.heirAge : '') + (b.regent ? ' · a cousin, with a regent’s tax' : '') }),
+      traitChips
+    ]);
+    inner.appendChild(h('div', { class: 'sealwrap' }, [seal, reveal]));
+    /* estate tax breakdown, gross struck through when planning paid off */
+    if (b.tax !== undefined) {
+      var dl = h('dl', { class: 'quote ceremony__tax' });
+      function trow(k, v, cls, strike) { var dd = h('dd', { class: 'num ' + (cls || ''), text: fmt.money(v) }); if (strike) dd.appendChild(h('s', { class: 'strike', text: '' })); dl.appendChild(h('div', { class: 'quote__row' + (strike ? ' quote__row--struck' : '') }, [h('dt', { text: k }), dd])); }
+      var saved = (b.trustSaved || 0) + (b.charitySaved || 0);
+      trow('Estate tax at ' + (b.baseRate || 0) + '%', Math.round((b.netWorth || 0) * (b.baseRate || 0) / 100), saved ? 'struck' : '', !!saved);
+      if (b.trustSaved) trow('Family trust', -b.trustSaved, 'pos');
+      if (b.charitySaved) trow('Charity endowment', -b.charitySaved, 'pos');
+      trow('Paid to the Crown', b.tax, 'neg');
+      inner.appendChild(dl);
+      if (b.trustSaved || b.charitySaved) inner.appendChild(h('p', { class: 'ceremony__planning', text: 'The planners earned their fee: ' + fmt.money(saved) + ' kept in the family.' }));
+    }
+    var btn = PEUI.btn('Turn the page', { cls: 'btn--gold btn--lg', icon: 'skip', action: 'titlecard-next' });
+    inner.appendChild(btn); el.appendChild(inner);
+    el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false');
+    titleNext = function () { el.classList.remove('is-open'); el.setAttribute('aria-hidden', 'true'); titleNext = null; next(); };
+    btn.focus();
+    /* seal breaks after a beat, then the fanfare */
+    setTimeout(function () { if (!titleNext) return; seal.classList.add('is-cracked'); PEUI.sound('decision'); }, 900);
+    setTimeout(function () { if (!titleNext) return; reveal.classList.add('is-revealed'); PEUI.sound('fanfare'); }, 1400);
+  }
+
   var titleNext = null;
   PEUI.actions['titlecard-next'] = function () { if (titleNext) titleNext(); };
 

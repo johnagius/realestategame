@@ -50,6 +50,8 @@
     if (St.hasTrait('gambler') && R.chance(0.15)) { var amt = Math.round(Math.abs(s.cash) * 0.05 + 10 * s.priceIndex); if (R.chance(0.5)) { s.cash += amt; lines.push(d.head.name + ' won ' + U.fmt(amt) + ' at cards.'); } else { s.cash -= amt; lines.push(d.head.name + ' lost ' + U.fmt(amt) + ' at cards.'); } }
     // Trust cost
     if (d.trust) { var nw = Math.max(0, St.netWorth('player')), tc = Math.round(nw * B.trustCostPct); s.cash -= tc; report.cashFlow.taxes += tc; }
+    // Charity endowment: a steady cost, goodwill, and a smaller estate-tax bill (bible §7)
+    if (d.charity) { var nwc = Math.max(0, St.netWorth('player')), cc = Math.round(nwc * B.charityCostPct); s.cash -= cc; report.cashFlow.taxes += cc; s.reputation = Math.min(100, s.reputation + B.charityRepPerYear); }
     // Child mortality (small) and head mortality
     for (i = 0; i < d.members.length; i++) { var c = d.members[i]; if (c.relation === 'child' && c.alive && R.chance(Dy.mortality(c.age) * 0.3)) { c.alive = false; lines.push(c.name + ' has died.'); } }
     if (R.chance(Dy.mortality(d.head.age))) lines = lines.concat(Dy.succession(report));
@@ -59,6 +61,7 @@
   Dy.estateTaxRate = function () {
     var s = PE.S(), fam = D.familyById(s.familyId), rate = St.era().estateTax + fam.estateTaxAdj;
     if (s.dynasty.trust) rate *= B.estateTrustFactor;
+    if (s.dynasty.charity) rate = Math.max(0, rate - B.charityTaxCut);
     return Math.round(rate * 1000) / 1000;
   };
 
@@ -73,10 +76,16 @@
     }
     var regent = false;
     if (!heir) { heir = Dy.newMember(R.int(24, 34), R.chance(0.5) ? 'm' : 'f', Dy.rollTraits(1), 'child'); heir.name += ' (a cousin)'; d.members.push(heir); regent = true; }
-    // Estate tax
-    var rate = Dy.estateTaxRate() + (regent ? 0.05 : 0), nw = Math.max(0, St.netWorth('player')), tax = Math.round(nw * rate);
+    // Estate tax, with the breakdown the ceremony shows (P3.3)
+    var fam = D.familyById(s.familyId), baseRate = St.era().estateTax + fam.estateTaxAdj + (regent ? 0.05 : 0);
+    var rate = baseRate;
+    if (d.trust) rate *= B.estateTrustFactor;
+    if (d.charity) rate = Math.max(0, rate - B.charityTaxCut);
+    var nw = Math.max(0, St.netWorth('player')), gross = Math.round(nw * baseRate), tax = Math.round(nw * rate);
+    var afterTrust = Math.round(nw * (baseRate * (d.trust ? B.estateTrustFactor : 1)));
+    var breakdown = { netWorth: nw, baseRate: Math.round(baseRate * 1000) / 10, regent: regent, trustSaved: Math.max(0, gross - afterTrust), charitySaved: Math.max(0, afterTrust - tax), rate: Math.round(rate * 1000) / 10, tax: tax, oldHead: old.name, oldAge: old.age, heirTraits: heir.traits.slice(), heirAge: heir.age };
     s.cash -= tax; report.cashFlow.taxes += tax;
-    lines.push('Estate tax: ' + U.fmt(tax) + ' (' + Math.round(rate * 100) + '%' + (d.trust ? ', halved by the trust' : '') + ').');
+    lines.push('Estate tax: ' + U.fmt(tax) + ' (' + Math.round(rate * 100) + '%' + (d.trust ? ', halved by the trust' : '') + (d.charity ? ', reduced by the endowment' : '') + ').');
     // Pay with forced sales if needed
     var sold = 0;
     while (s.cash < 0 && St.propertyCount('player') > 0) {
@@ -92,13 +101,13 @@
     if (d.trust) s.stats.trustSuccessions++;
     s.reputation = Math.round(U.clamp(s.reputation * B.reputationInherit + (regent ? -10 : 0) + (St.hasTrait('charmer') ? 8 : 0), 0, 100));
     lines.push(heir.name + ' is head of the family (generation ' + d.generation + '): ' + heir.traits.map(function (t) { return D.traits[t].name; }).join(', ') + '.');
-    report.dynasty.push({ kind: 'succession', heir: heir.name, generation: d.generation, tax: tax });
+    report.dynasty.push({ kind: 'succession', heir: heir.name, generation: d.generation, tax: tax, breakdown: breakdown });
     return lines;
   };
 
   Dy.summary = function () {
     var s = PE.S(), d = s.dynasty;
-    return PE.ok({ head: U.clone(d.head), members: U.clone(d.members.filter(function (m) { return m.alive; })), generation: d.generation, heirId: d.heirId, trust: d.trust,
+    return PE.ok({ head: U.clone(d.head), members: U.clone(d.members.filter(function (m) { return m.alive; })), generation: d.generation, heirId: d.heirId, trust: d.trust, charity: !!d.charity,
       estateTaxRate: Dy.estateTaxRate(), reputation: s.reputation, alliances: U.clone(d.alliances), deaths: U.clone(d.deaths), surname: d.surname,
       mortality: Math.round(Dy.mortality(d.head.age) * 1000) / 10, educationCost: Dy.educationCost(),
       marriageCandidates: Dy.marriageCandidates(), merger: Dy.mergerInfo(), mergers: d.mergers || 0 });
@@ -132,6 +141,11 @@
     return PE.ok({ message: 'Family trust established: estate tax halved, costs 2% of net worth each year.' });
   };
   Dy.dissolveTrust = function () { var d = PE.S().dynasty; if (!d.trust) return PE.fail('No trust'); d.trust = false; return PE.ok({ message: 'Trust dissolved.' }); };
+  Dy.toggleCharity = function () {
+    var s = PE.S(), d = s.dynasty;
+    d.charity = !d.charity;
+    return PE.ok({ message: d.charity ? 'The ' + s.dynasty.surname + ' endowment is established: 1% of net worth each year, goodwill, and 5 points off estate tax.' : 'The endowment is wound down.', charity: d.charity });
+  };
   /* ---------- Marriage and alliance (P3.2, bible §7) ---------- */
   Dy.marriageEligibility = function (memberId, rivalId) {
     var s = PE.S(), m = Dy.member(memberId), rv = s.rivals[rivalId], rd = D.rivalById(rivalId);

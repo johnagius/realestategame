@@ -34,6 +34,7 @@
     head.appendChild(h('div', { class: 'stat-grid stat-grid--3' }, [stat('Reputation', Math.round(d.reputation) + ' / 100'), stat('Estate tax', Math.round(d.estateTaxRate * 100) + '%' + (d.trust ? ' (trust)' : '')), stat('Risk this year', d.mortality.toFixed(1) + '%', d.mortality > 8 ? 'neg' : '')]));
     head.appendChild(h('div', { class: 'meter' }, [h('span', { text: 'Reputation' }), PEUI.bar(d.reputation / 100, d.reputation >= 70 ? 'success' : d.reputation >= 40 ? 'info' : 'danger'), h('span', { text: d.reputation >= 70 ? 'Respected' : d.reputation >= 40 ? 'Known' : 'Suspect' })]));
     head.appendChild(h('div', { class: 'row row--between' }, [h('span', { class: 'small muted grow', text: d.trust ? 'A family trust halves estate tax and costs 2% of net worth each year.' : 'A family trust halves estate tax for 2% of net worth a year. Plan for death before it plans for you.' }), PEUI.btn(d.trust ? 'Dissolve trust' : 'Set up trust', { cls: 'btn--secondary btn--sm', icon: 'bank', action: d.trust ? 'dyn-trust-off' : 'dyn-trust-on' })]));
+    head.appendChild(h('div', { class: 'row row--between' }, [h('span', { class: 'small muted grow', text: d.charity ? 'The family endowment: 1% of net worth each year, goodwill, 5 points off estate tax.' : 'An endowment costs 1% of net worth a year, builds reputation, and shaves 5 points off estate tax.' }), PEUI.btn(d.charity ? 'Wind down endowment' : 'Endow a charity', { cls: 'btn--secondary btn--sm', icon: 'star', action: 'dyn-charity' })]));
     inner.appendChild(head);
 
     var fam = h('section', { class: 'card', 'aria-label': 'Family' });
@@ -89,6 +90,7 @@
   });
   PEUI.actions['dyn-trust-on'] = function () { var r = PEUI.call(PE().Dynasty.setupTrust); if (r.ok) { PEUI.save(); PEUI.toast(r.message, 'success'); PEUI.refresh(); } };
   PEUI.actions['dyn-trust-off'] = function () { var r = PEUI.call(PE().Dynasty.dissolveTrust); if (r.ok) { PEUI.save(); PEUI.toast(r.message); PEUI.refresh(); } };
+  PEUI.actions['dyn-charity'] = function () { var r = PEUI.call(PE().Dynasty.toggleCharity); if (r.ok) { PEUI.save(); PEUI.sound('coin'); PEUI.toast(r.message, 'success'); PEUI.refresh(); } };
   PEUI.actions['dyn-heir'] = function (b, d) { var r = PEUI.call(PE().Dynasty.chooseHeir, d.id); if (r.ok) { PEUI.save(); PEUI.toast(r.message, 'success'); PEUI.refresh(); } };
   PEUI.actions['dyn-educate'] = function (b, d) { var r = PEUI.call(PE().Dynasty.educate, d.id); if (r.ok) { PEUI.save(); PEUI.sound('coin'); PEUI.moneyFloat(b, -r.cost); PEUI.toast(r.message, 'success'); PEUI.refresh(); } };
   PEUI.actions['dyn-marry'] = function (b, d) {

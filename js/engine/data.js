@@ -390,6 +390,9 @@
     wealthTaxThresholdMult: 60,       // × family start cash × priceIndex
     estateTrustFactor: 0.5,
     trustCostPct: 0.02,
+    charityCostPct: 0.01,            // per year, on net worth
+    charityRepPerYear: 2,
+    charityTaxCut: 0.05,             // estate-tax rate points while endowed (bible §7)
     // market dynamics
     districtNoise: 0.03,
     momentumMeanReversion: 0.15,
