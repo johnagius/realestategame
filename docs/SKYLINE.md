@@ -126,10 +126,33 @@ rolled into the build-out:
 - Not done here: rolling the pattern to the other 20 cities (SKYLINE-8), surroundings
   slab (SKYLINE-5, spec + prototype in `docs/SKYLINE-TARGET.md`).
 
-### Remaining
+### SKYLINE-8 — CITY_PROFILES roll-out + contact sheet (2026-10-22, Kimi swarm) — DONE
 
-CITY_PROFILES matrix, city-tour.js contact sheet (126 images), perf numbers
-in `docs/PERF.md`.
+- All 20 cities carry `profile` (base + era overrides; victorian/gilded gas-lit dusk,
+  digital neon + mirror water) — commits bc76033, c8cce4b, 934ccff, 07219a6, all in
+  push 5b83db4. One signature set-piece per city (café row, arcade, Victory Column,
+  aqueduct, Gaudí spire, yacht marina, Peak Ridge, Frozen Quay, Bund lamps, Twelve
+  Apostles ridge, cherry lane, supertrees (digital+), Hollywood hills, mural terrace,
+  deco row (crisis+), fountain (digital+), brownstone row; Sydney/Mumbai already had
+  HBR/GWI). CN Tower era-gated to `modern` (was rendering in 1850).
+- Contact sheet: `tools/playwright/city-tour.js` → 120 desktop + 6 mobile shots in
+  `tools/playwright/out/skyline/tour/` + `tour-stats.csv`; 20 cells reviewed across
+  integrator + director passes; fixes landed (Sydney Opera House shape/placement,
+  Amsterdam Canal Houses moved into view, Cape Town mountain contrast).
+  `tools/check-citydefs.js` validates all 20 defs (20/20 OK); `tools/playwright/shot.js`
+  re-shoots single cells.
+- Perf: `docs/PERF.md` Skyline + Fleet sections — real GPU (RTX 5070, ANGLE-GL):
+  1.36 ms avg / 3.4 ms p95, vsync-locked 60 fps, London 228 calls / 12.9k tris PASS.
+  Fleet worst NYC digital dusk 264 calls (+5.6% over the 250 guideline, signature-driven;
+  engine batching is the fix if wanted). Tris max 13.6k of 25k.
+- Known-weak for the next wave: Sydney Opera House shells, Victoria Peak shape,
+  Table Mountain day-side washout, NYC signature crowding, Notre-Dame camera-facing.
+
+### Remaining (audit §2 order)
+
+SKYLINE-5 surroundings slab (world beyond the island) → SKYLINE-6 streets/water
+alive → SKYLINE-7 silhouette variety (largest gap) → SKYLINE-9 mobile hero →
+SKYLINE-10 labels + landmark lights → SKYLINE-11 perspective rig for splash/photo.
 
 Perf budget (this machine has a GPU — measure, don't assume):
 `getStats()` ≤ ~250 draw calls, ≤ ~25k triangles, frameMs ≤ 16 on

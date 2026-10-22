@@ -31,6 +31,8 @@ var CityDef_Toronto = {
   ],
   // Terrain tile drawn under a landmark (default 'LOT'); water landmarks keep their water
   landmarkGround: { FRQ:'HB' },
+  // CN Tower rises 1976 — era-gated like London's Shard (DESIGN-DIRECTION §4)
+  landmarkEras: { CNT:'modern' },
   landmarkNames:{CNT:'🗼 CN Tower',FRQ:'Frozen Quay'},
   landmarks:{
     CNT:function(){
