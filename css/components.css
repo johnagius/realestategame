@@ -328,3 +328,16 @@ button { -webkit-tap-highlight-color: transparent; }
 .ceremony__tax { text-align: left; margin: var(--sp-3) auto 0; max-width: 340px; }
 .quote__row--struck dd { text-decoration: line-through; text-decoration-thickness: 2px; }
 .ceremony__planning { color: var(--gold-ink); font-style: italic; margin-top: var(--sp-2); }
+
+/* ---------- Signature moments (DESIGN-DIRECTION §3, §6) ---------- */
+@keyframes banddraw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.deal__est.is-drawn .bar__band { transform-origin: left center; animation: banddraw 0.7s var(--ease) 0.15s both; }
+@keyframes stampin { 0% { opacity: 0; transform: scale(1.18) rotate(-1.2deg); } 60% { opacity: 1; transform: scale(0.97) rotate(0.4deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+.comp.is-stamping, .logline.is-stamping { animation: stampin 0.26s var(--ease) both; animation-delay: calc(var(--i, 0) * 90ms); }
+.cue-note { position: relative; font-family: var(--font-display); font-style: italic; font-size: var(--fs-3); background: var(--gold-soft); border: 1px solid var(--line-strong); border-radius: 2px 10px 2px 10px; padding: var(--sp-2) var(--sp-3); transform: rotate(-0.8deg); box-shadow: var(--shadow-1); }
+.cue-note::before { content: ''; position: absolute; top: -5px; left: 50%; width: 9px; height: 9px; margin-left: -4px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--gold), #8A6418); box-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+.report__scroll.is-turning { animation: pageturn 0.48s var(--ease) both; transform-origin: top center; }
+@keyframes pageturn { from { opacity: 0; transform: perspective(1200px) rotateX(7deg) translateY(26px); } to { opacity: 1; transform: perspective(1200px) rotateX(0) translateY(0); } }
+.report--newsprint { filter: grayscale(0.55) contrast(0.94); }
+.report--newsprint .card, .report--newsprint .report__head { border-style: dashed; }
+.paper--crash { filter: grayscale(0.6) contrast(0.95); border-style: dashed; }

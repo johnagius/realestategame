@@ -96,6 +96,29 @@ const GameAudio = {
     setTimeout(function() { GameAudio.playTone(200, 0.2, 'sine', 0.06); }, 150);
   },
 
+  // Stamp — ink thock (estimates, bids landing)
+  stamp() {
+    if (this.muted) return;
+    this.playTone(170, 0.07, 'triangle', 0.16);
+    setTimeout(function() { GameAudio.playTone(90, 0.09, 'sine', 0.1); }, 40);
+  },
+
+  // Page — paper turning at the year report
+  page() {
+    if (this.muted) return;
+    this.playTone(2400, 0.05, 'sine', 0.03);
+    setTimeout(function() { GameAudio.playTone(1900, 0.07, 'sine', 0.025); }, 60);
+  },
+
+  // Gavel — the hammer falls (auction bid won/beaten)
+  gavel() {
+    if (this.muted) return;
+    this.playTone(210, 0.06, 'square', 0.14);
+    setTimeout(function() { GameAudio.playTone(140, 0.1, 'triangle', 0.12); }, 90);
+    setTimeout(function() { GameAudio.playTone(210, 0.06, 'square', 0.12); }, 220);
+    setTimeout(function() { GameAudio.playTone(140, 0.14, 'triangle', 0.1); }, 310);
+  },
+
   toggle() {
     this.muted = !this.muted;
     if (!this.muted) this.ensureCtx();

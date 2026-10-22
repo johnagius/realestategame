@@ -259,12 +259,16 @@
     PEUI.shownReport = r; if (!r.preview) PEUI.lastReport = r;
     if (PEUI.advisor && !r.preview) PEUI.advisor.onReport(r);
     var sc = h('div', { class: 'report__scroll', tabindex: '0' }, reportBody(r)); el.appendChild(sc);
+    /* The crash (DESIGN-DIRECTION §3.4): depression years print on grey newsprint. */
+    if (r.cycle === 'depression' || sceneKind(r) === 'crash') sc.classList.add('report--newsprint');
     var label = r.bankrupt ? 'See what remains' : r.ended ? 'The end of the campaign' : 'Continue to ' + (r.year + 1);
     var foot = h('div', { class: 'report__foot' }), row = h('div', { class: 'btn-row report__foot-row' });
     if (r.eraChanged || r.ended) row.appendChild(PEUI.btn('Share card', { cls: 'btn--secondary btn--lg', icon: 'download', action: 'share-card' }));
     row.appendChild(PEUI.btn(label, { cls: 'btn--primary btn--lg', icon: 'skip', action: 'report-next' }));
     foot.appendChild(row); el.appendChild(foot);
     el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false'); sc.scrollTop = 0;
+    sc.classList.add('is-turning');
+    PEUI.sound('page');
     reportNext = function () { el.classList.remove('is-open'); el.setAttribute('aria-hidden', 'true'); reportNext = null; next(); };
     var b = el.querySelector('.report__foot [data-action="report-next"]'); if (b) b.focus();
   }

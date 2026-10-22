@@ -11,7 +11,8 @@
 
   /* ---------- Morning paper ---------- */
   function paper(s) {
-    var p = h('section', { class: 'paper', 'aria-label': 'Morning paper' });
+    var bleak = s.cycle === 'recession' || s.cycle === 'depression';
+    var p = h('section', { class: 'paper' + (bleak ? ' paper--crash' : ''), 'aria-label': 'Morning paper' });
     p.appendChild(h('div', { class: 'paper__mast' }, [h('span', { class: 'paper__name', text: 'The ' + PEUI.cityName('london') + ' Gazette' }), h('span', { class: 'paper__date', text: '1 January ' + s.year })]));
     var lines = h('div', { class: 'paper__lines' });
     var arr = s.paper || [];
@@ -70,7 +71,7 @@
   }
   function estimateRow(l) {
     var lo = l.lowEstimate, hi = l.highEstimate, ask = l.askingPrice, min = Math.min(lo, ask) * 0.85, max = Math.max(hi, ask) * 1.15, span = max - min || 1;
-    var row = h('div', { class: 'deal__est' });
+    var row = h('div', { class: 'deal__est is-drawn' });
     row.appendChild(h('span', { class: 'num', text: 'Est. ' + fmt.money(lo) }));
     var bar = h('div', { class: 'bar', 'aria-label': 'Estimate band ' + fmt.money(lo) + ' to ' + fmt.money(hi) + '; asking ' + fmt.money(ask) });
     bar.appendChild(h('div', { class: 'bar__band', style: 'left:' + ((lo - min) / span * 100).toFixed(1) + '%;width:' + ((hi - lo) / span * 100).toFixed(1) + '%' }));
@@ -165,14 +166,16 @@
     box.appendChild(cond);
     box.appendChild(h('div', { class: 'row row--wrap' }, [h('span', { class: 'small muted', text: l.district + ' trend:' }), PEUI.trend(ap.districtTrend)]));
     var cues = h('ul', { class: 'lines' });
-    for (var i = 0; i < ap.cues.length; i++) cues.appendChild(h('li', {}, [icon('info'), h('span', { text: ap.cues[i] })]));
+    for (var i = 0; i < ap.cues.length; i++) cues.appendChild(h('li', { class: i === 0 ? 'cue-note' : '', style: i ? '' : null }, [i ? icon('info') : icon('paper'), h('span', { text: ap.cues[i] })]));
     box.appendChild(cues);
     box.appendChild(h('div', { class: 'kicker', text: 'Comparable sales' }));
     var comps = h('div', { class: 'stack stack--2' });
     for (var j = 0; j < ap.comps.length; j++) {
       var c = ap.comps[j], target = PEUI.appraisal ? PEUI.appraisal.compTarget(c) : null;
       var kids = [h('span', { class: 'comp__t', text: c.district + ' · ' + PE().Data.propertyTypes[c.type].name }), h('span', { class: 'comp__v', text: fmt.psqm(c.pricePerSqm) }), h('span', { class: 'comp__s', text: c.sqm + ' m² · sold ' + c.year + ' · about ' + fmt.money(c.pricePerSqm * c.sqm) + (target ? ' · tap to see it on the map' : '') })];
-      comps.appendChild(target ? h('button', { type: 'button', class: 'comp comp--tap', 'data-action': 'comp-focus', 'data-id': target, 'aria-label': 'Show ' + c.district + ' comparable on the city map' }, kids) : h('div', { class: 'comp' }, kids));
+      var compEl = target ? h('button', { type: 'button', class: 'comp comp--tap', 'data-action': 'comp-focus', 'data-id': target, 'aria-label': 'Show ' + c.district + ' comparable on the city map' }, kids) : h('div', { class: 'comp' }, kids);
+      compEl.classList.add('is-stamping'); compEl.style.setProperty('--i', j);
+      comps.appendChild(compEl);
     }
     box.appendChild(comps);
     if (PEUI.guide) { var gc = PEUI.guide.callout('appraisal', { listing: l, appraisal: ap }); if (gc) box.appendChild(gc); }
@@ -286,6 +289,7 @@
     body.push(h('div', { class: 'divider' }));
     body.push(offerPanel(l));
     PEUI.sheet.open({ id: 'listing:' + id, title: l.name, sub: l.typeName + ' · ' + l.district + ', ' + l.cityName, body: body, foot: offerFoot(l), onClose: function () { if (PEUI.current === 'city' && root.City3D) root.City3D.setSelected(null); } });
+    PEUI.sound('stamp');
   };
   PEUI.actions['open-listing'] = function (b, d) { PEUI.openListing(d.id); };
   PEUI.actions['insider-tip'] = function (b, d) {
@@ -311,7 +315,7 @@
   }
   function handleOutcome(r, l) {
     if (r.outcome === 'accepted' || r.outcome === 'won') {
-      PEUI.sound('purchase'); PEUI.confetti(40); PEUI.toast(r.message, 'success');
+      PEUI.sound('purchase'); PEUI.confetti(40); PEUI.toast(r.message, 'success'); if (r.outcome === 'won') PEUI.sound('gavel');
       // a hidden defect: the engine reports it on offers; on auction wins compare the listing's condition with the property's
       var defect = r.defect || (l && r.property.condition < l.condition ? Math.round(l.condition - r.property.condition) : 0);
       var reveal = PEUI.appraisal ? PEUI.appraisal.reveal(r.property.id, null, r.property.trueValue, PEUI.summary().year, { defect: defect }) : null;
@@ -335,7 +339,7 @@
     }
     if (r.outcome === 'rejected') { PEUI.sound('negative'); PEUI.toast(r.message, 'danger'); offer.id = null; PEUI.openListing(l.id, r.message); PEUI.refresh(); return; }
     if (r.outcome === 'auction' || r.outcome === 'continue') { PEUI.sound('decision'); openAuction(r.auction, r.message, r.taunt); PEUI.refresh(); return; }
-    if (r.outcome === 'outbid') { PEUI.sound('negative'); PEUI.sheet.close(); offer.id = null; PEUI.refresh(); openBeaten(r); return; }
+    if (r.outcome === 'outbid') { PEUI.sound('negative'); PEUI.sound('gavel'); PEUI.sheet.close(); offer.id = null; PEUI.refresh(); openBeaten(r); return; }
     PEUI.toast(r.message);
   }
   function stat(label, value) { return h('div', { class: 'stat' }, [h('span', { class: 'stat__label', text: label }), h('span', { class: 'stat__value num', text: value })]); }
@@ -353,7 +357,7 @@
     for (var j = 0; j < a.log.length; j++) {
       var entry = a.log[j];
       if (entry.who === 'player') log.appendChild(h('div', { class: 'logline' }, [h('span', { class: 'grow', text: 'You bid ' + fmt.money(entry.bid) })]));
-      else log.appendChild(h('div', { class: 'logline' }, [PEUI.crest({ id: entry.who, name: PEUI.rivalName('rival:' + entry.who), color: (PE().Data.rivalById(entry.who) || {}).color }, { size: 20 }), h('span', { class: 'grow', text: PEUI.rivalName('rival:' + entry.who) + ' bid ' + fmt.money(entry.bid) }), entry.taunt ? h('span', { class: 'logline__taunt', text: '“' + entry.taunt + '”' }) : null]));
+      else log.appendChild(h('div', { class: 'logline is-stamping', style: '--i:' + j }, [PEUI.crest({ id: entry.who, name: PEUI.rivalName('rival:' + entry.who), color: (PE().Data.rivalById(entry.who) || {}).color }, { size: 20 }), h('span', { class: 'grow', text: PEUI.rivalName('rival:' + entry.who) + ' bid ' + fmt.money(entry.bid) }), entry.taunt ? h('span', { class: 'logline__taunt', text: '“' + entry.taunt + '”' }) : null]));
     }
     if (PEUI.advisor) PEUI.advisor.trigger('auction', 'auction');
     var body = [
