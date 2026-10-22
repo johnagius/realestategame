@@ -18,7 +18,7 @@
     var arr = s.paper || [];
     if (!arr.length) lines.appendChild(h('div', { class: 'paper__line muted', text: 'Nothing of note this morning.' }));
     for (var i = 0; i < arr.length; i++) {
-      var L = arr[i], cls = 'paper__line' + (L.kind === 'headline' ? ' paper__line--headline' : isForeshadow(L.text) ? ' paper__line--foreshadow' : '');
+      var L = arr[i], cls = 'paper__line' + (L.kind === 'headline' ? ' paper__line--headline' : (L.prewarn || isForeshadow(L.text)) ? ' paper__line--foreshadow' : '');
       var ic = L.kind === 'headline' ? 'warning' : L.kind === 'city' ? 'city' : L.kind === 'dynasty' ? 'crown' : isForeshadow(L.text) ? 'info' : 'bank';
       lines.appendChild(h('div', { class: cls }, [icon(ic), h('span', { text: L.text })]));
     }

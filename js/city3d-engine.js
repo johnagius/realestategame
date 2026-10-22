@@ -1558,6 +1558,12 @@ var City3D = {
 
   stopAnimation: function() { if (this._animId) { cancelAnimationFrame(this._animId); this._animId = null; } },
   getStats: function() { var i = this._renderer ? this._renderer.info.render : {}; return { frameMs: this._frameMs, calls: i.calls, triangles: i.triangles, quality: this._quality }; },
+  /* Photo mode: render one frame synchronously and return a PNG data URL (share-card source). */
+  photo: function() {
+    if (!this._renderer || !this._scene || !this._cam) return null;
+    this._renderer.render(this._scene, this._cam);
+    try { return this._canvas.toDataURL('image/png'); } catch (e) { return null; }
+  },
 
   // ───────────────────────────── Cleanup ─────────────────────────────
   destroy: function() {

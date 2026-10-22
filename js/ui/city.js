@@ -122,7 +122,7 @@
         var view = h('div', { class: 'city-view' });
         view.appendChild(h('div', { class: 'city-view__canvas', role: 'img', 'aria-label': 'City map' }));
         view.appendChild(h('div', { class: 'city-view__fallback hidden' }));
-        view.appendChild(h('div', { class: 'city-view__tools' }, [PEUI.btn('', { cls: 'btn--secondary btn-icon', icon: 'refresh', action: 'city-reset', ariaLabel: 'Reset view' })]));
+        view.appendChild(h('div', { class: 'city-view__tools' }, [PEUI.btn('', { cls: 'btn--secondary btn-icon', icon: 'refresh', action: 'city-reset', ariaLabel: 'Reset view' }), PEUI.btn('', { cls: 'btn--secondary btn-icon', icon: 'download', action: 'city-photo', ariaLabel: 'Save a photo of the city' })]));
         var leg = h('div', { class: 'city-view__legend', id: 'city-legend' });
         view.appendChild(leg);
         sc.appendChild(view);
@@ -146,6 +146,14 @@
   PEUI.destroyCity = function () { if (root.City3D && cs.renderedId) { try { root.City3D.destroy(); } catch (e) {} } cs.renderedId = null; cs.mounted = false; cs.id = null; };
   PEUI.actions['city-tab'] = function (b, d) { cs.id = d.id; PEUI.refresh(); };
   PEUI.actions['city-reset'] = function () { if (root.City3D && cs.renderedId) root.City3D.resetView(); };
+  PEUI.actions['city-photo'] = function () {
+    if (!root.City3D || !cs.renderedId) return;
+    var url = root.City3D.photo();
+    if (!url) { PEUI.toast('Photo is not available on this device.'); return; }
+    var a = h('a', { href: url, download: 'property-empire-' + cs.id + '-' + PEUI.summary().year + '.png' });
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    PEUI.sound('page'); PEUI.toast('Photo saved.', 'success');
+  };
   PEUI.actions['city-unlock'] = function (b, d) {
     var r = PEUI.call(PE().Cities.unlock, d.id); if (!r.ok) return;
     PEUI.save(); PEUI.sound('fanfare'); PEUI.confetti(30); PEUI.toast(r.message, 'success');
