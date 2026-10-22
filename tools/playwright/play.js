@@ -178,6 +178,7 @@ async function managePortfolio(page) {
   const gd = await page.evaluate(() => JSON.stringify(PEUI.prefs.guide));
   const seen = await page.evaluate(() => Object.keys((PEUI.prefs.advisor || { seen: {} }).seen).join(','));
   console.log('phase2: appraisal', JSON.stringify(ap), 'guide', gd, 'advisor seen', seen, 'reveals shown', ph2.reveals, 'callouts seen', ph2.callouts, 'bubbles seen', ph2.bubbles);
+  if (await page.locator('#titlecard.is-open [data-action="end-heir"], #titlecard.is-open [data-action="end-new"]').count()) { await act(page, 'end-heir'); await sleep(500); await dismissOverlays(page); }
   await page.evaluate(() => { const r = JSON.parse(JSON.stringify(PEUI.lastReport)); r.eraChanged = true; PEUI._previewReport(r); }); await sleep(1000);
   await act(page, 'share-card'); await sleep(500); await shot2(page, 'share'); await closeSheet(page); await act(page, 'report-next'); await sleep(200);
   await act(page, 'nav', '[data-screen="dynasty"]'); await sleep(200); await shot2(page, 'dynasty');

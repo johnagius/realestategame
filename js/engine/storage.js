@@ -62,12 +62,13 @@
     has: function (key) { return backend.get(key || Storage.SAVE_KEY) !== null; },
     remove: function (key) { backend.remove(key || Storage.SAVE_KEY); },
     /* Meta (prestige/legacy) is separate from the run save. */
-    /* Meta shape: { legacyPoints, runs[], perks[] (owned perk ids), challenges: { '<week>': { best, runs, lastYear } } }. */
+    /* Meta shape: { legacyPoints, runs[], perks[] (owned perk ids), modes[] (selected 'mode' perks for the next run), challenges: { '<week>': { best, runs, lastYear } } }. */
     loadMeta: function () {
       var raw = backend.get(Storage.META_KEY), m = raw ? JSON.parse(raw) : {};
       if (typeof m.legacyPoints !== 'number') m.legacyPoints = 0;
       if (!m.runs) m.runs = [];
       if (!m.perks) m.perks = [];
+      if (!m.modes) m.modes = [];
       if (!m.challenges) m.challenges = {};
       return m;
     },

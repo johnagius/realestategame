@@ -30,6 +30,7 @@
     hud.appendChild(inner);
     var pop = h('div', { class: 'popover', id: 'year-menu', role: 'menu' });
     pop.appendChild(menuItem('Skip quiet years', 'Up to 5 years; stops when something needs you', 'skip', 'skip-quiet'));
+    pop.appendChild(menuItem('Prestige store', 'Spend legacy points on permanent perks', 'sparkle', 'open-perks'));
     pop.appendChild(menuItem('Save game', 'Also saved automatically every year', 'download', 'save-now'));
     pop.appendChild(menuItem('Settings', 'Sound, 3D quality, theme, save data', 'settings', 'open-settings'));
     pop.appendChild(menuItem('Main menu', 'Back to the title screen', 'home', 'to-start'));
@@ -47,7 +48,7 @@
     var cash = document.getElementById('hud-cash'); if (!cash) return;
     PEUI.setText(cash, fmt.money(s.cash)); cash.classList.toggle('hud__value--neg', s.cash < 0);
     PEUI.setText(document.getElementById('hud-nw'), fmt.money(s.netWorth));
-    PEUI.setText(document.querySelector('#hud-year span'), s.year + ' · ' + s.era);
+    PEUI.setText(document.querySelector('#hud-year span'), s.year + ' · ' + s.era + (s.challenge ? ' · ' + fmt.int(s.challenge.score) : ''));
     PEUI.setText(document.querySelector('#hud-rank span'), '#' + s.rank);
     PEUI.setText(document.querySelector('#hud-rep span'), 'Rep ' + Math.round(s.reputation));
     var cyc = document.getElementById('hud-cycle');

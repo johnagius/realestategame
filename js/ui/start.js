@@ -36,8 +36,21 @@
     } else {
       acts.appendChild(h('button', { type: 'button', class: 'sp-cta sp-cta--primary', 'data-action': 'start-new', text: 'New dynasty' }));
     }
+    var links = h('div', { class: 'sp-links' });
+    links.appendChild(spLink('Prestige', 'open-perks', 'sparkle'));
+    links.appendChild(spLink('Weekly challenge', 'open-challenge', 'flag'));
+    links.appendChild(spLink('Begin in a crisis', 'open-scenarios', 'warning'));
+    if (hasSave) links.appendChild(spLink('Trophy room', 'open-achievements', 'trophy'));
+    acts.appendChild(links);
     ov.appendChild(acts);
     return ov;
+  }
+
+  function spLink(label, action, ic) {
+    var b = h('button', { type: 'button', class: 'sp-link', 'data-action': action });
+    b.appendChild(PEUI.icon(ic));
+    b.appendChild(h('span', { text: label }));
+    return b;
   }
 
   function famCard(f) {

@@ -18,6 +18,11 @@ async function run(page, name, ctx) {
   await page.goto('http://127.0.0.1:8790/index.html?seed=7', { waitUntil: 'load' }); await sleep(1500);
   const all = [];
   all.push(...await run(page, 'start'));
+  for (const [name, fn] of [['prestige sheet', 'PEUI.openPerks()'], ['challenge lobby', 'PEUI.openChallenge()'], ['scenarios sheet', 'PEUI.openScenarios()'], ['trophy room', 'PEUI.openAchievements()']]) {
+    await page.evaluate(f => eval(f), fn); await sleep(350);
+    all.push(...await run(page, name, '.sheet'));
+    await page.evaluate(() => PEUI.sheet.close()); await sleep(250);
+  }
   await act(page, 'start-new'); await sleep(300); all.push(...await run(page, 'family select'));
   await act(page, 'start-begin'); await sleep(600);
   while (await page.locator('.sheet.is-open .choice').count()) { await page.locator('.choice').first().click(); await sleep(300); }

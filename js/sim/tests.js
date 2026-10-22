@@ -540,6 +540,24 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   check('perks are saved with the run and survive load', (function () { var P = withPerks(['old_money', 'thick_skin']); P.Game.save(); P._state = null; var r = P.Game.load(); return r.ok && P.S().perks.length === 2 && P.State.hasPerk('thick_skin'); })());
 })();
 
+/* ---------- 19b. Mode-perk selection (stored in meta, applied by the next newGame) ---------- */
+(function () {
+  var PE = load(), D = PE.Data;
+  check('setModes works before any game exists and keeps only owned mode perks', (function () {
+    var m = PE.Storage.loadMeta(); m.legacyPoints = 12; m.perks = ['purist', 'old_money', 'seventh_rival']; PE.Storage.saveMeta(m);
+    var r = PE.Game.setModes(['purist', 'seventh_rival', 'old_money', 'nope']);
+    return r.ok && r.modes.slice().sort().join() === 'purist,seventh_rival' && PE.Storage.loadMeta().modes.slice().sort().join() === 'purist,seventh_rival';
+  })());
+  check('perks() exposes the stored selection on mode perks only', (function () { var ps = PE.Game.perks().perks; return ps.filter(function (p) { return p.selected; }).map(function (p) { return p.id; }).sort().join() === 'purist,seventh_rival' && ps.filter(function (p) { return p.kind === 'passive'; }).every(function (p) { return p.selected === false; }); })());
+  check('newGame({modes}) drops unowned mode ids for that game and leaves the stored selection untouched', (function () { var r = PE.Game.newGame({ familyId: 'chen', seed: 1, modes: ['second_city', 'crisis_start'] }); return r.ok && r.perks.indexOf('second_city') < 0 && r.perks.indexOf('crisis_start') < 0 && PE.State.unlockedCities().indexOf('paris') < 0 && PE.Storage.loadMeta().modes.slice().sort().join() === 'purist,seventh_rival'; })());
+  check('newGame({modes:[...]}) applies an owned listed mode without touching the stored selection', (function () { var P = load(); var m = P.Storage.loadMeta(); m.perks = ['second_city']; P.Storage.saveMeta(m); var r = P.Game.newGame({ familyId: 'chen', seed: 1, modes: ['second_city'] }); return r.ok && r.perks.indexOf('second_city') >= 0 && P.State.unlockedCities().indexOf('paris') >= 0 && P.Storage.loadMeta().modes.length === 0; })());
+  var g = PE.Game.newGame({ familyId: 'chen', seed: 1 });
+  check('a new game applies owned passives plus the selected modes by default', g.ok && g.perks.indexOf('old_money') >= 0 && g.perks.indexOf('purist') >= 0 && g.perks.indexOf('seventh_rival') >= 0 && PE.Finance.maxLtv('player') === 0 && Object.keys(PE.S().rivals).length === 7);
+  check('setModes([]) clears the selection: the next game carries passives only', (function () { PE.Game.setModes([]); var r = PE.Game.newGame({ familyId: 'chen', seed: 1 }); return r.ok && r.perks.indexOf('purist') < 0 && r.perks.indexOf('old_money') >= 0 && PE.Finance.maxLtv('player') === 0.75; })());
+  check('an explicit perks list still bypasses the selection (challenge rules stay fixed)', (function () { var r = PE.Game.newGame({ familyId: 'chen', seed: 1, perks: [] }); return r.ok && r.perks.length === 0; })());
+  check('buying a mode perk does not auto-select it', (function () { var P = load(); var m = P.Storage.loadMeta(); m.legacyPoints = 4; P.Storage.saveMeta(m); P.Game.buyPerk('purist'); return P.Storage.loadMeta().modes.length === 0 && P.Game.perks().perks.filter(function (p) { return p.id === 'purist'; })[0].selected === false; })());
+})();
+
 /* ---------- 20. P5.3 Weekly seeded challenge ---------- */
 (function () {
   var A = load(), B = load();

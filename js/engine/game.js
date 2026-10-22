@@ -8,13 +8,17 @@
   var Game = {};
   Game.version = '8.1.0';
 
-  /* newGame({ familyId, seed, traitId, perks?, scenario? }). Perks default to the owned 'passive' perks in meta;
-     'mode' perks (purist, seventh rival, crisis start, second city) apply only when listed explicitly. Perks not owned are ignored. */
+  /* newGame({ familyId, seed, traitId, perks?, modes?, scenario? }). Perks default to the owned 'passive' perks in meta
+     plus the selected 'mode' perks (opts.modes, else the selection stored in meta.modes via Game.setModes).
+     'mode' perks apply only through that selection. Perks not owned are ignored. */
   Game.newGame = g('newGame', function (opts) {
     opts = opts || {};
     var meta = PE.Storage.loadMeta(), owned = meta.perks || [];
-    if (!opts.perks) opts.perks = owned.filter(function (id) { var p = D.perkById(id); return p && p.kind === 'passive'; });
-    else opts.perks = opts.perks.filter(function (id) { return owned.indexOf(id) >= 0 || opts.unlockedPerks === true; });
+    if (!opts.perks) {
+      var sel = opts.modes || meta.modes || [];
+      opts.perks = owned.filter(function (id) { var p = D.perkById(id); return p && p.kind === 'passive'; })
+        .concat(sel.filter(function (id) { var p = D.perkById(id); return p && p.kind === 'mode' && (owned.indexOf(id) >= 0 || opts.unlockedPerks === true); }));
+    } else opts.perks = opts.perks.filter(function (id) { return owned.indexOf(id) >= 0 || opts.unlockedPerks === true; });
     var s = St.newGame(opts);
     var where = s.scenario ? D.cityById[St.unlockedCities()[0]].name + ', ' + s.year + ' (' + s.scenario.name + ')' : 'London, ' + s.year;
     return PE.ok({ state: s, message: 'The ' + s.dynasty.surname + ' dynasty begins in ' + where + '.', scenario: s.scenario ? U.clone(s.scenario) : null, perks: s.perks.slice() });
@@ -57,8 +61,8 @@
 
   /* ---------- Prestige perks store (P5.2) ---------- */
   Game.perks = function () {
-    var meta = PE.Storage.loadMeta(), owned = meta.perks || [], s = PE.S();
-    return PE.ok({ legacyPoints: meta.legacyPoints || 0, perks: D.perks.map(function (p) { return { id: p.id, name: p.name, desc: p.desc, cost: p.cost, kind: p.kind, owned: owned.indexOf(p.id) >= 0, affordable: owned.indexOf(p.id) < 0 && (meta.legacyPoints || 0) >= p.cost, active: !!(s && s.perks && s.perks.indexOf(p.id) >= 0) }; }) });
+    var meta = PE.Storage.loadMeta(), owned = meta.perks || [], sel = meta.modes || [], s = PE.S();
+    return PE.ok({ legacyPoints: meta.legacyPoints || 0, perks: D.perks.map(function (p) { return { id: p.id, name: p.name, desc: p.desc, cost: p.cost, kind: p.kind, owned: owned.indexOf(p.id) >= 0, affordable: owned.indexOf(p.id) < 0 && (meta.legacyPoints || 0) >= p.cost, active: !!(s && s.perks && s.perks.indexOf(p.id) >= 0), selected: sel.indexOf(p.id) >= 0 }; }) });
   };
   Game.buyPerk = function (id) {
     var p = D.perkById(id); if (!p) return PE.fail('Unknown perk');
@@ -67,6 +71,14 @@
     if ((meta.legacyPoints || 0) < p.cost) return PE.fail('Needs ' + p.cost + ' legacy points (you have ' + (meta.legacyPoints || 0) + ')');
     meta.legacyPoints -= p.cost; meta.perks.push(id); PE.Storage.saveMeta(meta);
     return PE.ok({ message: p.name + ' bought for ' + p.cost + ' point' + (p.cost === 1 ? '' : 's') + '.', legacyPoints: meta.legacyPoints, perks: meta.perks.slice() });
+  };
+  /* Which owned 'mode' perks apply to the next new game. Stored in meta so the choice survives
+     across dynasties; the perk store toggles these. Unknown or unowned ids are dropped. Stateless. */
+  Game.setModes = function (ids) {
+    var meta = PE.Storage.loadMeta(); meta.perks = meta.perks || [];
+    meta.modes = (Array.isArray(ids) ? ids : []).filter(function (id) { var p = D.perkById(id); return p && p.kind === 'mode' && meta.perks.indexOf(id) >= 0; });
+    PE.Storage.saveMeta(meta);
+    return PE.ok({ modes: meta.modes.slice(), message: 'Ways to play updated.' });
   };
 
   /* ---------- Weekly seeded challenge (P5.3) ---------- */

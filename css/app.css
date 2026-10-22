@@ -59,6 +59,17 @@ body { overflow: hidden; }
 .trait__desc { font-size: var(--fs-1); color: rgba(246,239,224,0.75); }
 .trait--neg .trait__name { color: #F2A099; }
 .start-panel .seed { font-size: var(--fs-1); color: rgba(246,239,224,0.55); text-align: center; }
+.sp-links { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); width: 100%; }
+.sp-link {
+  display: inline-flex; align-items: center; gap: 6px; min-height: var(--tap); padding: 0 var(--sp-3);
+  border-radius: var(--r-pill); border: 1px solid rgba(217, 180, 92, 0.35); background: rgba(10, 11, 20, 0.35);
+  color: rgba(246, 239, 224, 0.78); font-size: var(--fs-1); font-weight: 800; letter-spacing: 0.6px; cursor: pointer;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  transition: color var(--dur-2), border-color var(--dur-2), background var(--dur-2);
+}
+.sp-link:hover { color: #F6EFE0; border-color: rgba(243, 217, 138, 0.7); background: rgba(10, 11, 20, 0.55); }
+.sp-link .ic { width: 15px; height: 15px; }
+@media (min-width: 900px) { .sp-actions { flex-wrap: wrap; row-gap: var(--sp-3); } .sp-links { flex-basis: 100%; } }
 
 /* ── HUD ── */
 .hud {
@@ -264,6 +275,23 @@ body { overflow: hidden; }
 /* ── Settings ── */
 .settings__row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); min-height: var(--tap); padding: var(--sp-2) 0; border-bottom: 1px solid var(--line); }
 .settings__row:last-child { border-bottom: 0; }
+
+/* ── Extras: prestige store, challenge lobby, scenarios, trophy room ── */
+.kicker--row { display: flex; align-items: center; gap: 6px; }
+.kicker--row .ic { width: 14px; height: 14px; }
+.achgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: var(--sp-2); }
+.ach { position: relative; display: flex; flex-direction: column; gap: 3px; padding: var(--sp-3); border-radius: var(--r-2); border: 1px solid var(--line); background: var(--surface-2); }
+.ach .ic { width: 18px; height: 18px; color: var(--ink-3); }
+.ach__name { font-weight: 800; font-size: var(--fs-2); line-height: var(--lh-tight); }
+.ach__desc { font-size: var(--fs-1); color: var(--ink-2); line-height: 1.3; }
+.ach .badge { position: absolute; top: var(--sp-2); right: var(--sp-2); }
+.ach--locked { border-style: dashed; }
+.ach--locked .ic { color: var(--ink-3); }
+.ach--earned { background: var(--gold-soft); border-color: var(--gold); }
+.ach--earned .ic { color: var(--gold-ink); }
+.ach--earned .ach__name, .ach--earned .ach__desc { color: var(--gold-ink); }
+.ach--earned .ach__desc { opacity: 0.82; }
+.sheet__body .card .toggle { flex: 1 1 auto; min-width: 0; border-bottom: 0; min-height: var(--tap); padding: 0; }
 
 /* ── Celebration ── */
 .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 130; overflow: hidden; }

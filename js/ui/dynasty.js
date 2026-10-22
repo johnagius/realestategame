@@ -71,7 +71,7 @@
     if (g.ok) {
       var ach = h('section', { class: 'card card--flat', 'aria-label': 'Achievements' });
       var earned = g.achievements.filter(function (a) { return a.earned; }).length;
-      ach.appendChild(h('div', { class: 'section-head' }, [h('h2', { text: 'Achievements' }), h('span', { class: 'small muted', text: earned + ' of ' + g.achievements.length + ' · legacy ' + fmt.int(g.legacyScore) })]));
+      ach.appendChild(h('div', { class: 'section-head' }, [h('h2', { text: 'Achievements' }), h('div', { class: 'row' }, [h('span', { class: 'small muted', text: earned + ' of ' + g.achievements.length + ' · legacy ' + fmt.int(g.legacyScore) }), PEUI.btn('Trophy room', { cls: 'btn--ghost btn--sm', icon: 'trophy', action: 'open-achievements' })])]));
       var chips = h('div', { class: 'chips', style: 'margin-top:8px' });
       for (var a = 0; a < g.achievements.length; a++) { var A = g.achievements[a]; var c = PEUI.chip(A.name, A.earned ? 'gold' : 'outline', A.earned ? 'check' : 'lock'); c.title = A.desc; chips.appendChild(c); }
       ach.appendChild(chips); inner.appendChild(ach);
