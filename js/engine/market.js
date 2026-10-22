@@ -207,7 +207,7 @@
     v.lowEstimate = e.low; v.highEstimate = e.high; v.sellerName = D.sellers[l.seller].name;
     v.pricePerSqm = Math.round(l.askingPrice / l.sqm * 100) / 100; v.districtPricePerSqm = Math.round(d.ppsqm * 100) / 100; v.districtTrend = d.trendShown;
     v.stampDuty = M.stampDuty(l, l.askingPrice); v.maxLtv = PE.Finance.maxLtv('player');
-    delete v.trueValue; delete v.m; // hidden from the UI
+    delete v.trueValue; delete v.m; delete v.equity; delete v.ltv; v.history = []; // hidden from the UI (equity/ltv/history would leak true value)
     if (l.revealed) v.trueValue = l.trueValue;
     return v;
   };

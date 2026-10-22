@@ -1,17 +1,15 @@
 {
   "name": "Property Empire",
   "short_name": "PropEmpire",
-  "description": "Build your real estate fortune across the world's greatest cities",
-  "start_url": "/index.html",
+  "description": "A real-estate dynasty game: appraise mispriced deals, borrow bravely, survive the crash and hand a bigger empire to your heir.",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#FAF3E0",
-  "theme_color": "#2C6E49",
+  "background_color": "#1F2733",
+  "theme_color": "#1F2733",
   "orientation": "portrait",
   "icons": [
-    {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>",
-      "sizes": "any",
-      "type": "image/svg+xml"
-    }
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
   ]
 }

@@ -1,39 +1,63 @@
-const CACHE_NAME = 'property-empire-v7.3';
+const CACHE_NAME = 'property-empire-v8.0';
 const ASSETS = [
   './',
   './index.html',
-  './css/style.css',
+  './manifest.json',
+  './css/tokens.css',
+  './css/components.css',
+  './css/splash.css',
+  './css/app.css',
+  './assets/icons.svg',
+  './assets/icon.svg',
+  './js/vendor/three.min.js',
+  './js/city3d-engine.js',
+  './js/cities/london.js',
+  './js/cities/paris.js',
+  './js/cities/new_york.js',
+  './js/cities/amsterdam.js',
+  './js/cities/berlin.js',
+  './js/cities/rome.js',
+  './js/cities/barcelona.js',
+  './js/cities/monaco.js',
+  './js/cities/sydney.js',
+  './js/cities/hong_kong.js',
+  './js/cities/mumbai.js',
+  './js/cities/toronto.js',
+  './js/cities/shanghai.js',
+  './js/cities/cape_town.js',
+  './js/cities/tokyo.js',
+  './js/cities/singapore.js',
+  './js/cities/los_angeles.js',
+  './js/cities/sao_paulo.js',
+  './js/cities/miami.js',
+  './js/cities/dubai.js',
   './js/intro.js',
   './js/audio.js',
-  './js/data.js',
-  './js/game.js',
-  './js/graphics.js',
-  './js/imageloader.js',
-  './js/mosaic.js',
-  './js/city3d-engine.js',
-  './js/cities/new_york.js',
-  './js/cities/london.js',
-  './js/cities/tokyo.js',
-  './js/cities/dubai.js',
-  './js/cities/paris.js',
-  './js/cities/sydney.js',
-  './js/cities/singapore.js',
-  './js/cities/hong_kong.js',
-  './js/cities/barcelona.js',
-  './js/cities/rome.js',
-  './js/cities/berlin.js',
-  './js/cities/amsterdam.js',
-  './js/cities/toronto.js',
-  './js/cities/monaco.js',
-  './js/cities/shanghai.js',
-  './js/cities/mumbai.js',
-  './js/cities/sao_paulo.js',
-  './js/cities/cape_town.js',
-  './js/cities/los_angeles.js',
-  './js/cities/miami.js',
-  './js/ui.js',
-  './js/app.js',
-  './manifest.json'
+  './js/ads.js',
+  './js/engine/rng.js',
+  './js/engine/storage.js',
+  './js/engine/data.js',
+  './js/engine/state.js',
+  './js/engine/property.js',
+  './js/engine/finance.js',
+  './js/engine/market.js',
+  './js/engine/rivals.js',
+  './js/engine/dynasty.js',
+  './js/engine/events.js',
+  './js/engine/goals.js',
+  './js/engine/cities.js',
+  './js/engine/turn.js',
+  './js/engine/game.js',
+  './js/ui/core.js',
+  './js/ui/start.js',
+  './js/ui/hud.js',
+  './js/ui/deals.js',
+  './js/ui/city.js',
+  './js/ui/portfolio.js',
+  './js/ui/dynasty.js',
+  './js/ui/rivals.js',
+  './js/ui/year.js',
+  './js/ui/app.js'
 ];
 
 // Install — cache core assets, skip waiting to activate immediately
@@ -54,15 +78,11 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch — NETWORK FIRST for JS/CSS/HTML (always get fresh code)
-// Cache fallback only when offline
+// Fetch — NETWORK FIRST for same-origin files (always get fresh code), cache fallback when offline.
+// Query strings (?v=) are ignored when matching the cache so the precache list serves versioned requests.
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-
-  // Only handle same-origin requests
   if (url.origin !== self.location.origin) return;
-
-  // Network first for all app files — always try to get latest code
   event.respondWith(
     fetch(event.request).then(response => {
       if (response.ok) {
@@ -70,9 +90,6 @@ self.addEventListener('fetch', event => {
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
       }
       return response;
-    }).catch(() => {
-      // Offline — serve from cache
-      return caches.match(event.request);
-    })
+    }).catch(() => caches.match(event.request, { ignoreSearch: true }))
   );
 });

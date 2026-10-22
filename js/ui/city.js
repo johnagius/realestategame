@@ -1,0 +1,133 @@
+/* PEUI city — the 3D city (City3D.renderCity) fed with owned, listed and
+   rival properties; city tabs for unlocked cities; locked cities show the
+   expansion cost and reputation gate with an Expand action. The renderer is
+   kept alive across tabs (it pauses itself when not visible) and re-renders
+   only when the city changes. */
+(function (root) {
+  var PEUI = root.PEUI, h = PEUI.h, fmt = PEUI.fmt, icon = PEUI.icon;
+  var cs = { id: null, renderedId: null, era: null, shapes: {}, mounted: false };
+  var DEF = { london: 'CityDef_London', paris: 'CityDef_Paris', new_york: 'CityDef_NewYork', amsterdam: 'CityDef_Amsterdam', berlin: 'CityDef_Berlin', rome: 'CityDef_Rome', barcelona: 'CityDef_Barcelona', monaco: 'CityDef_Monaco', sydney: 'CityDef_Sydney', hong_kong: 'CityDef_HongKong', mumbai: 'CityDef_Mumbai', toronto: 'CityDef_Toronto', shanghai: 'CityDef_Shanghai', cape_town: 'CityDef_CapeTown', tokyo: 'CityDef_Tokyo', singapore: 'CityDef_Singapore', los_angeles: 'CityDef_LosAngeles', sao_paulo: 'CityDef_SaoPaulo', miami: 'CityDef_Miami', dubai: 'CityDef_Dubai' };
+
+  function PE() { return root.PE; }
+  function shape(p, isListing) {
+    var t = PE().Data.propertyTypes[p.type];
+    return { id: p.id, type: p.type, model3d: t ? t.model3d : p.model3d, era: p.era, ownerId: p.ownerId, condition: p.condition, renovation: p.renovation || null, isListing: !!isListing, name: p.name };
+  }
+  function cityProps(cityId) {
+    var st = PE().Game.state(), out = [], k;
+    for (k in st.properties) if (st.properties[k].cityId === cityId && st.properties[k].ownerId === 'player') out.push(shape(st.properties[k], false));
+    for (k in st.listings) if (st.listings[k].cityId === cityId) out.push(shape(st.listings[k], true));
+    for (k in st.properties) if (st.properties[k].cityId === cityId && st.properties[k].ownerId !== 'player') out.push(shape(st.properties[k], false));
+    return out;
+  }
+  function hashShape(s) { return [s.model3d, s.ownerId, Math.round(s.condition / 5), s.renovation ? s.renovation.tier : '', s.isListing].join('|'); }
+
+  function render3D(el) {
+    var host = el.querySelector('.city-view__canvas'), fb = el.querySelector('.city-view__fallback');
+    var def = root[DEF[cs.id]], s = PEUI.summary();
+    if (!root.City3D || !root.THREE || !def) { fb.classList.remove('hidden'); PEUI.setText(fb, 'The 3D view is not available on this device.'); return; }
+    var props = cityProps(cs.id), q = PEUI.prefs.quality === 'auto' ? undefined : PEUI.prefs.quality;
+    var ok = false;
+    try {
+      ok = root.City3D.renderCity(def, host, props, { era: s.eraId, playerColor: s.color, rivalColors: PEUI.rivalColors(), quality: q, night: 0.35, autoOrbit: false, labels: true, ambientEvents: false,
+        onSelect: function (p) { if (!p) return; if (p.isListing) PEUI.openListing(p.id); else if (p.ownerId === 'player') PEUI.openProperty(p.id); else PEUI.toast(p.name + ' · owned by ' + PEUI.rivalName(p.ownerId)); } });
+    } catch (e) { console.warn('3D failed', e); ok = false; }
+    fb.classList.toggle('hidden', !!ok);
+    if (!ok) PEUI.setText(fb, 'The 3D view could not start (WebGL unavailable).');
+    cs.renderedId = ok ? cs.id : null; cs.era = s.eraId; cs.shapes = {};
+    for (var i = 0; i < props.length; i++) cs.shapes[props[i].id] = hashShape(props[i]);
+  }
+  function syncProps() {
+    if (!cs.renderedId || !root.City3D) return;
+    var props = cityProps(cs.id), seen = {};
+    for (var i = 0; i < props.length; i++) {
+      var p = props[i], hh = hashShape(p); seen[p.id] = 1;
+      if (cs.shapes[p.id] !== hh) { try { root.City3D.updateProperty(p, { animate: true }); } catch (e) {} cs.shapes[p.id] = hh; }
+    }
+    var s = PEUI.summary();
+    if (s.eraId !== cs.era) { try { root.City3D.setEra(s.eraId, 1200); } catch (e) {} cs.era = s.eraId; }
+  }
+  PEUI.cityUpdateProperty = function () { if (cs.renderedId) syncProps(); };
+
+  function cityPanel(el) {
+    var list = PE().Cities.list(); if (!list.ok) return;
+    var info = null; for (var i = 0; i < list.cities.length; i++) if (list.cities[i].id === cs.id) info = list.cities[i];
+    var s = PEUI.summary(), box = el.querySelector('#city-panel'); PEUI.empty(box);
+    if (!info) return;
+    var card = h('section', { class: 'card city-card', 'aria-label': info.name });
+    card.appendChild(h('div', {}, [h('div', { class: 'city-card__name', text: info.name }), h('div', { class: 'small muted', text: info.country + ' · ' + info.traitName })]));
+    card.appendChild(info.unlocked ? PEUI.badge('Open since ' + info.unlockedYear, 'success') : PEUI.badge(info.available ? 'Locked' : 'From ' + info.availableFrom, 'neutral'));
+    card.appendChild(h('div', { class: 'city-card__facts' }, [
+      h('span', { html: 'Avg <strong>' + fmt.psqm(info.avgPricePerSqm) + '</strong>' }),
+      h('span', { html: 'Gross yield <strong>' + (info.grossYield * 100).toFixed(1) + '%</strong>' }),
+      h('span', { html: 'Property tax <strong>' + (info.taxRate * 100).toFixed(1) + '%</strong>' }),
+      h('span', { html: 'You own <strong>' + info.properties + '</strong>' })
+    ]));
+    card.appendChild(h('div', { class: 'small muted', style: 'grid-column:1/-1', text: info.traitDesc }));
+    if (!info.unlocked) {
+      var gate = h('div', { class: 'stack stack--2', style: 'grid-column:1/-1' });
+      gate.appendChild(h('div', { class: 'note ' + (info.canUnlock ? 'note--success' : 'note--warn') }, [icon(info.canUnlock ? 'expand' : 'lock'), h('span', { text: 'Expansion costs ' + fmt.money(info.cost) + ' and needs reputation ' + info.repRequired + ' (yours: ' + Math.round(s.reputation) + ', cash ' + fmt.money(s.cash) + ').' })]));
+      gate.appendChild(PEUI.btn('Expand to ' + info.name + ' for ' + fmt.money(info.cost), { cls: 'btn--primary btn--block', icon: 'expand', action: 'city-unlock', 'data-id': info.id, disabled: !info.canUnlock }));
+      card.appendChild(gate);
+    }
+    box.appendChild(card);
+    var dl = h('section', { class: 'card card--flat', 'aria-label': 'Districts' });
+    dl.appendChild(h('div', { class: 'kicker', text: 'Districts' }));
+    for (var j = 0; j < info.districts.length; j++) {
+      var d = info.districts[j];
+      dl.appendChild(h('div', { class: 'district-row' }, [h('span', { text: d.name + (d.playerShare ? ' · you own ' + d.playerShare + '%' : '') }), h('span', { class: 'num muted small', text: fmt.psqm(d.pricePerSqm) }), PEUI.trend(d.trend)]));
+    }
+    box.appendChild(dl);
+  }
+  function tabs(el) {
+    var list = PE().Cities.list(); if (!list.ok) return;
+    var cities = list.cities.filter(function (c) { return c.unlocked || c.available; }).sort(function (a, b) { return (b.unlocked - a.unlocked) || (a.cost - b.cost); });
+    PEUI.patchList(el.querySelector('#city-tabs'), cities, function (c) { return c.id; }, function (c) { return c.id + (c.id === cs.id ? ':on' : '') + c.unlocked; }, function (c) {
+      var b = h('button', { type: 'button', class: 'tab' + (c.unlocked ? '' : ' tab--locked'), role: 'tab', 'aria-selected': String(c.id === cs.id), 'data-action': 'city-tab', 'data-id': c.id });
+      if (!c.unlocked) b.appendChild(icon('lock', 'ic--sm', 'Locked'));
+      b.appendChild(h('span', { text: c.name })); return b;
+    });
+  }
+
+  PEUI.register('city', {
+    mount: function (el, ctx) {
+      var s = PEUI.summary();
+      if (ctx && ctx.city) cs.id = ctx.city;
+      if (!cs.id) cs.id = s.cities[0];
+      if (!cs.mounted) {
+        PEUI.empty(el);
+        var sc = h('div', { class: 'screen__scroll' });
+        sc.appendChild(h('div', { class: 'city-top' }, h('div', { class: 'city-top__inner' }, h('div', { class: 'tabs', id: 'city-tabs', role: 'tablist', 'aria-label': 'Cities' }))));
+        var view = h('div', { class: 'city-view' });
+        view.appendChild(h('div', { class: 'city-view__canvas', role: 'img', 'aria-label': 'City map' }));
+        view.appendChild(h('div', { class: 'city-view__fallback hidden' }));
+        view.appendChild(h('div', { class: 'city-view__tools' }, [PEUI.btn('', { cls: 'btn--secondary btn-icon', icon: 'refresh', action: 'city-reset', ariaLabel: 'Reset view' })]));
+        var leg = h('div', { class: 'city-view__legend', id: 'city-legend' });
+        view.appendChild(leg);
+        sc.appendChild(view);
+        sc.appendChild(h('div', { class: 'city-bottom', tabindex: '0' }, h('div', { class: 'city-bottom__inner', id: 'city-panel' })));
+        el.appendChild(sc);
+        cs.mounted = true;
+      }
+      var leg2 = el.querySelector('#city-legend'); PEUI.empty(leg2);
+      leg2.appendChild(h('span', {}, [h('i', { style: 'background:' + s.color }), 'You']));
+      leg2.appendChild(h('span', {}, [h('i', { style: 'background:#6b8fbf' }), 'Rivals']));
+      leg2.appendChild(h('span', {}, [h('i', { style: 'background:#d9b45c' }), 'For sale']));
+      this.update(el);
+    },
+    update: function (el) {
+      tabs(el); cityPanel(el);
+      if (cs.renderedId !== cs.id) { var self = this; requestAnimationFrame(function () { if (PEUI.current === 'city') render3D(el); }); }
+      else syncProps();
+    },
+    unmount: function () { /* renderer stays alive; it pauses itself while hidden */ }
+  });
+  PEUI.destroyCity = function () { if (root.City3D && cs.renderedId) { try { root.City3D.destroy(); } catch (e) {} } cs.renderedId = null; cs.mounted = false; cs.id = null; };
+  PEUI.actions['city-tab'] = function (b, d) { cs.id = d.id; PEUI.refresh(); };
+  PEUI.actions['city-reset'] = function () { if (root.City3D && cs.renderedId) root.City3D.resetView(); };
+  PEUI.actions['city-unlock'] = function (b, d) {
+    var r = PEUI.call(PE().Cities.unlock, d.id); if (!r.ok) return;
+    PEUI.save(); PEUI.sound('fanfare'); PEUI.confetti(30); PEUI.toast(r.message, 'success');
+    cs.renderedId = null; PEUI.refresh();
+  };
+})(window);

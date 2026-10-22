@@ -1,0 +1,228 @@
+/* PEUI year flow — End year → pending event cards (Events.pending/resolve)
+   → era / succession title cards → full-screen year report → Continue.
+   Skip quiet years shows a stacked summary. Bankruptcy and 2030 end screens
+   with legacy and a net-worth sparkline. Interstitials only here, capped. */
+(function (root) {
+  var PEUI = root.PEUI, h = PEUI.h, fmt = PEUI.fmt, icon = PEUI.icon;
+  function PE() { return root.PE; }
+  var AD = { firstMinutes: 15, everyYears: 6, everyMinutes: 4 };
+
+  /* ---------- Event card ---------- */
+  function showEvent(done) {
+    var r = PE().Events.pending(); if (!r.ok || !r.event) { if (done) done(); return false; }
+    var ev = r.event, body = h('div', { class: 'event-card' });
+    body.appendChild(PEUI.badge(ev.kind === 'historical' ? ev.year + ' · history' : 'Event · ' + ev.year, ev.kind === 'historical' ? 'gold' : 'info'));
+    body.appendChild(h('p', { class: 'event-card__text', text: ev.text }));
+    body.appendChild(h('div', { class: 'kicker', text: 'Your decision' }));
+    for (var i = 0; i < ev.choices.length; i++) body.appendChild(h('button', { type: 'button', class: 'choice', 'data-action': 'event-choose', 'data-uid': ev.uid, 'data-i': ev.choices[i].index }, [h('span', { class: 'choice__n', text: String(i + 1) }), h('span', { text: ev.choices[i].label })]));
+    if (r.remaining > 1) body.appendChild(h('p', { class: 'small muted', text: (r.remaining - 1) + ' more decision' + (r.remaining > 2 ? 's' : '') + ' waiting.' }));
+    PEUI.sound('decision');
+    PEUI.sheet.open({ id: 'event', title: ev.title, sub: 'A decision is needed before the year can end', body: body });
+    pendingDone = done || null;
+    return true;
+  }
+  var pendingDone = null;
+  PEUI.actions['event-choose'] = function (b, d) {
+    var r = PEUI.call(PE().Events.resolve, d.uid, +d.i); if (!r.ok) return;
+    PEUI.save(); PEUI.toast(r.message, 'success');
+    var done = pendingDone; pendingDone = null;
+    PEUI.sheet.close();
+    PEUI.refresh();
+    if (r.remaining > 0) showEvent(done); else if (done) done();
+  };
+  PEUI.showPendingEvent = function (done) { return showEvent(done); };
+
+  /* ---------- End year ---------- */
+  PEUI.actions['end-year'] = function () {
+    if (PEUI.sheet.isOpen()) PEUI.sheet.close();
+    PEUI.closeMenu();
+    endYear();
+  };
+  function endYear() {
+    var s = PE().Game.state(); if (!s) return;
+    if (s.status === 'bankrupt') { showEnd(); return; }
+    if (s.status === 'ended') { showEnd(); return; }
+    var r = PE().Game.endYear();
+    if (!r.ok) {
+      if (r.needsDecision) { showEvent(function () { endYear(); }); return; }
+      if (r.bankrupt || r.ended) { showEnd(); return; }
+      PEUI.toast(r.message, 'danger'); return;
+    }
+    PEUI.save();
+    if (root.AdManager && root.AdManager.countMonth) root.AdManager.countMonth();
+    if (r.eraChanged) PEUI.sound('eraChange'); else if (r.equityChange > 0) PEUI.sound('coin'); else PEUI.sound('negative');
+    presentReport(r, function () { afterReport(r); });
+  }
+  function afterReport(r) {
+    PEUI.refresh();
+    if (r.bankrupt || r.ended) { showEnd(); return; }
+    maybeAd();
+    showEvent(function () { PEUI.refresh(); });
+    if (PEUI.current !== 'deals') PEUI.render('deals'); else PEUI.refresh();
+  }
+  function presentReport(r, done) {
+    var steps = [];
+    if (r.eraChanged) steps.push(function (next) { titleCard('A new era', PE().Data.eraFor(r.year + 1).name, 'Year ' + (r.year + 1) + '. New property types, finance tools and a new skyline.', next); });
+    if (r.succession) { var sc = r.dynasty.filter(function (d) { return d.kind === 'succession'; })[0]; steps.push(function (next) { titleCard('Succession', sc ? sc.heir + ' inherits' : 'A new head of the family', (sc ? 'Generation ' + sc.generation + '. Estate tax paid: ' + fmt.money(sc.tax) + '.' : '') + ' A new chapter begins.', next); }); }
+    steps.push(function (next) { showReport(r, next); });
+    (function run(i) { if (i >= steps.length) { done(); return; } steps[i](function () { run(i + 1); }); })(0);
+  }
+
+  /* ---------- Title card ---------- */
+  function titleCard(kicker, title, sub, next) {
+    var el = document.getElementById('titlecard'); PEUI.empty(el);
+    var inner = h('div', { class: 'titlecard__inner' }, [h('div', { class: 'titlecard__k', text: kicker }), h('h1', { class: 'titlecard__t', text: title }), h('p', { class: 'titlecard__s', text: sub })]);
+    var btn = PEUI.btn('Continue', { cls: 'btn--gold btn--lg', icon: 'skip', action: 'titlecard-next' });
+    inner.appendChild(btn); el.appendChild(inner);
+    el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false');
+    titleNext = function () { el.classList.remove('is-open'); el.setAttribute('aria-hidden', 'true'); titleNext = null; next(); };
+    btn.focus();
+  }
+  var titleNext = null;
+  PEUI.actions['titlecard-next'] = function () { if (titleNext) titleNext(); };
+
+  /* ---------- Year report ---------- */
+  function money(v, cls) { return h('td', { class: 'num ' + (cls || ''), text: fmt.money(v) }); }
+  function cashFlowTable(cf) {
+    var t = h('table', { class: 'table', 'aria-label': 'Cash flow' });
+    var tb = h('tbody');
+    function tr(k, v, cls) { tb.appendChild(h('tr', {}, [h('td', { text: k }), money(v, cls)])); }
+    tr('Rent collected', cf.rent, 'pos'); tr('Operating costs', -cf.costs, 'neg'); tr('Debt service', -cf.debtService, cf.debtService ? 'neg' : ''); tr('Taxes', -cf.taxes, cf.taxes ? 'neg' : '');
+    if (cf.interest) tr('Savings interest', cf.interest, 'pos');
+    tb.appendChild(h('tr', { class: 'total' }, [h('td', { text: 'Net cash flow' }), money(cf.net, cf.net >= 0 ? 'pos' : 'neg')]));
+    t.appendChild(tb); return t;
+  }
+  function section(title, items, ic) {
+    if (!items || !items.length) return null;
+    var s = h('section', { class: 'card card--flat stack stack--2' }, h('div', { class: 'kicker', text: title }));
+    var ul = h('ul', { class: 'lines' });
+    for (var i = 0; i < items.length; i++) ul.appendChild(h('li', {}, [icon(ic || 'info'), h('span', { text: typeof items[i] === 'string' ? items[i] : items[i].text })]));
+    s.appendChild(ul); return s;
+  }
+  function reportBody(r) {
+    var inner = h('div', { class: 'report__inner' });
+    inner.appendChild(h('div', { class: 'report__head' }, [h('div', { class: 'report__year', text: String(r.year) }), h('div', { class: 'report__era', text: r.eraName + ' · ' + PE().Data.cycles[r.cycle].name }), h('h1', { class: 'report__headline', text: r.headline })]));
+    var warns = r.warnings.map(function (w) { if (w === 'negative_cash') return 'Cash is negative. Sell or borrow before next year.'; if (w.indexOf('margin_call:') === 0) { var p = PE().Game.state().properties[w.split(':')[1]]; return 'Margin call on ' + (p ? p.name : 'a property') + ': inject cash this year or the bank force-sells it.'; } return w; });
+    for (var i = 0; i < warns.length; i++) inner.appendChild(h('div', { class: 'note note--danger', role: 'alert' }, [icon('warning'), h('span', { text: warns[i] })]));
+    var eq = h('section', { class: 'card stack' });
+    eq.appendChild(h('div', { class: 'stat-grid stat-grid--3' }, [
+      h('div', { class: 'stat' }, [h('span', { class: 'stat__label', text: 'Net worth' }), h('span', { class: 'stat__value num', text: fmt.money(r.netWorthAfter) })]),
+      h('div', { class: 'stat' }, [h('span', { class: 'stat__label', text: 'Equity change' }), h('span', { class: 'stat__value num ' + (r.equityChange >= 0 ? 'pos' : 'neg'), text: fmt.signed(r.equityChange) })]),
+      h('div', { class: 'stat' }, [h('span', { class: 'stat__label', text: 'Cash' }), h('span', { class: 'stat__value num ' + (r.cashAfter < 0 ? 'neg' : ''), text: fmt.money(r.cashAfter) })])
+    ]));
+    var mv = r.rank.before - r.rank.after;
+    eq.appendChild(h('div', { class: 'rank-move ' + (mv > 0 ? 'pos' : mv < 0 ? 'neg' : '') }, [h('span', { text: 'Rank #' + r.rank.before }), icon(mv > 0 ? 'arrow-up' : mv < 0 ? 'arrow-down' : 'arrow-flat', null, mv > 0 ? 'up' : mv < 0 ? 'down' : 'unchanged'), h('span', { text: '#' + r.rank.after })]));
+    eq.appendChild(cashFlowTable(r.cashFlow));
+    var vc = h('div', { class: 'chips' }); for (var c in r.valuesByCity) vc.appendChild(PEUI.chip(PEUI.cityName(c) + ' ' + (r.valuesByCity[c] >= 0 ? '+' : '') + r.valuesByCity[c] + '%', r.valuesByCity[c] >= 0 ? 'success' : 'danger', r.valuesByCity[c] >= 0 ? 'arrow-up' : 'arrow-down'));
+    eq.appendChild(h('div', { class: 'row row--wrap' }, [h('span', { class: 'small muted', text: 'Values:' }), vc]));
+    eq.appendChild(h('div', { class: 'small muted', text: 'Next year: ' + PE().Data.cycles[r.cycleAfter].name + ', bank rate ' + (r.baseRateAfter * 100).toFixed(1) + '%' }));
+    inner.appendChild(eq);
+    var achieved = r.goals.achieved.map(function (g) { return g.desc + (g.reward ? ' (+' + fmt.money(g.reward) + ')' : ''); });
+    var ach = section('Goals achieved', achieved, 'check'); if (ach) { ach.classList.add('goal--done'); inner.appendChild(ach); if (achieved.length) PEUI.confetti(30); }
+    var prog = r.goals.progress.filter(function (g) { return g.kind === 'era'; }).map(function (g) { return g.failed ? 'Era goal missed: ' + g.desc : g.desc + ' — ' + (g.progress || 'not yet'); });
+    var ps = section('Goals in progress', prog, 'flag'); if (ps) inner.appendChild(ps);
+    var deals = section('Deals', r.deals.map(function (d) { return d.text; }), 'tag'); if (deals) inner.appendChild(deals);
+    var dyn = section('The family', r.lines, 'crown'); if (dyn) inner.appendChild(dyn);
+    var evs = section('Events', r.events.map(function (e) { return e.title + (e.kind === 'historical' ? ' (history)' : ''); }), 'warning'); if (evs) inner.appendChild(evs);
+    var rv = section('The rivals', r.rivalsMoves.map(function (m) { return m.name + ': ' + m.text; }), 'users'); if (rv) inner.appendChild(rv);
+    inner.appendChild(h('p', { class: 'report__cliff', text: r.cliffhanger }));
+    return inner;
+  }
+  function showReport(r, next) {
+    var el = document.getElementById('report'); PEUI.empty(el);
+    var sc = h('div', { class: 'report__scroll', tabindex: '0' }, reportBody(r)); el.appendChild(sc);
+    var label = r.bankrupt ? 'See what remains' : r.ended ? 'The end of the campaign' : 'Continue to ' + (r.year + 1);
+    el.appendChild(h('div', { class: 'report__foot' }, PEUI.btn(label, { cls: 'btn--primary btn--lg', icon: 'skip', action: 'report-next' })));
+    el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false'); sc.scrollTop = 0;
+    reportNext = function () { el.classList.remove('is-open'); el.setAttribute('aria-hidden', 'true'); reportNext = null; next(); };
+    var b = el.querySelector('.report__foot .btn'); if (b) b.focus();
+  }
+  var reportNext = null;
+  PEUI.actions['report-next'] = function () { if (reportNext) reportNext(); };
+
+  /* ---------- Skip quiet years ---------- */
+  PEUI.actions['skip-quiet'] = function () {
+    PEUI.closeMenu(); if (PEUI.sheet.isOpen()) PEUI.sheet.close();
+    var s = PE().Game.state(); if (!s || s.status !== 'playing') { endYear(); return; }
+    if (s.events.pending.length) { showEvent(function () { PEUI.actions['skip-quiet'](); }); return; }
+    var r = PE().Game.skipQuietYears(5); if (!r.ok) { PEUI.toast(r.message, 'danger'); return; }
+    PEUI.save();
+    if (root.AdManager && root.AdManager.countMonth) for (var k = 0; k < r.reports.length; k++) root.AdManager.countMonth();
+    if (!r.reports.length) { PEUI.toast(r.stopped || 'Something needs your decision first.'); showEvent(function () { PEUI.refresh(); }); return; }
+    var last = r.reports[r.reports.length - 1];
+    showStack(r, function () { presentReport(last, function () { afterReport(last); }); });
+  };
+  function showStack(r, next) {
+    var el = document.getElementById('report'); PEUI.empty(el);
+    var inner = h('div', { class: 'report__inner' });
+    var first = r.reports[0], last = r.reports[r.reports.length - 1];
+    inner.appendChild(h('div', { class: 'report__head' }, [h('div', { class: 'report__era', text: 'Quiet years' }), h('div', { class: 'report__year', text: first.year + (r.reports.length > 1 ? '–' + last.year : '') }), h('h1', { class: 'report__headline', text: r.needsDecision ? 'Stopped: ' + (r.stopped || 'something needs you').replace(/_/g, ' ').replace(/,/g, ', ') + '.' : 'Five quiet years pass.' })]));
+    var t = h('table', { class: 'table', 'aria-label': 'Years skipped' }), tb = h('tbody');
+    t.appendChild(h('thead', {}, h('tr', {}, [h('th', { text: 'Year' }), h('th', { text: 'Headline' }), h('th', { class: 'num', text: 'Equity' }), h('th', { class: 'num', text: 'Rank' })])));
+    var total = 0;
+    for (var i = 0; i < r.reports.length; i++) { var rep = r.reports[i]; total += rep.equityChange; tb.appendChild(h('tr', {}, [h('td', { class: 'num', text: rep.year }), h('td', { text: rep.headline }), h('td', { class: 'num ' + (rep.equityChange >= 0 ? 'pos' : 'neg'), text: fmt.signed(rep.equityChange) }), h('td', { class: 'num', text: '#' + rep.rank.after })])); }
+    tb.appendChild(h('tr', { class: 'total' }, [h('td', { text: 'Total' }), h('td'), h('td', { class: 'num ' + (total >= 0 ? 'pos' : 'neg'), text: fmt.signed(total) }), h('td')]));
+    t.appendChild(tb); inner.appendChild(h('section', { class: 'card' }, t));
+    var lines = []; for (var j = 0; j < r.reports.length; j++) { var rp = r.reports[j]; rp.deals.forEach(function (d) { lines.push(rp.year + ': ' + d.text); }); rp.lines.forEach(function (l) { lines.push(rp.year + ': ' + l); }); rp.goals.achieved.forEach(function (g) { lines.push(rp.year + ': ' + g.desc); }); }
+    var sec = section('What happened', lines, 'info'); if (sec) inner.appendChild(sec);
+    el.appendChild(h('div', { class: 'report__scroll', tabindex: '0' }, inner));
+    el.appendChild(h('div', { class: 'report__foot' }, PEUI.btn('See ' + last.year + ' in full', { cls: 'btn--primary btn--lg', icon: 'skip', action: 'report-next' })));
+    el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false');
+    reportNext = function () { el.classList.remove('is-open'); el.setAttribute('aria-hidden', 'true'); reportNext = null; next(); };
+    PEUI.sound('coin');
+  }
+
+  /* ---------- End screens ---------- */
+  function sparkline(timeline) {
+    var w = 320, hh = 64, vals = timeline.map(function (t) { return t.netWorth; }), min = Math.min.apply(null, vals.concat([0])), max = Math.max.apply(null, vals.concat([1]));
+    var pts = vals.map(function (v, i) { return [(i / Math.max(1, vals.length - 1) * w).toFixed(1), (hh - 4 - (v - min) / (max - min || 1) * (hh - 8)).toFixed(1)]; });
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('viewBox', '0 0 ' + w + ' ' + hh); svg.setAttribute('class', 'sparkline'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Net worth over time');
+    var area = document.createElementNS('http://www.w3.org/2000/svg', 'path'); area.setAttribute('class', 'area'); area.setAttribute('d', 'M0,' + hh + ' ' + pts.map(function (p) { return 'L' + p[0] + ',' + p[1]; }).join(' ') + ' L' + w + ',' + hh + ' Z');
+    var line = document.createElementNS('http://www.w3.org/2000/svg', 'path'); line.setAttribute('d', pts.map(function (p, i) { return (i ? 'L' : 'M') + p[0] + ',' + p[1]; }).join(' '));
+    svg.appendChild(area); svg.appendChild(line); return svg;
+  }
+  function showEnd() {
+    var L = PE().Game.legacy(), s = PE().Game.state(), st = PE().Game.summary(); if (!L.ok) return;
+    var fallen = s.status === 'bankrupt', el = document.getElementById('titlecard'); PEUI.empty(el);
+    var inner = h('div', { class: 'titlecard__inner' });
+    inner.appendChild(h('div', { class: 'titlecard__k', text: fallen ? 'The end of a chapter' : 'The year 2030' }));
+    inner.appendChild(h('h1', { class: 'titlecard__t', text: fallen ? 'The House of ' + s.dynasty.surname + ' has fallen' : 'The House of ' + s.dynasty.surname + ' endures' }));
+    inner.appendChild(h('p', { class: 'titlecard__s', text: fallen ? (s.endReason || '') + '. ' + L.generation + ' generation' + (L.generation > 1 ? 's' : '') + ', ' + L.cities + ' cit' + (L.cities === 1 ? 'y' : 'ies') + ', reputation ' + Math.round(L.reputation) + '.' : 'From 1850 to 2030: ' + L.generation + ' generations, ' + L.cities + ' cities, net worth ' + fmt.money(L.netWorth) + ', rank #' + st.rank + '.' }));
+    inner.appendChild(sparkline(L.timeline));
+    inner.appendChild(h('div', { class: 'stat-grid stat-grid--3', style: 'width:100%;text-align:left' }, [
+      h('div', { class: 'stat' }, [h('span', { class: 'stat__label', style: 'color:var(--hud-ink-2)', text: 'Legacy score' }), h('span', { class: 'stat__value num', text: fmt.int(L.score) })]),
+      h('div', { class: 'stat' }, [h('span', { class: 'stat__label', style: 'color:var(--hud-ink-2)', text: 'Achievements' }), h('span', { class: 'stat__value num', text: String(L.achievements) })]),
+      h('div', { class: 'stat' }, [h('span', { class: 'stat__label', style: 'color:var(--hud-ink-2)', text: 'Legacy points' }), h('span', { class: 'stat__value num', text: fmt.int((L.meta && L.meta.legacyPoints) || 0) + ' + ' + fmt.int(L.score) })])
+    ]));
+    var row = h('div', { class: 'btn-row', style: 'width:100%' });
+    if (fallen) row.appendChild(PEUI.btn('Continue as the heir', { cls: 'btn--secondary btn--lg', icon: 'crown', action: 'end-heir' }));
+    row.appendChild(PEUI.btn('Start a new dynasty', { cls: 'btn--gold btn--lg', icon: 'sparkle', action: 'end-new' }));
+    inner.appendChild(row);
+    el.appendChild(inner); el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false');
+    if (!fallen) { PEUI.confetti(80); PEUI.sound('fanfare'); } else PEUI.sound('negative');
+  }
+  PEUI.showEnd = showEnd;
+  PEUI.actions['end-heir'] = function () {
+    var r = PEUI.call(PE().Game.continueAsHeir); if (!r.ok) return;
+    PEUI.save(); document.getElementById('titlecard').classList.remove('is-open');
+    PEUI.toast(r.message, 'success'); if (PEUI.destroyCity) PEUI.destroyCity(); PEUI.render('deals'); showEvent(function () { PEUI.refresh(); });
+  };
+  PEUI.actions['end-new'] = function () {
+    var r = PEUI.call(PE().Game.newDynasty, {}); if (!r.ok) return;
+    document.getElementById('titlecard').classList.remove('is-open');
+    PE().Game.deleteSave(); PE()._state = null;
+    PEUI.toast('Legacy recorded: ' + fmt.int(r.legacyScore) + ' points.', 'success');
+    PEUI.leaveGame();
+  };
+
+  /* ---------- Interstitials: only at the year report, capped ---------- */
+  function maybeAd() {
+    var A = root.AdManager; if (!A || !A.tryShowAd || A.isAdsRemoved && A.isAdsRemoved()) return;
+    var now = Date.now(), p = PEUI.prefs, s = PE().Game.state();
+    if (!p.gameStartedAt || now - p.gameStartedAt < AD.firstMinutes * 60000) return;
+    if (p.lastAdAt && now - p.lastAdAt < AD.everyMinutes * 60000) return;
+    if (s.year - (p.lastAdYear || -99) < AD.everyYears) return;
+    if (A._monthsSinceAd !== undefined && A._monthsSinceAd < A.MONTHS_BETWEEN_ADS) return;
+    if (A.tryShowAd()) { p.lastAdAt = now; p.lastAdYear = s.year; PEUI.savePrefs(); }
+  }
+})(window);

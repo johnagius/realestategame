@@ -1,0 +1,162 @@
+/* ========================================
+   PROPERTY EMPIRE v8 — Design tokens
+   One spacing scale (4/8), six type sizes, colour tokens for light and dark,
+   radii, shadows, motion, safe areas. Every component reads these; nothing
+   in the UI hardcodes a colour or a pixel value outside this file.
+   ======================================== */
+
+:root {
+  /* Spacing: 4/8 scale */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+
+  /* Type: 6 sizes */
+  --fs-1: 12px;
+  --fs-2: 14px;
+  --fs-3: 16px;
+  --fs-4: 18px;
+  --fs-5: 22px;
+  --fs-6: 28px;
+  --lh-tight: 1.2;
+  --lh-body: 1.45;
+  --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-body: 'Nunito', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  /* Radii */
+  --r-1: 6px;
+  --r-2: 10px;
+  --r-3: 16px;
+  --r-pill: 999px;
+
+  /* Shadows */
+  --shadow-1: 0 1px 2px rgba(20, 16, 10, 0.08), 0 1px 1px rgba(20, 16, 10, 0.04);
+  --shadow-2: 0 4px 14px rgba(20, 16, 10, 0.12), 0 1px 3px rgba(20, 16, 10, 0.06);
+  --shadow-3: 0 18px 48px rgba(20, 16, 10, 0.28), 0 4px 12px rgba(20, 16, 10, 0.12);
+
+  /* Motion */
+  --dur-1: 120ms;
+  --dur-2: 220ms;
+  --dur-3: 420ms;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Safe areas and fixed chrome */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --hud-h: 64px;
+  --nav-h: 60px;
+  --tap: 44px;
+  --content-max: 760px;
+
+  /* Colour — light */
+  --bg: #F3EEE4;
+  --surface: #FFFFFF;
+  --surface-2: #EDE6D8;
+  --surface-3: #E2D9C7;
+  --ink: #1D1A16;
+  --ink-2: #58524A;      /* 6.9:1 on white */
+  --ink-3: #6E675D;      /* 5.0:1 on white, 4.6:1 on --bg */
+  --line: #D8CFBE;
+  --line-strong: #B9AE99;
+  --hud-bg: #1F2733;
+  --hud-ink: #F4EFE4;
+  --hud-ink-2: #C4BCAD;  /* 8.5:1 on hud-bg */
+  --hud-line: rgba(255, 255, 255, 0.10);
+  --gold: #D9B45C;
+  --gold-ink: #8A6418;   /* 4.6:1 on white: gold used as text */
+  --gold-soft: #F6ECCF;
+  --primary: #1F2733;
+  --primary-ink: #F4EFE4;
+  --primary-hover: #2C3747;
+  --success: #2C6E49;    /* 6.2:1 on white */
+  --success-soft: #DDEFE2;
+  --danger: #B3261E;     /* 6.5:1 on white */
+  --danger-soft: #FBE1DE;
+  --warn: #8A5A00;       /* 5.6:1 on white */
+  --warn-soft: #FFF0CC;
+  --info: #2F5F8F;       /* 6.1:1 on white */
+  --info-soft: #DEE9F5;
+  --focus: #2F5F8F;
+  --scrim: rgba(12, 10, 8, 0.55);
+  --player: #2C6E49;     /* overwritten at runtime with the family colour */
+}
+
+/* Dark */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121418;
+    --surface: #1B1F26;
+    --surface-2: #242A33;
+    --surface-3: #2E3641;
+    --ink: #F2EEE6;
+    --ink-2: #BDB6AA;
+    --ink-3: #A39C90;
+    --line: #333B47;
+    --line-strong: #4A5466;
+    --hud-bg: #0F1319;
+    --hud-ink: #F4EFE4;
+    --hud-ink-2: #B9B2A6;
+    --gold-ink: #E8CF86;
+    --gold-soft: #3A3120;
+    --primary: #E8CF86;
+    --primary-ink: #1F1A0E;
+    --primary-hover: #F2DC9A;
+    --success: #7FD3A1;
+    --success-soft: #1E3A2B;
+    --danger: #F28B82;
+    --danger-soft: #3F1F1C;
+    --warn: #F2C66D;
+    --warn-soft: #3D3016;
+    --info: #8DB8E8;
+    --info-soft: #1E2E40;
+    --focus: #8DB8E8;
+    --scrim: rgba(0, 0, 0, 0.66);
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 4px 14px rgba(0, 0, 0, 0.5);
+    --shadow-3: 0 18px 48px rgba(0, 0, 0, 0.7);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121418;
+  --surface: #1B1F26;
+  --surface-2: #242A33;
+  --surface-3: #2E3641;
+  --ink: #F2EEE6;
+  --ink-2: #BDB6AA;
+  --ink-3: #A39C90;
+  --line: #333B47;
+  --line-strong: #4A5466;
+  --hud-bg: #0F1319;
+  --hud-ink: #F4EFE4;
+  --hud-ink-2: #B9B2A6;
+  --gold-ink: #E8CF86;
+  --gold-soft: #3A3120;
+  --primary: #E8CF86;
+  --primary-ink: #1F1A0E;
+  --primary-hover: #F2DC9A;
+  --success: #7FD3A1;
+  --success-soft: #1E3A2B;
+  --danger: #F28B82;
+  --danger-soft: #3F1F1C;
+  --warn: #F2C66D;
+  --warn-soft: #3D3016;
+  --info: #8DB8E8;
+  --info-soft: #1E2E40;
+  --focus: #8DB8E8;
+  --scrim: rgba(0, 0, 0, 0.66);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --shadow-3: 0 18px 48px rgba(0, 0, 0, 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-1: 0ms; --dur-2: 0ms; --dur-3: 0ms; }
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}
