@@ -323,6 +323,11 @@
     inner.appendChild(h('div', { class: 'titlecard__k', text: fallen ? 'The end of a chapter' : 'The year 2030' }));
     inner.appendChild(h('h1', { class: 'titlecard__t', text: fallen ? 'The House of ' + s.dynasty.surname + ' has fallen' : 'The House of ' + s.dynasty.surname + ' endures' }));
     inner.appendChild(h('p', { class: 'titlecard__s', text: fallen ? (s.endReason || '') + '. ' + L.generation + ' generation' + (L.generation > 1 ? 's' : '') + ', ' + L.cities + ' cit' + (L.cities === 1 ? 'y' : 'ies') + ', reputation ' + Math.round(L.reputation) + '.' : 'From 1850 to 2030: ' + L.generation + ' generations, ' + L.cities + ' cities, net worth ' + fmt.money(L.netWorth) + ', rank #' + st.rank + '.' }));
+    var absorbed = s.lastReport && s.lastReport.absorbed;
+    if (fallen && absorbed) {
+      var absDef = PE().Data.rivalById(absorbed.rivalId);
+      inner.appendChild(h('div', { class: 'note taunt-note', style: 'text-align:left' }, [PEUI.crest({ id: absorbed.rivalId, name: absorbed.rivalName, color: absDef ? absDef.color : '#888' }, { size: 34 }), h('span', { class: 'grow', text: absorbed.rivalName + ' strip ' + absorbed.count + ' building' + (absorbed.count > 1 ? 's' : '') + ' from the portfolio. On the map, the city changes hands.' })]));
+    }
     inner.appendChild(sparkline(L.timeline));
     inner.appendChild(h('div', { class: 'stat-grid stat-grid--3', style: 'width:100%;text-align:left' }, [
       h('div', { class: 'stat' }, [h('span', { class: 'stat__label', style: 'color:var(--hud-ink-2)', text: 'Legacy score' }), h('span', { class: 'stat__value num', text: fmt.int(L.score) })]),

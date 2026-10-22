@@ -20,8 +20,21 @@
     { id: 'reputation_up', desc: 'Raise reputation by 3 points this year.', available: function (s) { return s.reputation < 90; }, baseline: function (s) { return s.reputation; }, check: function (s, g) { return s.reputation >= g.baseline + 3; } }
   ];
   G.rewardFor = function () { var s = PE.S(); return Math.max(Math.round(10 * s.priceIndex), Math.round(Math.max(0, St.netWorth('player')) * 0.01)) * (St.hasPerk('purist') ? B.perkPuristGoalMult : 1); };
+  /* The comeback track (P3.5): three bespoke yearly goals while the house rebuilds
+     after a bankruptcy. Stages: black year, own two buildings, reach 50% of peak. */
+  G.comebackStages = [
+    { id: 'comeback_black', desc: 'Stop the bleeding: end the year with the books in the black.', check: function (s) { return (s.stats.lastNetCashFlow || 0) > 0; } },
+    { id: 'comeback_rebuild', desc: 'Rebuild: own two buildings again.', check: function (s) { return St.propertyCount('player') >= 2; } },
+    { id: 'comeback_recover', desc: 'Recover: reach half of the family’s peak net worth.', check: function (s) { return s.comeback && St.netWorth('player') >= s.comeback.from * 0.5; } }
+  ];
   G.assignYearly = function () {
     var s = PE.S(), cands = G.yearlyTemplates.filter(function (t) { return t.available(s) && !(s.goals.yearly && s.goals.yearly.id === t.id); });
+    if (s.comeback && s.comeback.stage < G.comebackStages.length) {
+      var st = G.comebackStages[s.comeback.stage];
+      var cg = { id: st.id, desc: st.desc, baseline: null, year: s.year, reward: Math.round(G.rewardFor() * 1.5), comeback: true, stage: s.comeback.stage };
+      s.goals.yearly = cg;
+      return cg;
+    }
     if (!cands.length) cands = G.yearlyTemplates.filter(function (t) { return t.id === 'nw_up' || t.id === 'buy_below'; });
     // Armstrong's deleveraging track (P5.1) leans the yearly goals toward cutting LTV until it is done
     var fam = s.goals.family;
@@ -32,7 +45,12 @@
     s.goals.yearly = g;
     return g;
   };
-  G.yearlySatisfied = function (g) { var s = PE.S(); for (var i = 0; i < G.yearlyTemplates.length; i++) if (G.yearlyTemplates[i].id === g.id) return G.yearlyTemplates[i].check(s, g); return false; };
+  G.yearlySatisfied = function (g) {
+    var s = PE.S();
+    if (!g) return false;
+    if (g.comeback) { var st = G.comebackStages[g.stage]; return st ? st.check(s) : false; }
+    for (var i = 0; i < G.yearlyTemplates.length; i++) if (G.yearlyTemplates[i].id === g.id) return G.yearlyTemplates[i].check(s, g); return false;
+  };
 
   /* Family goal track (P5.1): Armstrong must bring portfolio LTV below 50% by 1860. */
   G.familyTracks = {
@@ -146,6 +164,7 @@
       s.cash += g.yearly.reward; s.reputation = U.clamp(s.reputation + 1, 0, 100); s.stats.yearlyGoalsDone++;
       report.goals.achieved.push({ kind: 'yearly', id: g.yearly.id, desc: g.yearly.desc, reward: g.yearly.reward });
       g.history.push({ year: s.year, id: g.yearly.id, done: true });
+      if (g.yearly.comeback && s.comeback) { s.comeback.stage++; if (s.comeback.stage >= G.comebackStages.length) { report.lines.push('The house is rebuilt. The comeback is complete.'); s.comeback = null; } }
     } else if (g.yearly) { g.history.push({ year: s.year, id: g.yearly.id, done: false }); report.goals.progress.push({ kind: 'yearly', id: g.yearly.id, desc: g.yearly.desc, done: false }); }
     if (g.era && !g.era.done) {
       if (G.eraSatisfied(g.era)) { g.era.done = true; var rw = Math.round(Math.max(0, St.netWorth('player')) * 0.03); s.cash += rw; s.reputation = U.clamp(s.reputation + 5, 0, 100); report.goals.achieved.push({ kind: 'era', id: g.era.id, desc: g.era.desc, reward: rw }); g.eraDone[g.era.id] = true; }
@@ -175,7 +194,7 @@
   G.current = function () {
     var s = PE.S(), g = s.goals, tier = D.campaignTiers[g.campaignTier] || null;
     return PE.ok({
-      yearly: g.yearly ? { id: g.yearly.id, desc: g.yearly.desc, reward: g.yearly.reward, satisfied: G.yearlySatisfied(g.yearly) } : null,
+      yearly: g.yearly ? { id: g.yearly.id, desc: g.yearly.desc, reward: g.yearly.reward, satisfied: G.yearlySatisfied(g.yearly), comeback: !!g.yearly.comeback, stage: g.yearly.stage } : null,
       era: g.era ? { id: g.era.id, desc: g.era.desc, deadline: g.era.deadline, progress: G.eraProgress(g.era), done: g.era.done, failed: g.era.failed } : null,
       family: g.family ? { id: g.family.id, desc: g.family.desc, deadline: g.family.deadline, progress: G.familyProgress(g.family), done: g.family.done, failed: g.family.failed } : null,
       campaign: { tier: g.campaignTier, completed: D.campaignTiers.slice(0, g.campaignTier).map(function (t) { return t.name; }), next: tier ? { id: tier.id, name: tier.name, desc: tier.desc } : null },

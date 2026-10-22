@@ -29,7 +29,7 @@
   function goals() {
     var g = PE().Goals.current(); if (!g.ok) return h('div');
     var wrap = h('section', { class: 'goals', 'aria-label': 'Goals' });
-    if (g.yearly) wrap.appendChild(goal('This year', g.yearly.desc, 'Reward ' + fmt.money(g.yearly.reward), g.yearly.satisfied, 'flag'));
+    if (g.yearly) wrap.appendChild(goal(g.yearly.comeback ? 'Rebuild · step ' + (g.yearly.stage + 1) + ' of 3' : 'This year', g.yearly.desc, 'Reward ' + fmt.money(g.yearly.reward), g.yearly.satisfied, g.yearly.comeback ? 'refresh' : 'flag'));
     if (g.era) wrap.appendChild(goal('Era goal · by ' + g.era.deadline, g.era.desc, g.era.done ? 'Done' : g.era.failed ? 'Missed' : g.era.progress, g.era.done, 'star'));
     var c = g.campaign;
     wrap.appendChild(goal('Campaign · tier ' + (c.tier + 1) + (c.next ? ' ' + c.next.name : ''), c.next ? c.next.desc : 'All tiers complete', c.completed.length ? 'Done: ' + c.completed.join(', ') : 'No tiers yet', !c.next, 'trophy'));

@@ -84,12 +84,29 @@
     // 7. Bankruptcy (bible §9)
     cf.net = rent - costs - cf.debtService - cf.taxes + cf.interest;
     if (s.cash < 0) { s.stats.negativeCashYears++; rep.warnings.push('negative_cash'); } else s.stats.negativeCashYears = 0;
+    s.stats.lastNetCashFlow = rep.cashFlow.net;
     var nw = St.netWorth('player');
     var sellable = St.playerProps().some(function (x) { return !x.renovation && PE.Market.saleQuote(x, B.quickSaleFactor).cashGained > 0; });
     var missedRecent = (s.stats.forcedSaleYears || []).filter(function (y) { return s.year - y < B.marginCallWindowYears; }).length;
     if (nw < 0 || (s.stats.negativeCashYears >= B.bankruptcyNegativeCashYears && !sellable) || missedRecent >= B.bankruptcyMissedCalls) {
       s.status = 'bankrupt'; s.endReason = nw < 0 ? 'Net worth below zero' : (missedRecent >= B.bankruptcyMissedCalls ? 'Two missed margin calls' : 'Two years without cash');
       rep.bankrupt = true; rep.headline = 'The House of ' + s.dynasty.surname + ' has fallen.'; rep.cliffhanger = s.endReason + '.';
+      // P3.5: rivals absorb the estate NOW (all but the best equity), so the map tells the story
+      // the moment the house falls. The heir keeps the best building if they continue.
+      var props2 = St.playerProps().slice().sort(function (a, b) { return (b.trueValue - (b.mortgage ? b.mortgage.principal : 0)) - (a.trueValue - (a.mortgage ? a.mortgage.principal : 0)); });
+      var rivals2 = Object.keys(s.rivals).filter(function (id) { return !s.rivals[id].bankrupt && !s.rivals[id].merged; }).sort(function (a, b) { return St.netWorth('rival:' + b) - St.netWorth('rival:' + a); });
+      var absorbCount = 0, absorbRival = null;
+      for (var ai = 1; ai < props2.length; ai++) {
+        var ap = props2[ai], target = rivals2.length ? rivals2[(ai - 1) % rivals2.length] : null;
+        St.setOwner(ap, target ? 'rival:' + target : null);
+        if (target) { if (ap.mortgage) ap.mortgage.lender = 'Private bank'; if (!absorbRival) absorbRival = target; absorbCount++; }
+      }
+      if (absorbCount && absorbRival) {
+        rep.absorbed = { rivalId: absorbRival, rivalName: PE.Rivals.def(absorbRival).name, count: absorbCount };
+        rep.cliffhanger += ' ' + rep.absorbed.rivalName + ' take ' + absorbCount + ' building' + (absorbCount > 1 ? 's' : '') + '.';
+        var abRv = s.rivals[absorbRival]; if (abRv) abRv.lastAction = 'Absorbed ' + absorbCount + ' of your buildings.';
+      }
+      s.comeback = { from: Math.max(1, s.stats.peakNetWorth), year: s.year, stage: 0 };
     }
     s.stats.peakNetWorth = Math.max(s.stats.peakNetWorth, nw);
     // 8. Advance the year
@@ -120,7 +137,7 @@
     rep.netWorthAfter = St.netWorth('player'); rep.equityChange = rep.netWorthAfter - rep.netWorthBefore; rep.cashAfter = s.cash; rep.rank.after = St.rank();
     s.history.push({ year: s.year, netWorth: rep.netWorthAfter, cash: s.cash, debt: St.debt('player'), rank: rep.rank.after, props: St.propertyCount('player') });
     T.decorate(rep);
-    s.lastReport = { headline: rep.headline, cliffhanger: rep.cliffhanger, year: rep.year, equityChange: rep.equityChange, rank: rep.rank };
+    s.lastReport = { headline: rep.headline, cliffhanger: rep.cliffhanger, year: rep.year, equityChange: rep.equityChange, rank: rep.rank, absorbed: rep.absorbed || null };
     return PE.ok(rep);
   };
 
@@ -188,9 +205,9 @@
   T.continueAsHeir = function () {
     var s = PE.S();
     if (s.status !== 'bankrupt') return PE.fail('The house has not fallen');
+    // The estate was absorbed when the house fell (P3.5); the heir keeps the best building.
     var props = St.playerProps().slice().sort(function (a, b) { return (b.trueValue - (b.mortgage ? b.mortgage.principal : 0)) - (a.trueValue - (a.mortgage ? a.mortgage.principal : 0)); });
-    var keep = props[0] || null, strongest = PE.Rivals.strongest(null);
-    for (var i = 1; i < props.length; i++) { var p = props[i]; St.setOwner(p, strongest ? 'rival:' + strongest : null); if (!strongest) continue; if (p.mortgage) p.mortgage.lender = 'Private bank'; }
+    var keep = props[0] || null;
     if (keep && keep.mortgage && keep.mortgage.principal > keep.trueValue * 0.7) keep.mortgage.principal = Math.round(keep.trueValue * 0.7);
     if (keep) keep.marginCall = null;
     s.stats.comebackFrom = s.stats.peakNetWorth; s.stats.bankruptcies++;

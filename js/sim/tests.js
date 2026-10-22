@@ -157,7 +157,7 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   check('net worth < 0 => bankrupt report and status', rep.ok && rep.bankrupt === true && s.status === 'bankrupt' && /fallen/.test(rep.headline), rep.headline);
   check('endYear refuses while bankrupt', !PE.Game.endYear().ok);
   var before = PE.State.propertyCount('player'), cb = PE.Game.continueAsHeir();
-  check('continueAsHeir keeps exactly 1 property, resets reputation to 40 and resumes play', cb.ok && PE.State.propertyCount('player') === 1 && s.reputation === 40 && s.status === 'playing' && s.cash >= 0 && before === 2, cb);
+  check('continueAsHeir keeps exactly 1 property, resets reputation to 40 and resumes play (rivals absorbed the rest when the house fell, P3.5)', cb.ok && PE.State.propertyCount('player') === 1 && s.reputation === 40 && s.status === 'playing' && s.cash >= 0 && before === 1, cb);
   check('comeback is recorded for the Phoenix achievement', s.stats.bankruptcies === 1 && s.stats.comebackFrom > 0);
   check('play continues after the comeback', PE.Game.endYear().ok || PE.Events.pending().event !== null);
   var P2 = fresh('chen', 9), s2 = P2.S();
@@ -706,6 +706,39 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
     var sc = rep.dynasty[0];
     var expectGross = Math.round(nw * sc.breakdown.baseRate / 100);
     return sc && sc.breakdown && sc.breakdown.trustSaved > 0 && sc.breakdown.charitySaved > 0 && sc.breakdown.tax === expectGross - sc.breakdown.trustSaved - sc.breakdown.charitySaved && sc.breakdown.heirTraits.length >= 1;
+  })());
+})();
+
+
+/* ---------- P3.5 bankruptcy absorption + comeback track ---------- */
+(function () {
+  var P = fresh('chen', 41), s = P.S();
+  var ls = P.Market.listings('london').listings.slice(0, 3);
+  ls.forEach(function (l) { s.cash += l.askingPrice; P.Market.buy(s.listings[l.id], Math.round(l.askingPrice * 0.9), null, 'player'); });
+  var before = P.State.propertyCount('player');
+  s.cash = -1e6; s.stats.peakNetWorth = Math.max(5000, s.stats.peakNetWorth);
+  clearEvents(P); var r = P.Game.endYear();
+  check('P3.5: bankruptcy absorbs all but the best building into rivals immediately', r.bankrupt && r.absorbed && r.absorbed.count === before - 1 && P.State.propertyCount('player') === 1);
+  check('P3.5: the absorbing rival takes the buildings and is named', (function () { var rv = P.S().rivals[r.absorbed.rivalId]; return rv && /Absorbed/.test(rv.lastAction); })());
+  check('P3.5: comeback state is set with the peak to recover', !!s.comeback && s.comeback.from >= 5000);
+  var ch = P.Game.continueAsHeir();
+  var gy = P.S().goals.yearly;
+  check('P3.5: continuing as heir keeps one building and starts the comeback track', ch.ok && P.State.propertyCount('player') === 1 && gy && gy.comeback === true && gy.id === 'comeback_black');
+  check('P3.5: comeback step one completes on a black year and advances', (function () {
+    var P2 = fresh('chen', 42);
+    P2.S().stats.lastNetCashFlow = 500; P2.S().goals.yearly = { id: 'comeback_black', desc: '', year: 1850, reward: 50, comeback: true, stage: 0 };
+    P2.S().comeback = { from: 9000, year: 1850, stage: 0 };
+    var rep = { goals: { achieved: [], progress: [] }, lines: [] };
+    P2.Goals.evaluate(rep);
+    return rep.goals.achieved.length === 1 && P2.S().comeback.stage === 1;
+  })());
+  check('P3.5: finishing all three steps clears the comeback', (function () {
+    var P2 = fresh('chen', 43);
+    P2.S().comeback = { from: 10, year: 1850, stage: 2 };
+    P2.S().goals.yearly = { id: 'comeback_recover', desc: '', year: 1850, reward: 50, comeback: true, stage: 2 };
+    var rep = { goals: { achieved: [], progress: [] }, lines: [] };
+    P2.Goals.evaluate(rep);
+    return rep.goals.achieved.length === 1 && P2.S().comeback === null && rep.lines.join().indexOf('rebuilt') >= 0;
   })());
 })();
 
