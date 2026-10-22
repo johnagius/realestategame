@@ -195,6 +195,36 @@ body { overflow: hidden; }
 .city-card__facts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); font-size: var(--fs-1); color: var(--ink-2); }
 .district-row { display: grid; grid-template-columns: 1fr auto auto; gap: var(--sp-2); align-items: center; font-size: var(--fs-2); padding: 6px 0; border-bottom: 1px solid var(--line); }
 .district-row:last-child { border-bottom: 0; }
+.city-sheet__handle { display: none; }
+
+/* ── City hero on phones: full-bleed 3D, district panel as a pull-up sheet ── */
+@media (max-width: 640px) {
+  #screen-city { --city-peek: 72px; }
+  #screen-city .screen__scroll { position: relative; }
+  .city-top { position: absolute; left: 0; right: 0; top: 0; background: linear-gradient(180deg, var(--bg) 55%, transparent); pointer-events: none; }
+  .city-top__inner { pointer-events: auto; }
+  .city-view { position: absolute; inset: 0; min-height: 0; }
+  .city-view__tools { top: calc(var(--hud-h) + var(--safe-top) + 62px); }
+  .city-view__legend { bottom: calc(var(--nav-h) + var(--safe-bottom) + var(--city-peek) + var(--sp-2)); }
+  .city-bottom {
+    position: absolute; left: 0; right: 0; bottom: calc(var(--nav-h) + var(--safe-bottom)); z-index: 3;
+    height: var(--city-peek); max-height: none; overflow: hidden;
+    padding: 0 var(--sp-3) var(--sp-2);
+    border-top: 0; border-radius: var(--r-3) var(--r-3) 0 0; box-shadow: var(--shadow-3);
+    transition: height var(--dur-3) var(--ease);
+  }
+  .city-bottom.is-open { height: min(72%, 560px); }
+  .city-bottom.is-dragging { transition: none; }
+  .city-sheet__handle {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    width: calc(100% + 2 * var(--sp-3)); margin: 0 calc(-1 * var(--sp-3)); min-height: var(--city-peek);
+    padding: var(--sp-2) var(--sp-4) var(--sp-3); background: none; border: 0; border-radius: var(--r-3) var(--r-3) 0 0;
+    cursor: pointer; touch-action: none; color: var(--ink);
+  }
+  .city-sheet__handle .sheet__grip { margin: 0; }
+  .city-sheet__summary { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-1); font-weight: 800; color: var(--ink-2); }
+  .city-bottom__inner { height: calc(100% - var(--city-peek)); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding-top: var(--sp-1); }
+}
 
 /* ── Portfolio ── */
 .prop { display: grid; grid-template-columns: 1fr auto; gap: var(--sp-1) var(--sp-3); align-items: start; }

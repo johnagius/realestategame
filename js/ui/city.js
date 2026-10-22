@@ -70,11 +70,70 @@
   PEUI.cityUpdateProperty = function () { if (cs.renderedId) syncProps(); };
   PEUI.cityHas = function (id) { return !!(cs.renderedId && cs.shapes[id] !== undefined); };
 
+  /* Pull-up district sheet (phones only; CSS gates the layout to ≤640px). The
+     sheet overlays the full-bleed city: dragging the handle sets an inline
+     pixel height, releasing snaps to the collapsed peek or the open height. */
+  function phoneLayout() { return window.innerWidth <= 640; }
+  function setSheet(el, open) {
+    var sheet = el.querySelector('.city-bottom'), handle = el.querySelector('.city-sheet__handle');
+    if (!sheet || !handle) return;
+    cs.sheetOpen = !!open;
+    sheet.style.height = '';
+    sheet.classList.toggle('is-open', cs.sheetOpen);
+    handle.setAttribute('aria-expanded', String(cs.sheetOpen));
+  }
+  function bindSheet(el) {
+    var sheet = el.querySelector('.city-bottom'), handle = el.querySelector('.city-sheet__handle');
+    if (!sheet || !handle || handle._sheetBound) return;
+    handle._sheetBound = true;
+    var startY = 0, startH = 0, maxH = 0, dragging = false, moved = false;
+    function peek() { return handle.getBoundingClientRect().height || 72; }
+    handle.addEventListener('pointerdown', function (e) {
+      if (!phoneLayout()) return;
+      dragging = true; moved = false; startY = e.clientY;
+      maxH = Math.min(el.clientHeight * 0.72, 560);
+      startH = sheet.getBoundingClientRect().height;
+      sheet.classList.add('is-dragging');
+      try { handle.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    handle.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var dy = startY - e.clientY;
+      if (Math.abs(dy) > 6) moved = true;
+      if (moved) sheet.style.height = Math.max(peek(), Math.min(maxH, startH + dy)) + 'px';
+    });
+    function drop() {
+      if (!dragging) return;
+      dragging = false;
+      sheet.classList.remove('is-dragging');
+      if (moved) { cs.suppressSheetTap = true; setSheet(el, sheet.getBoundingClientRect().height > (maxH + peek()) / 2); }
+    }
+    handle.addEventListener('pointerup', drop);
+    handle.addEventListener('pointercancel', drop);
+  }
+  /* The 3D renderer only refits on window resize; the canvas host can change
+     size without one (screen toggles, the pull-up sheet, rotation), so forward
+     container resize events to the engine's existing handler. */
+  function bindCanvasResize(el) {
+    if (!root.ResizeObserver || cs.ro) return;
+    var host = el.querySelector('.city-view__canvas'), raf = 0;
+    cs.ro = new ResizeObserver(function () {
+      if (raf) return;
+      raf = requestAnimationFrame(function () {
+        raf = 0;
+        if (cs.renderedId && root.City3D) window.dispatchEvent(new Event('resize'));
+      });
+    });
+    cs.ro.observe(host);
+  }
+
   function cityPanel(el) {
     var list = PE().Cities.list(); if (!list.ok) return;
     var info = null; for (var i = 0; i < list.cities.length; i++) if (list.cities[i].id === cs.id) info = list.cities[i];
     var s = PEUI.summary(), box = el.querySelector('#city-panel'); PEUI.empty(box);
     if (!info) return;
+    var sum = el.querySelector('#city-sheet-summary');
+    if (sum) PEUI.setText(sum, info.unlocked ? info.name + ' · you own ' + info.properties + ' · avg ' + fmt.psqm(info.avgPricePerSqm) : info.name + (info.available ? ' · locked' : ' · from ' + info.availableFrom));
     var card = h('section', { class: 'card city-card', 'aria-label': info.name });
     card.appendChild(h('div', {}, [h('div', { class: 'city-card__name', text: info.name }), h('div', { class: 'small muted', text: info.country + ' · ' + info.traitName })]));
     card.appendChild(info.unlocked ? PEUI.badge('Open since ' + info.unlockedYear, 'success') : PEUI.badge(info.available ? 'Locked' : 'From ' + info.availableFrom, 'neutral'));
@@ -126,9 +185,14 @@
         var leg = h('div', { class: 'city-view__legend', id: 'city-legend' });
         view.appendChild(leg);
         sc.appendChild(view);
-        sc.appendChild(h('div', { class: 'city-bottom', tabindex: '0' }, h('div', { class: 'city-bottom__inner', id: 'city-panel' })));
+        var bottom = h('div', { class: 'city-bottom', tabindex: '0' });
+        bottom.appendChild(h('button', { type: 'button', class: 'city-sheet__handle', 'data-action': 'city-sheet-toggle', 'aria-expanded': 'false', 'aria-controls': 'city-panel' }, [h('span', { class: 'sheet__grip' }), h('span', { class: 'city-sheet__summary', id: 'city-sheet-summary' })]));
+        bottom.appendChild(h('div', { class: 'city-bottom__inner', id: 'city-panel', tabindex: '0' }));
+        sc.appendChild(bottom);
         el.appendChild(sc);
         cs.mounted = true;
+        bindSheet(el);
+        bindCanvasResize(el);
       }
       var leg2 = el.querySelector('#city-legend'); PEUI.empty(leg2);
       leg2.appendChild(h('span', {}, [h('i', { style: 'background:' + s.color }), 'You']));
@@ -143,8 +207,14 @@
     },
     unmount: function () { /* renderer stays alive; it pauses itself while hidden */ }
   });
-  PEUI.destroyCity = function () { if (root.City3D && cs.renderedId) { try { root.City3D.destroy(); } catch (e) {} } cs.renderedId = null; cs.mounted = false; cs.id = null; };
+  PEUI.destroyCity = function () { if (root.City3D && cs.renderedId) { try { root.City3D.destroy(); } catch (e) {} } if (cs.ro) { cs.ro.disconnect(); cs.ro = null; } cs.renderedId = null; cs.mounted = false; cs.id = null; cs.sheetOpen = false; };
   PEUI.actions['city-tab'] = function (b, d) { cs.id = d.id; PEUI.refresh(); };
+  PEUI.actions['city-sheet-toggle'] = function () {
+    if (cs.suppressSheetTap) { cs.suppressSheetTap = false; return; }
+    if (!phoneLayout()) return;
+    var el = document.getElementById('screen-city'); if (!el) return;
+    setSheet(el, !cs.sheetOpen); PEUI.sound('page');
+  };
   PEUI.actions['city-reset'] = function () { if (root.City3D && cs.renderedId) root.City3D.resetView(); };
   PEUI.actions['city-photo'] = function () {
     if (!root.City3D || !cs.renderedId) return;
