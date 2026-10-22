@@ -1,6 +1,6 @@
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { launch } = require('./config');
 (async () => {
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'] });
+  const browser = await launch();
   for (const [w,h,name] of [[1280,800,'1280'],[412,915,'412']]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: w<500?2:1, isMobile: w<500 });
     const page = await ctx.newPage(); const errs=[]; page.on('pageerror', e=>errs.push(e.message));

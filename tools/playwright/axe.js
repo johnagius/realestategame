@@ -1,8 +1,7 @@
 /* axe-core accessibility pass over the main screens and sheets at 412×915. */
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { launch, OUT } = require('./config');
 const fs = require('fs');
-const AXE = fs.readFileSync('/tmp/claude-0/-home-user-realestategame/21dae4b3-461f-5b05-8605-77492c890f9b/scratchpad/axe/package/axe.min.js', 'utf8');
-const OUT = '/tmp/claude-0/-home-user-realestategame/21dae4b3-461f-5b05-8605-77492c890f9b/scratchpad/ui';
+const AXE = require('fs').readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 async function act(page, action, extra) { const el = page.locator(`[data-action="${action}"]${extra || ''}`).first(); if (!(await el.count())) return false; await el.click(); await sleep(150); return true; }
 async function run(page, name, ctx) {
@@ -13,7 +12,7 @@ async function run(page, name, ctx) {
   return r;
 }
 (async () => {
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const browser = await launch();
   const ctx = await browser.newContext({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   const page = await ctx.newPage();
   await page.goto('http://127.0.0.1:8790/index.html?seed=7', { waitUntil: 'load' }); await sleep(1500);

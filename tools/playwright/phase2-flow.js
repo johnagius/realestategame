@@ -1,10 +1,8 @@
 /* Phase 2 flows through the real UI: guide years 1–3, advisor bubbles, estimate input + reveal,
    report scenes (6), share card PNG, dynasty appraisal stat. Screenshots at 412×915@2x and 1280×800. */
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium, launch, OUT } = require('./config');
 const fs = require('fs');
-const OUT = '/tmp/claude-0/-home-user-realestategame/21dae4b3-461f-5b05-8605-77492c890f9b/scratchpad/ui2';
 const URL = 'http://127.0.0.1:8790/index.html?seed=20';
-const ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
 const errors = [], consoleErrors = [];
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 let sfx = '412';
@@ -34,7 +32,7 @@ async function dismissOverlays(page, tag) {
 async function setRange(page, id, v) { await page.evaluate(([id, v]) => { const r = document.getElementById(id); r.value = v; r.dispatchEvent(new Event('input', { bubbles: true })); }, [id, v]); await sleep(100); }
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ARGS, headless: true });
+  const browser = await launch();
   const ctx = await browser.newContext({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   const page = await ctx.newPage();
   page.on('pageerror', e => errors.push(String(e)));

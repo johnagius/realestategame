@@ -1,12 +1,9 @@
 /* Full 30-year game through the real UI (seed 42, Chen) + screenshots of every screen/sheet at 412×915@2x and 1280×800. */
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium, launch, OUT, OUT2 } = require('./config');
 const fs = require('fs');
-const OUT = '/tmp/claude-0/-home-user-realestategame/21dae4b3-461f-5b05-8605-77492c890f9b/scratchpad/ui';
-const OUT2 = '/tmp/claude-0/-home-user-realestategame/21dae4b3-461f-5b05-8605-77492c890f9b/scratchpad/ui2';
 const ph2 = { reveals: 0, callouts: 0, bubbles: 0 };
 async function shot2(page, name) { await page.screenshot({ path: `${OUT2}/play-${name}-${sfx}.png`, fullPage: false }); }
 const URL = 'http://127.0.0.1:8790/index.html?seed=42';
-const ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
 const errors = [], consoleErrors = [];
 const shots = new Set();
 let sfx = '412';
@@ -122,7 +119,7 @@ async function managePortfolio(page) {
 }
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ARGS, headless: true });
+  const browser = await launch();
   const ctx = await browser.newContext({ viewport: { width: 412, height: 915 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   const page = await ctx.newPage();
   page.on('pageerror', e => errors.push(String(e)));
