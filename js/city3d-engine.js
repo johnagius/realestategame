@@ -386,10 +386,10 @@ var City3D = {
   _retargetSkin: function(sk, era, ms) {
     var c = this._skinColors(era, sk.typeKey, sk.seed, sk.cond);
     var pairs = [[sk.wall, c.wall], [sk.roof, c.roof], [sk.trim, c.trim], [sk.accent, c.accent], [sk.glass, c.glass]];
+    var fades = this._fades;
     var npbr = this._pbrFor(era, c.glassy);
     fades.push({ m: sk.wall, fromRough: sk.wall.roughness, toRough: npbr.roughness, fromMetal: sk.wall.metalness, toMetal: npbr.metalness, t: 0, ms: ms });
     fades.push({ m: sk.glass, fromRough: sk.glass.roughness, toRough: Math.max(0.06, npbr.roughness * 0.7), fromMetal: sk.glass.metalness, toMetal: npbr.metalness, t: 0, ms: ms });
-    var fades = this._fades;
     pairs.forEach(function(p) {
       fades.push({ m: p[0], from: p[0].color.clone(), to: p[1], t: 0, ms: ms });
     });
@@ -910,7 +910,7 @@ var City3D = {
       // Crown band around the roofline in the owner colour (readable from above)
       var top = bg.userData.roofY != null ? bg.userData.roofY : dims.H * 0.92;
       var bw2 = bg.userData.bodyW || dims.W, bd2 = bg.userData.bodyD || dims.D;
-      var crown = this.bx(bw2 + 0.5, 1.1, bd2 + 0.5, bMat, false); crown.position.y = top - 0.9; fx.add(crown);
+      if (!bg.userData.kitMats) { var crown = this.bx(bw2 + 0.5, 1.1, bd2 + 0.5, bMat, false); crown.position.y = top - 0.9; fx.add(crown); }
       // Flag on the roof
       var pole = this.cy(0.22, 0.22, 11, 5, M.FLAGPOLE); pole.position.set(bw2 * 0.3, top + 5.5, bd2 * 0.3); fx.add(pole);
       var flag = new THREE.Mesh(new THREE.PlaneGeometry(6.5, 3.6), bMat);
@@ -1108,6 +1108,7 @@ var City3D = {
     if (this._moon) this._moon.material.opacity = Math.max(0, n - 0.2) * 1.2;
     this._updatePools();
     if (this._bloom) this._bloom.strength = 0.55 + n * 0.35;
+    if (this._grade) this._grade.uniforms.liftNight.value = Math.max(0, (n - 0.2) / 0.8);
     if (this._quality !== 'low') this._rebuildEnv();
     var ak = Math.max(0, Math.min(1, (n - 0.3) / 0.45));
     (this._lmAccents || []).forEach(function(a) {

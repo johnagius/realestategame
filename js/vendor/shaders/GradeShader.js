@@ -8,6 +8,7 @@ THREE.GradeShader = {
     'vignette': { value: 0.34 },
     'liftColor': { value: new THREE.Color(0x1c2240) },   // era fog hue, set from _paintSky
     'liftAmount': { value: 0.4 },
+    'liftNight': { value: 0.0 },
     'curve': { value: 0.16 },
     'grainAmount': { value: 0.022 },
     'time': { value: 0.0 }
@@ -24,6 +25,7 @@ THREE.GradeShader = {
     'uniform float vignette;',
     'uniform vec3 liftColor;',
     'uniform float liftAmount;',
+    'uniform float liftNight;',
     'uniform float curve;',
     'uniform float grainAmount;',
     'uniform float time;',
@@ -42,7 +44,7 @@ THREE.GradeShader = {
     // lift shadows toward the era fog hue (keeps blacks from going dead)
     '  float luma = dot( c, vec3( 0.2126, 0.7152, 0.0722 ) );',
     '  float shadowK = ( 1.0 - smoothstep( 0.0, 0.55, luma ) );',
-    '  c += liftColor * shadowK * shadowK * liftAmount * 0.25;',
+    '  c += liftColor * shadowK * shadowK * liftAmount * 0.25 * liftNight;',
     // vignette
     '  float d = distance( vUv, vec2( 0.5 ) );',
     '  c *= 1.0 - vignette * smoothstep( 0.32, 0.82, d );',
