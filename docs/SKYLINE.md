@@ -182,6 +182,19 @@ rolled into the build-out:
   Verified by zoomed crops (chimneys/cornice/bays/tank/setbacks/antenna) + probes
   (detail batches survive setEra and updateProperty rebuilds).
 
+### SKYLINE-10 — labels + landmark night lights (2026-10-22, Kimi) — DONE
+- Label canvas doubled (640x144, same 30x6.75 world sprite) — crisp at 1280x800;
+  plus a system-serif fallback when the webfont is still loading (fixes the empty-pill
+  race that made labels render as black blobs). Each landmark now gets one additive
+  crown glow fading in with night (cyan in the Digital era, warm floodlight otherwise)
+  and the first two landmarks carry a real point light (the per-city cap).
+
+### SKYLINE-11 — perspective rig for splash + photo mode (2026-10-22, Kimi) — DONE
+- 'opts.camera: 'perspective'' (FOV 28 deg, 20 deg elevation) gives a true horizon;
+  gameplay stays ortho. Splash.mount uses it via opts.camera (default perspective) and
+  City3D.photo() renders through a temporary perspective rig even from an ortho game.
+  Verified: splash before/after + mobile (horizon, skyline edge, surroundings depth),
+  london/hong_kong test-page shots, photo() PNG; perspective high 247 calls / 19.2k tris.
 ### Remaining (audit §2 order)
 
 SKYLINE-7 silhouette variety (largest gap) → SKYLINE-9 mobile hero →

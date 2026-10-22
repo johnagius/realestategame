@@ -279,7 +279,7 @@ var City3D = {
     s.userData.label = true;
     s.renderOrder = 10;
     return s;
-},
+  },
 
   _glowTex: function() {
     if (this._glowTexCache) return this._glowTexCache;
@@ -858,7 +858,7 @@ var City3D = {
   _cityDef: null, _onBuildingClick: null, _opts: null, _era: 'modern', _night: 0.55,
   _fades: [], _winMeshes: null, _signs: null, _animated: null, _textures: null, _skins: null,
   _paused: false, _visible: true, _tabVisible: true, _orbit: 0,
-  _surround: null, _life: null, _lmAccents: null, _detailQ: null, _detailMeshes: null, _helipadTaken: false,
+  _surround: null, _life: null, _detailQ: null, _detailMeshes: null, _helipadTaken: false, _camPersp: false, _camDist: 700, _lmAccents: null,
   _camTarget: null, _camGoal: null, _zoomGoal: 1, _lastTs: 0, _frameMs: 0,
 
   _eraOrder: ['victorian', 'gilded', 'crisis', 'boom', 'modern', 'digital'],
@@ -983,6 +983,7 @@ var City3D = {
     this._opts = opts;
     this._quality = opts.quality || (window.devicePixelRatio > 2 || (navigator.hardwareConcurrency || 4) < 6 ? 'low' : 'high');
     var low = this._quality === 'low';
+    this._camPersp = opts.camera === 'perspective';
     this._era = opts.era || 'modern';
     this._night = opts.night != null ? opts.night : 0.55;
     this._horizon = opts.horizon != null ? opts.horizon : 0.42;
@@ -1006,8 +1007,14 @@ var City3D = {
 
     // Camera
     var asp = VW / VH;
-    var cam = new THREE.OrthographicCamera(-100 * asp, 100 * asp, 100, -100, 1, 2200);
-    this._camDir = new THREE.Vector3(1, 0.86, 1).normalize();
+    var cam;
+    if (this._camPersp) {
+      cam = new THREE.PerspectiveCamera(28, asp, 10, 4200);
+      this._camDir = new THREE.Vector3(Math.cos(0.349) * Math.SQRT1_2, Math.sin(0.349), Math.cos(0.349) * Math.SQRT1_2); // 20 deg elevation
+    } else {
+      cam = new THREE.OrthographicCamera(-100 * asp, 100 * asp, 100, -100, 1, 2200);
+      this._camDir = new THREE.Vector3(1, 0.86, 1).normalize();
+    }
     this._camTarget = new THREE.Vector3(0, this.TY, 0); this._camGoal = this._camTarget.clone();
     this._cam = cam;
     this._fitCamera(asp);
@@ -1084,6 +1091,16 @@ var City3D = {
     var elev = Math.atan2(this._camDir.y, Math.hypot(this._camDir.x, this._camDir.z));
     var depth = diag * Math.sin(elev) + 20; // vertical half extent incl. building headroom
     var needV = Math.max(depth, diag * 0.74 / asp);
+    if (this._camPersp) {
+      this._cam.fov = 28;
+      this._cam.aspect = asp;
+      this._cam.updateProjectionMatrix();
+      var fovR = 28 * Math.PI / 360;
+      var needD = Math.max(diag * 0.8, diag * 0.55 / asp);
+      this._camDist = needD / Math.tan(fovR) + 60;
+      this._updateCam();
+      return;
+    }
     this._CS = needV; this._asp = asp;
     this._updateCam();
   },
@@ -1093,8 +1110,9 @@ var City3D = {
   _updateCam: function() {
     var cam = this._cam, CS = this._CS, asp = this._asp || 1;
     cam.left = -CS * asp; cam.right = CS * asp; cam.top = CS; cam.bottom = -CS;
+    if (cam.isOrthographicCamera) { cam.left = -CS * asp; cam.right = CS * asp; cam.top = CS; cam.bottom = -CS; }
     cam.updateProjectionMatrix();
-    var pos = this._camTarget.clone().addScaledVector(this._camDir, 700);
+    var pos = this._camTarget.clone().addScaledVector(this._camDir, this._camDist || 700);
     cam.position.copy(pos); cam.lookAt(this._camTarget);
   },
 
@@ -1515,7 +1533,7 @@ var City3D = {
      movers/boats animate in the RAF loop. High: ≤7 calls (≤5 without water);
      low: parked cars + pools only. */
   _buildStreetLife: function() {
-    this._life = null; this._lmAccents = null;
+    this._life = null;
     if (!this._pivot || !this._cityDef) return;
     var def = this._cityDef, T = this.TILE, self = this;
     var GH = def.layout.length, GW = def.layout[0].length;
@@ -1654,7 +1672,7 @@ var City3D = {
   _addLmAccents: function() {
     this._lmAccents = this._lmAccents || [];
     if (!this._grid || !this._pivot) return;
-    var nLights = 0;
+    var self = this, nLights = 0;
     var digital = this._eraIdx(this._era) >= this._eraIdx('digital');
     var col = digital ? 0x6fe3ff : 0xffc27a;
     for (var r = 0; r < this._grid.length; r++) for (var c = 0; c < this._grid[r].length; c++) {
@@ -2278,10 +2296,27 @@ var City3D = {
   stopAnimation: function() { if (this._animId) { cancelAnimationFrame(this._animId); this._animId = null; } },
   getStats: function() { var i = this._renderer ? this._renderer.info.render : {}; return { frameMs: this._frameMs, calls: i.calls, triangles: i.triangles, quality: this._quality }; },
   /* Photo mode: render one frame synchronously and return a PNG data URL (share-card source). */
+  /* Photo mode: renders one frame through the cinematic perspective rig
+     (SKYLINE-11) and returns a PNG data URL, even when the game view is ortho. */
   photo: function() {
     if (!this._renderer || !this._scene || !this._cam) return null;
+    var prevCam = this._cam;
+    if (!this._camPersp) {
+      var def = this._cityDef, T = this.TILE;
+      var diag = def ? (def.layout[0].length + def.layout.length) * T * 0.5 : 200;
+      var pcam = new THREE.PerspectiveCamera(28, this._asp || 1, 10, 4200);
+      var dir = new THREE.Vector3(Math.cos(0.349) * Math.SQRT1_2, Math.sin(0.349), Math.cos(0.349) * Math.SQRT1_2);
+      var target = this._camTarget.clone(); target.y = Math.max(16, target.y * 0.45);
+      pcam.position.copy(target).addScaledVector(dir, diag * 1.9);
+      pcam.lookAt(target);
+      this._cam = pcam;
+    }
     this._renderer.render(this._scene, this._cam);
-    try { return this._canvas.toDataURL('image/png'); } catch (e) { return null; }
+    var url = null;
+    try { url = this._canvas.toDataURL('image/png'); } catch (e) {}
+    this._cam = prevCam;
+    this._renderer.render(this._scene, this._cam);
+    return url;
   },
 
   // ───────────────────────────── Cleanup ─────────────────────────────
@@ -2314,7 +2349,7 @@ var City3D = {
     this._fades = []; this._winMeshes = null; this._signs = null; this._animated = null; this._textures = null; this._skins = null; this._dying = null;
     this._rain = null; this._weather = 'clear'; this._weatherK = 0; this._fogGoal = null;
     this._terrain = null; this._terrainGroup = null; this._bldgGroup = null; this._orbit = 0; this._zoomGoal = 1; this._frameMs = 0;
-    this._profile = null; this._profCache = null; this._contactShadow = null; this._surround = null; this._life = null; this._detailQ = null; this._detailMeshes = null;
+    this._profile = null; this._profCache = null; this._contactShadow = null; this._surround = null; this._life = null; this._detailQ = null; this._detailMeshes = null; this._lmAccents = null;
     this._dragState = { active: false, prevX: 0, prevY: 0, startX: 0, startY: 0, moved: false };
     this._visible = true; this._tabVisible = true;
   },

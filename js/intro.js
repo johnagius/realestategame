@@ -75,7 +75,7 @@ var Splash = {
       ok = City3D.renderCity(CityDef_London, this._host, this._props(this._eraIdx), {
         era: City3D.ERA_ORDER[this._eraIdx], quality: quality, night: 0.1,
         playerColor: '#d4a84b', rivalColors: { a: '#3d7bd8', b: '#b84a5a' },
-        autoOrbit: opts.orbitSpeed, ambientEvents: false, labels: false, horizon: 0.46,
+        autoOrbit: opts.orbitSpeed, ambientEvents: false, labels: false, horizon: 0.46, camera: opts.camera || 'perspective',
       });
     } catch (e) { console.warn('Splash 3D failed', e); ok = false; }
     if (!ok) { this._startFallback(); return this; }
