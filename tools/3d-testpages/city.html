@@ -36,6 +36,25 @@
 <script src="/js/city3d-engine.js"></script>
 <script src="sketch-layer.js"></script>
 <script src="/js/cities/london.js"></script>
+<script src="/js/cities/paris.js"></script>
+<script src="/js/cities/new_york.js"></script>
+<script src="/js/cities/amsterdam.js"></script>
+<script src="/js/cities/berlin.js"></script>
+<script src="/js/cities/rome.js"></script>
+<script src="/js/cities/barcelona.js"></script>
+<script src="/js/cities/monaco.js"></script>
+<script src="/js/cities/sydney.js"></script>
+<script src="/js/cities/hong_kong.js"></script>
+<script src="/js/cities/mumbai.js"></script>
+<script src="/js/cities/toronto.js"></script>
+<script src="/js/cities/shanghai.js"></script>
+<script src="/js/cities/cape_town.js"></script>
+<script src="/js/cities/tokyo.js"></script>
+<script src="/js/cities/singapore.js"></script>
+<script src="/js/cities/los_angeles.js"></script>
+<script src="/js/cities/sao_paulo.js"></script>
+<script src="/js/cities/miami.js"></script>
+<script src="/js/cities/dubai.js"></script>
 <script>
   // London slots in scan order: TH AP CM MN SK HO ST VI PH CM WR TH
   var PROPS = [
@@ -52,12 +71,13 @@
     { id: 'p11', type: 'warehouse', model3d: 'WR', name: 'Docklands Depot', ownerId: null, isListing: true, condition: 42 },
     { id: 'p12', type: 'townhouse', model3d: 'TH', name: 'Kennington Terrace', ownerId: 'rival:okafor', condition: 80 },
   ];
-  // ── Project Skyline direction variants (London, experiment only) ──
-  // No ?dir= → the city def's own profile (CityDef_London.profile, the shipped
-  // Glass-Commonwealth direction). ?dir=a|b|c overrides with an experiment preset.
+  // ── Project Skyline direction variants (experiment presets) ──
+  // No ?dir= → the city's own profile (CityDef_<City>.profile, shipped art
+  // direction). ?dir=a|b|c overrides with an experiment preset, any city.
   // Note: tree/lamp kinds bake into terrain at render time — use the dir buttons
   // (full re-render); the era buttons only cross-fade colours.
-  var DIR = ((new URLSearchParams(location.search)).get('dir') || '').toLowerCase() || null; // null = city profile
+  var qs = new URLSearchParams(location.search);
+  var DIR = (qs.get('dir') || '').toLowerCase() || null; // null = city profile
   var DIRS = {
     a: { name: 'A · Ledger Craft', profile: {
       base: { exposure: 1.06, sunDay: 0xffd9a8, sunDusk: 0xd88a5a, sunIntensity: 1.0,
@@ -93,20 +113,55 @@
       digital:   { sky: ['#0c1226', '#263258', '#7a5890'], fog: 0x3a3a5c, haze: 0.35, lamps: 'neon',   road: 0x0d1016, side: 0x222633 },
     } },
   };
+  // ── City selector (?city=<id>, default london) — map mirrors js/ui/city.js ──
+  var CITYMAP = {
+    london: 'CityDef_London', paris: 'CityDef_Paris', new_york: 'CityDef_NewYork',
+    amsterdam: 'CityDef_Amsterdam', berlin: 'CityDef_Berlin', rome: 'CityDef_Rome',
+    barcelona: 'CityDef_Barcelona', monaco: 'CityDef_Monaco', sydney: 'CityDef_Sydney',
+    hong_kong: 'CityDef_HongKong', mumbai: 'CityDef_Mumbai', toronto: 'CityDef_Toronto',
+    shanghai: 'CityDef_Shanghai', cape_town: 'CityDef_CapeTown', tokyo: 'CityDef_Tokyo',
+    singapore: 'CityDef_Singapore', los_angeles: 'CityDef_LosAngeles',
+    sao_paulo: 'CityDef_SaoPaulo', miami: 'CityDef_Miami', dubai: 'CityDef_Dubai',
+  };
+  var CITY = (qs.get('city') || 'london').toLowerCase();
+  if (!CITYMAP[CITY]) CITY = 'london';
+  function cityDef() { return window[CITYMAP[CITY]]; }
+  // Generic props per city: one per building slot, rotating owners/conditions so
+  // windows, banners and listings show across the fleet. London keeps its authored set.
+  var OWNERS = ['player', 'rival:ashworth', null, 'rival:okafor', 'player', null];
+  var CONDS = [72, 60, 55, 92, 88, 12, 35, 70, 50, 15, 42, 80];
+  var FILLERS = ['TH', 'AP', 'CM', 'MN', 'SK', 'HO', 'ST', 'VI', 'PH', 'CM', 'WR', 'TH'];
+  function propsFor(def) {
+    if (CITY === 'london') return PROPS;
+    var out = [];
+    def.layout.forEach(function(row) {
+      row.forEach(function(t) {
+        if (t === 'B' || City3D.BLDG_TYPES.has(t)) {
+          var i = out.length, own = OWNERS[i % OWNERS.length];
+          out.push({ id: 'p' + (i + 1), type: 'townhouse', model3d: t === 'B' ? FILLERS[i % FILLERS.length] : t,
+            name: def.name + ' ' + (i + 1), ownerId: own, condition: CONDS[i % CONDS.length],
+            isListing: own === null && i % 2 === 0, era: i % 5 === 0 ? 'victorian' : undefined });
+        }
+      });
+    });
+    return out;
+  }
   if (DIR && !DIRS[DIR]) DIR = null; // unknown key falls back to the city profile
   // ?sketch=1 layers the target-look prototype (sketch-layer.js) over the chosen direction.
   var SKETCH = (new URLSearchParams(location.search)).get('sketch') === '1';
   function dirProfile() { return DIR ? DIRS[DIR].profile : null; }
   var state = { era: 'modern', quality: 'high', night: 0.55 };
   function render() {
-    City3D.renderCity(CityDef_London, document.getElementById('city'), PROPS, {
+    var def = cityDef();
+    document.title = 'City3D test — ' + def.name;
+    City3D.renderCity(def, document.getElementById('city'), propsFor(def), {
       era: state.era, quality: state.quality, night: state.night,
       profile: dirProfile(),
       playerColor: '#d4a84b', rivalColors: { ashworth: '#3d7bd8', okafor: '#c2455a' },
       onSelect: function(p) { document.getElementById('sel').textContent = p.name + ' · ' + (p.ownerId || 'unowned') + ' · cond ' + p.condition; },
     });
     City3D._onBuildingClick = function(cell) { if (!cell.property) document.getElementById('sel').textContent = City3D.BNAMES[cell.t] || cell.t; };
-    document.getElementById('dirname').textContent = DIR ? DIRS[DIR].name : 'City default · Glass Commonwealth (London profile)';
+    document.getElementById('dirname').textContent = cityDef().name + ' · ' + (DIR ? DIRS[DIR].name : 'city profile');
     document.querySelectorAll('[data-dir]').forEach(function(x) { x.classList.toggle('on', (x.dataset.dir || null) === DIR); });
     if (SKETCH && window.SkylineSketch) setTimeout(function() { SkylineSketch.apply(); }, 60);
   }

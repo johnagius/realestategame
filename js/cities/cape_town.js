@@ -41,12 +41,12 @@ var CityDef_CapeTown = {
   landmarks:{
     TBM:function(){
       var g=new THREE.Group(),E=City3D;
-      var Mr=new THREE.MeshPhongMaterial({color:0x6a7858,shininess:12});
-      var Mrock=new THREE.MeshPhongMaterial({color:0x8a7e68,shininess:8});
+      var Mr=new THREE.MeshPhongMaterial({color:0x4a5840,shininess:12});
+      var Mrock=new THREE.MeshPhongMaterial({color:0x6e6250,shininess:8});
       // Flat-topped mountain
       var base=E.bx(26,18,18,Mr);base.position.y=9;g.add(base);
       // Flat top
-      var top=E.bx(22,2,14,new THREE.MeshPhongMaterial({color:0x5a6848,shininess:10}));
+      var top=E.bx(22,2,14,new THREE.MeshPhongMaterial({color:0x42503a,shininess:10}));
       top.position.y=18+1;g.add(top);
       // Rocky sides
       [-12,12].forEach(function(sx){

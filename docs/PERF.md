@@ -101,3 +101,30 @@ skyline grid peaks at 249–251 calls (`{a,b,c}-digital-{day,dusk}` and
 `london-profile-digital-dusk`) — 1 call over the ~250 guideline. Within
 rounding of the budget; revisit only if the guideline becomes a hard cap.
 Triangles never exceed 13.6k.
+
+### Fleet (SKYLINE-6 city tour, 2026-10-22)
+
+`node tools/playwright/city-tour.js` screenshots all 20 cities x
+{victorian, modern, digital} x {day, dusk} at 1280x800 high quality and
+records per-shot stats in `tools/playwright/out/skyline/tour-stats.csv`.
+The frame-cost rows above (London, modern-day) are representative for the
+whole fleet — every cell measured 1.2–4.6 ms engine frame cost under
+SwiftShader; on the GPU that is comfortably inside the 16 ms budget.
+
+Fleet worst cells (draw calls, budget ~≤250):
+
+| Cell | Calls | Triangles | Note |
+|---|---|---|---|
+| new_york-digital-dusk | 264 | 10 246 | skyline cluster + neon batches |
+| new_york-digital-day | 263 | 10 244 | same |
+| cape_town-digital-day | 262 | 8 900 | 3-cell Table Mountain range |
+| cape_town-victorian-day | 256 | 8 188 | same |
+| barcelona-digital-day | 256 | 10 545 | Sagrada + neon |
+| london-digital-day | 251 | 13 588 | neon batches; fleet tri peak |
+
+Triangles stay under 13.6k everywhere (budget 25k) — headroom is ample.
+The calls guideline is exceeded in 13 of 120 cells, all in cities whose
+signatures add several unmergeable material batches (Table Mountain's
+3-cell range, NYC's tower cluster, neon-lamp eras). Worst overage is +14
+calls (5.6%); revisit with per-city batch merging only if a hard cap
+appears. Full data: `tour-stats.csv`.

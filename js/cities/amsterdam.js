@@ -20,7 +20,7 @@ var CityDef_Amsterdam = {
   layout:[
     ['CP','CP','CT','CT','CT','CP','CP'],
     ['TH','RD','RD','RD','RD','RD','TH'],
-    ['CNL','W','W','WFA','W','W','WML'],
+    ['W','W','W','WFA','W','CNL','WML'],
     ['AP','RD','RD','RD','RD','RD','CM'],
     ['RD','RD','SK','RD','MN','RD','RD'],
     ['HO','RD','RD','RD','RD','RD','PH'],

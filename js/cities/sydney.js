@@ -16,16 +16,16 @@ var CityDef_Sydney = {
     base: { exposure: 1.1, sunDay: 0xfff6e2, sunDusk: 0xffb27a,
       ambDay: 0x364868, ambDusk: 0x1a2440, hemiSky: 0xd2eaff, hemiGround: 0x46524a,
       wallJitter: 0.07, sky: ['#123a6e', '#3f8ed2', '#c6ecf4'], fog: 0x5e8aae, haze: 0.12,
-      water: { color: 0x1a7ec0, specular: 0xd2f2ff, opacity: 0.9 },
+      water: { color: 0x1a7ec0, specular: 0x9fd8f0, opacity: 0.9 },
       ground: 0x32363c, road: 0x2a2d33, side: 0x8e8a80, park: 0x2f6434,
       trees: 'palm', lamps: 'modern' },
     victorian: { lamps: 'gas', sunDusk: 0xff9652, ambDusk: 0x262032, haze: 0.2 },
-    digital: { lamps: 'neon', water: { color: 0x0c3e66, specular: 0xe2f8ff, opacity: 0.86 } },
+    digital: { lamps: 'neon', water: { color: 0x0c3e66, specular: 0xbfe8ff, opacity: 0.86 } },
   },
 
   layout: [
     ['W',  'W',  'W',  'HBR', 'W',  'W',  'W' ],
-    ['W',  'OPH', 'HB', 'HB', 'HB', 'CM', 'W' ],
+    ['W',  'HB', 'OPH', 'HB', 'HB', 'CM', 'W' ],
     ['TH', 'RD', 'RD', 'RD', 'RD', 'RD', 'SK'],
     ['RD', 'RD', 'RD', 'RD', 'RD', 'RD', 'RD'],
     ['AP', 'RD', 'MN', 'RD', 'PH', 'RD', 'HO'],
@@ -59,14 +59,14 @@ var CityDef_Sydney = {
       var podium = E.bx(20, 3, 16, Mbase);
       podium.position.y = 1.5; g.add(podium);
 
-      // Sail shells — 3 groups of interlocking shells
-      // Each shell is a half-sphere stretched vertically
+      // Sail shells — overlapping low domes (full spheres, half-sunk into the podium,
+      // wide and sweeping like the real sails)
       var shells = [
-        { x: -5, z: -2, sx: 5, sy: 16, sz: 4, ry: 0 },
-        { x: -5, z: -2, sx: 4, sy: 13, sz: 3.5, ry: 0.15 },
-        { x: 2, z: -1, sx: 5.5, sy: 18, sz: 4.5, ry: -0.1 },
-        { x: 2, z: -1, sx: 4.5, sy: 15, sz: 4, ry: 0.12 },
-        { x: 7, z: 1, sx: 4, sy: 12, sz: 3, ry: -0.08 },
+        { x: -6, z: -2, sx: 6, sy: 3.5, sz: 4.5, ry: 0 },
+        { x: -6, z: -2, sx: 4.5, sy: 5, sz: 3.5, ry: 0.15 },
+        { x: 1, z: -1, sx: 7, sy: 4, sz: 5, ry: -0.1 },
+        { x: 1, z: -1, sx: 5, sy: 5.5, sz: 4, ry: 0.12 },
+        { x: 7, z: 1, sx: 4.5, sy: 3, sz: 3.5, ry: -0.08 },
       ];
 
       shells.forEach(function(s) {
@@ -81,7 +81,7 @@ var CityDef_Sydney = {
       var gl = new THREE.PointLight(0xffcc66, 1.2, 30);
       gl.position.set(0, 5, 0); g.add(gl);
 
-      var lb = E.makeLabel('Opera House'); lb.position.set(0, 28, 0); g.add(lb);
+      var lb = E.makeLabel('Opera House'); lb.position.set(0, 12, 0); g.add(lb);
       return g;
     },
 
