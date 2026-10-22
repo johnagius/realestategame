@@ -67,18 +67,25 @@ P3.2 marriage/merger UI, P3.3 succession ceremony + charity, P3.5 bankruptcy
 absorption + comeback track, 3D era landmarks + weather + day/night, Phase 5
 retention UI, signature moments, photo mode, high-end CSS polish layer.
 
-**In flight at push time (read this carefully):** three subagents were mid-build on
-the OFFICE machine, uncommitted: Phase 4 (bonds, own bank, build-to-suit, city
-traits — files touched include js/engine/{finance,market,property,state,turn,data,cities}.js),
-Phase 6 (Capacitor configs at capacitor.config.json, android-capacitor/,
-capacitor-web/, ios/, docs/monetization|privacy-policy|analytics|l10n, js/engine/l10n.js,
-storage slots, ads.js, store-assets/, package.json), Phase 7 (js/engine/{lb,pack-demo}.js,
-events.js pack loader, share.js, docs/live-ops.md). If that work is NOT in the tree
-you pulled (`git status` clean / those files absent), it did not survive the move —
-**re-run those phases first** (delegate to coder subagents exactly as the office
-session did, or build directly), then continue with the 3D mission below. Do not
-half-trust partial files: if the tree mixes landed and missing pieces, check
-`node js/sim/tests.js` — it must be green; revert anything broken with `git checkout -- .`
+**In flight at the original push — NOW LANDED (commit `cf55a08`, 113 files):** the three
+subagents' work was committed and pushed before the machine switch. State:
+- **Phase 6 — COMPLETE** (14 tests): Capacitor 8 scaffold (`android-capacitor/`, `ios/`,
+  `cap sync` green), save slots + `importSave`, l10n (`PE.T`, fr locale), analytics ring
+  buffer, store assets in `store-assets/`, perf numbers in `docs/PERF.md`, monetization
+  plumbing in `js/ads.js` + `docs/monetization.md` + `docs/privacy-policy.md`.
+  Left for UI wiring: save-slot picker (start.js), settings import button + locale picker
+  + privacy link (dynasty.js), rewarded placements in deals.js/year.js.
+- **Phase 7 — COMPLETE** (27 tests): event packs (`PE.Events.registerPack/fetchPack` +
+  `pack-demo.js`, off by default), leaderboard interface (`PE.LB`, self-hooks
+  recordChallenge), share card with crest + motto, city pack registration.
+- **Phase 4 — ENGINE ONLY, WIP (no tests, no UI yet)**: bonds, own bank, build-to-suit,
+  city-trait drift effects are in `js/engine/{finance,property,turn,market,state,data}.js`,
+  self-guarded. The new UI (portfolio bonds section, bank sheet, build-to-suit sheet) and
+  the P4 test section still need building; wrap-list canonicalisation in game.js optional.
+  Full balance run required after P4 UI lands (quick table is green).
+
+Suite: 445 passed, 0 failed. eventsmc 0/43. If any of this is missing on the new machine,
+`git log --oneline | head` should show `cf55a08`.
 
 ## 4. THE PRIORITY MISSION — "Project Skyline": high-end 3D, unique cities
 
