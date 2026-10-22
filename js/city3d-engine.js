@@ -404,7 +404,7 @@ var City3D = {
         quad(bw / 2 + off, fy, wz, 0, 0, ws / 2, 0, wh / 2, 0, 1, 0, 0);
       }
     }
-    for (var w = 0; w < count; w++) states.push({ th: 0.08 + rng() * 0.85, kind: 0, on: 0, fl: 0 });
+    for (var w = 0; w < count; w++) states.push({ th: 0.08 + rng() * 0.7, kind: 0, on: 0, fl: 0 }); // SKYLINE-4: ~75% lit at night 0.6, ~90% at 0.72
     var geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
@@ -881,11 +881,13 @@ var City3D = {
     g.addColorStop(Math.min(1, hz + 0.18), '#' + deep.getHexString()); g.addColorStop(1, '#' + floor.getHexString());
     c.fillStyle = g; c.fillRect(0, 0, 2, 256);
     if (this._skyTex) this._skyTex.needsUpdate = true;
+    // SKYLINE-4 (critique fix 2): clouds take the sky's mid hue, never grey-white
+    if (this._clouds && pr) { var ct = mid.clone().lerp(new THREE.Color(0xffffff), 0.55); for (var ci = 0; ci < this._clouds.length; ci++) this._clouds[ci].material.color.copy(ct); }
     if (this._scene && this._scene.fog) {
       this._scene.fog.color.copy(bot).lerp(new THREE.Color(fogHex), 0.25);
       // weather tint: rain cools and thickens the air, fog goes milk-white
       if (this._weather === 'rain' && this._weatherK > 0) this._scene.fog.color.lerp(new THREE.Color(0x5d6c7e), 0.35 * this._weatherK);
-      else if (this._weather === 'fog') this._scene.fog.color.lerp(new THREE.Color(0xb9c2c6), 0.55);
+      else if (this._weather === 'fog') this._scene.fog.color.lerp(new THREE.Color(0xb9c2c6), this._profile ? 0.28 : 0.55);
     }
     // profile haze: 0..1 pulls the fog bank in around the city (clear weather only)
     if (pr && pr.haze != null) {
@@ -1069,7 +1071,7 @@ var City3D = {
     var tex = this._canvasTex(cv);
     this._clouds = [];
     for (var i = 0; i < n; i++) {
-      var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.07 + Math.random() * 0.06, depthWrite: false, fog: false, color: 0xe6d8e4 });
+      var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: (this._profile ? 0.16 : 0.07) + Math.random() * 0.07, depthWrite: false, fog: false, color: 0xe6d8e4 }); // SKYLINE-4: profiles get visible, sky-tinted clouds
       var s = new THREE.Sprite(mat);
       var w = 60 + Math.random() * 70;
       s.scale.set(w, w * 0.32, 1);
@@ -1555,7 +1557,9 @@ var City3D = {
     kind = (kind === 'rain' || kind === 'fog') ? kind : 'clear';
     this._weather = kind;
     if (kind === 'rain') this._fogGoal = { near: 640, far: 1010 };
-    else if (kind === 'fog') this._fogGoal = { near: 500, far: 860 };
+    else if (kind === 'fog') this._fogGoal = this._profile
+      ? { near: Math.max(560, this._fogBase.near - 160), far: Math.max(980, this._fogBase.far - 160) } // SKYLINE-4: capped so 1850 still reads
+      : { near: 500, far: 860 };
     else this._fogGoal = { near: this._fogBase.near, far: this._fogBase.far };
     if (kind === 'rain') this._ensureRain();
     this._paintSky();

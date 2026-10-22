@@ -17,7 +17,7 @@ Read `docs/REDESIGN.md` (design bible, the law), `docs/AUDIT.md` (why v7 failed)
 - Screenshot every screen you touch at 412×915 and 1280×800 with Playwright and look at the result before pushing.
 
 ## Version bumping
-Bump with every push to `main`: `sw.js` (`CACHE_NAME`), `js/engine/game.js` (`Game.version`) and `PEUI.VERSION` in `js/ui/core.js` (shown on the start screen). Current: v8.1.
+Bump with every push to `main`: `sw.js` (`CACHE_NAME`), `js/engine/game.js` (`Game.version`) and `PEUI.VERSION` in `js/ui/core.js` (shown on the start screen). Current: v8.2.
 
 ## Branching
 The owner wants every completed step on `main`. Work on `claude/peaceful-bohr-aksms0`, then fast-forward `main` to it and push both.

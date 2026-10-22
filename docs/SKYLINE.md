@@ -104,7 +104,29 @@ rolled into the build-out:
    author them per city (R6 ramps) and add the signature set-piece per city
    so each skyline has one authored focal object (mission §4.2).
 
-## 4. Roll-out & verification (steps 4–7 — fill in)
+## 4. Roll-out & verification (steps 4–7)
+
+### SKYLINE-4 — direction B shipped into the game (2026-10-22, Claude, while Kimi was rate-limited)
+
+- `js/cities/london.js` gained `profile`: B base + A's warm gas-lit dusk for victorian/gilded
+  (`sunDusk`/`ambDusk`, `lamps:'gas'`) + C's neon lamps and mirror water for digital, and
+  authored `ground/road/side/park` per era. `City3D.renderCity` already reads
+  `cityDef.profile`, so the City screen **and** the splash pick it up with no UI change.
+- Critique fixes from §3: lit-window threshold range 0.08–0.78 (≈75% lit at night 0.6,
+  ≈90% at 0.72); clouds at 0.16–0.23 opacity when a profile is set and tinted to the
+  profile's sky mid colour in `_paintSky`; ground/park per era in the profile.
+- Victorian `fog` weather capped when a profile is set: fog bank = profile haze − 160 units
+  (floor 560/980) and the milk-white lerp drops 0.55 → 0.28, so 1850 London reads instead
+  of washing out. Non-profile cities keep the old behaviour until they get profiles.
+- Version bumped to v8.2 in `sw.js`, `js/engine/game.js`, `js/ui/core.js`, `CLAUDE.md`.
+- Verified: `node js/sim/tests.js` 445/445; no page errors; screenshots at 412×915 and
+  1280×800 of splash, family select, deal board and City at 1850/1965/2025 reviewed.
+  Stats unchanged: City screen (`low`) 185–189 calls / 10.7k tris; test page (`high`)
+  220–251 calls / 12.8–13.3k tris. No balance-affecting change, balance table not re-run.
+- Not done here: rolling the pattern to the other 20 cities (SKYLINE-8), surroundings
+  slab (SKYLINE-5, spec + prototype in `docs/SKYLINE-TARGET.md`).
+
+### Remaining
 
 CITY_PROFILES matrix, city-tour.js contact sheet (126 images), perf numbers
 in `docs/PERF.md`.

@@ -46,7 +46,7 @@ Housekeeping found on the way:
 Each item is one commit (`SKYLINE-n`), screenshotted at 412×915 and 1280×800,
 LOOKED at, stats recorded in `docs/SKYLINE.md` §4.
 
-1. **SKYLINE-4 — Ship direction B into the game.** Move the B preset from
+1. **SKYLINE-4 — Ship direction B into the game.** ✅ DONE by Claude 2026-10-22 (see `docs/SKYLINE.md` §4); version is v8.2. Kimi's interrupted local attempt lives on branch `kimi/skyline-4-wip` (41 lines, unpushed at the time) — diff it against main and drop whatever is now redundant. Move the B preset from
    `city.html` into `CityDef_London.profile` (with A's warm dusk for
    victorian/gilded evenings and C's neon lamps + mirror water for digital,
    as the critique decided). Cap Victorian `fog` weather so haze ≤ 0.3: 1850

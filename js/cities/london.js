@@ -8,6 +8,30 @@ var CityDef_London = {
   name: 'London',
   id: 'london',
 
+  // Project Skyline art direction (SKYLINE-4): direction B "Glass Commonwealth"
+  // (docs/SKYLINE.md §2), with A's warm gas-lit dusk for the Victorian/Gilded
+  // evenings and C's neon lamps + mirror water for the Digital night. Resolved by
+  // City3D._prof: era key > base > ERAS palette. Ground/park authored per era (R6 ramps).
+  profile: {
+    base: { exposure: 1.1, sunDay: 0xffe2b8, sunDusk: 0x9ab2e0,
+      ambDay: 0x323a4e, ambDusk: 0x1a2238, hemiSky: 0xbcd4ff, hemiGround: 0x3c4a3c,
+      wallJitter: 0.07, water: { color: 0x1d5a8a, specular: 0x99ccee, opacity: 0.9 },
+      trees: 'plane', lamps: 'modern' },
+    victorian: { sky: ['#1c1c44', '#6a4a6e', '#e89a5a'], fog: 0x4c3c5e, haze: 0.22, lamps: 'gas',
+      sunDusk: 0xd88a5a, ambDusk: 0x241c2c, ground: 0x2a2824, road: 0x232120, side: 0x413b34, park: 0x2f4a26 },
+    gilded:    { sky: ['#201c4a', '#7a4a78', '#f0a868'], fog: 0x584064, haze: 0.2, lamps: 'gas',
+      sunDusk: 0xd88a5a, ambDusk: 0x262030, ground: 0x2c2a28, road: 0x262321, side: 0x47403a, park: 0x2f5228 },
+    crisis:    { sky: ['#181c34', '#4a5480', '#c8a078'], fog: 0x3c4262, haze: 0.28,
+      ground: 0x2a2b2e, road: 0x202125, side: 0x3f4046, park: 0x2e4628 },
+    boom:      { sky: ['#16204a', '#5a5a9a', '#f4a860'], fog: 0x444880, haze: 0.16,
+      ground: 0x2b2d33, road: 0x24262c, side: 0x474a52, park: 0x2f5a2c },
+    modern:    { sky: ['#12224a', '#3f5590', '#e8a06a'], fog: 0x2c3c6e, haze: 0.18,
+      ground: 0x272a33, road: 0x22242b, side: 0x454851, park: 0x2c5a30 },
+    digital:   { sky: ['#081230', '#243a7e', '#8a5ec0'], fog: 0x1c2a5e, haze: 0.14, lamps: 'neon',
+      water: { color: 0x0e2c58, specular: 0xd0e8ff, opacity: 0.86 },
+      ground: 0x1e2230, road: 0x171a24, side: 0x343846, park: 0x24502e },
+  },
+
   // 7×8 grid — Thames runs through middle
   layout: [
     ['CP', 'CP', 'CT', 'CT', 'CT', 'CP', 'CP'],
