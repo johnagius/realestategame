@@ -45,7 +45,7 @@
   /* ---------- Deal board ---------- */
   function affordability(l, cash) {
     var q = PE().Finance.mortgageQuote(l.id, l.maxLtv, 'io');
-    var principal = q.ok ? q.principal : 0, need = l.askingPrice + l.stampDuty - principal;
+    var need = q.ok ? q.cashNeeded : l.askingPrice + l.stampDuty;
     if (cash >= l.askingPrice + l.stampDuty) return { kind: 'success', text: 'Cash buy' };
     if (cash >= need) return { kind: 'info', text: 'With mortgage' };
     return { kind: 'warn', text: 'Stretch deal' };
@@ -192,13 +192,9 @@
   }
 
   function quoteFor(l) {
-    var q = PE().Finance.mortgageQuote(l.id, offer.ltv, offer.type, offer.fixed);
+    var q = PE().Finance.mortgageQuote(l.id, offer.ltv, offer.type, offer.fixed, offer.price);
     if (!q.ok) return null;
-    var principal = Math.round(offer.price * q.ltv);
-    var scale = q.principal > 0 ? principal / q.principal : 0;
-    var annual = Math.round(q.annualPayment * scale);
-    var duty = Math.round(l.stampDuty * offer.price / l.askingPrice);
-    return { principal: principal, rate: q.rate, annualPayment: annual, lender: q.lender, duty: duty, cash: offer.price + duty - principal, ltv: q.ltv, maxLtv: q.maxLtv, fixedAvailable: q.fixedAvailable, type: q.type, fixed: q.fixed };
+    return { principal: q.principal, rate: q.rate, annualPayment: q.annualPayment, lender: q.lender, duty: q.duty, cash: q.cashNeeded, ltv: q.ltv, maxLtv: q.maxLtv, fixedAvailable: q.fixedAvailable, type: q.type, fixed: q.fixed, lenderCapped: q.lenderCapped, message: q.message };
   }
   function oddsFor(l) {
     if (l.seller === 'auction') return { text: 'Opens the auction', frac: 0.5, kind: 'gold' };
@@ -244,6 +240,7 @@
     } else row('Loan', 'None (cash purchase)');
     row('Expected rent / yr', l.type === 'land' ? 'None (plot)' : fmt.money(l.rentAnnual), l.rentAnnual > (q ? q.annualPayment : 0) ? 'pos' : 'neg');
     row('Stamp duty', fmt.money(q ? q.duty : l.stampDuty), 'neg');
+    if (q && q.lenderCapped && q.message) dl.appendChild(h('div', { class: 'quote__total' }, [h('dt', { text: 'Lender' }), h('dd', { class: 'num neg', text: q.message })]));
     var cash = q ? q.cash : offer.price + l.stampDuty;
     var assets = fs.ok ? fs.assets : 0, debt = fs.ok ? fs.debt : 0, newLtv = (debt + (q ? q.principal : 0)) / Math.max(1, assets + offer.price);
     row('Portfolio LTV after', Math.round(newLtv * 100) + '%', newLtv > 0.78 ? 'neg' : '');
