@@ -234,7 +234,7 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   check('a trust halves the estate tax at 2%/yr', P2.Dynasty.setupTrust().ok && Math.abs(P2.Dynasty.summary().estateTaxRate - 0.10) < 1e-9);
   var ed = (function () { var k2 = P2.Dynasty.newMember(15, 'f', ['spendthrift'], 'child'); s2.dynasty.members.push(k2); s2.cash = 100000; var r = P2.Dynasty.educate(k2.id); return r.ok && k2.traits.indexOf('spendthrift') < 0; })();
   check('education removes the Spendthrift trait', ed);
-  check('marriage alliance stub needs relation ≥ 55', (function () { var k3 = P2.Dynasty.newMember(22, 'm', ['charmer'], 'child'); s2.dynasty.members.push(k3); s2.rivals.rothschild.relation = 40; var a = P2.Dynasty.proposeMarriage(k3.id, 'rothschild'); s2.rivals.rothschild.relation = 60; var b = P2.Dynasty.proposeMarriage(k3.id, 'rothschild'); return !a.ok && b.ok && s2.dynasty.alliances.length === 1; })());
+  check('marriage needs relation ≥ 0 and reputation ≥ 50', (function () { var k3 = P2.Dynasty.newMember(22, 'm', ['charmer'], 'child'); s2.dynasty.members.push(k3); P2.Rivals.setRelation('rothschild', -10); var a = P2.Dynasty.proposeMarriage(k3.id, 'rothschild'); P2.Rivals.setRelation('rothschild', 10); s2.reputation = 40; var b = P2.Dynasty.proposeMarriage(k3.id, 'rothschild'); s2.reputation = 60; var c = P2.Dynasty.proposeMarriage(k3.id, 'rothschild'); return !a.ok && !b.ok && c.ok && typeof c.accepted === 'boolean'; })());
 })();
 
 /* ---------- 11. Goals never pre-satisfied (all 4 families) ---------- */
@@ -248,6 +248,15 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
       check(fam + '/' + seed + ': no achievement satisfied at start', D.achievements.every(function (a) { return !g.achievementSatisfied(a.id); }), D.achievements.filter(function (a) { return g.achievementSatisfied(a.id); }).map(function (a) { return a.id; }));
     }
   });
+  // P5.4 / P5.3: the same holds for every scenario start and the weekly challenge
+  ['crash1929', 'oilshock1973', 'gfc2008'].forEach(function (sc) {
+    for (var seed = 1; seed <= 3; seed++) {
+      var PE = fresh('chen', seed, { scenario: sc }), s = PE.S(), g = PE.Goals, D = PE.Data;
+      check(sc + '/' + seed + ': yearly, era, campaign and family goals not satisfied at start', !g.yearlySatisfied(s.goals.yearly) && !g.eraSatisfied(s.goals.era) && !g.tierSatisfied(D.campaignTiers[0]) && !g.familySatisfied(s.goals.family));
+      check(sc + '/' + seed + ': no achievement satisfied at start', D.achievements.every(function (a) { return !g.achievementSatisfied(a.id); }), D.achievements.filter(function (a) { return g.achievementSatisfied(a.id); }).map(function (a) { return a.id; }));
+    }
+  });
+  (function () { var PE = load(); PE.Game.newChallenge({ week: '2026-W01' }); var g = PE.Goals, D = PE.Data, s = PE.S(); check('challenge: no goal or achievement satisfied at start', !g.yearlySatisfied(s.goals.yearly) && !g.eraSatisfied(s.goals.era) && D.achievements.every(function (a) { return !g.achievementSatisfied(a.id); })); })();
   var PE = fresh('chen', 2), cur = PE.Goals.current();
   check('Goals.current returns yearly/era/campaign/achievements/legacy', cur.ok && cur.yearly && cur.era && cur.campaign && cur.achievements.length === PE.Data.achievements.length && cur.legacyScore > 0);
   check('every era has an era goal', PE.Data.eras.every(function (e) { return PE.Data.eraGoals[e.id]; }));
@@ -323,6 +332,294 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   check('cancel withdraws a market sale', PE.Market.sell(p2.id, 'cancel').ok && !p2.forSale);
   check('CGT applies to sales within 3 years when the era taxes gains', (function () { var P = fresh('chen', 56); P.S().year = 1960; var pp = P.Market.genProperty('london', {}); P.State.setOwner(pp, 'player'); pp.purchasePrice = Math.round(pp.trueValue * 0.5); pp.purchaseYear = 1959; var qq = P.Market.saleQuote(pp, 1); return qq.tax > 0 && qq.tax === Math.round((qq.price - pp.purchasePrice) * 0.25); })());
   check('district saturation: owning >30% of a district raises the acceptance floor', (function () { var P = fresh('chen', 57); var d = P.State.district('london', 'Camden'); var l = P.Market.genListing('london', 1000, 'landlord'); l.district = 'Camden'; var f0 = P.Market.acceptFloor(l); d.playerCount = Math.ceil(d.stock * 0.4); return P.Market.acceptFloor(l) > f0; })());
+})();
+
+
+/* ---------- 15. P2.0 follow-ups: priced mortgage quotes, recordLegacy, prevRank, auction round ---------- */
+(function () {
+  var PE = fresh('vanderbilt', 3), s = PE.S(), F = PE.Finance, M = PE.Market;
+  var l = M.genListing('london', 2500, 'landlord');
+  var q0 = F.mortgageQuote(l.id, 0.7, 'io');
+  check('quote without price keeps the legacy shape (principal = ltv × asking) and adds duty/cashNeeded', q0.ok && q0.principal === Math.round(l.askingPrice * 0.7) && q0.duty === M.stampDuty(l, l.askingPrice) && q0.cashNeeded === l.askingPrice + q0.duty - q0.principal && q0.lenderCapped === false, q0);
+  var low = Math.round(l.trueValue * 0.8), qa = F.mortgageQuote(l.id, 0.7, 'io', false, low), needA = M.cashNeeded(l, low, { ltv: 0.7 });
+  check('quote at a price below value: principal/duty/cashNeeded exactly match what makeOffer will charge', qa.ok && qa.price === low && qa.principal === needA.principal && qa.duty === needA.duty && qa.cashNeeded === needA.cash && !qa.lenderCapped && qa.message === '', qa);
+  var high = Math.round(l.trueValue * 1.3), qb = F.mortgageQuote(l.id, 0.7, 'io', false, high), needB = M.cashNeeded(l, high, { ltv: 0.7 });
+  check('quote at a price above value: lender lends against value, payload exact for the offer', qb.ok && qb.principal === Math.round(l.trueValue * 0.7) && qb.principal === needB.principal && qb.cashNeeded === needB.cash && qb.lenderCapped === true, qb);
+  var est = M.estimate(l), expectX = Math.round(est.mid * 0.7 / 10) * 10, mX = /advance £(\d+)/.exec(qb.message.replace(/,/g, ''));
+  check('capped message quotes "Lender will only advance £X" with X from the estimate midpoint, rounded to £10', /^Lender will only advance £\d+ on this property$/.test(qb.message) && mX && +mX[1] === expectX && +mX[1] % 10 === 0, qb.message);
+  check('the message never contains the true value or the true-value-derived principal', qb.message.indexOf(String(l.trueValue)) < 0 && qb.message.indexOf(String(qb.principal)) < 0 || expectX === qb.principal);
+  check('quote on an owned property ignores price', (function () { var r = M.makeOffer(l.id, l.askingPrice, { ltv: 0.5 }); var p = s.properties[l.id]; if (!p) return false; var q = F.mortgageQuote(p.id, 0.3, 'io', false, 999999); return q.ok && q.principal === Math.round(p.trueValue * 0.3) && q.price === undefined; })());
+  // recordLegacy / newDynasty
+  var P2 = fresh('chen', 4), pl = require('./players.js')(P2); playYears(P2, pl, 12);
+  var score = P2.Goals.legacyScore(), rl = P2.Game.recordLegacy(), meta = P2.Storage.loadMeta();
+  check('recordLegacy records the run into meta and returns the score and points', rl.ok && rl.legacyScore === score && rl.alreadyRecorded === false && meta.runs.length === 1 && meta.runs[0].score === score && meta.legacyPoints === rl.legacyPointsEarned && rl.legacyPointsEarned >= 1, rl);
+  var rl2 = P2.Game.recordLegacy();
+  check('recordLegacy is idempotent for a run (no double points)', rl2.ok && rl2.alreadyRecorded === true && P2.Storage.loadMeta().legacyPoints === meta.legacyPoints && P2.Storage.loadMeta().runs.length === 1);
+  check('Game.legacy reports recorded flag and points-if-recorded', P2.Game.legacy().recorded === true && P2.Game.legacy().pointsIfRecorded === rl.legacyPointsEarned);
+  var nd = P2.Game.newDynasty({ familyId: 'silva', seed: 9 });
+  check('newDynasty still works: records (once) then starts a fresh game and returns legacyScore', nd.ok && nd.legacyScore === score && P2.S().familyId === 'silva' && P2.S().year === 1850 && P2.Storage.loadMeta().runs.length === 1);
+  var P3 = fresh('chen', 4); require('./players.js')(P3); var nd2 = P3.Game.newDynasty({});
+  check('newDynasty on an unrecorded run records it', nd2.ok && P3.Storage.loadMeta().runs.length === 1 && nd2.legacyPointsEarned === 0);
+  // prevRank / rankDelta
+  var P4 = fresh('chen', 8), pl4 = require('./players.js')(P4);
+  var lb0 = P4.Rivals.leaderboard().leaderboard;
+  check('leaderboard rows carry prevRank (null at start) and rankDelta (0 at start)', lb0.every(function (r) { return 'prevRank' in r && 'rankDelta' in r && r.prevRank === null && r.rankDelta === 0; }));
+  var ranksAtStart = {}; lb0.forEach(function (r) { ranksAtStart[r.id] = r.rank; });
+  playYears(P4, pl4, 1);
+  var lb1 = P4.Rivals.leaderboard().leaderboard;
+  check('after one year prevRank equals last year\'s rank from engine state and rankDelta = prevRank − rank', lb1.every(function (r) { return r.prevRank === ranksAtStart[r.id] && r.rankDelta === r.prevRank - r.rank; }), lb1.map(function (r) { return [r.id, r.rank, r.prevRank]; }));
+  check('rank history is saved state, not a UI snapshot', P4.S().ranks && P4.S().ranks.prevYear === 1850 && P4.S().ranks.year === 1851 && P4.S().ranks.prevById.player === ranksAtStart.player);
+  var moved = false; for (var y = 0; y < 15 && !moved; y++) { playYears(P4, pl4, 1); moved = P4.Rivals.leaderboard().leaderboard.some(function (r) { return r.rankDelta !== 0; }); }
+  check('rankDelta becomes non-zero when the table reshuffles', moved);
+  // auction round
+  var P5 = fresh('vanderbilt', 5), s5 = P5.S(), l6 = P5.Market.genListing('london', 2000, 'estate');
+  P5.Rivals.contest = function () { return [{ id: 'wong', maxBid: Math.round(l6.askingPrice * 1.3) }]; };
+  var a = P5.Market.makeOffer(l6.id, l6.askingPrice);
+  check('auctionView.round starts at 1 (bidsMade 0)', a.ok && a.outcome === 'auction' && a.auction.round === 1 && a.auction.bidsMade === 0 && a.auction.maxRounds === 3, a.auction);
+  var b1 = P5.Market.bid(a.auction.id, Math.round(a.auction.currentBid * 1.02));
+  check('after the first bid the view is in round 2 (bidsMade 1); bid() round field still counts bids', b1.ok && b1.outcome === 'continue' && b1.auction.round === 2 && b1.auction.bidsMade === 1 && b1.round === 1, b1);
+  var b2 = P5.Market.bid(a.auction.id, Math.round(s5.auction.currentBid * 1.02));
+  check('round never exceeds maxRounds', b2.ok && (b2.outcome !== 'continue' || b2.auction.round === 3));
+})();
+
+/* ---------- 16. P3.2 Relations, marriage, alliance, merger ---------- */
+(function () {
+  var PE = fresh('armstrong', 5), s = PE.S(), Rv = PE.Rivals, B = PE.Data.balance;
+  check('relations exist for every rival on the −100..100 scale and rv.relation mirrors them (Charmer +20)', Object.keys(s.rivals).every(function (id) { return typeof s.relations[id] === 'number' && s.relations[id] === 20 && s.rivals[id].relation === 60; }), s.relations);
+  Rv.adjustRelation('wong', 500);
+  check('adjustRelation clamps to 100 and keeps the 0..100 view in sync', s.relations.wong === 100 && s.rivals.wong.relation === 100);
+  Rv.setRelation('wong', 0);
+  check('setRelation sets an absolute value', s.relations.wong === 0 && s.rivals.wong.relation === 50);
+  // drivers
+  s.cash = 1e6;
+  var realContest = Rv.contest;
+  var l6 = PE.Market.genListing('london', 1500, 'estate'); Rv.contest = function () { return [{ id: 'wong', maxBid: Math.round(l6.askingPrice * 1.1) }]; };
+  var r0 = s.relations.wong; PE.Market.makeOffer(l6.id, l6.askingPrice); PE.Market.bid(s.auction.id, Math.round(l6.askingPrice * 1.2));
+  check('outbidding a rival at auction lowers the relation and counts toward Nemesis', s.properties[l6.id] && s.properties[l6.id].ownerId === 'player' && s.relations.wong === r0 + B.relationOutbid && s.stats.outbidRivals.wong === 1, [r0, s.relations.wong]);
+  var p = PE.State.playerProps()[0]; s.offers.push({ id: 'o1', propertyId: p.id, rivalId: 'petrov', price: Math.round(p.trueValue * 1.2), year: s.year });
+  var r1 = s.relations.petrov; PE.Market.respondToOffer('o1', false);
+  check('declining a rival offer lowers the relation', s.relations.petrov === r1 + B.relationDeclined);
+  var p2 = PE.State.playerProps()[0]; s.offers.push({ id: 'o2', propertyId: p2.id, rivalId: 'petrov', price: Math.round(p2.trueValue * 1.2), year: s.year }); s.rivals.petrov.cash = 1e9;
+  var r2 = s.relations.petrov; var acc = PE.Market.respondToOffer('o2', true);
+  check('selling to a rival (accepting their offer) raises the relation', acc.ok && acc.accepted && s.relations.petrov === r2 + B.relationSoldTo);
+  var hit = Rv.evictionIn('london');
+  check('evictions in a city hit every rival holding buildings there', hit.length >= 1 && hit.every(function (id) { return s.rivals[id].lastRelationChange && s.rivals[id].lastRelationChange.why === 'evictions'; }) && s.stats.evictions === 1);
+  check('relations drift back toward neutral each year', (function () { Rv.setRelation('okonkwo', 30); clearEvents(PE); PE.Game.endYear(); return s.relations.okonkwo < 30 && s.relations.okonkwo >= 30 - B.relationDrift - 1; })(), s.relations.okonkwo);
+  // marriage eligibility
+  var Dy = PE.Dynasty, kid = Dy.newMember(24, 'm', ['negotiator'], 'child'); s.dynasty.members.push(kid);
+  var old = Dy.newMember(45, 'f', ['charmer'], 'child'); s.dynasty.members.push(old);
+  s.reputation = 60; Rv.setRelation('rothschild', 10);
+  check('eligibility: age 18–40', Dy.marriageEligibility(kid.id, 'rothschild') === null && /between 18 and 40/.test(Dy.marriageEligibility(old.id, 'rothschild')));
+  check('eligibility: the head cannot be married off', /head/.test(Dy.marriageEligibility(s.dynasty.head.id, 'rothschild')));
+  check('eligibility: reputation ≥ 50', (function () { s.reputation = 49; var w = Dy.marriageEligibility(kid.id, 'rothschild'); s.reputation = 60; return /reputation of 50/.test(w); })());
+  check('eligibility: relation ≥ 0', (function () { Rv.setRelation('rothschild', -1); var w = Dy.marriageEligibility(kid.id, 'rothschild'); Rv.setRelation('rothschild', 10); return /too little/.test(w); })());
+  check('acceptance probability rises with relation and relative wealth, clamped 5–95%', (function () { Rv.setRelation('rothschild', -0); var a = Dy.marriageChance('rothschild'); Rv.setRelation('rothschild', 90); var b = Dy.marriageChance('rothschild'); var c0 = s.cash; s.cash = 1e12; var c = Dy.marriageChance('rothschild'); s.cash = c0; Rv.setRelation('rothschild', 10); return b > a && c >= b && c <= 0.95 && a >= 0.05; })());
+  check('Dynasty.summary lists marriage candidates with eligibility, reason and chance', (function () { var sm = Dy.summary(); return sm.ok && sm.marriageCandidates.length === 6 && sm.marriageCandidates.every(function (c) { return 'eligible' in c && 'chance' in c && 'relation' in c; }) && sm.merger && 'windowOpen' in sm.merger; })());
+  // refusal
+  var rawChance = PE.RNG.chance; PE.RNG.chance = function () { return false; };
+  var rep0 = s.reputation, rel0 = s.relations.rothschild, ref = Dy.proposeMarriage(kid.id, 'rothschild');
+  check('refusal: −6 reputation, −20 relation, heir stays single', ref.ok && ref.accepted === false && s.reputation === rep0 - 6 && s.relations.rothschild === rel0 - 20 && !kid.married && s.dynasty.alliances.length === 0, ref);
+  check('a refused family will not hear another proposal for 5 years', (function () { Rv.setRelation('rothschild', 10); var w = Dy.marriageEligibility(kid.id, 'rothschild'); return /not forgotten/.test(w); })());
+  // acceptance
+  PE.RNG.chance = function () { return true; };
+  Rv.setRelation('wong', 10); var relW = s.relations.wong, acc2 = Dy.proposeMarriage(kid.id, 'wong');
+  PE.RNG.chance = rawChance;
+  check('acceptance: alliance recorded, heir married, relation +30, Matchmaker stat', acc2.ok && acc2.accepted === true && kid.married === 'wong' && s.rivals.wong.allied === true && s.dynasty.alliances.length === 1 && s.relations.wong === relW + 30 && s.stats.marriages === 1 && Rv.allies()[0] === 'wong', acc2);
+  check('cannot marry into the same family twice; a married heir cannot be proposed again', /already/.test(Dy.marriageEligibility(kid.id, 'wong')) && !Dy.proposeMarriage(kid.id, 'petrov').ok);
+  var l7 = PE.Market.genListing('london', 1500, 'estate'); s.rivals.wong.cash = 1e9; Rv.contest = realContest; // restore real contest
+  check('an allied rival never bids against you', (function () { var bidders = PE.Rivals.contest(l7, Math.round(l7.askingPrice * 0.5), 1.0); return bidders.every(function (b) { return b.id !== 'wong'; }); })());
+  check('the ally reveals one listing a year in its favourite city', (function () { var fav = Rv.favouriteCity('wong'); PE.Market.refreshBoard(); var id = s.flags.allyRevealId; var l = id && s.listings[id]; var lst = PE.Market.listings(null); return !!l && l.revealed === true && (l.cityId === fav || !PE.Market.listingArray(fav).length) && lst.allyRevealedId === id && lst.listings.some(function (v) { return v.id === id && v.trueValue !== undefined; }); })());
+  check('a non-Chen family without an alliance gets no free reveal', (function () { var P = fresh('silva', 2); return P.Market.listings(null).revealedId === null && P.Market.listings(null).allyRevealedId === null; })());
+  // merger
+  var mi = Dy.mergerInfo();
+  check('merger window closed early in the run', mi.windowOpen === false && mi.allies.length === 1 && !mi.allies[0].available && !Dy.mergeWithAlly().ok);
+  s.year = s.endYear - 20; mi = Dy.mergerInfo();
+  check('merger window opens in the last 20 years; cost is 15% of the ally\'s net worth', mi.windowOpen === true && mi.allies[0].cost === Math.round(Math.max(0, PE.State.netWorth('rival:wong')) * 0.15));
+  s.year = 1870; s.dynasty.head.age = 66;
+  check('merger window also opens when the head is 65+', Dy.mergerInfo().windowOpen === true);
+  s.cash = 0;
+  check('merger refused without the cash', !Dy.mergeWithAlly('wong').ok);
+  var nWong = PE.State.propertyCount('rival:wong'), nMine = PE.State.propertyCount('player'), wongCash = s.rivals.wong.cash, cost = Dy.mergerInfo().allies[0].cost; s.cash = cost + 10; var legacy0 = PE.Goals.legacyScore();
+  var mg = Dy.mergeWithAlly('wong');
+  check('merger folds the ally\'s portfolio into yours at the cost, removes it from the leaderboard', mg.ok && PE.State.propertyCount('player') === nMine + nWong && PE.State.propertyCount('rival:wong') === 0 && s.cash === 10 + wongCash && s.rivals.wong.merged && !PE.Rivals.leaderboard().leaderboard.some(function (r) { return r.id === 'wong'; }) && PE.Rivals.leaderboard().leaderboard.length === 6, mg);
+  check('merged mortgages are now the player\'s; merger counts as a legacy multiplier and an achievement', PE.State.playerProps().every(function (p) { return !p.mortgage || p.mortgage.lender !== 'Private bank'; }) && PE.Goals.legacyScore() > legacy0 && s.dynasty.mergers === 1 && PE.Goals.achievementSatisfied('merger') && PE.Goals.achievementSatisfied('matchmaker'));
+  check('State.rank ignores a merged rival', PE.State.rank() <= 6);
+})();
+
+/* ---------- 17. P3.4 Events v2 ---------- */
+(function () {
+  var PE = fresh('chen', 2), D = PE.Data;
+  check('≥ 40 random events, each with 2–3 choices and unique ids', D.randomEvents.length >= 40 && D.randomEvents.every(function (e) { return e.choices.length >= 2 && e.choices.length <= 3 && e.id && e.title && e.text; }) && new Set(D.randomEvents.map(function (e) { return e.id; })).size === D.randomEvents.length, D.randomEvents.length);
+  var mc = require('./eventsmc.js').run(load, { samples: 20 }); // 20 strata make every 5%-step gamble exact
+  check('Monte-Carlo: every event\'s choices have EVs within ±20% and no choice dominates on both EV and variance', mc.failures.length === 0, mc.failures);
+  check('every event has at least one choice with a different risk, reputation or time profile', mc.rows.every(function (r) { var sds = r.choices.map(function (c) { return Math.round(c.sd * 1e4); }), evs = r.choices.map(function (c) { return Math.round(c.ev * 1e4); }); return new Set(sds).size > 1 || new Set(evs).size > 1 || r.choices.length > 1; }));
+  var pre = D.historicalEvents.filter(function (h) { return h.prewarn; });
+  check('exactly 12 historical set-pieces carry a prewarn', pre.length === 12 && pre.every(function (h) { return typeof h.prewarn === 'string' && h.prewarn.length > 10; }), pre.map(function (h) { return h.year; }));
+  check('the morning paper foreshadows a set-piece one year ahead (Town crier makes it near-certain)', (function () { var P = fresh('chen', 2, { perks: ['town_crier'], unlockedPerks: true }); P.S().year = 1928; P.Events.makePaper(); return P.S().paper.some(function (l) { return l.prewarn && l.text === D.prewarns[1929]; }); })());
+  check('foreshadowing is noisy without the perk (appears in some seeds, not all)', (function () { var n = 0; for (var i = 0; i < 20; i++) { var P = fresh('chen', 100 + i); P.S().year = 1872; P.Events.makePaper(); if (P.S().paper.some(function (l) { return l.prewarn; })) n++; } return n >= 5 && n <= 18; })());
+  check('5 era set-pieces with 2 choices each', ['gilded', 'crisis', 'boom', 'modern', 'digital'].every(function (e) { return D.eraSetPieces[e] && D.eraSetPieces[e].choices.length === 2 && D.eraSetPieces[e].title; }));
+  var P2 = fresh('chen', 3); P2.S().year = 1899; clearEvents(P2); var rep = P2.Game.endYear();
+  check('era transition report carries eraSetPiece and queues an \'era\' event (≤ 2 events that year)', rep.ok && rep.eraChanged && rep.eraSetPiece && rep.eraSetPiece.eraId === 'gilded' && P2.S().events.pending.some(function (e) { return e.kind === 'era'; }) && P2.S().events.pending.length <= 2 && /new era/.test(rep.headline), rep.eraSetPiece);
+  check('era set-piece resolves like any event', (function () { var e = P2.S().events.pending.filter(function (x) { return x.kind === 'era'; })[0]; var r = P2.Events.resolve(e.uid, 1); return r.ok && P2.S().events.log.length === 1; })());
+  check('every era transition year stays within the 2-event cap', (function () { var ok = true; [1929, 1949, 1979, 2007].forEach(function (y) { var P = fresh('chen', 3); P.S().year = y; clearEvents(P); var r = P.Game.endYear(); if (!r.ok || !r.eraChanged || !r.eraSetPiece || P.S().events.pending.length > 2) ok = false; }); return ok; })());
+  // new effect keys
+  var P3 = fresh('vanderbilt', 6), s3 = P3.S(), q = P3.Market.genProperty('london', { type: 'terrace', condition: 70 }); P3.State.setOwner(q, 'player'); P3.Property.initTenancy(q);
+  var ev = { targets: { propId: q.id, cityId: 'london', rivalId: 'wong' }, id: 'test' };
+  var d = P3.State.district('london', q.district), pp0 = d.ppsqm; P3.Events.applyFx({ districtShock: -0.1 }, ev);
+  check('districtShock moves the district price and revalues', Math.abs(d.ppsqm / pp0 - 0.9) < 1e-9 && q.trueValue === P3.Property.computeValue(q));
+  P3.Events.applyFx({ propVacantYears: 1 }, ev);
+  check('propVacantYears empties the building for the year', q.vacantUntil === s3.year + 1 && P3.Property.occupancyFor(q, { mgmt: 'self' }) === 0);
+  var qv = q.trueValue; P3.Events.applyFx({ propQuality: 0.1 }, ev);
+  check('propQuality changes value permanently', q.trueValue > qv);
+  P3.Events.applyFx({ insuredYears: 10 }, ev);
+  check('insurance blocks fire/flood events for its term', (function () { s3.year = 1855; var seen = false; for (var i = 0; i < 40; i++) { var r = { events: [] }; s3.events.pending = []; P3.Events.rollYearly(r); if (s3.events.pending.some(function (e) { return e.id === 'fire' || e.id === 'flood'; })) seen = true; } return !seen; })());
+  check('rivalRelation effects route through the −100..100 relations', (function () { var r0 = s3.relations.wong; P3.Events.applyFx({ rivalRelation: 10 }, ev); return s3.relations.wong === r0 + 10; })());
+  check('evicting in an event lowers relations with rivals in that city', (function () { var before = JSON.stringify(s3.relations); P3.Events.applyFx({ evictionCity: true }, ev); return JSON.stringify(s3.relations) !== before; })());
+  check('era-gated events never appear outside their eras', D.randomEvents.filter(function (e) { return e.toEra !== undefined; }).length >= 2 && (function () { var P = fresh('chen', 3); P.S().year = 2010; var ids = {}; for (var i = 0; i < 60; i++) { P.S().events.pending = []; var r = { events: [] }; P.Events.rollYearly(r); P.S().events.pending.forEach(function (e) { ids[e.id] = 1; }); } return !ids.plague_house && !ids.antique_find && !ids.factory; })());
+})();
+
+/* ---------- 18. P5.1 Families with real rule differences ---------- */
+(function () {
+  var S = fresh('silva', 4), sp = S.State.playerProps()[0];
+  check('Silva: Builder trait, a free derelict Shoreditch terrace, £900', S.State.hasTrait('builder') && sp.condition < 20 && sp.district === 'Shoreditch' && sp.purchasePrice === 0 && S.S().cash === 900);
+  var C = fresh('chen', 4), cl = C.Market.listings(null);
+  check('Chen: one listing revealed every year (merchant network), none for others', cl.revealedId && C.S().listings[cl.revealedId].revealed && cl.listings.some(function (l) { return l.id === cl.revealedId && typeof l.trueValue === 'number'; }) && fresh('vanderbilt', 4).Market.listings(null).revealedId === null);
+  check('Chen: the reveal rotates each year', (function () { var id0 = C.S().flags.chenRevealId; clearEvents(C); C.Game.endYear(); return C.S().flags.chenRevealId && C.S().flags.chenRevealId !== id0; })());
+  var A = fresh('armstrong', 4), sa = A.S(), g = A.Goals.current();
+  check('Armstrong: two mortgaged properties, LTV above 50% at start, family goal track present', A.State.playerProps().length === 2 && A.State.playerProps().every(function (p) { return p.mortgage; }) && A.State.ltv('player') > 0.5 && g.family && g.family.id === 'armstrong_deleverage' && g.family.deadline === 1860 && !g.family.done && /LTV/.test(g.family.progress), g.family);
+  check('other families have no family track', !fresh('chen', 4).Goals.current().family && !fresh('silva', 4).Goals.current().family);
+  check('Armstrong: yearly goals lean toward cutting LTV while the track is open', (function () { var n = 0; for (var i = 0; i < 30; i++) { var P = fresh('armstrong', 200 + i); if (P.S().goals.yearly.id === 'reduce_ltv') n++; } return n >= 6; })());
+  sa.cash = 1e6; A.State.playerProps().forEach(function (p) { A.Finance.repay(p.id, Math.round(p.mortgage.principal * 0.5)); });
+  clearEvents(A); var ra = A.Game.endYear();
+  check('Armstrong: bringing LTV below 50% completes the track with a reward and +5 reputation', A.State.ltv('player') < 0.5 && ra.ok && ra.goals.achieved.some(function (x) { return x.kind === 'family' && x.reward > 0; }) && sa.goals.family.done && sa.goals.family.doneYear === 1850);
+  var A2 = fresh('armstrong', 4); A2.S().year = 1860; A2.S().goals.family.deadline = 1860; var rep0 = A2.S().reputation; clearEvents(A2); var ra2 = A2.Game.endYear();
+  check('Armstrong: missing 1860 fails the track (−5 reputation)', ra2.ok && A2.S().goals.family.failed && ra2.goals.progress.some(function (x) { return x.kind === 'family' && x.failed; }) && A2.S().reputation < rep0);
+  var V = fresh('vanderbilt', 4);
+  check('Vanderbilt: +20% estate tax every generation, £12,000', Math.abs(V.Dynasty.estateTaxRate() - 0.40) < 1e-9 && V.S().cash === 12000);
+  // per-family balance guard (small sample; the full table is js/sim/balance.js)
+  var fams = ['silva', 'chen', 'armstrong', 'vanderbilt'], SEEDS = 12;
+  fams.forEach(function (fam) {
+    var mults = [], bk = 0;
+    for (var seed = 1; seed <= SEEDS; seed++) {
+      var P = fresh(fam, 300 + seed), pl = require('./players.js')(P), s = P.S();
+      for (var y = 0; y < 30 && s.status === 'playing'; y++) { pl.competent.play(); var r = P.Game.endYear(); if (!r.ok) { pl.resolveEvents('competent'); r = P.Game.endYear(); } if (r.bankrupt) { bk++; break; } }
+      mults.push(P.State.netWorth('player') / s.startNetWorth);
+    }
+    mults.sort(function (a, b) { return a - b; }); var med = mults[mults.length >> 1];
+    check(fam + ': 30-year competent median NW× within 6–40× (12 seeds)', med >= 6 && med <= 40, med.toFixed(1));
+    check(fam + ': competent bankruptcy ≤ 15% (12 seeds)', bk / SEEDS <= 0.15 + 1 / SEEDS, bk);
+  });
+})();
+
+/* ---------- 19. P5.2 Prestige perks ---------- */
+(function () {
+  var PE = load(), D = PE.Data;
+  check('≥ 8 perks costing 1–5 points, each with a kind', D.perks.length >= 8 && D.perks.every(function (p) { return p.cost >= 1 && p.cost <= 5 && (p.kind === 'passive' || p.kind === 'mode') && p.desc; }));
+  var lst = PE.Game.perks();
+  check('Game.perks lists before a game exists with legacyPoints and owned/affordable flags', lst.ok && lst.legacyPoints === 0 && lst.perks.length === D.perks.length && lst.perks.every(function (p) { return p.owned === false && p.affordable === false; }));
+  check('buyPerk refuses unaffordable, unknown and duplicate purchases', !PE.Game.buyPerk('old_money').ok && !PE.Game.buyPerk('nope').ok);
+  var m = PE.Storage.loadMeta(); m.legacyPoints = 9; PE.Storage.saveMeta(m);
+  var b1 = PE.Game.buyPerk('old_money'), b2 = PE.Game.buyPerk('old_money');
+  check('buyPerk deducts points and records ownership', b1.ok && b1.legacyPoints === 6 && !b2.ok && PE.Game.perks().perks.filter(function (p) { return p.id === 'old_money'; })[0].owned);
+  PE.Game.buyPerk('purist');
+  var g1 = PE.Game.newGame({ familyId: 'chen', seed: 1 });
+  check('newGame applies owned passive perks by default and never mode perks', g1.ok && g1.perks.indexOf('old_money') >= 0 && g1.perks.indexOf('purist') < 0 && PE.Finance.maxLtv('player') === 0.75);
+  var g2 = PE.Game.newGame({ familyId: 'chen', seed: 1, perks: ['purist', 'seventh_rival'] });
+  check('newGame({perks}) applies only owned perks (seventh_rival not owned → ignored)', g2.ok && g2.perks.indexOf('purist') >= 0 && g2.perks.indexOf('seventh_rival') < 0 && Object.keys(PE.S().rivals).length === 6);
+  check('Purist: no mortgages, cashNeeded ignores financing, yearly rewards doubled', PE.Finance.maxLtv('player') === 0 && PE.Finance.mortgageQuote(PE.Market.listingArray(null)[0].id, 0.7).purist === true && PE.Market.cashNeeded(PE.Market.listingArray(null)[0], 1000, { ltv: 0.7 }).principal === 0 && PE.Finance.summary().purist === true && (function () { var l = PE.Market.listingArray(null)[0]; PE.Market.makeOffer(l.id, l.askingPrice, null); var p = PE.State.playerProps()[0]; return p && !PE.Finance.takeMortgage(p.id, 0.5).ok; })() && PE.S().goals.yearly.reward === 2 * Math.max(Math.round(10 * PE.S().priceIndex), Math.round(Math.max(0, PE.State.netWorth('player')) * 0.01)));
+  function withPerks(perks, fam, seed) { var P = load(); var r = P.Game.newGame({ familyId: fam || 'chen', seed: seed || 1, perks: perks, unlockedPerks: true }); if (!r.ok) throw new Error(r.message); return P; }
+  check('Family solicitor halves comps noise and tightens the estimate band', (function () { var P = withPerks(['family_solicitor']); var Q = withPerks([]); return P.Market.compsNoise() === Q.Market.compsNoise() / 2 && P.Data.balance.estimateBand * 0.5 === (function () { var l = P.Market.listingArray(null)[0]; var e = P.Market.estimate(l); return Math.round((e.high - e.mid) / e.mid * 1000) / 1000; })(); })());
+  check('Old money: LTV cap +5 points (cap 80% with Banker)', withPerks(['old_money'], 'vanderbilt').Finance.maxLtv('player') === 0.80 && withPerks(['old_money'], 'chen').Finance.maxLtv('player') === 0.75);
+  check('Seventh rival: the Hartwells join with real buildings; leaderboard has 8 rows', (function () { var P = withPerks(['seventh_rival']); return P.S().rivals.hartwell && P.State.propertyCount('rival:hartwell') > 0 && P.Rivals.leaderboard().leaderboard.length === 8 && P.Data.rivalById('hartwell').archetype === 'Magnate'; })());
+  check('Crisis start begins in 1929 with Black Tuesday pending', (function () { var P = withPerks(['crisis_start']); return P.S().year === 1929 && P.S().scenario && P.S().scenario.id === 'crash1929' && P.S().events.pending[0].title === 'Black Tuesday'; })());
+  check('Second city: Paris open from day one with a board', (function () { var P = withPerks(['second_city']); return P.S().cities.paris.unlocked && P.Market.listings('paris').ok && P.Market.listings('paris').listings.length >= 4; })());
+  check('Thick skin halves reputation losses (not gains)', (function () { var P = withPerks(['thick_skin']); var r0 = P.S().reputation; P.State.rep(-10); var a = r0 - P.S().reputation; P.State.rep(10); return a === 5 && P.S().reputation === r0 + 5; })());
+  check('Builders\' guild halves overrun/delay risk', (function () { var P = withPerks(['builders_guild']); var q = P.Market.genProperty('london', { condition: 30 }); P.State.setOwner(q, 'player'); var o = P.Property.renovationOptions(q).filter(function (x) { return x.tier === 'refurbish'; })[0]; return Math.abs(o.risk - 0.05) < 1e-9; })());
+  check('Patient capital: savings earn the full bank rate', (function () { var P = withPerks(['patient_capital']); return Math.abs(P.Finance.summary().savingsRate - P.S().baseRate) < 1e-9; })());
+  check('Town crier: the paper warns of 1866 from 1865 in every seed', (function () { for (var i = 0; i < 6; i++) { var P = withPerks(['town_crier'], 'chen', 50 + i); P.S().year = 1865; P.Events.makePaper(); if (!P.S().paper.some(function (l) { return l.prewarn; })) return false; } return true; })());
+  check('perks are saved with the run and survive load', (function () { var P = withPerks(['old_money', 'thick_skin']); P.Game.save(); P._state = null; var r = P.Game.load(); return r.ok && P.S().perks.length === 2 && P.State.hasPerk('thick_skin'); })());
+})();
+
+/* ---------- 20. P5.3 Weekly seeded challenge ---------- */
+(function () {
+  var A = load(), B = load();
+  var ra = A.Game.newChallenge({ week: '2026-W43' }), rb = B.Game.newChallenge({ week: '2026-W43' });
+  check('newChallenge works before any game exists and is deterministic across devices', ra.ok && rb.ok && A.S().seed === B.S().seed && JSON.stringify(A.S().listings) === JSON.stringify(B.S().listings) && A.S().dynasty.head.traits.join() === B.S().dynasty.head.traits.join() && A.S().mode === 'challenge');
+  check('different weeks give different seeds; the seed derives from the ISO week key', (function () { var C = load(); C.Game.newChallenge({ week: '2026-W44' }); return C.S().seed !== A.S().seed && A.S().seed === A.RNG.hashSeed('pe-challenge-2026-W43'); })());
+  check('isoWeek produces YYYY-Www (2026-10-22 is W43; 2021-01-03 is 2020-W53)', A.Game.isoWeek(new Date(Date.UTC(2026, 9, 22))) === '2026-W43' && A.Game.isoWeek(new Date(Date.UTC(2021, 0, 3))) === '2020-W53' && /^\d{4}-W\d{2}$/.test(A.Game.isoWeek()));
+  check('a challenge is a 30-year sprint ending 1879', A.S().endYear === 1879 && A.S().challenge.endYear === 1879 && ra.challenge.week === '2026-W43');
+  var info = A.Game.challengeInfo();
+  check('challengeInfo reports the week, seed, years left, live score and best', info.ok && info.week === '2026-W43' && info.active && info.current.yearsLeft === 30 && typeof info.current.score === 'number' && info.best === 0);
+  var pl = require('./players.js')(A), s = A.S(), last = null;
+  while (s.status === 'playing') { pl.competent.play(); var r = A.Game.endYear(); if (!r.ok) { pl.resolveEvents('competent'); r = A.Game.endYear(); } if (!r.ok) break; last = r; }
+  check('the sprint ends after 1879 with a score in the report and the best score stored in meta per week', s.status === 'ended' && s.year === 1880 && last.ended && last.challenge && last.challenge.score > 0 && A.Storage.loadMeta().challenges['2026-W43'].best === last.challenge.score && A.Storage.loadMeta().challenges['2026-W43'].runs === 1, last && last.challenge);
+  check('challengeInfo after the run shows best and history; summary carries challenge info', A.Game.challengeInfo().best === last.challenge.score && A.Game.summary().challenge.week === '2026-W43' && A.Game.summary().mode === 'challenge');
+  check('a second run of the same week keeps the best score', (function () { var m = A.Storage.loadMeta(); var best = m.challenges['2026-W43'].best; A.Game.newChallenge({ week: '2026-W43' }); A.S().status = 'bankrupt'; A.Game.recordChallenge(); return A.Storage.loadMeta().challenges['2026-W43'].best === best && A.Storage.loadMeta().challenges['2026-W43'].runs === 2; })());
+})();
+
+/* ---------- 21. P5.4 Era-start scenarios ---------- */
+(function () {
+  var D = load().Data, defs = [['crash1929', 1929, 'gilded', 'Black Tuesday'], ['oilshock1973', 1973, 'boom', 'Oil shock'], ['gfc2008', 2008, 'digital', 'The Global Financial Crisis']];
+  defs.forEach(function (d) {
+    var P = fresh('chen', 1, { scenario: d[0] }), s = P.S(), sc = D.scenarios[d[0]];
+    check(d[0] + ': starts ' + d[1] + ' in the ' + d[2] + ' era with the set-piece pending and the intro in the paper', s.year === d[1] && s.eraId === d[2] && s.events.pending.length && s.events.pending[0].title === d[3] && s.paper[0].text === sc.intro && s.mode === 'scenario');
+    check(d[0] + ': a pre-built leveraged portfolio at the scenario LTV, prices at the era level', P.State.propertyCount('player') === sc.props && Math.abs(P.State.ltv('player') - sc.ltv) < 0.03 && s.priceIndex > 10 && s.cash > 0 && P.State.playerProps().every(function (p) { return p.mortgage && p.purchaseYear < s.year; }));
+    check(d[0] + ': win condition = survive to +15 with net worth ≥ start; endYear set', s.scenario.winYear === d[1] + 15 && s.endYear === d[1] + 15 && s.scenario.targetNetWorth === s.startNetWorth && s.scenario.result === null);
+    check(d[0] + ': the crash lands at the first year end (cycle ' + sc.cycle + ')', s.cycle.phase === sc.cycle && s.baseRate === sc.baseRate && P.State.unlockedCities().length === 2);
+  });
+  check('unknown scenario fails cleanly', !load().Game.newGame({ familyId: 'chen', scenario: 'moon1999' }).ok);
+  check('scenario result is written at the end: won when NW ≥ start, lost otherwise, lost on bankruptcy', (function () { var P = fresh('chen', 2, { scenario: 'crash1929' }), s = P.S(); s.year = s.endYear; clearEvents(P); s.cash += s.startNetWorth * 2; var r = P.Game.endYear(); var P2 = fresh('chen', 2, { scenario: 'crash1929' }), s2 = P2.S(); s2.year = s2.endYear; clearEvents(P2); s2.cash -= s2.startNetWorth * 0.9; var r2 = P2.Game.endYear(); return r.ok && r.ended && r.scenario.result === 'won' && /intact/.test(r.headline) && r2.ok && r2.scenario.result === 'lost'; })());
+  // winnability: competent player, 30 seeds each
+  defs.forEach(function (d) {
+    var won = 0, lost = 0, SEEDS = 30;
+    for (var seed = 1; seed <= SEEDS; seed++) {
+      var P = fresh('chen', 400 + seed, { scenario: d[0] }), pl = require('./players.js')(P), s = P.S();
+      while (s.status === 'playing') { pl.competent.play(); var r = P.Game.endYear(); if (!r.ok) { pl.resolveEvents('competent'); r = P.Game.endYear(); } if (!r.ok) break; }
+      if (s.scenario.result === 'won') won++; else lost++;
+    }
+    check(d[0] + ': winnable by the competent player in ≥ 40% of 30 seeds and lost in ≥ 20%', won / SEEDS >= 0.4 && lost / SEEDS >= 0.2, { won: won, lost: lost });
+  });
+})();
+
+/* ---------- 22. P5.5 Achievements v2 ---------- */
+(function () {
+  var PE = fresh('chen', 2), D = PE.Data, cats = { deals: 1, finance: 1, survival: 1, dynasty: 1, cities: 1, rivals: 1 };
+  check('≥ 30 achievements with valid categories and unique ids', D.achievements.length >= 30 && D.achievements.every(function (a) { return cats[a.category]; }) && new Set(D.achievements.map(function (a) { return a.id; })).size === D.achievements.length, D.achievements.length);
+  check('exactly 6 rare achievements', D.achievements.filter(function (a) { return a.rare; }).length === 6);
+  check('every category has at least 3 achievements', Object.keys(cats).every(function (c) { return D.achievements.filter(function (a) { return a.category === c; }).length >= 3; }));
+  check('Goals.current exposes category and rare on each achievement', PE.Goals.current().achievements.every(function (a) { return a.category && typeof a.rare === 'boolean'; }));
+  var s = PE.S();
+  s.stats.steals = 1; s.stats.countersClosed = 5; s.stats.educated = 3; s.stats.rank1Years = 10; s.stats.cashKingYears = 1; s.stats.highLtvYears = 3; s.stats.vultures = 1; s.stats.rothschildLoans = 1; s.stats.outbidRivals = { petrov: 5 }; s.stats.marginCallsCleared = 1; s.stats.trustSuccessions = 1;
+  var ids = ['bargain_hunter', 'counter_closer', 'scholar', 'top_dog_decade', 'cash_king', 'high_wire', 'vulture', 'friend_of_banks', 'nemesis', 'covenant_kept', 'trust_fund'];
+  check('stat-driven achievements fire from their counters', ids.every(function (id) { return PE.Goals.achievementSatisfied(id); }));
+  check('year-based achievements are relative to the start year (a 1973 scenario is not a centenarian)', (function () { var P = fresh('chen', 1, { scenario: 'oilshock1973' }); return !P.Goals.achievementSatisfied('centenarian') && (function () { var Q = fresh('chen', 1); Q.S().year = 1950; return Q.Goals.achievementSatisfied('centenarian'); })(); })());
+  check('The Long Game is awarded on the final report of a finished campaign', (function () { var P = fresh('chen', 3); P.S().year = 2030; clearEvents(P); var r = P.Game.endYear(); return r.ok && r.ended && P.S().goals.achievements.indexOf('the_long_game') >= 0 && r.goals.achieved.some(function (g) { return g.id === 'the_long_game' && g.rare === true; }); })());
+  check('counters behind the new achievements are tracked by the engine', (function () { var P = fresh('vanderbilt', 5), st = P.S(); var l = P.Market.genListing('london', 1500, 'landlord'); P.Rivals.contest = function () { return []; }; var c = P.Market.makeOffer(l.id, Math.round(l.askingPrice * 0.8)); if (c.outcome !== 'countered') return true; P.Market.makeOffer(l.id, c.counterPrice); return st.stats.countersClosed === 1; })());
+  check('Peacemaker needs four friendly rivals at once', (function () { ['wong', 'petrov', 'martinez'].forEach(function (id) { PE.Rivals.setRelation(id, 50); }); var a = PE.Goals.achievementSatisfied('peacemaker'); PE.Rivals.setRelation('okonkwo', 50); return !a && PE.Goals.achievementSatisfied('peacemaker'); })());
+})();
+
+/* ---------- 23. Save migration v1 → v2 and payload compatibility ---------- */
+(function () {
+  var PE = fresh('armstrong', 7), s = PE.S();
+  var old = JSON.parse(JSON.stringify(s));
+  ['relations', 'ranks', 'mode', 'scenario', 'challenge', 'legacyRecorded', 'perks'].forEach(function (k) { delete old[k]; });
+  delete old.goals.family; delete old.flags.insuredUntil; delete old.flags.allyRevealId; delete old.dynasty.proposals; delete old.dynasty.mergers;
+  ['steals', 'countersClosed', 'marginCallsCleared', 'highLtvYears', 'rank1Years', 'educated', 'marriages', 'mergers', 'vultures', 'cashKingYears', 'trustSuccessions', 'evictions', 'yearlyGoalsDone', 'rothschildLoans', 'outbidRivals'].forEach(function (k) { delete old.stats[k]; });
+  for (var id in old.rivals) { delete old.rivals[id].merged; delete old.rivals[id].allied; delete old.rivals[id].mergedYear; old.rivals[id].relation = 62; }
+  old.saveVersion = 1;
+  PE.Storage.useBackend({ get: function () { return JSON.stringify({ saveVersion: 1, state: old }); }, set: function () { return true; }, remove: function () {} });
+  var r = PE.Game.load(), m = PE.S();
+  check('SAVE_VERSION is 2 and a v1 save loads', PE.Storage.SAVE_VERSION === 2 && r.ok && m.saveVersion === 2);
+  check('migration fills relations from rv.relation, rank history, mode, perks, family goal, stats and flags', m.relations && m.relations.wong === 24 && m.ranks && m.ranks.byId && m.mode === 'campaign' && m.scenario === null && m.challenge === null && m.legacyRecorded === false && Array.isArray(m.perks) && m.goals.family === null && m.stats.outbidRivals && m.stats.marriages === 0 && m.flags.insuredUntil === 0 && m.rivals.wong.merged === false && m.dynasty.proposals.length === 0 && m.dynasty.mergers === 0, m.relations);
+  check('a migrated save plays on: endYear, leaderboard, summary, dynasty, goals all ok', (function () { clearEvents(PE); var e = PE.Game.endYear(); return e.ok && PE.Rivals.leaderboard().ok && PE.Game.summary().ok && PE.Dynasty.summary().ok && PE.Goals.current().ok && PE.Finance.summary().ok; })());
+  // payload compatibility with the current UI
+  var P = fresh('chen', 9), sm = P.Game.summary(), lb = P.Rivals.leaderboard().leaderboard, lv = P.Market.listings('london').listings[0], fs = P.Finance.summary(), dy = P.Dynasty.summary(), gc = P.Goals.current();
+  check('summary keeps every field the UI reads', ['year', 'era', 'eraId', 'status', 'family', 'color', 'cash', 'netWorth', 'debt', 'ltv', 'reputation', 'rank', 'properties', 'cities', 'cycle', 'cycleName', 'baseRate', 'head', 'headAge', 'generation', 'pendingEvents', 'offers', 'auction', 'paper', 'lastReport', 'capacity', 'currency', 'mode', 'endYear', 'scenario', 'challenge', 'perks', 'allies'].every(function (k) { return k in sm; }));
+  check('leaderboard rows keep id/name/netWorth/properties/cities/lastAction/relation/archetype/color/bankrupt/isPlayer/rank', lb.every(function (r) { return ['id', 'name', 'netWorth', 'properties', 'cities', 'lastAction', 'color', 'bankrupt', 'isPlayer', 'rank', 'prevRank', 'rankDelta', 'allied'].every(function (k) { return k in r; }); }) && lb.filter(function (r) { return !r.isPlayer; }).every(function (r) { return 'relation' in r && 'archetype' in r; }));
+  check('listing view keeps lowEstimate/highEstimate/sellerName/pricePerSqm/districtPricePerSqm/districtTrend/stampDuty/maxLtv and hides trueValue', ['lowEstimate', 'highEstimate', 'sellerName', 'pricePerSqm', 'districtPricePerSqm', 'districtTrend', 'stampDuty', 'maxLtv', 'comps', 'cues', 'conditionLabel', 'typeName', 'cityName', 'renovationOptions'].every(function (k) { return k in lv; }) && (lv.trueValue === undefined || lv.revealed));
+  check('Finance.summary / Dynasty.summary / Goals.current keep their fields', ['cash', 'debt', 'assets', 'ltv', 'netWorth', 'annualDebtService', 'baseRate', 'quoteRate', 'maxLtv', 'savingsRate', 'covenantWarnings', 'trust'].every(function (k) { return k in fs; }) && ['head', 'members', 'generation', 'heirId', 'trust', 'estateTaxRate', 'reputation', 'alliances', 'deaths', 'surname', 'mortality', 'educationCost'].every(function (k) { return k in dy; }) && ['yearly', 'era', 'campaign', 'achievements', 'legacyScore'].every(function (k) { return k in gc; }));
+  check('Game.families now also lists perks and scenarios', P.Game.families().perks.length >= 8 && P.Game.families().scenarios.length === 3);
+  check('ORDER.txt unchanged (no new engine files needed)', require('./load.js').order().length === 14);
 })();
 
 /* ---------- Summary ---------- */

@@ -30,6 +30,7 @@
   G.stage = function () {
     if (!G.active()) return null;
     var f = facts();
+    if (f.yr >= 6) { prefs().done = true; PEUI.savePrefs(); return null; } // the end card was ignored for three years; retire it
     if (f.yr >= 3) return 'end';
     if (f.bought === 0) return 'buy';
     if (f.yr === 0) return 'endyear';
@@ -50,7 +51,7 @@
     return el;
   }
 
-  /* Slots: board, appraisal, ltv, endyear, renovate, refinance, portfolio, report, end. Returns an element or null. */
+  /* Slots: board, appraisal, ltv, endyear, renovate, refinance, portfolio, end. Returns an element or null. The year-1 report line is G.equityLine. */
   G.callout = function (slot, ctx) {
     var st = G.stage(); if (!st) return null;
     ctx = ctx || {};
@@ -71,7 +72,7 @@
         return callout('Slide right to borrow: the bank lends up to ' + Math.round((l.maxLtv || 0.7) * 100) + '% and the tenant\'s rent helps pay for it.');
       case 'endyear':
         if (st !== 'endyear') return null;
-        return callout('Bought. Now End year: rent comes in, values move, and you see what you built.', { cls: 'callout--hud' });
+        return callout('Bought. Now End year: rent comes in, values move, and you see what you built.', { cls: 'callout--top span' });
       case 'portfolio':
         f = facts();
         if (st === 'renovate' && f.reno) return callout('Open ' + f.reno.name + ' and renovate it. Condition is the lever you control.');
@@ -87,9 +88,6 @@
       case 'refinance':
         if (st !== 'refinance' || !ctx.property || ctx.property.ltv >= 0.5) return null;
         return callout('Pull cash out and buy the next one. The rent still covers the payment.');
-      case 'report':
-        if (!ctx.report || ctx.report.year !== s.startYear || prefs().skipped) return null;
-        return null; // the equity line is rendered by G.equityLine
       case 'end':
         if (st !== 'end') return null;
         if (!prefs().started) { prefs().done = true; PEUI.savePrefs(); return null; }
@@ -114,19 +112,20 @@
     return el;
   };
 
-  /* HUD callout under the End year button. */
-  G.syncHud = function () {
-    var hud = document.getElementById('hud'), inner = hud && hud.querySelector('.hud__inner'); if (!inner) return;
-    var old = inner.querySelector('.callout--hud'), el = hud.classList.contains('hidden') ? null : G.callout('endyear');
-    if (old && !el) old.parentNode.removeChild(old);
-    else if (!old && el) inner.appendChild(el);
+  /* "End year" callout: in flow at the top of the active screen, arrow up toward the HUD button. */
+  G.syncTop = function () {
+    var screen = document.querySelector('.screen.is-active'); if (!screen) return;
+    var host = screen.querySelector('.city-bottom__inner') || screen.querySelector('.screen__inner');
+    var old = document.querySelector('.callout--top'), el = PEUI.current && PEUI.current !== 'start' ? G.callout('endyear') : null;
+    if (old && (!el || old.parentNode !== host)) old.parentNode.removeChild(old);
+    if (el && host && !host.querySelector('.callout--top')) host.insertBefore(el, host.firstChild);
   };
 
   PEUI.actions['guide-skip'] = function () {
     prefs().skipped = true; PEUI.savePrefs();
     var all = document.querySelectorAll('.callout'); for (var i = 0; i < all.length; i++) all[i].parentNode.removeChild(all[i]);
-    G.syncHud(); PEUI.refresh(); PEUI.toast('Guide skipped. You can bring it back in Settings.');
+    PEUI.refresh(); PEUI.toast('Guide skipped. You can bring it back in Settings.');
   };
   PEUI.actions['guide-done'] = function () { prefs().done = true; PEUI.savePrefs(); PEUI.refresh(); };
-  PEUI.actions['guide-reset'] = function () { PEUI.prefs.guide = { skipped: false, done: false, started: false }; PEUI.savePrefs(); PEUI.toast('The guide will show for the next three years of play.', 'success'); if (PEUI.sheet.isOpen()) PEUI.sheet.close(); PEUI.refresh(); G.syncHud(); };
+  PEUI.actions['guide-reset'] = function () { PEUI.prefs.guide = { skipped: false, done: false, started: false }; PEUI.savePrefs(); PEUI.toast('The guide will show for the next three years of play.', 'success'); if (PEUI.sheet.isOpen()) PEUI.sheet.close(); PEUI.refresh(); };
 })(window);

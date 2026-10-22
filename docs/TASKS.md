@@ -30,10 +30,10 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 - [ ] **P2.0 Engine follow-ups from the UI build** — `Finance.mortgageQuote(id, ltv, type, fixed, price)` must quote against the offer price for listings (today it quotes against asking and the UI scales it); split `Game.recordLegacy()` out of `Game.newDynasty()` so the UI can return to family select; expose previous-year ranks in `Rivals.leaderboard()` instead of a UI-side snapshot; `auctionView.round` should start at 1. Acceptance: tests added for each.
 
-- [ ] **P2.1 Guided first 3 years** — scripted first deal (an obviously underpriced estate sale), first mortgage quote explained in one sheet, first renovation, first year report with the "equity you created" number. Skippable. Acceptance: 5 fresh testers (or scripted naive player) buy, finance and renovate by year 3.
-- [ ] **P2.2 Advisor voice** — a single in-world advisor (family solicitor) who delivers tips as short speech bubbles tied to context (first margin call warning, first auction), never generic tips. Acceptance: no "random tip" rotation remains.
-- [ ] **P2.3 Appraisal mini-skill** — comps panel polish: tap a comp to see it on the 3D map; "your estimate" input with post-sale reveal ("you were 6% high") that trains the player. Acceptance: competent-player sim unchanged; naive player improves over 10 years.
-- [ ] **P2.4 Year report polish** — animated numbers, one headline illustration, rank movement, cliffhanger line, share card (PNG export) of the dynasty at era ends.
+- [x] **P2.1 Guided first 3 years** — scripted first deal (an obviously underpriced estate sale), first mortgage quote explained in one sheet, first renovation, first year report with the "equity you created" number. Skippable. Acceptance: 5 fresh testers (or scripted naive player) buy, finance and renovate by year 3.
+- [x] **P2.2 Advisor voice** — a single in-world advisor (family solicitor) who delivers tips as short speech bubbles tied to context (first margin call warning, first auction), never generic tips. Acceptance: no "random tip" rotation remains.
+- [x] **P2.3 Appraisal mini-skill** — comps panel polish: tap a comp to see it on the 3D map; "your estimate" input with post-sale reveal ("you were 6% high") that trains the player. Acceptance: competent-player sim unchanged; naive player improves over 10 years.
+- [x] **P2.4 Year report polish** — animated numbers, one headline illustration, rank movement, cliffhanger line, share card (PNG export) of the dynasty at era ends.
 
 ## Phase 3 — Rivals, dynasty, events depth
 

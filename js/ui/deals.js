@@ -315,12 +315,14 @@
   function handleOutcome(r, l) {
     if (r.outcome === 'accepted' || r.outcome === 'won') {
       PEUI.sound('purchase'); PEUI.confetti(40); PEUI.toast(r.message, 'success');
-      var reveal = PEUI.appraisal ? PEUI.appraisal.reveal(r.property.id, null, r.property.trueValue, PEUI.summary().year, { defect: r.defect }) : null;
+      // a hidden defect: the engine reports it on offers; on auction wins compare the listing's condition with the property's
+      var defect = r.defect || (l && r.property.condition < l.condition ? Math.round(l.condition - r.property.condition) : 0);
+      var reveal = PEUI.appraisal ? PEUI.appraisal.reveal(r.property.id, null, r.property.trueValue, PEUI.summary().year, { defect: defect }) : null;
       var body = PEUI.sheet.open({ id: 'bought', title: 'Yours', sub: r.property.name, body: [
         h('div', { class: 'note note--success' }, [icon('check'), h('span', { text: r.message })]),
         reveal ? h('div', { class: 'note note--info reveal' }, [icon('percent'), h('span', { text: reveal.text })]) : null,
-        h('div', { class: 'stat-grid' }, [stat('Paid', fmt.money(r.price)), stat('Now worth', fmt.money(r.property.trueValue)), stat('Condition', r.property.conditionLabel + (r.defect ? ' (defect −' + r.defect + ')' : '')), stat('Mortgage', r.property.mortgage ? fmt.money(r.property.mortgage.principal) : 'None')]),
-        r.defect ? h('div', { class: 'note note--warn' }, [icon('warning'), h('span', { text: 'The survey found hidden problems: condition dropped by ' + r.defect + '.' })]) : null
+        h('div', { class: 'stat-grid' }, [stat('Paid', fmt.money(r.price)), stat('Now worth', fmt.money(r.property.trueValue)), stat('Condition', r.property.conditionLabel + (defect ? ' (defect −' + defect + ')' : '')), stat('Mortgage', r.property.mortgage ? fmt.money(r.property.mortgage.principal) : 'None')]),
+        defect ? h('div', { class: 'note note--warn' }, [icon('warning'), h('span', { text: 'The survey found hidden problems: condition dropped by ' + defect + '.' })]) : null
       ], foot: h('div', { class: 'btn-row' }, [PEUI.btn('Back to deals', { cls: 'btn--secondary', action: 'sheet-close' }), PEUI.btn('Open property', { cls: 'btn--primary', action: 'open-property', 'data-id': r.property.id, icon: 'building' })]) });
       body.appendChild(h('div', { class: 'stamp', 'aria-hidden': 'true', text: 'YOURS' }));
       offer.id = null;

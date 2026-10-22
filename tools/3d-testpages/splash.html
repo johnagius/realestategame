@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Splash test — Property Empire</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/splash.css">
+<style>
+  html, body { margin: 0; height: 100%; background: #05060e; overflow: hidden; }
+  #screen-splash { position: absolute; inset: 0; }
+  #dbg { position: absolute; left: 8px; top: 8px; z-index: 9; font: 11px Nunito, sans-serif; color: #9aa; background: rgba(0,0,0,.5); padding: 3px 6px; border-radius: 4px; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="screen-splash" data-splash="manual">
+  <div class="sp-overlay">
+    <div class="sp-title-block">
+      <p class="sp-kicker">A dynasty in bricks and glass</p>
+      <h1 class="sp-title">Property <em>Empire</em></h1>
+      <div class="sp-rule"></div>
+      <p class="sp-tagline">From one shabby room in 1850 London to a family name on the skyline.</p>
+    </div>
+    <div class="sp-actions">
+      <div class="sp-dynasty" id="dyn">
+        <div class="sp-dynasty-crest">A</div>
+        <div class="sp-dynasty-name">House of Armstrong</div>
+        <div class="sp-dynasty-sub">1923 · 3rd generation</div>
+        <div class="sp-dynasty-worth">£4.2M</div>
+        <div class="sp-dynasty-rank">Rank 2 of 7</div>
+      </div>
+      <button class="sp-cta sp-cta--primary">Continue</button>
+      <button class="sp-cta sp-cta--secondary">New dynasty</button>
+    </div>
+  </div>
+  <div class="sp-version">v8.0</div>
+</div>
+<div id="dbg"></div>
+<script src="js/vendor/three.min.js"></script>
+<script src="js/city3d-engine.js"></script>
+<script src="js/cities/london.js"></script>
+<script src="js/intro.js"></script>
+<script>
+  var q = new URLSearchParams(location.search);
+  if (q.get('nowebgl')) { Splash._webglOK = function() { return false; }; }
+  Splash.mount(document.getElementById('screen-splash'), { quality: q.get('q') || 'low', eraCycleMs: +(q.get('cycle') || 8000), startEra: q.get('era') || 'victorian' });
+  setInterval(function() { var s = City3D.getStats ? City3D.getStats() : {}; document.getElementById('dbg').textContent = (s.frameMs || 0).toFixed(1) + ' ms js · ' + (s.calls || 0) + ' calls · ' + Splash.currentEra() + (Splash._fallback ? ' · CSS fallback' : ''); }, 500);
+</script>
+</body>
+</html>

@@ -75,18 +75,21 @@ function main() {
   console.log('Property Empire v8 balance — ' + SEEDS30 + ' seeds × 4 families × 2 players × 30y, ' + SEEDS180 + ' seeds × 180y (' + ((t1 - t0) / 1000).toFixed(1) + 's, ' + errors + ' internal errors)');
   console.log(pad('Metric', 50) + pad('Target', 16) + pad('Result', 18) + 'Status');
   for (var i = 0; i < table.length; i++) console.log(pad(table[i][0], 50) + pad(table[i][1], 16) + pad(table[i][2], 18) + (table[i][3] ? 'PASS' : 'FAIL'));
-  console.log('\nPer family (competent, 30y): median NW×, bankruptcy %, median rank, median props, median cities');
+  console.log('\nPer family (competent, 30y): median NW×, bankruptcy %, median rank, median props, median cities  [P5.1 guard: median NW× in 6–40×, bankruptcy ≤ 15%]');
+  var famFails = 0;
   for (f = 0; f < FAMILIES.length; f++) {
     var rs = sel(rows30, FAMILIES[f], 'competent'), rn = sel(rows30, FAMILIES[f], 'naive');
-    console.log(pad(FAMILIES[f], 12) + 'competent: ' + fmt(median(rs.map(function (r) { return (r.nw30 === null ? r.nwEnd : r.nw30) / r.startNW; })), 1) + '×  bk ' + fmt(rs.filter(function (r) { return r.bankruptYear !== null; }).length / rs.length * 100, 0) + '%  rank #' + fmt(median(rs.map(function (r) { return r.rank30 || 7; })), 0) + '  props ' + fmt(median(rs.map(function (r) { return r.props30 || 0; })), 0) + '  cities ' + fmt(median(rs.map(function (r) { return r.cities30 || 1; })), 0) + '  2nd city y' + fmt(median(rs.map(function (r) { return r.yearCity2 === null ? 31 : r.yearCity2; })), 0) + '  5th prop y' + fmt(median(rs.map(function (r) { return r.year5th === null ? 31 : r.year5th; })), 0)
+    var famMed = median(rs.map(function (r) { return (r.nw30 === null ? r.nwEnd : r.nw30) / r.startNW; })), famBk = rs.filter(function (r) { return r.bankruptYear !== null; }).length / rs.length * 100;
+    var famOk = famMed >= 6 && famMed <= 40 && famBk <= 15; if (!famOk) famFails++;
+    console.log((famOk ? '  PASS ' : '  FAIL ') + pad(FAMILIES[f], 12) + 'competent: ' + fmt(famMed, 1) + '×  bk ' + fmt(famBk, 0) + '%  rank #' + fmt(median(rs.map(function (r) { return r.rank30 || 7; })), 0) + '  props ' + fmt(median(rs.map(function (r) { return r.props30 || 0; })), 0) + '  cities ' + fmt(median(rs.map(function (r) { return r.cities30 || 1; })), 0) + '  2nd city y' + fmt(median(rs.map(function (r) { return r.yearCity2 === null ? 31 : r.yearCity2; })), 0) + '  5th prop y' + fmt(median(rs.map(function (r) { return r.year5th === null ? 31 : r.year5th; })), 0)
       + '   | naive: ' + fmt(median(rn.map(function (r) { return (r.nw30 === null ? r.nwEnd : r.nw30) / r.startNW; })), 1) + '×  bk ' + fmt(rn.filter(function (r) { return r.bankruptYear !== null; }).length / rn.length * 100, 0) + '%');
   }
   var c180b = sel(rows180, null, 'competent');
   console.log('\n180-year runs (competent): median NW× at end ' + fmt(median(c180b.map(function (r) { return r.nwEnd / r.startNW; })), 0) + ', bankrupt ' + fmt(c180b.filter(function (r) { return r.bankruptYear !== null; }).length / c180b.length * 100, 0) + '%, median bankruptcy year ' + fmt(median(c180b.filter(function (r) { return r.bankruptYear !== null; }).map(function (r) { return r.bankruptYear; })), 0) + ', rent/opex at y150 samples ' + c180.length + ' (e.g. ' + (c180[0] ? c180[0].rentOps150.join('/') : 'n/a') + ')');
   if (verbose) { console.log(JSON.stringify(rows30.slice(0, 4), null, 1)); }
   var fails = table.filter(function (r) { return !r[3]; }).length;
-  console.log('\n' + (table.length - fails) + '/' + table.length + ' targets pass.');
-  process.exitCode = fails ? 1 : 0;
+  console.log('\n' + (table.length - fails) + '/' + table.length + ' targets pass; ' + (FAMILIES.length - famFails) + '/' + FAMILIES.length + ' family guards pass.');
+  process.exitCode = fails || famFails ? 1 : 0;
 }
 function pad(s, n) { s = String(s); while (s.length < n) s += ' '; return s; }
 main();

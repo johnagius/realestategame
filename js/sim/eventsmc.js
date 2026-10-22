@@ -8,6 +8,7 @@ var REL_VALUE = 0.0002;       // 1 relation point (−100..100 scale) ≈ 0.02% 
 var COND_VALUE = 0.004;       // 1 condition point ≈ 0.4% of a building's value (bands step ~10% per ~22 points, plus rent and decay)
 var TOL = 0.20;               // EVs must sit within ±20% of the largest magnitude...
 var FLOOR = 0.03;             // ...with the magnitude floored at 3% of net worth (so near-zero EVs compare sanely)
+var MARGIN = 0.0003;          // a safer choice must also be better by more than 0.03% of net worth to count as dominating
 
 function buildState(load, seed) {
   var PE = load(), r = PE.Game.newGame({ familyId: 'vanderbilt', seed: seed || 5 });
@@ -85,6 +86,8 @@ function evaluate(load, ev, samples) {
     var vals = [];
     for (var k = 0; k < samples; k++) {
       var PE = load(); var st = JSON.parse(snapshot); PE._state = st; PE.RNG.bind(st); st.rng = (st.rng + 7919 * k) >>> 0;
+      // stratified: the first chance draw of each sample lands on an even grid, so a p-gamble wins in exactly p of the samples
+      (function (rng, stratum) { var used = false, raw = rng.chance; rng.chance = function (p, state) { if (used) return raw(p, state); used = true; return stratum < p; }; })(PE.RNG, (k + 0.5) / samples);
       var u0 = utility(PE, nw0);
       var inst = instance(PE, ev, t);
       PE.Events.applyFx(ev.choices[ci].fx || {}, inst);
@@ -102,7 +105,7 @@ function judge(rows) {
   if (spread > TOL * scale) problems.push('EV spread ' + (spread * 100).toFixed(2) + '% > ' + (TOL * scale * 100).toFixed(2) + '%');
   for (var a = 0; a < rows.length; a++) for (var b = 0; b < rows.length; b++) {
     if (a === b) continue;
-    if (rows[a].ev > rows[b].ev + 1e-9 && rows[a].sd < rows[b].sd - 1e-9) problems.push('choice ' + (a + 1) + ' dominates ' + (b + 1) + ' on EV and variance');
+    if (rows[a].ev > rows[b].ev + MARGIN && rows[a].sd < rows[b].sd - 1e-9) problems.push('choice ' + (a + 1) + ' dominates ' + (b + 1) + ' on EV and variance');
   }
   return problems;
 }

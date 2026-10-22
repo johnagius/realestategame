@@ -13,7 +13,7 @@
   PE.guard = function (name, fn) {
     return function () {
       try {
-        if (!PE._state && name !== 'newGame' && name !== 'load' && name !== 'hasSave' && name !== 'deleteSave') return PE.fail('No game in progress');
+        if (!PE._state && PE.guard.statelessCalls.indexOf(name) < 0) return PE.fail('No game in progress');
         var r = fn.apply(null, arguments);
         return r === undefined ? PE.ok() : r;
       } catch (e) {
@@ -21,6 +21,9 @@
       }
     };
   };
+
+  /* Public calls that work before a game exists (start screen, perk store, challenge lobby). */
+  PE.guard.statelessCalls = ['newGame', 'newChallenge', 'load', 'hasSave', 'deleteSave', 'perks', 'buyPerk', 'challengeInfo', 'scenarios', 'families'];
 
   var U = PE.util = {
     clamp: function (v, a, b) { return v < a ? a : (v > b ? b : v); },

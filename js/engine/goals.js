@@ -84,6 +84,8 @@
     if (t.rank && St.rank() > t.rank) return false;
     return true;
   };
+  /* Cities opened by the player after the start (scenario starts open some cities on day one). */
+  G.citiesUnlockedSinceStart = function () { var s = PE.S(), n = 0; for (var c in s.stats.cityUnlockYear) if (s.stats.cityUnlockYear[c] > s.startYear) n++; return n; };
   G.achievementSatisfied = function (id) {
     var s = PE.S(), st = s.stats, props = St.playerProps();
     switch (id) {
@@ -91,10 +93,10 @@
       case 'auction_winner': return st.auctionsWon >= 1;
       case 'flipper': return st.flips >= 1;
       case 'brrrr': return st.brrrr >= 1;
-      case 'portfolio_5': return props.length >= 5;
-      case 'portfolio_15': return props.length >= 15;
-      case 'portfolio_40': return props.length >= 40;
-      case 'second_city': return St.unlockedCities().length >= 2;
+      case 'portfolio_5': return props.length >= 5 && st.bought >= 1;
+      case 'portfolio_15': return props.length >= 15 && st.bought >= 1;
+      case 'portfolio_40': return props.length >= 40 && st.bought >= 1;
+      case 'second_city': return St.unlockedCities().length >= 2 && G.citiesUnlockedSinceStart() >= 1;
       case 'five_cities': return St.unlockedCities().length >= 5;
       case 'all_cities': return St.unlockedCities().length >= D.cities.length;
       case 'survivor': return st.depressionsSurvived >= 1;

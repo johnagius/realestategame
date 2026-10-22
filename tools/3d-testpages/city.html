@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>City3D test — London</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0d18; color: #eee; font-family: Nunito, sans-serif; }
+  #wrap { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  #bar { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; background: #141828; font-size: 12px; align-items: center; }
+  #bar button { background: #26304a; color: #fff; border: 1px solid #3a4a70; border-radius: 6px; padding: 6px 9px; font-size: 12px; }
+  #bar button.on { background: #d4a84b; color: #222; border-color: #f0d68a; }
+  #city { flex: 1; position: relative; min-height: 0; }
+  #stats { position: absolute; left: 8px; top: 8px; background: rgba(0,0,0,.6); padding: 4px 8px; border-radius: 6px; font-size: 11px; z-index: 5; pointer-events: none; }
+  @media (max-width: 600px) { #city { flex: none; height: 460px; } }
+  #sel { position: absolute; right: 8px; top: 8px; background: rgba(0,0,0,.7); padding: 6px 10px; border-radius: 6px; font-size: 12px; z-index: 5; max-width: 60%; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="bar">
+    <span>Era:</span>
+    <button data-era="victorian">Victorian</button><button data-era="gilded">Gilded</button><button data-era="crisis">Crisis</button>
+    <button data-era="boom">Boom</button><button data-era="modern" class="on">Modern</button><button data-era="digital">Digital</button>
+    <span style="margin-left:8px">Quality:</span><button data-q="low">Low</button><button data-q="high" class="on">High</button>
+    <span style="margin-left:8px">Night:</span><button data-n="0.1">Dusk</button><button data-n="0.55" class="on">Evening</button><button data-n="1">Night</button>
+    <button id="orbit">Orbit</button><button id="focus">Focus sale</button><button id="reset">Reset view</button><button id="upd">Buy + renovate</button>
+  </div>
+  <div id="city"><div id="stats"></div><div id="sel">Tap a building</div></div>
+</div>
+<script src="js/vendor/three.min.js"></script>
+<script src="js/city3d-engine.js"></script>
+<script src="js/cities/london.js"></script>
+<script>
+  // London slots in scan order: TH AP CM MN SK HO ST VI PH CM WR TH
+  var PROPS = [
+    { id: 'p1', type: 'townhouse', model3d: 'TH', name: 'Bedford Row', ownerId: 'player', condition: 72, era: 'victorian' },
+    { id: 'p2', type: 'apartment', model3d: 'AP', name: 'Mayfair Mansions', ownerId: 'rival:ashworth', condition: 60 },
+    { id: 'p3', type: 'commercial', model3d: 'CM', name: 'Strand Arcade', ownerId: null, isListing: true, condition: 55 },
+    { id: 'p4', type: 'mansion', model3d: 'MN', name: 'Belgrave House', ownerId: 'player', condition: 92, era: 'gilded' },
+    { id: 'p5', type: 'skyscraper', model3d: 'SK', name: 'Bishopsgate Tower', ownerId: 'rival:okafor', condition: 88 },
+    { id: 'p6', type: 'house', model3d: 'HO', name: 'Lambeth Cottage', ownerId: null, isListing: true, condition: 12 },
+    { id: 'p7', type: 'studio', model3d: 'ST', name: 'Borough Studios', ownerId: 'player', condition: 35, renovation: { tier: 'refurb', yearsLeft: 1 } },
+    { id: 'p8', type: 'villa', model3d: 'VI', name: 'Richmond Villa', ownerId: null, condition: 70 },
+    { id: 'p9', type: 'penthouse', model3d: 'PH', name: 'Southbank Penthouse', ownerId: 'player', condition: 50, renovation: { tier: 'rebuild', yearsLeft: 3 } },
+    { id: 'p10', type: 'commercial', model3d: 'CM', name: 'Bermondsey Works', ownerId: 'rival:ashworth', condition: 15 },
+    { id: 'p11', type: 'warehouse', model3d: 'WR', name: 'Docklands Depot', ownerId: null, isListing: true, condition: 42 },
+    { id: 'p12', type: 'townhouse', model3d: 'TH', name: 'Kennington Terrace', ownerId: 'rival:okafor', condition: 80 },
+  ];
+  var state = { era: 'modern', quality: 'high', night: 0.55 };
+  function render() {
+    City3D.renderCity(CityDef_London, document.getElementById('city'), PROPS, {
+      era: state.era, quality: state.quality, night: state.night,
+      playerColor: '#d4a84b', rivalColors: { ashworth: '#3d7bd8', okafor: '#c2455a' },
+      onSelect: function(p) { document.getElementById('sel').textContent = p.name + ' · ' + (p.ownerId || 'unowned') + ' · cond ' + p.condition; },
+    });
+    City3D._onBuildingClick = function(cell) { if (!cell.property) document.getElementById('sel').textContent = City3D.BNAMES[cell.t] || cell.t; };
+  }
+  render();
+  document.querySelectorAll('[data-era]').forEach(function(b) { b.onclick = function() {
+    document.querySelectorAll('[data-era]').forEach(function(x) { x.classList.remove('on'); }); b.classList.add('on');
+    state.era = b.dataset.era; City3D.setEra(state.era, 1200);
+  }; });
+  document.querySelectorAll('[data-q]').forEach(function(b) { b.onclick = function() {
+    document.querySelectorAll('[data-q]').forEach(function(x) { x.classList.remove('on'); }); b.classList.add('on');
+    state.quality = b.dataset.q; render();
+  }; });
+  document.querySelectorAll('[data-n]').forEach(function(b) { b.onclick = function() {
+    document.querySelectorAll('[data-n]').forEach(function(x) { x.classList.remove('on'); }); b.classList.add('on');
+    state.night = +b.dataset.n; City3D.setNight(state.night);
+  }; });
+  var orbiting = false;
+  document.getElementById('orbit').onclick = function() { orbiting = !orbiting; City3D.setAutoOrbit(orbiting); };
+  document.getElementById('focus').onclick = function() { City3D.setSelected('p3'); City3D.focus('p3'); };
+  document.getElementById('reset').onclick = function() { City3D.setSelected(null); City3D.resetView(); };
+  document.getElementById('upd').onclick = function() {
+    var p = Object.assign({}, PROPS[2], { ownerId: 'player', isListing: false, renovation: { tier: 'refurb', yearsLeft: 1 }, condition: 55 });
+    City3D.updateProperty(p, { animate: true });
+  };
+  setInterval(function() { var s = City3D.getStats(); document.getElementById('stats').textContent = 'js ' + (s.frameMs || 0).toFixed(1) + ' ms · ' + s.calls + ' calls · ' + s.triangles + ' tris · ' + s.quality; }, 500);
+</script>
+</body>
+</html>

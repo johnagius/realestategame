@@ -1,4 +1,4 @@
-const CACHE_NAME = 'property-empire-v8.0';
+const CACHE_NAME = 'property-empire-v8.1';
 const ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,17 @@ const ASSETS = [
   './css/app.css',
   './assets/icons.svg',
   './assets/icon.svg',
+  './assets/report/quiet.svg',
+  './assets/report/warning.svg',
+  './assets/report/era.svg',
+  './assets/report/succession.svg',
+  './assets/report/crash.svg',
+  './assets/report/deal.svg',
+  './assets/advisor.svg',
+  './js/ui/share.js',
+  './js/ui/appraisal.js',
+  './js/ui/advisor.js',
+  './js/ui/guide.js',
   './js/vendor/three.min.js',
   './js/city3d-engine.js',
   './js/cities/london.js',

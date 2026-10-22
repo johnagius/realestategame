@@ -6,7 +6,7 @@
   var PEUI = root.PEUI = root.PEUI || {};
   var doc = root.document;
 
-  PEUI.VERSION = 'v8.0';
+  PEUI.VERSION = 'v8.1';
   PEUI.SPRITE = 'assets/icons.svg';
 
   /* ---------- Formatting (one money formatter, engine currency) ---------- */
@@ -224,6 +224,7 @@
     doc.body.setAttribute('data-screen', name);
     if (PEUI.updateHUD) PEUI.updateHUD();
     if (PEUI.updateNav) PEUI.updateNav();
+    if (PEUI.guide) PEUI.guide.syncTop();
   };
   /* After every engine mutation: patch HUD, nav badges and the active screen. */
   PEUI.refresh = function () {
@@ -232,6 +233,7 @@
     if (PEUI.updateNav) PEUI.updateNav();
     var def = PEUI.current && PEUI.screens[PEUI.current];
     if (def && def.update) def.update(doc.getElementById('screen-' + PEUI.current));
+    if (PEUI.guide) PEUI.guide.syncTop();
   };
 
   /* ---------- Event delegation ---------- */

@@ -41,9 +41,17 @@
   /* Leaderboard snapshot before the year resolves, so the report can name who you passed or lost to. */
   function ranksNow() { var lb = PE().Rivals.leaderboard(), out = {}; if (lb.ok) for (var i = 0; i < lb.leaderboard.length; i++) out[lb.leaderboard[i].id] = { rank: lb.leaderboard[i].rank, name: lb.leaderboard[i].name }; return out; }
   function rankMoves(before) {
-    var after = ranksNow(), me = after.player ? after.player.rank : 0, was = before.player ? before.player.rank : me, passed = [], lostTo = [];
-    for (var id in after) { if (id === 'player' || !before[id]) continue; var b = before[id].rank, a = after[id].rank; if (b < was && a > me) passed.push(after[id].name); if (b > was && a < me) lostTo.push(after[id].name); }
-    return { passed: passed, lostTo: lostTo };
+    var lb = PE().Rivals.leaderboard(), out = { passed: [], lostTo: [] }; if (!lb.ok) return out;
+    var rows = lb.leaderboard, me = null; for (var i = 0; i < rows.length; i++) if (rows[i].isPlayer) me = rows[i];
+    if (!me) return out;
+    // the engine's own end-of-year snapshot (prevRank) when it carries one, else the UI snapshot taken before endYear
+    var fromEngine = !!me.prevRank, was = fromEngine ? me.prevRank : (before.player ? before.player.rank : me.rank), now = me.rank;
+    for (var j = 0; j < rows.length; j++) {
+      var r = rows[j]; if (r.isPlayer) continue;
+      var b = fromEngine ? r.prevRank : (before[r.id] ? before[r.id].rank : null); if (!b) continue;
+      if (b < was && r.rank > now) out.passed.push(r.name); if (b > was && r.rank < now) out.lostTo.push(r.name);
+    }
+    return out;
   }
   function endYear() {
     var s = PE().Game.state(); if (!s) return;
