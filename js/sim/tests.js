@@ -497,7 +497,7 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   var V = fresh('vanderbilt', 4);
   check('Vanderbilt: +20% estate tax every generation, £12,000', Math.abs(V.Dynasty.estateTaxRate() - 0.40) < 1e-9 && V.S().cash === 12000);
   // per-family balance guard (small sample; the full table is js/sim/balance.js)
-  var fams = ['silva', 'chen', 'armstrong', 'vanderbilt'], SEEDS = 12;
+  var fams = ['silva', 'chen', 'armstrong', 'vanderbilt'], SEEDS = 24;
   fams.forEach(function (fam) {
     var mults = [], bk = 0;
     for (var seed = 1; seed <= SEEDS; seed++) {
@@ -506,8 +506,8 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
       mults.push(P.State.netWorth('player') / s.startNetWorth);
     }
     mults.sort(function (a, b) { return a - b; }); var med = mults[mults.length >> 1];
-    check(fam + ': 30-year competent median NW× within 6–40× (12 seeds)', med >= 6 && med <= 40, med.toFixed(1));
-    check(fam + ': competent bankruptcy ≤ 15% (12 seeds)', bk / SEEDS <= 0.15 + 1 / SEEDS, bk);
+    check(fam + ': 30-year competent median NW× within 6–40× (24 seeds)', med >= 6 && med <= 40, med.toFixed(1));
+    check(fam + ': competent bankruptcy ≤ 15% (24 seeds)', bk / SEEDS <= 0.15 + 1 / SEEDS, bk);
   });
 })();
 
