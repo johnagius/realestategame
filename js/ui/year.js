@@ -386,9 +386,10 @@
     PEUI.toast(r.message, 'success'); if (PEUI.destroyCity) PEUI.destroyCity(); PEUI.render('deals'); showEvent(function () { PEUI.refresh(); });
   };
   PEUI.actions['end-new'] = function () {
+    var slot = (PE().Game.state() || {}).saveSlot || 1;
     var r = PEUI.call(PE().Game.newDynasty, {}); if (!r.ok) return;
     document.getElementById('titlecard').classList.remove('is-open');
-    PE().Game.deleteSave(); PE()._state = null;
+    PE().Game.deleteSave(slot); PE()._state = null;
     PEUI.toast('Legacy recorded: ' + fmt.int(r.legacyScore) + ' points.', 'success');
     PEUI.leaveGame();
   };

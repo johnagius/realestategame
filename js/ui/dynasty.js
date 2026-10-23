@@ -199,7 +199,7 @@
   PEUI.actions['set-delete'] = function () {
     PEUI.sheet.open({ id: 'confirm-delete', title: 'Delete the save?', back: 'open-settings', body: [h('p', { text: 'This removes the saved game from this device. The current run ends and cannot be recovered.' })], foot: h('div', { class: 'btn-row' }, [PEUI.btn('Keep it', { cls: 'btn--ghost', action: 'open-settings' }), PEUI.btn('Delete save', { cls: 'btn--danger', icon: 'trash', action: 'set-delete-confirm' })]) });
   };
-  PEUI.actions['set-delete-confirm'] = function () { var r = PEUI.call(PE().Game.deleteSave); if (!r.ok) return; PEUI.sheet.close(); PE()._state = null; PEUI.toast('Save deleted.'); PEUI.leaveGame(); };
+  PEUI.actions['set-delete-confirm'] = function () { var r = PEUI.call(PE().Game.deleteSave, activeSlot()); if (!r.ok) return; PEUI.sheet.close(); PE()._state = null; PEUI.toast('Save deleted.'); PEUI.leaveGame(); };
 
   /* ---------- Save slots (P6.3) ---------- */
   function slotRow(slot) { var slots = PE().Storage.listSaves(); for (var i = 0; i < slots.length; i++) if (slots[i].slot === slot) return slots[i]; return null; }
