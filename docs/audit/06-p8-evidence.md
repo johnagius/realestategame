@@ -17,9 +17,9 @@ f13+f14 5907c58) with regression tests in `js/sim/tests.js` §33.
 
 | Path | Tool | Result |
 |---|---|---|
-| Full campaign 1850→2030 through the real UI, save/reload mid-run, end screen, legacy recorded once | `tools/playwright/campaign.js` | ⬜ |
-| crash1929 scenario through the real UI to a terminal result | `tools/playwright/campaign.js` | ⬜ |
-| The Long Game gated to campaign mode (f2) in the real UI | `tools/playwright/campaign.js` | ⬜ |
+| Full campaign 1850→2030 through the real UI, save/reload mid-run, end screen, legacy recorded once | `tools/playwright/campaign.js` | ✅ 6/6 — 181 years, 7 heir continuations, ended 2031, reload at 1900 byte-identical |
+| crash1929 scenario through the real UI to a terminal result | `tools/playwright/campaign.js` | ✅ result 'lost' registered at 1945; end card shows the loss honestly |
+| The Long Game gated to campaign mode (f2) in the real UI | `tools/playwright/campaign.js` | ✅ not awarded in scenario mode; awarded on campaign completion |
 
 ## 3. Objective coverage (P8.3)
 
@@ -56,6 +56,7 @@ deterministic replay seeds. Pending.
 
 | Bug | Where | Status |
 |---|---|---|
+| End screen showed campaign victory framing (confetti, "endures", 1850/2030) for lost scenarios and challenges; raw score mislabeled as points | js/ui/year.js showEnd | ✅ fixed 2f33f58, all three mode variants screenshot-verified |
 | (populated as found) | | |
 
 ## 9. Unresolved balance concerns
