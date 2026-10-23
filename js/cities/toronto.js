@@ -64,7 +64,7 @@ var CityDef_Toronto = {
     FRQ:function(){
       var g=new THREE.Group(),E=City3D;
       var Mice=new THREE.MeshPhongMaterial({color:0xd6e4ee,shininess:70});
-      g.add(E.flatPlane(28,28,E.M.HARBOR));
+      var wb=E.flatPlane(28,28,E.M.HARBOR);wb.position.y=-0.3;g.add(wb);
       // Partial ice sheet (harbour water stays visible around it)
       var ice=E.bx(18,0.5,12,Mice,false);ice.position.set(-3,0.05,3);g.add(ice);
       // Snow-pale quay block + crates (shared mansion-trim white)

@@ -34,7 +34,7 @@ var CityDef_Mumbai = {
     GWI:function(){
       var g=new THREE.Group(),E=City3D;
       var Ms=new THREE.MeshPhongMaterial({color:0xc8b080,shininess:35});
-      g.add(E.flatPlane(28,28,E.M.HARBOR));
+      var wb=E.flatPlane(28,28,E.M.HARBOR);wb.position.y=-0.3;g.add(wb);
       // Main arch
       var base=E.bx(16,4,10,Ms);base.position.y=2;g.add(base);
       var body=E.bx(14,18,8,Ms);body.position.y=4+9;g.add(body);

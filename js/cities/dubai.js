@@ -124,7 +124,7 @@ var CityDef_Dubai = {
       bl.position.set(0, 30, 8); g.add(bl);
 
       // Water around
-      g.add(E.flatPlane(28, 28, E.M.WATER));
+      var wb=E.flatPlane(28, 28, E.M.WATER);wb.position.y=-0.3;g.add(wb);
 
       var lb = E.makeLabel('Burj Al Arab'); lb.position.set(0, 70, 0); g.add(lb);
       return g;
@@ -137,7 +137,7 @@ var CityDef_Dubai = {
       var Mjet = new THREE.MeshPhongMaterial({ color: 0xd8f2fa, transparent: true, opacity: 0.75, shininess: 100, specular: 0xffffff });
 
       // Water stays (landmarkGround FNT:'W'); redraw the plane like BAA does
-      g.add(E.flatPlane(28, 28, E.M.WATER));
+      var wb=E.flatPlane(28, 28, E.M.WATER);wb.position.y=-0.3;g.add(wb);
 
       // Basin ring
       var basin = E.cy(7, 8, 1.2, 12, E.M.CONC); basin.position.y = 0.6; g.add(basin);

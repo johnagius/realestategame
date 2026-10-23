@@ -166,6 +166,7 @@
   var SKETCH = (new URLSearchParams(location.search)).get('sketch') === '1';
   function dirProfile() { return DIR ? DIRS[DIR].profile : null; }
   var QINIT = qs.get('q');
+  var CAMDIR = qs.get('camdir'); // debug camera direction "x,y,z" (test tool only)
   var state = { era: 'modern', quality: QINIT === 'low' ? 'low' : 'high', night: 0.55 };
   function render() {
     var def = cityDef();
@@ -179,6 +180,7 @@
     City3D._onBuildingClick = function(cell) { if (!cell.property) document.getElementById('sel').textContent = City3D.BNAMES[cell.t] || cell.t; };
     document.getElementById('dirname').textContent = cityDef().name + ' · ' + (DIR ? DIRS[DIR].name : 'city profile');
     document.querySelectorAll('[data-dir]').forEach(function(x) { x.classList.toggle('on', (x.dataset.dir || null) === DIR); });
+    if (CAMDIR) { var cd = CAMDIR.split(',').map(Number); if (cd.length === 3 && cd.every(function(n) { return isFinite(n); })) { City3D._camDir = new THREE.Vector3(cd[0], cd[1], cd[2]).normalize(); City3D._fitCamera(City3D._container.clientWidth / Math.max(1, City3D._container.clientHeight)); } }
     if (SKETCH && window.SkylineSketch) setTimeout(function() { SkylineSketch.apply(); }, 60);
   }
   render();

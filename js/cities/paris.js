@@ -106,7 +106,7 @@ var CityDef_Paris = {
       var Mrose = new THREE.MeshPhongMaterial({ color: 0x5888a8, emissive: 0x182838, shininess: 60 });
 
       // Water base (it's on an island in the Seine)
-      g.add(E.flatPlane(28, 28, E.M.WATER));
+      var wb=E.flatPlane(28, 28, E.M.WATER);wb.position.y=-0.3;g.add(wb);
 
       // Main nave
       var nave = E.bx(18, 22, 12, Mstone);

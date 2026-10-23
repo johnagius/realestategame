@@ -1021,13 +1021,15 @@ var City3D = {
         if (bg) {
           bg.position.set(x, 0, z);
           bg.traverse(function(m) { if (m.isMesh) m.userData.cell = cell; });
-          self._bldgGroup.add(bg); cell.bGrp = bg; cell.landmark = true;
+          self._bldgGroup.add(bg); cell.bGrp = bg; cell.landmark = true; cell.gated = false;
           self.BNAMES[t] = t;
           return;
         }
       } catch (e) { console.warn('landmark failed', t, e); }
     }
-    cell.landmark = false; cell.filler = !prop;
+    var lmGround = cityDef.landmarkGround && cityDef.landmarkGround[t];
+    if (!lmEraOk && (lmGround === 'W' || lmGround === 'HB')) { cell.landmark = true; cell.gated = true; return; } // gated water landmark: bare water tile, never a filler in the river
+    cell.landmark = false; cell.gated = false; cell.filler = !prop;
     self._placeBuilding(cell, prop ? tileType : (self.BLDG_TYPES.has(t) ? t : 'ST'), prop, false);
   },
 
@@ -2101,12 +2103,13 @@ var City3D = {
         tg.traverse(function(m) { if (m.isMesh && m.geometry) m.geometry.dispose(); });
 
         var cell = { t: tileType, ev: null, evEnd: 0, sp: 1, demo: false, r: r, c: c, x: x, z: z, bGrp: null, evMesh: null, evLight: null,
-          propertyId: prop ? prop.id : null, property: prop, filler: isSlot && !prop, landmark: isLandmark };
+          propertyId: prop ? prop.id : null, property: prop, filler: isSlot && !prop, landmark: isLandmark, terrain: terrainType };
         if (isSlot) self._placeBuilding(cell, tileType, prop, false);
         else if (isLandmark) self._placeLandmarkCell(cell, cityDef, t, tileType, prop, x, z);
         grid[r][c] = cell;
       });
     });
+    this._buildWaterEdges(grid, layout, cityDef, batches);
     this._terrain = this._flushBatches(batches, this._terrainGroup);
     this._buildContactShadows(shadowCells);
     this._flushDetails();
@@ -2119,6 +2122,49 @@ var City3D = {
     // Cap label heights so nothing floats off-screen
     var showLabels = !(this._opts && this._opts.labels === false);
     this._bldgGroup.traverse(function(o) { if (o.userData.label) { o.position.y = Math.min(o.position.y, 96); o.visible = showLabels; } });
+  },
+
+  /* Waterfront finish, batched into the terrain flush (no extra draw calls):
+     1. Quay strips — every land cell orthogonally adjacent to water (W/HB terrain) gets a
+        low stone strip along the shared edge, so waterfronts read as embankments and roads
+        terminate at a quay instead of stopping in mid-air.
+     2. Generic road bridges — a 'W' layout cell (never harbour, never a landmark cell) with
+        roads on both sides of one axis gets a modest era-neutral stone bridge: flat deck
+        overlapping 4 onto each road, side rails, two piers into the water. */
+  _buildWaterEdges: function(grid, layout, cityDef, batches) {
+    var T = this.TILE, M = this.M, self = this;
+    var GH = layout.length, GW = layout[0].length;
+    var g = new THREE.Group();
+    var isWater = function(t) { return t === 'W' || t === 'HB'; };
+    var terAt = function(r, c) { return (r >= 0 && r < GH && c >= 0 && c < GW) ? grid[r][c].terrain : null; };
+    var tokAt = function(r, c) { return (r >= 0 && r < GH && c >= 0 && c < GW) ? layout[r][c] : null; };
+    layout.forEach(function(row, r) {
+      row.forEach(function(t, c) {
+        var cell = grid[r][c];
+        if (!isWater(cell.terrain)) {
+          if (isWater(terAt(r - 1, c))) { var qn = self.bx(T, 0.8, 1.4, M.SIDEW, false); qn.position.set(cell.x, 0.4, cell.z - T / 2 + 0.7); g.add(qn); }
+          if (isWater(terAt(r + 1, c))) { var qs = self.bx(T, 0.8, 1.4, M.SIDEW, false); qs.position.set(cell.x, 0.4, cell.z + T / 2 - 0.7); g.add(qs); }
+          if (isWater(terAt(r, c - 1))) { var qw = self.bx(1.4, 0.8, T, M.SIDEW, false); qw.position.set(cell.x - T / 2 + 0.7, 0.4, cell.z); g.add(qw); }
+          if (isWater(terAt(r, c + 1))) { var qe = self.bx(1.4, 0.8, T, M.SIDEW, false); qe.position.set(cell.x + T / 2 - 0.7, 0.4, cell.z); g.add(qe); }
+        }
+        if (t !== 'W') return; // bridges only over open river water
+        var alongZ = tokAt(r - 1, c) === 'RD' && tokAt(r + 1, c) === 'RD';
+        var alongX = !alongZ && tokAt(r, c - 1) === 'RD' && tokAt(r, c + 1) === 'RD';
+        if (!alongZ && !alongX) return;
+        var L = T + 8; // span the water tile and overlap 4 onto each road tile
+        var deck = self.bx(alongZ ? 6.5 : L, 1.2, alongZ ? L : 6.5, M.CONC);
+        deck.position.set(cell.x, 1.5, cell.z); g.add(deck);
+        [-1, 1].forEach(function(s) {
+          var rail = self.bx(alongZ ? 0.5 : L, 1, alongZ ? L : 0.5, M.SIDEW, false);
+          rail.position.set(cell.x + (alongZ ? s * 3 : 0), 2.6, cell.z + (alongZ ? 0 : s * 3)); g.add(rail);
+          var pier = self.bx(alongZ ? 5.5 : 2.2, 2.2, alongZ ? 2.2 : 5.5, M.CONC);
+          pier.position.set(cell.x + (alongZ ? 0 : s * 7), 0.3, cell.z + (alongZ ? s * 7 : 0)); g.add(pier);
+        });
+      });
+    });
+    if (!g.children.length) return;
+    this._batchGroup(g, batches);
+    g.traverse(function(m) { if (m.isMesh && m.geometry) m.geometry.dispose(); });
   },
 
   _placeBuilding: function(cell, tileType, prop, animate) {
@@ -2261,7 +2307,8 @@ var City3D = {
         if (!cityDef.landmarks[t]) continue;
         var gate = cityDef.landmarkEras && cityDef.landmarkEras[t];
         var shouldLandmark = !(gate && this._eraIdx(era) < this._eraIdx(gate));
-        if (shouldLandmark !== !!cell.landmark && !cell.propertyId) {
+        var lmStanding = !!cell.landmark && !cell.gated; // gated water landmarks keep landmark=true with nothing placed
+        if (shouldLandmark !== lmStanding && !cell.propertyId) {
           if (cell.bGrp) this._removeBuilding(cell);
           cell.ev = null; this._clearEvFX(cell); cell.demo = false; cell.sp = 1;
           this._placeLandmarkCell(cell, cityDef, t, this.BLDG_TYPES.has(t) ? t : 'ST', null, cell.x, cell.z);

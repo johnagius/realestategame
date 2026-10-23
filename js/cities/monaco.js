@@ -58,7 +58,7 @@ var CityDef_Monaco = {
     },
     YHT:function(){
       var g=new THREE.Group(),E=City3D;
-      g.add(E.flatPlane(28,28,E.M.HARBOR));
+      var wb=E.flatPlane(28,28,E.M.HARBOR);wb.position.y=-0.3;g.add(wb);
       // Dock/pier
       var pier=E.bx(22,1.5,4,E.M.CONC);pier.position.set(0,0.75,-8);g.add(pier);
       // Yachts (3)
@@ -77,7 +77,7 @@ var CityDef_Monaco = {
     // SKYLINE-5 signature: yacht-mast cluster — a dense mast forest on the marina
     YMC:function(){
       var g=new THREE.Group(),E=City3D;
-      g.add(E.flatPlane(28,28,E.M.HARBOR));
+      var wb=E.flatPlane(28,28,E.M.HARBOR);wb.position.y=-0.3;g.add(wb);
       // White hulls (shared mansion-trim white)
       var h1=E.bx(3,1.2,9,E.M.MNt);h1.position.set(-5,0.6,3);g.add(h1);
       var h2=E.bx(3.5,1.3,10,E.M.MNt);h2.position.set(5,0.65,-2);g.add(h2);

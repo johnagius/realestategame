@@ -93,35 +93,40 @@ var CityDef_London = {
       return g;
     },
 
-    // Tower Bridge — spanning water
+    // Tower Bridge — spans the Thames along z between the RD at (2,3) and the RD at (4,3)
     TBR: function() {
       var g = new THREE.Group(), E = City3D;
       var Mstone = new THREE.MeshPhongMaterial({ color: 0xa09878, shininess: 25 });
       var Mblue = new THREE.MeshPhongMaterial({ color: 0x4070a0, shininess: 40 });
       var Mcable = new THREE.MeshPhongMaterial({ color: 0x606058, shininess: 20 });
 
-      // Water base
-      g.add(E.flatPlane(28, 28, E.M.WATER));
+      // Water base (aligned with terrain water at y=-0.3)
+      var wb = E.flatPlane(28, 28, E.M.WATER); wb.position.y = -0.3; g.add(wb);
 
-      // Two towers
-      [-8, 8].forEach(function(tx) {
-        var base = E.bx(6, 32, 6, Mstone); base.position.set(tx, 16, 0); g.add(base);
-        var top = E.bx(7, 8, 7, Mblue); top.position.set(tx, 32 + 4, 0); g.add(top);
-        var spire = E.cy(0, 1.5, 10, 4, Mstone); spire.position.set(tx, 40 + 5, 0); g.add(spire);
-        // Windows
-        E._addWinSimple(g, 6, 32, 6, 5, 1, 0);
+      // Two towers near the banks, standing in the shallows
+      [-11, 11].forEach(function(tz) {
+        var tw = new THREE.Group(); tw.position.z = tz; g.add(tw);
+        var base = E.bx(5, 30, 5, Mstone); base.position.set(0, 14.7, 0); tw.add(base);
+        var top = E.bx(6, 7, 6, Mblue); top.position.set(0, 33, 0); tw.add(top);
+        var spire = E.cy(0, 1.4, 9, 4, Mstone); spire.position.set(0, 41, 0); tw.add(spire);
+        E._addWinSimple(tw, 5, 28, 5, 5, 1, 1);
       });
 
-      // Bridge deck
-      var deck = E.bx(24, 2, 6, Mblue); deck.position.set(0, 10, 0); g.add(deck);
-      // Upper walkway
-      var walk = E.bx(16, 1, 3, Mblue); walk.position.set(0, 34, 0); g.add(walk);
+      // Bridge deck along z: spans the 28 of water plus 4 onto each bank road
+      var deck = E.bx(6, 2, 36, Mblue); deck.position.set(0, 10, 0); g.add(deck);
+      // Approach ramps sloping down to the bank roads
+      [-1, 1].forEach(function(s) {
+        var ramp = E.bx(6, 1.2, 10, Mblue);
+        ramp.position.set(0, 5.2, s * 22.5); ramp.rotation.x = s * 0.78; g.add(ramp);
+      });
+      // High-level walkway between the tower tops
+      var walk = E.bx(3, 1, 22, Mblue); walk.position.set(0, 32, 0); g.add(walk);
 
-      // Cables
-      [-12, 12].forEach(function(cx) {
+      // Suspension cables from the walkway down to the deck ends (along z now)
+      [-1, 1].forEach(function(s) {
         var cable = E.cy(0.15, 0.15, 20, 4, Mcable);
-        cable.rotation.z = cx > 0 ? 0.5 : -0.5;
-        cable.position.set(cx, 28, 0); g.add(cable);
+        cable.rotation.x = s * 0.55;
+        cable.position.set(0, 26, s * 15); g.add(cable);
       });
 
       var lb = E.makeLabel('Tower Bridge'); lb.position.set(0, 52, 0); g.add(lb);

@@ -50,6 +50,9 @@ var CityDef_NewYork = {
     ['HB', 'HB', 'SOL','HB', 'HB', 'HB', 'HB'],
   ],
 
+  // Terrain tile drawn under a landmark (default 'LOT'); Liberty stands in the harbour
+  landmarkGround: { SOL: 'HB' },
+
   // Landmark display names
     landmarkEras: { ESB:'crisis', CHR:'crisis', OWT:'digital' },
 
@@ -120,6 +123,9 @@ var CityDef_NewYork = {
     SOL: function() {
       var g = new THREE.Group(), E = City3D;
       var Ms = E.M.SOL;
+      // Harbour water base (aligned with terrain water at y=-0.3) + Liberty Island
+      var wb = E.flatPlane(28, 28, E.M.HARBOR); wb.position.y = -0.3; g.add(wb);
+      var isl = E.cy(11, 12, 1.2, 14, E.M.CONC); isl.scale.set(1, 1, 0.82); isl.position.y = 0.1; g.add(isl);
       var ped = E.bx(8, 16, 8, E.M.CONC); ped.position.y = 8; g.add(ped);
       for (var i = 0; i < 3; i++) { var b = E.bx(8 + i * 0.5, 0.45, 8 + i * 0.5, E.M.CONC, false); b.position.y = i * 4 + 2; g.add(b); }
       var robe = E.cy(3.2, 4.5, 24, 10, Ms); robe.position.y = 16 + 12; g.add(robe);

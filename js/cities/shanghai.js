@@ -89,7 +89,7 @@ var CityDef_Shanghai = {
       var g=new THREE.Group(),E=City3D;
       var Mgold=new THREE.MeshPhongMaterial({color:0xc8a858,shininess:60});
       // Water stays (landmarkGround 'W'), promenade strip on the quay edge
-      g.add(E.flatPlane(28,28,E.M.WATER));
+      var wb=E.flatPlane(28,28,E.M.WATER);wb.position.y=-0.3;g.add(wb);
       var quay=E.bx(24,0.5,5,E.M.SIDEW);quay.position.set(0,0.25,-9);g.add(quay);
       // Three ornate gold lamp posts along the quay
       [-7,0,7].forEach(function(lx){

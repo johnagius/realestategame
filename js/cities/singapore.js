@@ -69,7 +69,7 @@ var CityDef_Singapore = {
     MRL:function(){
       var g=new THREE.Group(),E=City3D;
       var Mstone=new THREE.MeshPhongMaterial({color:0xc8c0b0,shininess:40});
-      g.add(E.flatPlane(28,28,E.M.WATER));
+      var wb=E.flatPlane(28,28,E.M.WATER);wb.position.y=-0.3;g.add(wb);
       // Pedestal
       var ped=E.bx(6,4,6,E.M.CONC);ped.position.y=2;g.add(ped);
       // Body

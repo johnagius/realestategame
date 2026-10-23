@@ -99,6 +99,37 @@ function checkLayout(city, def) {
   }
 }
 
+// Water geometry rules (caught the grey-pads-in-harbour / slot-in-harbour / bridge-to-
+// nowhere class of defects): landmarks surrounded by water must keep water ground,
+// building slots must not sit inside water bodies, and bridge landmarks must connect.
+function checkWaterGeometry(city, def) {
+  const lay = def.layout, H = lay.length, W = lay[0].length;
+  const isW = t => t === 'W' || t === 'HB';
+  const at = (r, c) => (r >= 0 && r < H && c >= 0 && c < W) ? lay[r][c] : null;
+  const lg = def.landmarkGround || {};
+  lay.forEach((row, r) => row.forEach((t, c) => {
+    const waterN = [at(r - 1, c), at(r + 1, c), at(r, c - 1), at(r, c + 1)].filter(isW).length;
+    if (def.landmarks && def.landmarks[t]) {
+      if (waterN >= 2 && lg[t] !== 'W' && lg[t] !== 'HB')
+        bad(city, `landmark '${t}' at ${r},${c} has ${waterN} water neighbours but landmarkGround is '${lg[t] || 'LOT'}'`);
+      const nm = def.landmarkNames && def.landmarkNames[t];
+      if (nm && /bridge/i.test(nm)) {
+        // walk from the bridge cell across contiguous water on each axis; the far side
+        // must be road/land in BOTH directions of at least one axis
+        const spans = [[[-1, 0], [1, 0]], [[0, -1], [0, 1]]].some(dirs => dirs.every(([dr, dc]) => {
+          let r2 = r + dr, c2 = c + dc;
+          while (isW(at(r2, c2))) { r2 += dr; c2 += dc; }
+          const far = at(r2, c2);
+          return far !== null && !isW(far);
+        }));
+        if (!spans) bad(city, `bridge landmark '${t}' (${nm}) at ${r},${c} has no road/land on both sides across the water`);
+      }
+    } else if ((t === 'B' || BLDG.has(t)) && waterN >= 3) {
+      bad(city, `buildable slot '${t}' at ${r},${c} has ${waterN} water neighbours`);
+    }
+  }));
+}
+
 const files = fs.readdirSync(CITY_DIR).filter(f => f.endsWith('.js'));
 const missing = Object.entries(IDS).filter(([id, g]) => !files.includes(id + '.js'));
 missing.forEach(([id]) => bad('registry', `no file for city id '${id}'`));
@@ -112,6 +143,7 @@ for (const [id, g] of Object.entries(IDS)) {
   if (def.id !== id) bad(id, `def.id '${def.id}' != file id`);
   checkProfile(id, def);
   checkLayout(id, def);
+  checkWaterGeometry(id, def);
   if (!findings) process.stdout.write(`ok ${id}  `);
 }
 console.log('');
