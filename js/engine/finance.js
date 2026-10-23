@@ -336,7 +336,7 @@
       income += interest; repaid += Math.min(due, L.principal); L.principal -= due; L.yearsLeft--;
       if (L.principal <= 0) bk.loans.splice(i, 1);
     }
-    s.cash += income + repaid;
+    s.cash += income; // repayments stay in the vault (capital = vault + loans out); only interest leaves the bank
     bk.lastIncome = income; bk.incomeTotal = (bk.incomeTotal || 0) + income;
     s.stats.bankIncome = (s.stats.bankIncome || 0) + income;
     if (income > 0 && report) report.lines.push('The family bank collects ' + U.fmt(income) + ' in interest' + (bk.recalling ? ' while the recall runs.' : '.'));
@@ -389,7 +389,7 @@
   (function (mod, names) {
     for (var i = 0; i < names.length; i++) (function (n) {
       var raw = mod[n]; if (typeof raw !== 'function') return;
-      mod[n] = PE.guard(n, raw); mod['_' + n] = raw;
+      mod[n] = PE.guard(n, raw); if (!mod['_' + n]) mod['_' + n] = raw; // never clobber an internal helper (F._bonds is the holdings accessor)
     })(names[i]);
   })(F, ['bonds', 'buyBond', 'sellBond', 'bank', 'openBank', 'bankRecall']);
 })(typeof window !== 'undefined' ? window : global);

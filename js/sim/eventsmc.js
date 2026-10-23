@@ -43,7 +43,7 @@ function durable(PE) {
     if (p.vacantUntil && s.year < p.vacantUntil) v -= rent * (p.vacantUntil - s.year);
     if (p.rentLockUntil && s.year < p.rentLockUntil) v += rent * (p.rentSetting - 1) * (p.rentLockUntil - s.year) * 0.6;
     else if (!p.lease && p.rentSetting !== 1) v += rent * (p.rentSetting - 1) * (p.rentSetting > 1 ? 0.6 : 1.0); // one year until the player resets it
-    if (p.renovation) { var t = PE.Data.renovation[p.renovation.tier]; v += p.trueValue * (t.uplift * PE.Property.UPLIFT_TO_QUALITY + 0.08) - rent * p.renovation.yearsLeft; }
+    if (p.renovation) { var t = PE.Data.renovation[p.renovation.tier]; v += p.trueValue * ((t ? t.uplift : 0.1) * PE.Property.UPLIFT_TO_QUALITY + 0.08) - rent * p.renovation.yearsLeft; }
     var d = St.district(p.cityId, p.district);
     if (d && d.momentumUntil && s.year < d.momentumUntil) v += p.trueValue * 0.015 * (d.momentumUntil - s.year);
   }

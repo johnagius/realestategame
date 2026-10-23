@@ -1289,6 +1289,287 @@ function loadWith(extra) {
   check('P7: MC check passes for every demo-pack event', fails.length === 0, fails);
 })();
 
+/* ---------- P4.1 Government bonds ---------- */
+(function () {
+  var PE = fresh('chen', 61), s = PE.S(), F = PE.Finance, B = PE.Data.balance;
+  var bv = F.bonds();
+  check('P4.1: the bond market is closed before 1950 (view unavailable, buy refused)', bv.ok && bv.available === false && bv.message.length > 0 && !F.buyBond(100000).ok);
+  check('P4.1: bad inputs return {ok:false,message} and never throw', (function () {
+    var ok = true, threw = false;
+    [function () { return F.buyBond('abc'); }, function () { return F.buyBond(-5); }, function () { return F.sellBond(null); }, function () { return F.sellBond('nope'); }].forEach(function (f) { try { var r = f(); if (!r || r.ok !== false || typeof r.message !== 'string') ok = false; } catch (e) { threw = true; } });
+    return ok && !threw;
+  })());
+  s.year = 1950; s.baseRate = 0.06; s.cash = 1e7;
+  bv = F.bonds();
+  check('P4.1: the Boom era opens the market; the coupon on offer is base rate + 0.5%', bv.ok && bv.available === true && Math.abs(bv.couponNow - 0.065) < 1e-9 && bv.eraName === 'Boom', bv.couponNow);
+  check('P4.1: the minimum subscription scales with the price index', bv.minBuy === Math.max(B.bondMinBuy, Math.round(B.bondMinBuy * s.priceIndex)) && !F.buyBond(bv.minBuy - 1).ok, bv.minBuy);
+  var cash0 = s.cash, amount = 100000;
+  var rb = F.buyBond(amount);
+  check('P4.1: buying reduces cash and creates a holding at base+0.5% maturing in bondTermYears', rb.ok && s.cash === cash0 - amount && rb.bond.face === amount && Math.abs(rb.bond.coupon - 0.065) < 1e-9 && rb.bond.matures === 1950 + B.bondTermYears && s.bonds.length === 1, rb.bond);
+  var hv = F.bonds().holdings[0];
+  check('P4.1: the holdings view carries face, coupon%, years left and market value', hv.id === rb.bond.id && hv.face === amount && hv.couponPct === 6.5 && hv.yearsLeft === B.bondTermYears && hv.marketValue === F._bondMV(s.bonds[0]));
+  check('P4.1: bonds count toward net worth at market value', (function () { var P = fresh('chen', 69), ps = P.S(); ps.year = 1950; ps.baseRate = 0.06; ps.cash = 500000; P.Finance.buyBond(100000); return P.State.netWorth('player') === Math.round(400000 + P.Finance._bondMV(ps.bonds[0])); })());
+  check('P4.1: Finance.summary reports the bond count and market value', F.summary().bonds === 1 && F.summary().bondMarketValue === F._bondMV(s.bonds[0]));
+  // cap: 30% of net worth
+  var cap = Math.round(PE.State.netWorth('player') * B.bondCapPct);
+  var over = F.buyBond(cap + 1000);
+  check('P4.1: total face is capped at 30% of net worth', !over.ok && /capped at 30%/.test(over.message), over.message);
+  var h0 = F.bonds().headroom, face0 = F.bonds().totalFace;
+  var atCap = F.buyBond(h0);
+  check('P4.1: buying exactly the headroom is allowed and shrinks it', atCap.ok && F.bonds().totalFace === face0 + h0 && F.bonds().headroom < h0 && F.bonds().headroom === F.bonds().maxBuy);
+  // market value vs the bank rate
+  s.bonds = [{ id: 'bmv', face: 10000, coupon: 0.065, bought: 1950, matures: 1955 }];
+  var bmv = s.bonds[0];
+  s.baseRate = 0.10;
+  check('P4.1: a higher bank rate pushes the market value below face', F._bondMV(bmv) === Math.round(10000 * (1 + (0.065 - 0.10) * 5)) && F._bondMV(bmv) < 10000, F._bondMV(bmv));
+  s.baseRate = 0.03;
+  check('P4.1: a lower bank rate lifts the market value above face', F._bondMV(bmv) === Math.round(10000 * (1 + (0.065 - 0.03) * 5)) && F._bondMV(bmv) > 10000, F._bondMV(bmv));
+  s.bonds = [{ id: 'bhi', face: 1000, coupon: 0.20, bought: 1950, matures: 1955 }];
+  check('P4.1: market value is clamped at 1.5× face', F._bondMV(s.bonds[0]) === 1500);
+  s.bonds = [{ id: 'blo', face: 1000, coupon: 0.005, bought: 1950, matures: 1955 }]; s.baseRate = 0.15;
+  check('P4.1: market value is clamped at 0.5× face', F._bondMV(s.bonds[0]) === 500);
+  check('P4.1: a matured bond is worth exactly its face', (function () { s.year = 1956; var v = F._bondMV(s.bonds[0]); s.year = 1950; return v === 1000; })());
+  // sell at market value
+  s.baseRate = 0.08;
+  s.bonds = [{ id: 'bsell', face: 10000, coupon: 0.05, bought: 1948, matures: 1953 }];
+  var mv = F._bondMV(s.bonds[0]), c1 = s.cash, rs = F.sellBond('bsell');
+  check('P4.1: selling before maturity pays the market value (below face here), not the face', rs.ok && mv === 10000 * (1 + (0.05 - 0.08) * 3) / 1 && rs.proceeds === mv && mv < 10000 && s.cash === c1 + mv && s.bonds.length === 0, [mv, rs.proceeds]);
+  // coupons and maturity, driven directly
+  s.bonds = [{ id: 'bc1', face: 10000, coupon: 0.05, bought: 1950, matures: 1955 }];
+  s.year = 1952; s.stats.bondIncome = 0; var c2 = s.cash;
+  var inc = F.bondYearly({ lines: [] });
+  check('P4.1: coupons pay face × coupon each year before maturity and are booked', inc === 500 && s.cash === c2 + 500 && s.bonds.length === 1 && s.stats.bondIncome === 500);
+  s.year = 1955; var repM = { lines: [] }, inc2 = F.bondYearly(repM);
+  check('P4.1: at maturity the face returns with the final coupon, the holding is removed and the report tells it', inc2 === 10500 && s.bonds.length === 0 && repM.lines.some(function (l) { return /matures/.test(l); }), inc2);
+  // through the real turn loop
+  var P2 = fresh('chen', 62), s2 = P2.S(); s2.year = 1949; s2.cash = 1e6;
+  clearEvents(P2); P2.Game.endYear(); // now 1950, Boom era
+  var rb2 = P2.Finance.buyBond(50000);
+  var coupon = Math.round(50000 * rb2.bond.coupon), matured = 0, ints = [];
+  for (var y = 0; y < 6; y++) { clearEvents(P2); var rep2 = P2.Game.endYear(); if (!rep2.ok) break; ints.push(rep2.cashFlow.interest); if (rep2.lines.some(function (l) { return /bond matures/.test(l); })) matured++; }
+  check('P4.1: endYear pays the coupon every year and repays the face at maturity (report line, holding gone)', rb2.ok && s2.year === 1956 && matured === 1 && s2.bonds.length === 0 && s2.stats.bondIncome === 6 * coupon + 50000 && ints.every(function (i) { return i >= coupon; }), { bondIncome: s2.stats.bondIncome, coupon: coupon, matured: matured });
+})();
+
+/* ---------- P4.2 Own bank ---------- */
+(function () {
+  var B = load().Data.balance;
+  var P0 = fresh('chen', 63, { perks: ['own_bank'], unlockedPerks: true }), s0 = P0.S(), v0 = P0.Finance.bank();
+  check('P4.2: banking needs the Modern era even with the perk', v0.ok && v0.bank.eraOk === false && v0.bank.perkOk === true && v0.bank.open === false && /Modern era/.test(v0.bank.gate) && !P0.Finance.openBank(1e9).ok);
+  var P1 = fresh('chen', 63), s1 = P1.S(); s1.year = 1985;
+  check('P4.2: the own_bank prestige perk is required in the Modern era', (function () { var v = P1.Finance.bank(); return v.ok && v.bank.eraOk === true && v.bank.perkOk === false && /perk/.test(v.bank.gate) && !P1.Finance.openBank(1e9).ok; })());
+  check('P4.2: bad inputs return {ok:false,message} and never throw', (function () {
+    var ok = true, threw = false;
+    [function () { return P1.Finance.openBank('abc'); }, function () { return P1.Finance.bankRecall(); }].forEach(function (f) { try { var r = f(); if (!r || r.ok !== false || typeof r.message !== 'string') ok = false; } catch (e) { threw = true; } });
+    return ok && !threw;
+  })());
+  // open and lend
+  var PE = fresh('chen', 64, { perks: ['own_bank'], unlockedPerks: true }), s = PE.S(), F = PE.Finance;
+  s.year = 1985; s.cash = 1e6;
+  var min = F.bankMinCapital();
+  check('P4.2: minimum capital is bankMinCapital × the price index', min === Math.round(B.bankMinCapital * s.priceIndex) && !F.openBank(min - 1).ok, min);
+  check('P4.2: opening requires the cash', !F.openBank(s.cash + 1).ok);
+  var c0 = s.cash, cap = min * 2, ro = F.openBank(cap);
+  check('P4.2: opening moves cash into the bank\'s capital and the pool starts idle in the vault', ro.ok && s.cash === c0 - cap && s.bank.capital === cap && s.bank.opened === 1985 && F.bank().bank.open === true && F.bank().bank.vault === cap && F.bank().bank.out === 0, ro);
+  check('P4.2: a second opening is refused', !F.openBank(min).ok);
+  var rivalCash0 = {}; for (var id in s.rivals) rivalCash0[id] = s.rivals[id].cash;
+  var nSolvent = Object.keys(s.rivals).filter(function (x) { return !s.rivals[x].bankrupt && !s.rivals[x].merged; }).length;
+  var repL = { lines: [] }, r1 = F.bankYearly(repL);
+  var view = F.bank().bank;
+  check('P4.2: the idle pool is lent to every solvent rival at base+2.5–4% for bankLoanYears', r1.granted > 0 && s.bank.loans.length === nSolvent && F._loansOut(s.bank) <= cap && s.bank.loans.every(function (L) { return L.rate >= s.baseRate + B.bankSpreadMin - 1e-9 && L.rate <= s.baseRate + B.bankSpreadMax + 1e-9 && L.yearsLeft === B.bankLoanYears && !s.rivals[L.rivalId].bankrupt; }) && repL.lines.some(function (l) { return /lends/.test(l); }), { granted: r1.granted, n: s.bank.loans.length });
+  check('P4.2: borrowers receive the principal in cash and the view lists the loans', Object.keys(s.rivals).some(function (x) { return s.rivals[x].cash > rivalCash0[x]; }) && view.loans.length === s.bank.loans.length && view.loans.every(function (L) { return L.rivalName && L.principal > 0 && L.rate > 0 && L.yearsLeft === B.bankLoanYears; }));
+  check('P4.2: nothing new is lent while the vault is below the deployment floor', (function () { var r = F.bankYearly({ lines: [] }); return r.granted === 0 && s.bank.loans.length === nSolvent; })());
+  // interest, with repayments staying in the vault (net worth conserved)
+  var expInt = 0; s.bank.loans.forEach(function (L) { expInt += Math.round(L.principal * L.rate); });
+  var nw0 = PE.State.netWorth('player'), c1 = s.cash, it0 = s.bank.incomeTotal, si0 = s.stats.bankIncome, repI = { lines: [] };
+  s.bank.loans.forEach(function (L) { L.yearsLeft = 1; }); // force every loan to mature this year
+  var r2 = F.bankYearly(repI);
+  check('P4.2: interest lands in the family cash and is booked (lastIncome, totals, stats, report line)', r2.income === expInt && s.cash >= c1 + expInt && s.bank.lastIncome === expInt && s.bank.incomeTotal === it0 + expInt && s.stats.bankIncome === si0 + expInt && repI.lines.some(function (l) { return /interest/.test(l); }), [r2.income, expInt]);
+  check('P4.2: repaid principal stays in the bank — net worth only grows by the interest', PE.State.netWorth('player') - nw0 === expInt && r2.repaid > 0, { nwDelta: PE.State.netWorth('player') - nw0, income: expInt });
+  // recall
+  var rr = F.bankRecall();
+  check('P4.2: recall stops new lending, arms every loan to repay over bankRecallYears, and is refused twice', rr.ok && s.bank.recalling === true && s.bank.loans.every(function (L) { return L.recallLeft === B.bankRecallYears; }) && !F.bankRecall().ok);
+  var nwR = PE.State.netWorth('player'), intSum = 0, noNew = true, woundLine = false, yrs = 0;
+  while (s.bank && yrs < B.bankRecallYears + 2) { var repR = { lines: [] }, ry = F.bankYearly(repR); intSum += ry.income; if (ry.granted !== 0) noNew = false; if (repR.lines.some(function (l) { return /wound up/.test(l); })) woundLine = true; yrs++; }
+  check('P4.2: the recall winds the bank up in bankRecallYears: capital returns once, loans granted: none', s.bank === null && yrs === B.bankRecallYears && noNew && woundLine && PE.State.netWorth('player') - nwR === intSum, { yrs: yrs, nwDelta: PE.State.netWorth('player') - nwR, intSum: intSum });
+  // write-offs and ruin
+  var P4 = fresh('chen', 65, { perks: ['own_bank'], unlockedPerks: true }), s4 = P4.S();
+  s4.year = 1985; s4.cash = 1e6;
+  P4.Finance.openBank(P4.Finance.bankMinCapital());
+  s4.bank.loans.push({ id: 'lx1', rivalId: 'wong', principal: 5000, rate: 0.08, yearsLeft: 5 });
+  var capW = s4.bank.capital;
+  s4.rivals.wong.bankrupt = true;
+  var repW = { lines: [] }, written = P4.Finance.bankWriteOffs(repW);
+  check('P4.2: a bankrupt borrower\'s loan is written off against the capital', written === 5000 && s4.bank.capital === capW - 5000 && s4.bank.loans.length === 0 && s4.stats.bankWriteOffs === 5000 && repW.lines.some(function (l) { return /writes off/.test(l); }), written);
+  s4.bank.loans.push({ id: 'lx2', rivalId: 'petrov', principal: s4.bank.capital, rate: 0.08, yearsLeft: 5 });
+  s4.rivals.petrov.bankrupt = true;
+  var repW2 = { lines: [] };
+  P4.Finance.bankWriteOffs(repW2);
+  check('P4.2: write-offs that consume the capital ruin the bank', s4.bank === null && repW2.lines.some(function (l) { return /ruined/.test(l); }));
+})();
+
+/* ---------- P4.3 Build-to-suit ---------- */
+(function () {
+  var PE = fresh('chen', 66), s = PE.S(), P = PE.Property, D = PE.Data, B = D.balance;
+  var land = PE.Market.genProperty('london', { type: 'land', district: 'Camden' }); PE.State.setOwner(land, 'player');
+  var house = PE.Market.genProperty('london', { type: 'terrace', condition: 70 }); PE.State.setOwner(house, 'player');
+  var stray = PE.Market.genProperty('london', { type: 'land', district: 'Camden' }); // not owned
+  check('P4.3: commissions refuse non-land, non-owned plots and unknown class/spec', !P.commissionQuote(house.id, 'workhorse', 'standard').ok && !P.commissionQuote(stray.id, 'workhorse', 'standard').ok && !P.commissionQuote(land.id, 'castle', 'standard').ok && !P.commissionQuote(land.id, 'workhorse', 'palatial').ok && !P.commissionBuild(land.id, 'workhorse', 'palatial').ok);
+  var busy = PE.Market.genProperty('london', { type: 'land', district: 'Camden' }); PE.State.setOwner(busy, 'player');
+  s.cash = 1e7; P.renovate(busy.id, 'rebuild');
+  check('P4.3: a plot with work under way cannot take a commission', busy.renovation && !P.commissionQuote(busy.id, 'workhorse', 'standard').ok);
+  // quote math (Chen: no Builder trait, no developer)
+  var q = P.commissionQuote(land.id, 'workhorse', 'standard');
+  var asIf = P.buildAsIfValue(land, 'workhorse'), sp = D.buildSpecs.standard;
+  check('P4.3: total cost = as-if value × spec costFrac, staged evenly with the remainder in the last stage', q.ok && q.totalCost === Math.round(asIf * sp.costFrac) && q.stages === sp.years && q.stageCost === Math.round(q.totalCost / sp.years) && q.lastStage === q.totalCost - q.stageCost * (sp.years - 1), q);
+  check('P4.3: expected value = cost × era factor × spec valueMult, with the low–high band at ± noise', q.expectedValue === Math.round(q.totalCost * P.buildEraFactor() * sp.valueMult) && q.lowEstimate === Math.round(q.expectedValue * (1 - sp.noise)) && q.highEstimate === Math.round(q.expectedValue * (1 + sp.noise)) && q.eraFactor === Math.round(P.buildEraFactor() * 100) / 100, q.expectedValue);
+  check('P4.3: the era factor is 1.10 in the driftless Victorian era and the target is the era-0 type', P.buildEraFactor() === 1.1 && q.targetType === 'terrace' && q.condition === sp.condition);
+  check('P4.3: classes map to the era\'s type (tenement in 1985 is an apartment)', (function () { var P5 = fresh('chen', 67), s5 = P5.S(); s5.year = 1985; var l5 = P5.Market.genProperty('london', { type: 'land' }); P5.State.setOwner(l5, 'player'); var q5 = P5.Property.commissionQuote(l5.id, 'tenement', 'modest'); return q5.ok && q5.targetType === 'apartment'; })());
+  var qd = P.commissionQuote(land.id, 'workhorse', 'standard', true);
+  check('P4.3: Okonkwo & Sons charge ~10% and halve the delay risk', qd.ok && qd.totalCost === P.buildCost(land, 'workhorse', 'standard', true) && qd.developerFee === qd.totalCost - q.totalCost && Math.abs(qd.developerFee / q.totalCost - B.buildDeveloperFee) < 0.01 && qd.delayRiskPct < q.delayRiskPct, [q.totalCost, qd.totalCost]);
+  s.rivals.okonkwo.bankrupt = true;
+  check('P4.3: the developer option fails when Okonkwo is bankrupt', !P.commissionQuote(land.id, 'workhorse', 'standard', true).ok && !P.commissionBuild(land.id, 'workhorse', 'standard', true).ok);
+  s.rivals.okonkwo.bankrupt = false;
+  // build
+  s.cash = q.stageCost - 1;
+  check('P4.3: the first stage must be affordable', !P.commissionBuild(land.id, 'workhorse', 'standard').ok);
+  s.cash = 1e7;
+  var c0 = s.cash, rb = P.commissionBuild(land.id, 'workhorse', 'standard');
+  check('P4.3: commissioning takes the first stage and scaffolds the plot (buildJob + renovation tier build)', rb.ok && s.cash === c0 - q.stageCost && land.buildJob && land.buildJob.paid === 1 && land.buildJob.stages === q.stages && land.renovation && land.renovation.tier === 'build' && s.stats.builds === 1, rb.job);
+  check('P4.3: a busy site refuses a second commission and a renovation', !P.commissionBuild(land.id, 'workhorse', 'standard').ok && !P.renovate(land.id, 'rebuild').ok);
+  // grand build: remaining stages paid automatically, total = quoted cost, delivery on completion
+  var P2 = fresh('chen', 68), s2 = P2.S();
+  var l2 = P2.Market.genProperty('london', { type: 'land', district: 'Camden' }); P2.State.setOwner(l2, 'player'); s2.cash = 1e7;
+  var q2 = P2.Property.commissionQuote(l2.id, 'prestige', 'grand');
+  P2.Property.commissionBuild(l2.id, 'prestige', 'grand');
+  var afterStart = s2.cash, line = null, guard = 0;
+  while (l2.buildJob && guard++ < 6) { var res = P2.Property.progressBuild(l2); if (res) line = res.text; }
+  check('P4.3: the remaining stages are paid automatically; the stages sum to the quoted cost', afterStart - s2.cash === q2.totalCost - q2.stageCost, [afterStart - s2.cash, q2.totalCost - q2.stageCost]);
+  check('P4.3: completion delivers the target type at the spec condition, clears the job, reports and counts it', !l2.buildJob && !l2.renovation && l2.type === 'townhouse' && l2.condition === D.buildSpecs.grand.condition && s2.stats.builds === 1 && s2.stats.buildsDone === 1 && line && /build completes/.test(line), [l2.type, l2.condition, line]);
+  // delivered value inside the quoted band, across seeds
+  var inBand = 0, vals = {}, N = 12;
+  for (var k = 0; k < N; k++) {
+    var Pk = fresh('chen', 200 + k), sk = Pk.S();
+    var lk = Pk.Market.genProperty('london', { type: 'land', district: 'Camden' }); Pk.State.setOwner(lk, 'player'); sk.cash = 1e7;
+    var qk = Pk.Property.commissionQuote(lk.id, 'workhorse', 'standard');
+    Pk.Property.commissionBuild(lk.id, 'workhorse', 'standard');
+    var g = 0; while (lk.buildJob && g++ < 5) Pk.Property.progressBuild(lk);
+    if (!lk.buildJob && lk.type === 'terrace' && lk.condition === 78 && lk.trueValue >= qk.lowEstimate - 2 && lk.trueValue <= qk.highEstimate + 2) inBand++;
+    vals[lk.trueValue] = 1;
+  }
+  check('P4.3: the delivered value lands inside the quoted low–high band (12 seeds)', inBand === N, inBand);
+  check('P4.3: seeded noise varies the delivered value', Object.keys(vals).length >= 3, Object.keys(vals).length);
+  // the delivered value rides the district's drift during the build
+  var P3 = fresh('chen', 69), s3 = P3.S();
+  var l3 = P3.Market.genProperty('london', { type: 'land', district: 'Camden' }); P3.State.setOwner(l3, 'player'); s3.cash = 1e7;
+  var q3 = P3.Property.commissionQuote(l3.id, 'workhorse', 'standard');
+  P3.Property.commissionBuild(l3.id, 'workhorse', 'standard');
+  P3.State.district('london', 'Camden').ppsqm *= 2; // the district doubled while the builders worked
+  var g3 = 0; while (l3.buildJob && g3++ < 5) P3.Property.progressBuild(l3);
+  check('P4.3: a booming district during the build delivers well above the quoted band', !l3.buildJob && l3.trueValue > q3.highEstimate * 1.2, [l3.trueValue, q3.highEstimate]);
+})();
+
+/* ---------- P4.4 City traits v2 ---------- */
+(function () {
+  // helpers: swap a city's trait for one measurement; replay driftPrices on the same RNG state
+  function withTrait(PE, cityId, trait, fn) { var c = PE.Data.cityById[cityId], old = c.trait; c.trait = trait; var r = fn(); c.trait = old; return r; }
+  function driftGain(PE, cityId, dn) {
+    var s = PE.S(), d = PE.State.district(cityId, dn);
+    var rng0 = s.rng, p0 = d.ppsqm, m0 = d.momentum, pi0 = s.priceIndex;
+    PE.Market.driftPrices(null);
+    var g = d.ppsqm / p0 - 1;
+    d.ppsqm = p0; d.momentum = m0; s.priceIndex = pi0; s.rng = rng0;
+    return g;
+  }
+  var B = load().Data.balance, D = load().Data;
+  // rent_control (new_york): rent rises capped at +2%/yr; vacancy −0.03
+  var PE = fresh('chen', 71), s = PE.S();
+  var ny = PE.Market.genProperty('new_york', { type: 'terrace', condition: 70 }); PE.State.setOwner(ny, 'player');
+  check('P4.4 rent_control: rent rises are capped at +2% a year', PE.Property.setRent(ny.id, 1.2).rentSetting === 1.02 && PE.Property.setRent(ny.id, 1.2).rentSetting === 1.04 && PE.Property.setRent(ny.id, 0.8).rentSetting === 0.8);
+  check('P4.4 rent_control: vacancy is 3 points lower', (function () {
+    var mean = function (fn) { var t = 0; for (var i = 0; i < 40; i++) t += fn(); return t / 40; };
+    ny.rentSetting = 1.0;
+    var withC = mean(function () { return PE.Property.occupancyFor(ny, { mgmt: 'self' }); });
+    var without = withTrait(PE, 'new_york', 'heritage_city', function () { return mean(function () { return PE.Property.occupancyFor(ny, { mgmt: 'self' }); }); });
+    var diff = withC - without;
+    return diff > 0.01 && diff < 0.05;
+  })());
+  // redevelopment (berlin): renovation ×0.8; below-average districts drift +redevelopmentDrift
+  var Pb = fresh('chen', 72), sb = Pb.S();
+  var bl = Pb.Market.genProperty('berlin', { type: 'terrace', condition: 40 }); Pb.State.setOwner(bl, 'player');
+  var cWith = Pb.Property.renovationCost(bl, 'refurbish');
+  var cWithout = withTrait(Pb, 'berlin', 'heritage_city', function () { return Pb.Property.renovationCost(bl, 'refurbish'); });
+  check('P4.4 redevelopment: renovation costs 80%', Math.abs(cWith / cWithout - 0.8) < 0.01, [cWith, cWithout]);
+  var avg = 0, dn = []; for (var k in sb.cities.berlin.districts) { avg += sb.cities.berlin.districts[k].ppsqm; dn.push(k); } avg /= dn.length;
+  var below = dn.filter(function (x) { return sb.cities.berlin.districts[x].ppsqm < avg; })[0];
+  var above = dn.filter(function (x) { return sb.cities.berlin.districts[x].ppsqm > avg; })[0];
+  var gWith = driftGain(Pb, 'berlin', below), gWithout = withTrait(Pb, 'berlin', 'heritage_city', function () { return driftGain(Pb, 'berlin', below); });
+  check('P4.4 redevelopment: below-average districts appreciate +redevelopmentDrift a year', Math.abs((gWith - gWithout) - B.redevelopmentDrift) < 1e-9, [gWith - gWithout, B.redevelopmentDrift]);
+  var gA = driftGain(Pb, 'berlin', above), gA0 = withTrait(Pb, 'berlin', 'heritage_city', function () { return driftGain(Pb, 'berlin', above); });
+  check('P4.4 redevelopment: above-average districts get no bonus', Math.abs(gA - gA0) < 1e-9);
+  // tax_haven (monaco): no property tax; purchase prices ×1.12
+  var Pc = fresh('chen', 73), sc = Pc.S();
+  var mo = Pc.Market.genProperty('monaco', { type: 'villa', condition: 80 }); Pc.State.setOwner(mo, 'player');
+  var taxWith = Pc.Property.costsFor(mo, 1000, { mgmt: 'self' }).tax;
+  var taxWithout = withTrait(Pc, 'monaco', 'heritage_city', function () { return Pc.Property.costsFor(mo, 1000, { mgmt: 'self' }).tax; });
+  check('P4.4 tax_haven: no property tax', taxWith === 0 && taxWithout === Math.round(mo.trueValue * D.cityById.monaco.taxRate * Pc.State.era().propTaxMult) && taxWithout > 0, [taxWith, taxWithout]);
+  var tv = mo.trueValue, aWith = Pc.Market.list(mo, 'estate', null, 1).askingPrice;
+  delete sc.listings[mo.id];
+  var aWithout = withTrait(Pc, 'monaco', 'heritage_city', function () { var a = Pc.Market.list(mo, 'estate', null, 1).askingPrice; delete sc.listings[mo.id]; return a; });
+  check('P4.4 tax_haven: asking prices are 12% higher', aWith === Math.round(tv * 1.12) && aWithout === Math.round(tv), [aWith, aWithout]);
+  // tech_hub (tokyo): studio/apartment/office rent ×1.15 from era idx 4; drift +techHubDrift Modern+
+  var Pd = fresh('chen', 74), sd = Pd.S(); sd.year = 1985;
+  var of = Pd.Market.genProperty('tokyo', { type: 'office', condition: 80 }); Pd.State.setOwner(of, 'player');
+  var tr = Pd.Market.genProperty('tokyo', { type: 'house', condition: 80 }); Pd.State.setOwner(tr, 'player');
+  var rWith = Pd.Property.grossRent(of);
+  var rWithout = withTrait(Pd, 'tokyo', 'heritage_city', function () { return Pd.Property.grossRent(of); });
+  var rHouse = withTrait(Pd, 'tokyo', 'heritage_city', function () { return Pd.Property.grossRent(tr); });
+  check('P4.4 tech_hub: office rent ×1.15 in the Modern era, other types untouched', Math.abs(rWith / rWithout - 1.15) < 0.005 && Pd.Property.grossRent(tr) === rHouse, [rWith, rWithout]);
+  sd.year = 1850;
+  check('P4.4 tech_hub: no rent bonus before the Modern era', (function () { var a = Pd.Property.grossRent(of); var b = withTrait(Pd, 'tokyo', 'heritage_city', function () { return Pd.Property.grossRent(of); }); return a === b; })());
+  sd.year = 1985;
+  var gT = driftGain(Pd, 'tokyo', 'Shibuya'), gT0 = withTrait(Pd, 'tokyo', 'heritage_city', function () { return driftGain(Pd, 'tokyo', 'Shibuya'); });
+  check('P4.4 tech_hub: districts drift +techHubDrift in the Modern era', Math.abs((gT - gT0) - B.techHubDrift) < 1e-9, [gT - gT0, B.techHubDrift]);
+  sd.year = 1850;
+  var gT1 = driftGain(Pd, 'tokyo', 'Shibuya'), gT2 = withTrait(Pd, 'tokyo', 'heritage_city', function () { return driftGain(Pd, 'tokyo', 'Shibuya'); });
+  check('P4.4 tech_hub: no drift bonus before the Modern era', Math.abs(gT1 - gT2) < 1e-9);
+  // heritage_city (london): condition floor 30; refurbish +1 year
+  var Pe = fresh('chen', 75), se = Pe.S();
+  var lo = Pe.Market.genProperty('london', { type: 'terrace', condition: 31 }); Pe.State.setOwner(lo, 'player');
+  var floorOk = true; for (var i = 0; i < 20; i++) { Pe.Property.decay(lo, { mgmt: 'none' }); if (lo.condition < 30) floorOk = false; }
+  check('P4.4 heritage_city: condition never decays below 30', floorOk && lo.condition === 30, lo.condition);
+  check('P4.4 heritage_city: without the trait the same building decays through the floor', withTrait(Pe, 'london', 'rent_control', function () { for (var j = 0; j < 20; j++) Pe.Property.decay(lo, { mgmt: 'none' }); return lo.condition < 30; }), lo.condition);
+  check('P4.4 heritage_city: refurbish takes a year longer', (function () {
+    var yWith = Pe.Property.renovationOptions(lo).filter(function (o) { return o.tier === 'refurbish'; })[0].years;
+    var yWithout = withTrait(Pe, 'london', 'rent_control', function () { return Pe.Property.renovationOptions(lo).filter(function (o) { return o.tier === 'refurbish'; })[0].years; });
+    return yWith === D.renovation.refurbish.years + 1 && yWithout === D.renovation.refurbish.years;
+  })());
+  // boom_bust (barcelona): cycle value swings ×2
+  var Pf = fresh('chen', 76), sf = Pf.S(); sf.cycle.phase = 'boom';
+  var gB = driftGain(Pf, 'barcelona', 'Gràcia'), gB0 = withTrait(Pf, 'barcelona', 'heritage_city', function () { return driftGain(Pf, 'barcelona', 'Gràcia'); });
+  check('P4.4 boom_bust: the cycle\'s price swing is doubled', Math.abs((gB - gB0) - D.cycles.boom.value) < 1e-9, [gB - gB0, D.cycles.boom.value]);
+  sf.cycle.phase = 'depression';
+  var gD = driftGain(Pf, 'barcelona', 'Gràcia'), gD0 = withTrait(Pf, 'barcelona', 'heritage_city', function () { return driftGain(Pf, 'barcelona', 'Gràcia'); });
+  check('P4.4 boom_bust: the bust bites twice as hard too', Math.abs((gD - gD0) - D.cycles.depression.value) < 1e-9, [gD - gD0, D.cycles.depression.value]);
+  // tourism (miami): rent rides the cycle
+  var Pg = fresh('chen', 77), sg = Pg.S();
+  var mi = Pg.Market.genProperty('miami', { type: 'house', condition: 80 }); Pg.State.setOwner(mi, 'player');
+  ['boom', 'growth', 'stagnation', 'recession', 'depression'].forEach(function (ph) {
+    sg.cycle.phase = ph;
+    var a = Pg.Property.grossRent(mi);
+    var b = withTrait(Pg, 'miami', 'heritage_city', function () { return Pg.Property.grossRent(mi); });
+    check('P4.4 tourism: ' + ph + ' rent × ' + D.cycles[ph].tourismMult, a === Math.round(b * D.cycles[ph].tourismMult), [a, b]);
+  });
+  sg.cycle.phase = 'growth';
+  // foreign_buyer (sydney): stamp duty +6%; drift +foreignBuyerDrift
+  var Ph = fresh('chen', 78), sh = Ph.S();
+  var sy = Ph.Market.genProperty('sydney', { type: 'terrace', condition: 70 }); Ph.State.setOwner(sy, 'player');
+  var sdWith = Ph.Market.stampDuty(sy, 100000);
+  var sdWithout = withTrait(Ph, 'sydney', 'heritage_city', function () { return Ph.Market.stampDuty(sy, 100000); });
+  check('P4.4 foreign_buyer: stamp duty carries a 6% surcharge', sdWith - sdWithout === 6000 && sdWithout === Math.round(100000 * Ph.State.era().stampDuty), [sdWith, sdWithout]);
+  var gF = driftGain(Ph, 'sydney', 'Bondi'), gF0 = withTrait(Ph, 'sydney', 'heritage_city', function () { return driftGain(Ph, 'sydney', 'Bondi'); });
+  check('P4.4 foreign_buyer: districts drift +foreignBuyerDrift a year', Math.abs((gF - gF0) - B.foreignBuyerDrift) < 1e-9, [gF - gF0, B.foreignBuyerDrift]);
+})();
+
 /* ---------- Summary ---------- */
 console.log('tests: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) { console.log('FAILURES:'); failures.forEach(function (f) { console.log('  - ' + f); }); }
