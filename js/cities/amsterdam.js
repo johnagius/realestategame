@@ -29,7 +29,7 @@ var CityDef_Amsterdam = {
   ],
   // Terrain tile drawn under a landmark (default 'LOT'); the arcade keeps its canal water
   landmarkGround:{WFA:'W'},
-  landmarkNames:{CNL:'🏠 Canal Houses',WML:'🌷 Windmill',WFA:'Waterfront Arcade'},
+  landmarkNames:{CNL:'Canal Houses',WML:'Windmill',WFA:'Waterfront Arcade'},
   landmarks:{
     CNL:function(){
       var g=new THREE.Group(),E=City3D;

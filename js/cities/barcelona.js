@@ -30,7 +30,7 @@ var CityDef_Barcelona = {
   ],
   // Terrain tile drawn under a landmark (default 'LOT'); the spire keeps its park
   landmarkGround:{GAU:'CP'},
-  landmarkNames:{SAG:'⛪ Sagrada Família',PGU:'🦎 Park Güell',GAU:'Gaudí Mosaic Spire'},
+  landmarkNames:{SAG:'Sagrada Família',PGU:'Park Güell',GAU:'Gaudí Mosaic Spire'},
   landmarks:{
     SAG:function(){
       var g=new THREE.Group(),E=City3D;

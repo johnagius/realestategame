@@ -54,10 +54,10 @@ var CityDef_NewYork = {
     landmarkEras: { ESB:'crisis', CHR:'crisis', OWT:'digital' },
 
   landmarkNames: {
-    ESB: '🏛 Empire State Building',
-    CHR: '✦ Chrysler Building',
-    OWT: '🏙 One World Trade Center',
-    SOL: '🗽 Statue of Liberty',
+    ESB: 'Empire State Building',
+    CHR: 'Chrysler Building',
+    OWT: 'One World Trade Center',
+    SOL: 'Statue of Liberty',
     BST: 'Brownstone Stoop Row',
   },
 
@@ -138,7 +138,7 @@ var CityDef_NewYork = {
       var flame = E.sphr(1.5, 6, new THREE.MeshPhongMaterial({ color: 0xffaa22, emissive: 0xff6000 }));
       flame.position.set(7.8, 16 + 24 + 12.5, 0); g.add(flame);
       var fl = new THREE.PointLight(0xffaa22, 1.5, 42); fl.position.set(7.8, 16 + 24 + 13, 0); g.add(fl);
-      var lb = E.makeLabel('🗽 Statue of Liberty'); lb.position.set(0, 16 + 24 + 22, 0); g.add(lb);
+      var lb = E.makeLabel('Statue of Liberty'); lb.position.set(0, 16 + 24 + 22, 0); g.add(lb);
       return g;
     },
 

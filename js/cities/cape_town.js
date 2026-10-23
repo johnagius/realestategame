@@ -37,7 +37,7 @@ var CityDef_CapeTown = {
   ],
   // Terrain tile drawn under a landmark (default 'LOT'); the ridge keeps countryside
   landmarkGround: { RGE:'CT' },
-  landmarkNames:{TBM:'⛰️ Table Mountain',BOK:'🏠 Bo-Kaap Houses',RGE:'Twelve Apostles Ridge'},
+  landmarkNames:{TBM:'Table Mountain',BOK:'Bo-Kaap Houses',RGE:'Twelve Apostles Ridge'},
   landmarks:{
     TBM:function(){
       var g=new THREE.Group(),E=City3D;

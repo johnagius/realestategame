@@ -33,7 +33,7 @@ var CityDef_Toronto = {
   landmarkGround: { FRQ:'HB' },
   // CN Tower rises 1976 — era-gated like London's Shard (DESIGN-DIRECTION §4)
   landmarkEras: { CNT:'modern' },
-  landmarkNames:{CNT:'🗼 CN Tower',FRQ:'Frozen Quay'},
+  landmarkNames:{CNT:'CN Tower',FRQ:'Frozen Quay'},
   landmarks:{
     CNT:function(){
       var g=new THREE.Group(),E=City3D;

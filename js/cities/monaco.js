@@ -28,7 +28,7 @@ var CityDef_Monaco = {
   ],
   // Terrain tile drawn under a landmark (default 'LOT'); water landmarks keep their water
   landmarkGround: { YHT:'HB', YMC:'HB' },
-  landmarkNames:{CAS:'🎰 Monte Carlo Casino',YHT:'🛥️ Yacht Harbor',YMC:'Yacht Marina'},
+  landmarkNames:{CAS:'Monte Carlo Casino',YHT:'Yacht Harbor',YMC:'Yacht Marina'},
   landmarks:{
     CAS:function(){
       var g=new THREE.Group(),E=City3D;

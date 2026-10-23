@@ -29,7 +29,7 @@ var CityDef_Berlin = {
   ],
   // Terrain tile drawn under a landmark (default 'LOT'); the column keeps its park
   landmarkGround:{VIC:'CP'},
-  landmarkNames:{BRG:'🚪 Brandenburg Gate',TVT:'📡 TV Tower',VIC:'Victory Column'},
+  landmarkNames:{BRG:'Brandenburg Gate',TVT:'TV Tower',VIC:'Victory Column'},
   landmarks:{
     BRG:function(){
       var g=new THREE.Group(),E=City3D;

@@ -39,7 +39,7 @@ var CityDef_Singapore = {
   landmarkGround: { MRL:'W' },
   // Supertrees are a 2012 Gardens-by-the-Bay piece — digital era only
   landmarkEras: { SUP:'digital' },
-  landmarkNames:{MBS:'🏨 Marina Bay Sands',MRL:'🦁 Merlion',SUP:'Supertree Grove'},
+  landmarkNames:{MBS:'Marina Bay Sands',MRL:'Merlion',SUP:'Supertree Grove'},
   landmarks:{
     MBS:function(){
       var g=new THREE.Group(),E=City3D;

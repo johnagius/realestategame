@@ -232,9 +232,4 @@
     <line x1="1150" y1="580" x2="1150" y2="600"/>
   </g>
 
-  <!-- Vignette overlay -->
-  <rect width="1200" height="800" fill="url(#sky)" opacity="0" />
-  <rect width="1200" height="800" rx="0">
-    <animate attributeName="opacity" from="0" to="0" dur="1s"/>
-  </rect>
 </svg>

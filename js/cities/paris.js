@@ -43,9 +43,9 @@ var CityDef_Paris = {
   landmarkGround: { NTD: 'W', CAF: 'RD' },
 
   landmarkNames: {
-    EIF: '🗼 Eiffel Tower',
-    NTD: '⛪ Notre-Dame',
-    ARC: '🏛️ Arc de Triomphe',
+    EIF: 'Eiffel Tower',
+    NTD: 'Notre-Dame',
+    ARC: 'Arc de Triomphe',
     CAF: 'Boulevard Café Row',
   },
 

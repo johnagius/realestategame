@@ -30,7 +30,7 @@ var CityDef_Rome = {
   ],
   // Terrain tile drawn under a landmark (default 'LOT'); the ruin keeps its park
   landmarkGround:{AQD:'CP'},
-  landmarkNames:{COL:'🏛️ Colosseum',SPB:'⛪ St. Peter\'s',AQD:'Aqueduct Ruin'},
+  landmarkNames:{COL:'Colosseum',SPB:'St. Peter\'s',AQD:'Aqueduct Ruin'},
   landmarks:{
     COL:function(){
       var g=new THREE.Group(),E=City3D;

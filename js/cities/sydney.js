@@ -41,8 +41,8 @@ var CityDef_Sydney = {
     landmarkEras: { OPH:'boom', HBR:'crisis' },
 
   landmarkNames: {
-    OPH: '🎭 Sydney Opera House',
-    HBR: '🌉 Harbour Bridge',
+    OPH: 'Sydney Opera House',
+    HBR: 'Harbour Bridge',
   },
 
   landmarks: {

@@ -45,8 +45,8 @@ var CityDef_Tokyo = {
     landmarkEras: { TTW:'boom', TMP:'gilded' },
 
   landmarkNames: {
-    TTW: '🗼 Tokyo Tower',
-    TMP: '⛩️ Meiji Shrine',
+    TTW: 'Tokyo Tower',
+    TMP: 'Meiji Shrine',
     CHL: 'Cherry Lane',
   },
 

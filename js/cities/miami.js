@@ -38,7 +38,7 @@ var CityDef_Miami = {
   ],
   // Pastel deco row is a 1930s style — era-gated to crisis (Art Deco period)
   landmarkEras:{PDR:'crisis'},
-  landmarkNames:{FTW:'🗽 Freedom Tower',ADC:'🌴 Art Deco District',PDR:'Deco Waterfront Row'},
+  landmarkNames:{FTW:'Freedom Tower',ADC:'Art Deco District',PDR:'Deco Waterfront Row'},
   landmarks:{
     FTW:function(){
       var g=new THREE.Group(),E=City3D;

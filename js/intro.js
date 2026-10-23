@@ -11,7 +11,7 @@
      Splash.currentEra()
 
    Needs: js/vendor/three.min.js, js/city3d-engine.js, js/cities/london.js, css/splash.css
-   Degrades to a CSS silhouette skyline (css/splash.css) when WebGL is unavailable.
+   Degrades to the illustrated dusk panorama (assets/splash-bg.svg) when WebGL is unavailable.
    ======================================== */
 
 var Splash = {
@@ -59,7 +59,7 @@ var Splash = {
     var el = document.createElement('div');
     el.className = 'sp-hero';
     el.innerHTML = '<div class="sp-hero-canvas"></div>' +
-      '<div class="sp-hero-fallback"><div class="sp-sky"></div><div class="sp-stars"></div><div class="sp-skyline sp-skyline--far"></div><div class="sp-skyline sp-skyline--near"></div><div class="sp-lights"></div><div class="sp-fog"></div></div>' +
+      '<div class="sp-hero-fallback"><img class="sp-hero-art" src="assets/splash-bg.svg" alt=""></div>' +
       '<div class="sp-hero-vignette"></div>' +
       '<div class="sp-era-tag"><span class="sp-era-city">London</span><span class="sp-era-sep"></span><span class="sp-era-year">1850</span><span class="sp-era-sep"></span><span class="sp-era-name">Victorian</span></div>';
     containerEl.insertBefore(el, containerEl.firstChild);

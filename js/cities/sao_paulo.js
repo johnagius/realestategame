@@ -36,7 +36,7 @@ var CityDef_SaoPaulo = {
     ['VI','RD','ST','RD','CM','RD','WR'],
     ['CP','CP','IBP','MUR','CP','CT','CT'],
   ],
-  landmarkNames:{PAV:'🏙️ Paulista Towers',IBP:'🌳 Ibirapuera Park',MUR:'Mural Terrace Wall'},
+  landmarkNames:{PAV:'Paulista Towers',IBP:'Ibirapuera Park',MUR:'Mural Terrace Wall'},
   landmarks:{
     PAV:function(){
       var g=new THREE.Group(),E=City3D;

@@ -53,9 +53,9 @@ var CityDef_London = {
   landmarkEras: { TBR:'gilded', SHD:'digital' },
 
   landmarkNames: {
-    BIG: '🕐 Big Ben & Parliament',
-    TBR: '🌉 Tower Bridge',
-    SHD: '🏙 The Shard',
+    BIG: 'Big Ben & Parliament',
+    TBR: 'Tower Bridge',
+    SHD: 'The Shard',
   },
 
   landmarks: {

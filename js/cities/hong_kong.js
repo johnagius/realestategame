@@ -29,7 +29,7 @@ var CityDef_HongKong = {
   ],
   // Terrain tile drawn under a landmark (default 'LOT'); the ridge keeps its country tile
   landmarkGround: { HIL:'CT' },
-  landmarkNames:{ICC:'🏙️ ICC Tower',VPK:'⛰️ Victoria Peak',HIL:'Peak Ridge'},
+  landmarkNames:{ICC:'ICC Tower',VPK:'Victoria Peak',HIL:'Peak Ridge'},
   landmarks:{
     ICC:function(){
       var g=new THREE.Group(),E=City3D;

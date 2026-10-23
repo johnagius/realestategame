@@ -37,7 +37,7 @@ var CityDef_LosAngeles = {
   ],
   // Terrain tile drawn under a landmark (default 'LOT'); the ridge keeps countryside
   landmarkGround: { HIL:'CT' },
-  landmarkNames:{HWS:'🎬 Hollywood Sign',GRF:'🔭 Griffith Observatory',HIL:'Hollywood Hills'},
+  landmarkNames:{HWS:'Hollywood Sign',GRF:'Griffith Observatory',HIL:'Hollywood Hills'},
   landmarks:{
     HWS:function(){
       var g=new THREE.Group(),E=City3D;

@@ -29,7 +29,7 @@ var CityDef_Mumbai = {
   ],
   // Terrain tile drawn under a landmark (default 'LOT'); water landmarks keep their water
   landmarkGround: { GWI:'HB' },
-  landmarkNames:{GWI:'🕌 Gateway of India',TAJ:'🏨 Taj Palace Hotel'},
+  landmarkNames:{GWI:'Gateway of India',TAJ:'Taj Palace Hotel'},
   landmarks:{
     GWI:function(){
       var g=new THREE.Group(),E=City3D;

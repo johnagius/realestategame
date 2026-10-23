@@ -50,8 +50,8 @@ var CityDef_Dubai = {
     landmarkEras: { BKH:'digital', BAA:'digital', FNT:'digital' },
 
   landmarkNames: {
-    BKH: '🏗️ Burj Khalifa',
-    BAA: '⛵ Burj Al Arab',
+    BKH: 'Burj Khalifa',
+    BAA: 'Burj Al Arab',
     FNT: 'Fountain Jets',
   },
 

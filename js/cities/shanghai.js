@@ -37,7 +37,7 @@ var CityDef_Shanghai = {
   ],
   // Terrain tile drawn under a landmark (default 'LOT'); water landmarks keep their water
   landmarkGround: { BLR:'W' },
-  landmarkNames:{OPT:'🏯 Oriental Pearl Tower',BND:'🏛️ The Bund',BLR:'Bund Lamp Row'},
+  landmarkNames:{OPT:'Oriental Pearl Tower',BND:'The Bund',BLR:'Bund Lamp Row'},
   landmarks:{
     OPT:function(){
       var g=new THREE.Group(),E=City3D;
