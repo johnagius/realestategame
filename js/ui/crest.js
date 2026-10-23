@@ -195,4 +195,26 @@
     return '#3D5A80';
   }
   PEUI.crestMotto = function (id) { return (SPECS[id] && SPECS[id].motto) || ''; };
+
+  /* ---------- engraved portraits (ENG-C1) ----------
+     assets/portraits/<id>.svg: two-ink engraving busts for every house, drawn
+     to read at 30px by silhouette. Use for hero spots, leaderboard rows and
+     family cards; crests stay for tiny inline marks. Unknown ids fall back to
+     the heraldic crest. */
+  var PORTRAITS = { chen: 1, silva: 1, armstrong: 1, vanderbilt: 1, rothschild: 1, wong: 1, al_rashid: 1, petrov: 1, martinez: 1, okonkwo: 1, hartwell: 1 };
+  PEUI.hasPortrait = function (id) { return !!PORTRAITS[id]; };
+  /* PEUI.portrait('wong', {size:40}) or PEUI.portrait({id, name}, {size:40}) */
+  PEUI.portrait = function (idOrDef, opts) {
+    opts = opts || {};
+    var id = typeof idOrDef === 'string' ? idOrDef : (idOrDef && idOrDef.id);
+    if (!PORTRAITS[id]) return PEUI.crest(idOrDef, opts);
+    var size = opts.size || 40;
+    var img = document.createElement('img');
+    img.src = 'assets/portraits/' + id + '.svg';
+    img.width = size;
+    img.height = Math.round(size * 1.25);
+    img.className = 'portrait';
+    img.alt = ((typeof idOrDef === 'object' && idOrDef && idOrDef.name) || id) + ' portrait';
+    return img;
+  };
 })(window);

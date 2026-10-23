@@ -42,7 +42,7 @@
     var prev = snap.prev[r.id], move = prev ? prev - r.rank : 0;
     var c = h('div', { class: 'card rival' + (r.isPlayer ? ' rival--player' : ''), 'data-action': r.isPlayer ? null : 'open-rival', 'data-id': r.id, role: r.isPlayer ? null : 'button', tabindex: r.isPlayer ? null : '0', 'aria-label': r.name + ', rank ' + r.rank + (r.isPlayer ? '' : ', tap for details') });
     c.appendChild(h('div', {}, [h('div', { class: 'rival__rank', text: '#' + r.rank }), h('div', { class: 'rival__move ' + (move > 0 ? 'pos' : move < 0 ? 'neg' : 'muted') }, [icon(move > 0 ? 'arrow-up' : move < 0 ? 'arrow-down' : 'arrow-flat', 'ic--sm', move > 0 ? 'Up ' + move : move < 0 ? 'Down ' + (-move) : 'No change'), move ? String(Math.abs(move)) : ''])]));
-    c.appendChild(PEUI.crest(r.isPlayer ? { id: PE().S().familyId, name: r.name, color: r.color } : { id: r.id, name: r.name, color: r.color }, { size: 40 }));
+    c.appendChild(PEUI.portrait(r.isPlayer ? { id: PE().S().familyId, name: r.name } : { id: r.id, name: r.name }, { size: 40 }));
     var name = h('div', { class: 'rival__name' }, [r.name]);
     if (r.isPlayer) name.appendChild(PEUI.badge('You', 'gold'));
     if (r.allied) name.appendChild(PEUI.badge('Allied', 'gold'));
@@ -80,10 +80,11 @@
     var def = PE().Data.rivalById(r.id);
     var body = [];
     body.push(h('div', { class: 'rival-hero' }, [
-      PEUI.crest({ id: r.id, name: r.name, color: r.color }, { size: 76, motto: true }),
+      PEUI.portrait({ id: r.id, name: r.name }, { size: 76 }),
       h('div', { class: 'rival-hero__meta' }, [
         h('div', { class: 'rival__name rival-hero__name', text: r.name }),
         h('div', { class: 'small muted', text: def.archetype + ' · ' + (def.prefers === 'any' ? 'plays every market' : 'wants ' + def.prefers + ' buildings') + (r.bankrupt ? ' · bankrupt' : '') }),
+        PEUI.crestMotto(r.id) ? h('div', { class: 'small muted', style: 'font-style:italic', text: '“' + PEUI.crestMotto(r.id) + '”' }) : null,
         r.lastAction ? h('div', { class: 'rival-hero__quote', text: '“' + r.lastAction + '”' }) : null
       ])
     ]));

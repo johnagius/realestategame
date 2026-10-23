@@ -10,7 +10,7 @@ Start here, in this order:
 ## Layout
 - `js/engine/` — game engine (`PE.*` globals, load order in `ORDER.txt`). Pure, seeded, headless. All tunables in `js/engine/data.js` (`PE.Data.balance`).
 - `js/sim/` — Node harness: `tests.js`, `balance.js`, `players.js`.
-- `js/ui/` — player UI (`PEUI`). `css/tokens.css`, `css/components.css`, `css/app.css` design system. `assets/icons.svg` icon sprite (no emoji as icons).
+- `js/ui/` — player UI (`PEUI`). `css/tokens.css`, `css/components.css`, `css/app.css` design system. `assets/icons.svg` icon sprite (no emoji as icons). `assets/portraits/*.svg` engraved house busts via `PEUI.portrait(id, {size})` (crests stay for tiny inline marks). `assets/fonts/` vendored woff2; `assets/splash-bg.svg` is the no-WebGL splash hero.
 - `js/city3d-engine.js`, `js/cities/*.js` — 3D city; `js/intro.js` + `css/splash.css` — start screen.
 - `js/vendor/` — vendored libs (three.js). No CDN at runtime.
 - `tools/playwright/` — browser verification scripts. `tools/3d-testpages/` — renderer test pages.

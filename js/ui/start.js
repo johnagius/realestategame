@@ -10,7 +10,7 @@
   function dynastyCard(s) {
     var card = h('div', { class: 'sp-dynasty' });
     var st0 = root.PE.Game.state();
-    card.appendChild(h('div', { class: 'sp-dynasty-crest' }, PEUI.crest({ id: st0 ? st0.familyId : 'chen', name: 'House ' + (st0 && st0.dynasty ? st0.dynasty.surname : s.family), color: s.color }, { size: 56 })));
+    card.appendChild(h('div', { class: 'sp-dynasty-crest' }, PEUI.portrait({ id: st0 ? st0.familyId : 'chen', name: 'House ' + (st0 && st0.dynasty ? st0.dynasty.surname : s.family) }, { size: 48 })));
     var st = root.PE.Game.state();
     card.appendChild(h('div', { class: 'sp-dynasty-name', text: 'House of ' + (st && st.dynasty ? st.dynasty.surname : s.family) }));
     card.appendChild(h('div', { class: 'sp-dynasty-sub', text: s.year + ' · ' + s.era + ' · ' + fmt.ordinal(s.generation) + ' generation' }));
@@ -57,8 +57,9 @@
     var starts = { free_derelict: 'A derelict terrace in Shoreditch', merchant_network: 'One true value revealed every year', aristocrat: 'Two mortgaged houses in Kensington and Camden', old_money: 'Deep pockets, +20% estate tax' }[f.perk] || '';
     var trait = f.trait ? root.PE.Data.traits[f.trait].name : 'Your choice';
     var b = h('button', { type: 'button', class: 'fam', 'data-action': 'start-family', 'data-id': f.id, 'aria-pressed': String(sel.familyId === f.id) });
-    b.appendChild(h('div', { class: 'fam__crest' }, PEUI.crest({ id: f.id, name: f.name, color: f.color, motto: f.motto }, { size: 46, motto: true })));
+    b.appendChild(h('div', { class: 'fam__crest' }, PEUI.portrait({ id: f.id, name: f.name }, { size: 64 })));
     b.appendChild(h('div', { class: 'fam__name' }, [h('span', { text: f.name }), h('span', { class: 'fam__diff', text: f.difficulty })]));
+    b.appendChild(h('div', { class: 'fam__motto', text: '“' + f.motto + '”' }));
     b.appendChild(h('div', { class: 'fam__desc', text: f.desc }));
     b.appendChild(h('div', { class: 'fam__facts' }, [
       h('span', { html: 'Cash <strong>' + fmt.money(f.startCash) + '</strong>' }),

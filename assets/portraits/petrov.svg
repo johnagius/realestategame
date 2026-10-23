@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 120">
+  <defs>
+    <clipPath id="ov"><ellipse cx="48" cy="55" rx="35" ry="43"/></clipPath>
+  </defs>
+  <rect width="96" height="120" fill="#F1EADA"/>
+  <g clip-path="url(#ov)">
+    <ellipse cx="48" cy="55" rx="35" ry="43" fill="#F8F3E8"/>
+    <!-- vignette hatching -->
+    <g stroke="#1D1A16" stroke-width="0.55" fill="none" opacity="0.45">
+      <path d="M15 26 l11 -11 M15 34 l15 -15 M15 43 l19 -19 M17 51 l21 -21 M22 58 l21 -21"/>
+      <path d="M81 26 l-11 -11 M81 34 l-15 -15 M81 43 l-19 -19 M79 51 l-21 -21 M74 58 l-21 -21"/>
+      <path d="M16 74 l8 -8 M15 82 l12 -12 M80 74 l-8 -8 M81 82 l-12 -12"/>
+    </g>
+    <!-- heavy dark coat -->
+    <path d="M13 100 C14 84 26 72 40 67 L48 79.5 L56 67 C70 72 82 84 83 100 Z" fill="#2E2A24"/>
+    <g stroke="#F8F3E8" stroke-width="0.5" fill="none" opacity="0.28">
+      <path d="M19 98 C21 87 27 78 35 72 M25 99 C27 88 32 80 39 74 M71 99 C69 88 64 80 57 74 M77 98 C75 87 69 78 61 72"/>
+    </g>
+    <!-- waistcoat with watch chain and gold fob -->
+    <path d="M42 78.5 L48 91 L54 78.5 C56 85.5 57 92.5 57 100 L39 100 C39 92.5 40 85.5 42 78.5 Z" fill="#DED2B4"/>
+    <path d="M48 93.6 L48 100" stroke="#1D1A16" stroke-width="0.8" fill="none"/>
+    <circle cx="48" cy="96.5" r="0.8" fill="#1D1A16"/>
+    <path d="M43.8 86.5 C46.2 90 49.8 90 52.2 86.5" stroke="#1D1A16" stroke-width="0.8" fill="none"/>
+    <path d="M44.9 88 l0.8 -0.8 M46.9 89 l0.7 -0.9 M49.1 89 l-0.7 -0.9 M51.1 88 l-0.8 -0.8" stroke="#1D1A16" stroke-width="0.45" fill="none" opacity="0.7"/>
+    <path d="M48 89.6 L48 91.2" stroke="#1D1A16" stroke-width="0.6" fill="none"/>
+    <circle cx="48" cy="92.3" r="1.1" fill="#D9B45C" stroke="#1D1A16" stroke-width="0.6"/>
+    <!-- wide shaggy fur collar -->
+    <path d="M31 73 C33 64 40 59.5 45 59 C46.5 63 47 67.5 46.5 72 C43 76.5 36.5 78 32.5 76.5 C30.8 75.6 30.3 74.6 31 73 Z" fill="#D8CCAF" stroke="#1D1A16" stroke-width="1"/>
+    <path d="M65 73 C63 64 56 59.5 51 59 C49.5 63 49 67.5 49.5 72 C53 76.5 59.5 78 63.5 76.5 C65.2 75.6 65.7 74.6 65 73 Z" fill="#D8CCAF" stroke="#1D1A16" stroke-width="1"/>
+    <g stroke="#1D1A16" stroke-width="0.5" fill="none" opacity="0.75">
+      <path d="M34.5 70.5 l3 -2.5 M33.5 73.5 l3.5 -2.5 M37.5 75 l3.5 -2.8 M41.5 76 l3 -3 M38 62.5 l2.5 2.8 M41.5 61 l2 3.2"/>
+      <path d="M61.5 70.5 l-3 -2.5 M62.5 73.5 l-3.5 -2.5 M58.5 75 l-3.5 -2.8 M54.5 76 l-3 -3 M58 62.5 l-2.5 2.8 M54.5 61 l-2 3.2"/>
+    </g>
+    <!-- stray fur flicks on the collar edge -->
+    <g stroke="#1D1A16" stroke-width="0.55" fill="none" opacity="0.8">
+      <path d="M31.5 71 l-2 -1 M30.8 74.5 l-2.2 -0.4 M34 77 l-1.8 1.2 M64.5 71 l2 -1 M65.2 74.5 l2.2 -0.4 M62 77 l1.8 1.2"/>
+    </g>
+    <!-- neck -->
+    <path d="M43 59 C43 63 42.5 65 41 67 M53 59 C53 63 53.5 65 55 67" stroke="#1D1A16" stroke-width="1.1" fill="none"/>
+    <!-- shirt collar and loose dark tie -->
+    <path d="M41.5 66 L48 71 L54.5 66 L53.4 62.8 L48 67 L42.6 62.8 Z" fill="#FCFAF2" stroke="#1D1A16" stroke-width="0.9"/>
+    <path d="M45.6 68.8 C46.6 67.5 49.4 67.5 50.4 68.8 C49.8 70.6 46.2 70.6 45.6 68.8 Z" fill="#1D1A16"/>
+    <path d="M46.8 70.4 L46 75.8 L48 78 L50 75.8 L49.2 70.4 Z" fill="#1D1A16"/>
+    <!-- head -->
+    <path d="M48 28 C55.5 28 60.5 34.5 60.5 42 C60.5 48 59 53 56 56.2 C53.5 59 50.8 60.6 48 60.6 C45.2 60.6 42.5 59 40 56.2 C37 53 35.5 48 35.5 42 C35.5 34.5 40.5 28 48 28 Z" fill="#F4ECDA" stroke="#1D1A16" stroke-width="1.5"/>
+    <!-- wild swept-back hair -->
+    <path d="M35.8 38.5 C34.3 30 37 24 41 21.3 L40.2 18.2 L43.6 20.4 L44.3 16.6 L47.2 19.4 L49.8 15.8 L51.6 19.2 L55.2 17.3 L55.6 20.9 L59.2 20.3 C61.8 24.2 62.2 30.5 60.2 38.5 C58.2 33.2 55.4 30.4 51.8 29.4 C46.8 28 41.2 29.6 38.2 32.8 C36.6 34.6 36 36.4 35.8 38.5 Z" fill="#2E2A24" stroke="#1D1A16" stroke-width="1"/>
+    <g stroke="#F8F3E8" stroke-width="0.5" fill="none" opacity="0.35">
+      <path d="M40.5 24.5 C44.5 22 52 21.8 56 24 M38.8 28.5 C43.5 25.5 53 25.3 57.5 28 M37.6 32.8 C42.8 29.6 53.4 29.4 58.6 32.4"/>
+    </g>
+    <path d="M36.5 24 l-2.8 -2.2 M60 23 l2.8 -2.2 M48.3 15.3 l0.4 -2.8" stroke="#1D1A16" stroke-width="0.6" fill="none" opacity="0.8"/>
+    <!-- one brow raised in amusement -->
+    <path d="M37.6 40.6 C40 38.4 43.6 38.1 45.9 39.7" stroke="#1D1A16" stroke-width="1.1" fill="none"/>
+    <path d="M58.4 41.6 C56 40.4 53 40.5 50.9 41.7" stroke="#1D1A16" stroke-width="1" fill="none"/>
+    <!-- eager eyes -->
+    <path d="M38.8 45.2 C40.6 43.8 43.3 43.8 45.1 45.1 M51 45.6 C52.8 44.4 55.5 44.4 57.2 45.5" stroke="#1D1A16" stroke-width="0.9" fill="none"/>
+    <path d="M39.6 46.4 C41.2 45.7 43.1 45.7 44.7 46.3 M56.4 46.8 C54.8 46.1 52.9 46.1 51.4 46.7" stroke="#1D1A16" stroke-width="0.5" fill="none" opacity="0.7"/>
+    <circle cx="42" cy="45.3" r="0.95" fill="#1D1A16"/>
+    <circle cx="54.1" cy="45.7" r="0.95" fill="#1D1A16"/>
+    <!-- hearty nose -->
+    <path d="M48.7 45.9 C49.1 49.5 48.5 51.8 46.8 52.9 M45.6 53.5 C47.2 54.2 49.4 54.1 50.6 53.2" stroke="#1D1A16" stroke-width="0.9" fill="none"/>
+    <!-- thick enthusiastic moustache, no beard -->
+    <path d="M41.6 53.9 C44 52.9 46.6 52.7 48 53.1 C49.4 52.7 52 52.9 54.4 53.9 C55.4 54.4 56.1 55 56.5 55.8 C54.9 56.7 52.5 57.1 50.4 56.9 C49.3 57 48.6 57 48 56.9 C47.4 57 46.7 57 45.6 56.9 C43.5 57.1 41.1 56.7 39.5 55.8 C39.9 55 40.6 54.4 41.6 53.9 Z" fill="#2E2A24" stroke="#1D1A16" stroke-width="0.7"/>
+    <path d="M39.8 55.6 C38.6 55.2 37.8 54.4 37.5 53.2 M56.2 55.6 C57.4 55.2 58.2 54.4 58.5 53.2" stroke="#1D1A16" stroke-width="1.1" fill="none"/>
+    <path d="M43.5 54.3 C45.5 53.8 50.5 53.8 52.5 54.3" stroke="#F8F3E8" stroke-width="0.5" fill="none" opacity="0.3"/>
+    <!-- grinning cheek creases -->
+    <path d="M41.2 56 C40.3 56.8 39.9 57.7 40 58.6 M54.8 56 C55.7 56.8 56.1 57.7 56 58.6" stroke="#1D1A16" stroke-width="0.55" fill="none"/>
+    <!-- wide grin showing teeth -->
+    <path d="M42.6 57.5 C45 59.3 51 59.3 53.4 57.5 C52.6 59.8 50.2 60.4 48 60.4 C45.8 60.4 43.4 59.8 42.6 57.5 Z" fill="#FCFAF2" stroke="#1D1A16" stroke-width="0.9"/>
+    <path d="M46.2 59.4 l0.1 0.9 M48 59.7 l0 1 M49.8 59.4 l-0.1 0.9" stroke="#1D1A16" stroke-width="0.45" fill="none" opacity="0.6"/>
+  </g>
+  <ellipse cx="48" cy="55" rx="35" ry="43" fill="none" stroke="#1D1A16" stroke-width="1.6"/>
+  <path d="M48 106 L50.5 108.5 L48 111 L45.5 108.5 Z" fill="#D9B45C" stroke="#1D1A16" stroke-width="0.7"/>
+  <rect x="3" y="3" width="90" height="114" fill="none" stroke="#1D1A16" stroke-width="1.6"/>
+  <rect x="6" y="6" width="84" height="108" fill="none" stroke="#1D1A16" stroke-width="0.6"/>
+</svg>

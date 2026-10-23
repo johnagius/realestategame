@@ -121,13 +121,13 @@
     if (r.accepted) {
       PEUI.sound('fanfare'); PEUI.confetti(60);
       body = [
-        h('div', { class: 'rival-hero' }, [PEUI.crest({ id: d.rival, name: rDef.name, color: rDef.color }, { size: 72, motto: true }), h('div', { class: 'rival-hero__meta' }, [h('div', { class: 'rival-hero__name rival__name', text: 'A marriage joins the houses' }), h('div', { class: 'small muted', text: r.message })])]),
+        h('div', { class: 'rival-hero' }, [PEUI.portrait({ id: d.rival, name: rDef.name }, { size: 72 }), h('div', { class: 'rival-hero__meta' }, [h('div', { class: 'rival-hero__name rival__name', text: 'A marriage joins the houses' }), h('div', { class: 'small muted', text: r.message })])]),
         h('div', { class: 'note note--gold' }, [icon('star'), h('span', { text: 'Alliance: ' + rDef.name + ' reveals one true value a year in their city and never bids against you. A merger becomes possible when the head turns 65 or in the last 20 years.' })])
       ];
     } else {
       PEUI.sound('negative');
       body = [
-        h('div', { class: 'rival-hero' }, [PEUI.crest({ id: d.rival, name: rDef.name, color: rDef.color }, { size: 72, motto: true }), h('div', { class: 'rival-hero__meta' }, [h('div', { class: 'rival-hero__name rival__name', text: 'They refuse' }), h('div', { class: 'small muted', text: r.message })])]),
+        h('div', { class: 'rival-hero' }, [PEUI.portrait({ id: d.rival, name: rDef.name }, { size: 72 }), h('div', { class: 'rival-hero__meta' }, [h('div', { class: 'rival-hero__name rival__name', text: 'They refuse' }), h('div', { class: 'small muted', text: r.message })])]),
         h('div', { class: 'note note--warn' }, [icon('users'), h('span', { text: 'Refusal cost ' + (r.reputationChange || 0) + ' reputation and cooled relations. Their house waits ' + PE().Data.balance.marriageCooldownYears + ' years before another proposal.' })])
       ];
     }

@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 120">
+  <defs>
+    <clipPath id="ov"><ellipse cx="48" cy="55" rx="35" ry="43"/></clipPath>
+  </defs>
+  <rect width="96" height="120" fill="#F1EADA"/>
+  <g clip-path="url(#ov)">
+    <ellipse cx="48" cy="55" rx="35" ry="43" fill="#F8F3E8"/>
+    <!-- vignette hatching -->
+    <g stroke="#1D1A16" stroke-width="0.55" fill="none" opacity="0.45">
+      <path d="M15 26 l11 -11 M15 34 l15 -15 M15 43 l19 -19 M17 51 l21 -21 M22 58 l21 -21"/>
+      <path d="M81 26 l-11 -11 M81 34 l-15 -15 M81 43 l-19 -19 M79 51 l-21 -21 M74 58 l-21 -21"/>
+      <path d="M16 74 l8 -8 M15 82 l12 -12 M80 74 l-8 -8 M81 82 l-12 -12"/>
+    </g>
+    <!-- black mourning dress -->
+    <path d="M13 100 C14 83 26 71 39 66.5 C43 65 53 65 57 66.5 C70 71 82 83 83 100 Z" fill="#2E2A24"/>
+    <g stroke="#F8F3E8" stroke-width="0.5" fill="none" opacity="0.3">
+      <path d="M20 97 C22 86 28 77 36 71.5 M27 99 C29 88 34 79 41 73.5 M69 99 C67 88 62 79 55 73.5 M76 97 C74 86 68 77 60 71.5"/>
+    </g>
+    <!-- high lace-frilled collar -->
+    <path d="M40 68 C44.5 70.6 51.5 70.6 56 68 L56.6 63.8 L54.6 66 L52.6 63.6 L50.4 66.2 L48 63.8 L45.6 66.2 L43.4 63.6 L41.4 66 L39.4 63.8 Z" fill="#FCFAF2" stroke="#1D1A16" stroke-width="0.9"/>
+    <path d="M43 66.5 L43.6 68.9 M48 66.8 L48 70 M53 66.5 L52.4 68.9" stroke="#1D1A16" stroke-width="0.5" fill="none" opacity="0.6"/>
+    <!-- neck -->
+    <path d="M43.5 60.5 C43.2 61.8 43 62.8 42.6 63.8 M52.5 60.5 C52.8 61.8 53 62.8 53.4 63.8" stroke="#1D1A16" stroke-width="0.9" fill="none"/>
+    <!-- head: narrow, ageing -->
+    <path d="M48 27 C55.5 27 60.5 34 60.5 42 C60.5 48 59 53 56.5 56.3 C54.2 59 51 60.6 48 60.6 C45 60.6 41.8 59 39.5 56.3 C37 53 35.5 48 35.5 42 C35.5 34 40.5 27 48 27 Z" fill="#F4ECDA" stroke="#1D1A16" stroke-width="1.5"/>
+    <!-- centre-parted hair swept under the bonnet -->
+    <path d="M36 41.5 C35.2 32.5 40.2 26 48 26 C55.8 26 60.8 32.5 60 41.5 L58.6 41.5 C59.2 34 54.6 29 48 29 C41.4 29 36.8 34 37.4 41.5 Z" fill="#2E2A24"/>
+    <path d="M48 26.2 L48 29.2" stroke="#F4ECDA" stroke-width="1" fill="none"/>
+    <path d="M40 30 C42.5 28.4 45.5 27.8 47.8 27.9 M56 30 C53.5 28.4 50.5 27.8 48.2 27.9" stroke="#F8F3E8" stroke-width="0.5" fill="none" opacity="0.3"/>
+    <!-- small dark bonnet: brim halo frames the face -->
+    <path d="M31.8 50 C28.5 31 36.5 19.5 48 19.5 C59.5 19.5 67.5 31 64.2 50 L61.6 46.5 C64 31.5 57 23.5 48 23.5 C39 23.5 32 31.5 34.4 46.5 Z" fill="#2E2A24"/>
+    <path d="M36.5 27.5 C40 23.6 44 21.9 48 21.8 M59.5 27.5 C56 23.6 52 21.9 48.2 21.8" stroke="#F8F3E8" stroke-width="0.5" fill="none" opacity="0.3"/>
+    <!-- bonnet ribbons tied under the chin -->
+    <path d="M35.2 49 C36 55.5 38.2 61 41.5 64.2 M60.8 49 C60 55.5 57.8 61 54.5 64.2" stroke="#1D1A16" stroke-width="1" fill="none"/>
+    <!-- thin level brows, imperious -->
+    <path d="M38 41.2 C40.5 39.9 43.3 40.1 45.4 41.4 M58 41.2 C55.5 39.9 52.7 40.1 50.6 41.4" stroke="#1D1A16" stroke-width="0.9" fill="none"/>
+    <!-- pale appraising eyes, hooded lids -->
+    <path d="M38.8 44.9 C40.3 43.8 42.8 43.8 44.3 45 M57.2 44.9 C55.7 43.8 53.2 43.8 51.7 45" stroke="#1D1A16" stroke-width="0.9" fill="none"/>
+    <path d="M39.6 46 C41 45.5 42.8 45.5 44 46 M56.4 46 C55 45.5 53.2 45.5 52 46" stroke="#1D1A16" stroke-width="0.5" fill="none" opacity="0.7"/>
+    <circle cx="41.5" cy="44.9" r="0.8" fill="#1D1A16"/>
+    <circle cx="54.5" cy="44.9" r="0.8" fill="#1D1A16"/>
+    <!-- age: under-eye lines, crow's feet, nasolabial, jowls -->
+    <path d="M39.8 47.3 C41.2 46.9 42.8 46.9 44 47.2 M56.2 47.3 C54.8 46.9 53.2 46.9 52 47.2" stroke="#1D1A16" stroke-width="0.5" fill="none" opacity="0.7"/>
+    <path d="M37.5 44.5 l-1.8 -0.8 M37.7 45.7 l-1.9 0.2 M58.5 44.5 l1.8 -0.8 M58.3 45.7 l1.9 0.2" stroke="#1D1A16" stroke-width="0.5" fill="none" opacity="0.7"/>
+    <path d="M44.8 52.4 C44 54.2 43.9 55.4 44.3 56.6 M51.2 52.4 C52 54.2 52.1 55.4 51.7 56.6" stroke="#1D1A16" stroke-width="0.55" fill="none"/>
+    <path d="M40.5 57.8 C41.8 58.8 43.2 59.2 44.4 59 M55.5 57.8 C54.2 58.8 52.8 59.2 51.6 59" stroke="#1D1A16" stroke-width="0.5" fill="none" opacity="0.7"/>
+    <!-- nose -->
+    <path d="M48.7 45.5 C49 49 48.4 51.2 46.9 52.4 M45.9 53 C47.2 53.7 49.1 53.6 50.3 52.9" stroke="#1D1A16" stroke-width="0.9" fill="none"/>
+    <!-- thin downturned mouth -->
+    <path d="M43.8 57.3 C46 56.3 50 56.3 52.2 57.3" stroke="#1D1A16" stroke-width="1" fill="none"/>
+    <path d="M43.8 57.3 l-1 0.7 M52.2 57.3 l1 0.7" stroke="#1D1A16" stroke-width="0.55" fill="none"/>
+    <path d="M45.6 58.6 C47.2 59 48.8 59 50.4 58.6" stroke="#1D1A16" stroke-width="0.5" fill="none" opacity="0.6"/>
+    <!-- cameo brooch: the single gold accent -->
+    <ellipse cx="48" cy="71.4" rx="1.7" ry="2.1" fill="#D9B45C" stroke="#1D1A16" stroke-width="0.6"/>
+    <path d="M48 70.4 C48.7 70.6 48.9 71.3 48.4 71.9" stroke="#1D1A16" stroke-width="0.5" fill="none"/>
+  </g>
+  <ellipse cx="48" cy="55" rx="35" ry="43" fill="none" stroke="#1D1A16" stroke-width="1.6"/>
+  <path d="M48 106 L50.5 108.5 L48 111 L45.5 108.5 Z" fill="#D9B45C" stroke="#1D1A16" stroke-width="0.7"/>
+  <rect x="3" y="3" width="90" height="114" fill="none" stroke="#1D1A16" stroke-width="1.6"/>
+  <rect x="6" y="6" width="84" height="108" fill="none" stroke="#1D1A16" stroke-width="0.6"/>
+</svg>

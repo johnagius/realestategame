@@ -373,7 +373,7 @@
     for (var j = 0; j < a.log.length; j++) {
       var entry = a.log[j];
       if (entry.who === 'player') log.appendChild(h('div', { class: 'logline' }, [h('span', { class: 'grow', text: 'You bid ' + fmt.money(entry.bid) })]));
-      else log.appendChild(h('div', { class: 'logline is-stamping', style: '--i:' + j }, [PEUI.crest({ id: entry.who, name: PEUI.rivalName('rival:' + entry.who), color: (PE().Data.rivalById(entry.who) || {}).color }, { size: 20 }), h('span', { class: 'grow', text: PEUI.rivalName('rival:' + entry.who) + ' bid ' + fmt.money(entry.bid) }), entry.taunt ? h('span', { class: 'logline__taunt', text: '“' + entry.taunt + '”' }) : null]));
+      else log.appendChild(h('div', { class: 'logline is-stamping', style: '--i:' + j }, [PEUI.portrait({ id: entry.who, name: PEUI.rivalName('rival:' + entry.who) }, { size: 24 }), h('span', { class: 'grow', text: PEUI.rivalName('rival:' + entry.who) + ' bid ' + fmt.money(entry.bid) }), entry.taunt ? h('span', { class: 'logline__taunt', text: '“' + entry.taunt + '”' }) : null]));
     }
     if (PEUI.advisor) PEUI.advisor.trigger('auction', 'auction');
     var body = [
@@ -401,7 +401,7 @@
     var wid = r.winner ? String(r.winner).replace('rival:', '') : null;
     var def = wid && PE().Data.rivalById(wid);
     var body = [
-      def ? h('div', { class: 'rival-hero' }, [PEUI.crest({ id: wid, name: def.name, color: def.color }, { size: 64 }), h('div', { class: 'rival-hero__meta' }, [h('div', { class: 'rival-hero__name rival__name', text: def.name }), h('div', { class: 'small muted', text: 'Takes it at ' + fmt.money(r.currentBid) })])]) : h('div', { class: 'note note--warn', text: r.message }),
+      def ? h('div', { class: 'rival-hero' }, [PEUI.portrait({ id: wid, name: def.name }, { size: 64 }), h('div', { class: 'rival-hero__meta' }, [h('div', { class: 'rival-hero__name rival__name', text: def.name }), h('div', { class: 'small muted', text: 'Takes it at ' + fmt.money(r.currentBid) })])]) : h('div', { class: 'note note--warn', text: r.message }),
       r.taunt ? h('div', { class: 'note taunt-note' }, [h('span', { class: 'grow', text: '“' + r.taunt + '”' })]) : null,
       h('p', { class: 'small muted', text: 'There will be other lots. The board refreshes every year.' })
     ];

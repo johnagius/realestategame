@@ -273,6 +273,9 @@ button { -webkit-tap-highlight-color: transparent; }
 .head-card .crestsvg { grid-row: 1 / span 2; }
 .fam__crest, .sp-dynasty-crest { background: none; border-radius: 0; box-shadow: none; width: auto; height: auto; }
 
+/* ---------- Engraved portraits (ENG-C1) ---------- */
+.portrait { display: block; flex: none; border-radius: 2px; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.28)); }
+
 /* ---------- Rival personalities (P3.1) ---------- */
 .relwrap { display: flex; align-items: center; gap: var(--sp-2); margin-top: 2px; }
 .relbar { position: relative; flex: 1; max-width: 220px; height: 8px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; }

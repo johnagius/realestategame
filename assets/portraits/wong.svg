@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 120">
+  <defs>
+    <clipPath id="ov"><ellipse cx="48" cy="55" rx="35" ry="43"/></clipPath>
+  </defs>
+  <rect width="96" height="120" fill="#F1EADA"/>
+  <g clip-path="url(#ov)">
+    <ellipse cx="48" cy="55" rx="35" ry="43" fill="#F8F3E8"/>
+    <g stroke="#1D1A16" stroke-width="0.55" fill="none" opacity="0.45">
+      <path d="M15 26 l11 -11 M15 34 l15 -15 M15 43 l19 -19 M17 51 l21 -21 M22 58 l21 -21"/>
+      <path d="M81 26 l-11 -11 M81 34 l-15 -15 M81 43 l-19 -19 M79 51 l-21 -21 M74 58 l-21 -21"/>
+      <path d="M16 74 l8 -8 M15 82 l12 -12 M80 74 l-8 -8 M81 82 l-12 -12"/>
+    </g>
+    <!-- magua jacket -->
+    <path d="M15 100 C16 85 27 74 40 68.5 C43.5 67.2 52.5 67.2 56 68.5 C69 74 80 85 81 100 Z" fill="#D8CCAF"/>
+    <g stroke="#1D1A16" stroke-width="0.55" fill="none" opacity="0.8">
+      <path d="M22 97 C24 87 30 79 37 74 M29 99 C31 89 35 81 41 76 M67 99 C65 89 61 81 55 76 M74 97 C72 87 66 79 59 74"/>
+    </g>
+    <!-- front opening and frog buttons -->
+    <path d="M48 68.5 L48 100" stroke="#1D1A16" stroke-width="1" fill="none"/>
+    <g stroke="#1D1A16" stroke-width="0.8" fill="none">
+      <path d="M48 74.5 C51 73.6 53 74.2 53.6 76 M48 82.5 C51 81.6 53 82.2 53.6 84 M48 90.5 C51 89.6 53 90.2 53.6 92"/>
+      <path d="M48 74.5 C45 73.6 43 74.2 42.4 76 M48 82.5 C45 81.6 43 82.2 42.4 84 M48 90.5 C45 89.6 43 90.2 42.4 92"/>
+    </g>
+    <!-- neck -->
+    <path d="M43 58.5 C43 62.5 42.5 64.5 41 66.5 M53 58.5 C53 62.5 53.5 64.5 55 66.5" stroke="#1D1A16" stroke-width="1.1" fill="none"/>
+    <!-- mandarin collar -->
+    <path d="M40 66.5 C44 69.8 52 69.8 56 66.5 L56 63.6 C52 66.8 44 66.8 40 63.6 Z" fill="#CFC2A2" stroke="#1D1A16" stroke-width="0.9"/>
+    <!-- head: rounder -->
+    <path d="M48 31 C56.5 31 62 37.5 62 44.5 C62 53 56 60.5 48 60.5 C40 60.5 34 53 34 44.5 C34 37.5 39.5 31 48 31 Z" fill="#F4ECDA" stroke="#1D1A16" stroke-width="1.5"/>
+    <!-- silk skullcap with brim and gold button -->
+    <path d="M34.5 39 C34 29 40 22.5 48 22.5 C56 22.5 62 29 61.5 39 C56 35.5 40 35.5 34.5 39 Z" fill="#2E2A24"/>
+    <path d="M38 31 C42 27.5 54 27.5 58 31 M40.5 27 C44 24.8 52 24.8 55.5 27" stroke="#F8F3E8" stroke-width="0.5" fill="none" opacity="0.35"/>
+    <path d="M34.5 39 C40 35.5 56 35.5 61.5 39 L61.5 41.5 C56 38 40 38 34.5 41.5 Z" fill="#1D1A16"/>
+    <circle cx="48" cy="22.8" r="1.7" fill="#D9B45C" stroke="#1D1A16" stroke-width="0.6"/>
+    <!-- sharp angled brows -->
+    <path d="M37.8 41.5 C40.4 39.9 43.4 40.1 45.6 41.3 M58.2 41.5 C55.6 39.9 52.6 40.1 50.4 41.3" stroke="#1D1A16" stroke-width="1" fill="none"/>
+    <!-- narrow sharp eyes -->
+    <path d="M38.6 45.4 C40.6 43.9 43.4 43.9 45.4 45.2 M57.4 45.4 C55.4 43.9 52.6 43.9 50.6 45.2" stroke="#1D1A16" stroke-width="0.9" fill="none"/>
+    <path d="M39.4 46.3 C41 45.6 43 45.6 44.6 46.2 M56.6 46.3 C55 45.6 53 45.6 51.4 46.2" stroke="#1D1A16" stroke-width="0.5" fill="none" opacity="0.7"/>
+    <circle cx="42.2" cy="45.2" r="0.9" fill="#1D1A16"/>
+    <circle cx="53.8" cy="45.2" r="0.9" fill="#1D1A16"/>
+    <!-- nose -->
+    <path d="M48.6 46 C48.9 49.5 48.4 51.6 47 52.7 M46 53.3 C47.3 54 49.2 53.9 50.3 53.1" stroke="#1D1A16" stroke-width="0.9" fill="none"/>
+    <!-- thin drooping moustache -->
+    <path d="M43.6 53.6 C42.8 56 42.5 58.2 43 60.2 M52.4 53.6 C53.2 56 53.5 58.2 53 60.2" stroke="#1D1A16" stroke-width="1.1" fill="none"/>
+    <!-- knowing smile -->
+    <path d="M44 55.9 C46.4 57.1 49.6 57.1 52 55.9" stroke="#1D1A16" stroke-width="1" fill="none"/>
+    <path d="M45.4 58.6 C47.2 59.2 48.8 59.2 50.6 58.6" stroke="#1D1A16" stroke-width="0.5" fill="none" opacity="0.7"/>
+  </g>
+  <ellipse cx="48" cy="55" rx="35" ry="43" fill="none" stroke="#1D1A16" stroke-width="1.6"/>
+  <path d="M48 106 L50.5 108.5 L48 111 L45.5 108.5 Z" fill="#D9B45C" stroke="#1D1A16" stroke-width="0.7"/>
+  <rect x="3" y="3" width="90" height="114" fill="none" stroke="#1D1A16" stroke-width="1.6"/>
+  <rect x="6" y="6" width="84" height="108" fill="none" stroke="#1D1A16" stroke-width="0.6"/>
+</svg>
