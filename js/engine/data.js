@@ -472,6 +472,8 @@
     relationDeclined: -4,
     relationEviction: -5,             // you evicted tenants in a city where they hold buildings
     relationDrift: 1,                 // relations mean-revert toward 0 by this much a year
+    relationContestSwing: 0.30,       // ENG-B4: contest chance × (1 − 0.30 × relation/100); hostile rivals hunt your deals
+    relationBidSwing: 0.07,           // ENG-B4: rival max bid × (1 − 0.07 × relation/100); hostile rivals bid harder
     // P3.4 events v2
     prewarnAccuracy: 0.45,            // chance the paper foreshadows a set-piece a year ahead (same noise as the crash whisper)
     // P5.2 perks

@@ -95,7 +95,7 @@
     if (!r.bankrupt) {
       body.push(h('div', { class: 'kicker', text: 'Relation' }));
       body.push(relationMeter(r.relationScore || 0, r.allied));
-      body.push(h('p', { class: 'small muted', text: r.allied ? 'Marriage alliance: they never contest your deals and reveal one true value a year in their city.' : 'Marriage needs relation 0+ and reputation 50+. Outbidding them at auction costs relation; accepting their offers builds it.' }));
+      body.push(h('p', { class: 'small muted', text: r.allied ? 'Marriage alliance: they never contest your deals and reveal one true value a year in their city.' : 'Marriage needs relation 0+ and reputation 50+. Outbidding them at auction costs relation; accepting their offers builds it. A hostile family contests your deals more often and bids harder; a warm one gives you room.' }));
       if (r.relationLog && r.relationLog.length) {
         var ul = h('ul', { class: 'lines' });
         for (var k = r.relationLog.length - 1; k >= 0; k--) {

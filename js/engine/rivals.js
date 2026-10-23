@@ -115,7 +115,9 @@
     return rv.cash - (price * (1 - rd.leverage) + duty) >= rv.cash * 0.08;
   };
 
-  /* Which rivals contest the player's deal (bible §3.3). Returns [{id, maxBid}] sorted desc. */
+  /* Which rivals contest the player's deal (bible §3.3). Returns [{id, maxBid}] sorted desc.
+     Relations have teeth (ENG-B4): a hostile family contests more often (up to +30% at relation
+     −100) and bids harder (up to +7%); a warm family contests less (down to −30%) and bids softer. */
   Rv.contest = function (l, price, forcedChance) {
     var s = PE.S(), out = [];
     for (var id in s.rivals) {
@@ -123,11 +125,13 @@
       if (rv.bankrupt || rv.allied || rv.cities.indexOf(l.cityId) < 0 || l.sellerRivalId === id) continue; // an ally never bids against you
       if (St.propertyCount(Rv.owner(id)) >= B.rivalMaxProperties) continue;
       var pref = Rv.wants(rv, l); if (!pref) continue;
-      var ap = Rv.appraise(rv, l), maxBid = Math.round(ap * rd.bidMult * (pref > 1 ? 1.02 : 1));
+      var rel = s.relations[id] || 0;
+      var ap = Rv.appraise(rv, l), maxBid = Math.round(ap * rd.bidMult * (pref > 1 ? 1.02 : 1) * (1 - B.relationBidSwing * rel / 100));
       if (St.hasTrait('gambler')) maxBid = Math.round(maxBid * 0.97);
       if (maxBid < price * 1.02 || !Rv.canPay(rv, maxBid, l)) continue;
       var bargainness = l.askingPrice / ap, mult = bargainness < 0.85 ? 1 : (bargainness < 0.95 ? 0.5 : 0.2);
       var chance = forcedChance !== null && forcedChance !== undefined ? forcedChance : B.rivalContestChance * rd.aggression * mult;
+      chance = U.clamp(chance * (1 - B.relationContestSwing * rel / 100), 0, 1);
       if (R.chance(chance)) out.push({ id: id, maxBid: maxBid });
     }
     out.sort(function (a, b) { return b.maxBid - a.maxBid; });

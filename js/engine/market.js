@@ -463,14 +463,14 @@
     if (idx < 0) return PE.fail('No such offer');
     var o = s.offers[idx], p = s.properties[o.propertyId], rv = s.rivals[o.rivalId];
     s.offers.splice(idx, 1);
-    if (!accept) { PE.Rivals.adjustRelation(o.rivalId, B.relationDeclined); return PE.ok({ accepted: false, message: 'Offer declined.' }); }
+    if (!accept) { PE.Rivals.adjustRelation(o.rivalId, B.relationDeclined, 'declined offer'); return PE.ok({ accepted: false, message: 'Offer declined.' }); }
     if (!p || p.ownerId !== 'player') return PE.fail('Property no longer yours');
     if (p.renovation) return PE.fail('Finish the works first');
     var q = M.saleQuote(p, o.price / (p.trueValue * M.saleMood()));
     q.price = o.price;
     M.completeSale(p, q, 'rival:' + o.rivalId, null);
     PE.Rivals.paid(o.rivalId, o.price, p);
-    PE.Rivals.adjustRelation(o.rivalId, B.relationSoldTo);
+    PE.Rivals.adjustRelation(o.rivalId, B.relationSoldTo, 'accepted offer');
     return PE.ok({ accepted: true, price: q.price, fees: q.fees, tax: q.tax, cashGained: q.cashGained, message: 'Sold ' + p.name + ' to ' + D.rivalById(o.rivalId).name + ' for ' + U.fmt(q.price) + '.' });
   };
 

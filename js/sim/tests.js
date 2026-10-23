@@ -430,6 +430,29 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   check('an allied rival never bids against you', (function () { var bidders = PE.Rivals.contest(l7, Math.round(l7.askingPrice * 0.5), 1.0); return bidders.every(function (b) { return b.id !== 'wong'; }); })());
   check('the ally reveals one listing a year in its favourite city', (function () { var fav = Rv.favouriteCity('wong'); PE.Market.refreshBoard(); var id = s.flags.allyRevealId; var l = id && s.listings[id]; var lst = PE.Market.listings(null); return !!l && l.revealed === true && (l.cityId === fav || !PE.Market.listingArray(fav).length) && lst.allyRevealedId === id && lst.listings.some(function (v) { return v.id === id && v.trueValue !== undefined; }); })());
   check('a non-Chen family without an alliance gets no free reveal', (function () { var P = fresh('silva', 2); return P.Market.listings(null).revealedId === null && P.Market.listings(null).allyRevealedId === null; })());
+  // ENG-B4: relations have teeth — contests read s.relations (hostile: more often and harder; warm: less and softer)
+  (function () {
+    var relSave = {}; for (var id in s.relations) relSave[id] = s.relations[id];
+    for (var id2 in s.rivals) s.rivals[id2].cash = 1e9; // affordability off the table
+    var cycSave = s.cycle.phase; s.cycle.phase = 'boom'; // every archetype's wants() fires on a cheap derelict in a boom
+    var lB4 = PE.Market.list(PE.Market.genProperty('london', { condition: 20, district: 'Shoreditch' }), 'estate', null);
+    var priceB4 = Math.round(lB4.askingPrice * 0.5), rngB4 = s.rng;
+    var run = function (rel, rngState, forced) { for (var id3 in s.relations) Rv.setRelation(id3, rel); s.rng = rngState; return Rv.contest(lB4, priceB4, forced); };
+    var sum = function (bs) { var t = 0; for (var i = 0; i < bs.length; i++) t += bs[i].maxBid; return t; };
+    var hostile = run(-100, rngB4, 1.0), neutral = run(0, rngB4, 1.0), warm = run(100, rngB4, 1.0);
+    check('ENG-B4: hostile rivals bid harder and warm rivals softer on the same deal', hostile.length > 0 && sum(hostile) > sum(neutral) && sum(warm) < sum(neutral), [sum(warm), sum(neutral), sum(hostile)]);
+    var hN = 0, wN = 0;
+    for (var t = 0; t < 60; t++) { var rs = (rngB4 + 0x9E3779B9 * (t + 1)) >>> 0; hN += run(-100, rs, 0.4).length; wN += run(100, rs, 0.4).length; }
+    check('ENG-B4: hostile relations raise contest frequency (seeded, 60 replayed trials)', hN > wN, { hostile: hN, warm: wN });
+    for (var id4 in s.relations) Rv.setRelation(id4, relSave[id4]);
+    s.cycle.phase = cycSave;
+  })();
+  check('ENG-B: snapped-up records and relations survive save/load', (function () {
+    var P = fresh('silva', 91); P.Rivals.setRelation('okonkwo', -66);
+    P.S().snappedUp.push({ id: 'p_snap', name: 'Test Terrace', cityId: 'london', district: 'Camden', type: 'terrace', askingPrice: 777, rivalId: 'wong', year: P.S().year });
+    P.Game.save(); P._state = null; var r = P.Game.load();
+    return r.ok && P.S().relations.okonkwo === -66 && P.S().snappedUp.some(function (x) { return x.id === 'p_snap' && x.rivalId === 'wong'; });
+  })());
   // merger
   var mi = Dy.mergerInfo();
   check('merger window closed early in the run', mi.windowOpen === false && mi.allies.length === 1 && !mi.allies[0].available && !Dy.mergeWithAlly().ok);
@@ -622,7 +645,7 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
 (function () {
   var PE = fresh('armstrong', 7), s = PE.S();
   var old = JSON.parse(JSON.stringify(s));
-  ['relations', 'ranks', 'mode', 'scenario', 'challenge', 'legacyRecorded', 'perks'].forEach(function (k) { delete old[k]; });
+  ['relations', 'ranks', 'mode', 'scenario', 'challenge', 'legacyRecorded', 'perks', 'snappedUp'].forEach(function (k) { delete old[k]; });
   delete old.goals.family; delete old.flags.insuredUntil; delete old.flags.allyRevealId; delete old.dynasty.proposals; delete old.dynasty.mergers;
   ['steals', 'countersClosed', 'marginCallsCleared', 'highLtvYears', 'rank1Years', 'educated', 'marriages', 'mergers', 'vultures', 'cashKingYears', 'trustSuccessions', 'evictions', 'yearlyGoalsDone', 'rothschildLoans', 'outbidRivals'].forEach(function (k) { delete old.stats[k]; });
   for (var id in old.rivals) { delete old.rivals[id].merged; delete old.rivals[id].allied; delete old.rivals[id].mergedYear; old.rivals[id].relation = 62; }
