@@ -559,3 +559,35 @@ simulator was tuned against them. They are now canon.
   buffer (200 events, `pe_v8_analytics`). Web builds buffer but transmit
   nothing — there is no backend and `flush()` is a no-op without `onFlush`.
   The privacy policy states this plainly.
+
+### 16.5 Decisions added with the Visitor Economy slice (v8.10, LOCATION-SLICE)
+
+The full contract is docs/LOCATION-SLICE.md; the binding choices:
+
+- **Districts are the only spatial truth.** The 3D map is cosmetic; no
+  economic effect ever reads tile positions or straight-line distances.
+  Location value enters through district identity (visitor rating) and
+  landmark presence, both engine data.
+- **The slice is London only.** `D.districtVisitor.london` rates districts
+  0–2; every other city falls back to 0, which means short letting is not
+  offered there — a defined neutral fallback, not a silent gap. Miami's
+  tourism trait is untouched; stacking it with short letting is a disclosed
+  strategy, not a bug.
+- **Landmarks are district demand sources, not tile auras.** A built,
+  era-appropriate landmark adds +1 effective visitor rating to its district
+  (`D.landmarkDistrict.london`), capped at 2. Tower Bridge counts from the
+  gilded era, the Shard from the digital era.
+- **Long let vs short let is a per-property strategy with real friction.**
+  Short let: gross ×1.30 base, visitor band ×0.85/1.00/1.15, full cycle
+  exposure (boom 1.25 … depression 0.60), +1.5% of value operating cost,
+  +2 condition decay per year. Switching costs 2% of true value and locks
+  for 3 years. Saturation: past 25% district share (rivals count half),
+  returns decay to a 0.75 floor. No exploit loops: repeated switching can
+  only burn money.
+- **The UI shows ranges, never point estimates** (`PE.Property.lettingInfo`);
+  all maths stays in the engine.
+- **Migration 2→3** gives every existing property `letMode: 'long'`,
+  idempotently; rival properties are never reconsidered for short let.
+- **Deferred, explicitly:** visitor ratings for the other 19 cities,
+  transport/airport proximity, commercial short-stay, rival telegraphing.
+  Each must prove itself in the slice before it spreads.
