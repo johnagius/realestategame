@@ -25,7 +25,9 @@ function run(PE, players, familyId, seed, years, playerName) {
     if (out.year5th === null && n >= 5) out.year5th = yr;
     if (out.yearCity2 === null && St.unlockedCities().length >= 2) out.yearCity2 = yr;
     if (rep.decisions.length) out.decisionYears++;
-    if (yr === 30) { out.nw30 = St.netWorth('player'); out.rank30 = St.rank(); out.props30 = n; out.cities30 = St.unlockedCities().length; }
+    if (yr === 30) { out.nw30 = St.netWorth('player'); out.rank30 = St.rank(); out.props30 = n; out.cities30 = St.unlockedCities().length;
+      var vp = St.playerProps().filter(function (p) { return PE.Data.shortLetTypes.indexOf(p.type) >= 0 && PE.Property.visitorRating(p.cityId, p.district) >= 1; });
+      out.shortLetShare = vp.length ? vp.filter(function (p) { return (p.letMode || 'long') === 'short'; }).length / vp.length : null; }
     if (yr === 150) { var ops = rep.cashFlow.costs; out.ratio150 = ops > 0 ? rep.cashFlow.rent / ops : null; out.rentOps150 = [rep.cashFlow.rent, ops]; }
     if (rep.bankrupt) { out.bankruptYear = yr; break; }
   }
@@ -59,6 +61,8 @@ function main() {
   var c180 = sel(rows180, null, 'competent').filter(function (r) { return r.ratio150 !== null; });
   var ratio = median(c180.map(function (r) { return r.ratio150; }));
   var errors = rows30.concat(rows180).reduce(function (t, r) { return t + r.errors; }, 0);
+  var slShares = ac.map(function (r) { return r.shortLetShare; }).filter(function (v) { return v !== null && v !== undefined; });
+  var slMean = mean(slShares);
 
   var table = [
     ['Year of 2nd property (competent, Chen)', '≤ 3', fmt(y2, 0), y2 !== null && y2 <= 3],
@@ -70,7 +74,8 @@ function main() {
     ['Bankruptcies per 100 naive runs', '0–3', fmt(bkN, 1), bkN >= 0 && bkN <= 3],
     ['Player rank at year 30 (competent, median)', '#2–#4', '#' + fmt(rk, 0), rk !== null && rk >= 2 && rk <= 4],
     ['Years with ≥1 non-dominant decision (competent)', '≥ 1 per year', fmt(dec * 100, 0) + '% of years', dec !== null && dec >= 0.95],
-    ['Rent / operating costs at year 150 (competent)', '≤ 2.5', fmt(ratio, 2), ratio !== null && ratio <= 2.5]
+    ['Rent / operating costs at year 150 (competent)', '≤ 2.5', fmt(ratio, 2), ratio !== null && ratio <= 2.5],
+    ['Short-let share of bot visitor-district properties', '20–60%', slMean === null ? 'n/a' : fmt(slMean * 100, 0) + '%', slMean !== null && slMean >= 0.2 && slMean <= 0.6]
   ];
   console.log('Property Empire v8 balance — ' + SEEDS30 + ' seeds × 4 families × 2 players × 30y, ' + SEEDS180 + ' seeds × 180y (' + ((t1 - t0) / 1000).toFixed(1) + 's, ' + errors + ' internal errors)');
   console.log(pad('Metric', 50) + pad('Target', 16) + pad('Result', 18) + 'Status');

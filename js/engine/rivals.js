@@ -80,6 +80,24 @@
     s.ranks.year = s.year; s.ranks.byId = byId;
   };
 
+  /* LOCATION-SLICE §5: rivals in visitor districts run a minority of short lets, archetype-flavoured
+     (Trader/Slumlord the most, Hoarder never), feeding the player's saturation factor. Same mode,
+     same costs — the flag lives on the property and grossRent/decay/costs treat all owners alike.
+     Applied at game start and on every new rival acquisition (any path: board, auction, offer,
+     bankruptcy absorption); p.letMode === undefined marks a property nobody has considered yet. */
+  Rv.shortLetChance = function (rd) {
+    var mult = (B.shortLetRivalArchetypeMult || {})[rd.archetype];
+    return B.shortLetRivalShare * (mult === undefined ? 1 : mult);
+  };
+  Rv.considerShortLet = function (rd, p) {
+    if (p.letMode !== undefined) return; // considered before (or an old save, migrated to 'long')
+    p.letMode = 'long'; p.letLockUntil = 0;
+    if (!PE.Property.shortLetEligible(p) || p.lease || p.renovation) return;
+    // an isolated per-property stream: assigning rival letting modes must never shift the
+    // gameplay RNG stream (same pattern as Rv.taunt / St.jitterCycles)
+    if (R.chance(Rv.shortLetChance(rd), { rng: R.hashSeed('shortlet:' + p.id) })) { p.letMode = 'short'; p.letLockUntil = PE.S().year + B.shortLetLockYears; }
+  };
+
   Rv.create = function (fam) {
     var s = PE.S(), defs = D.rivals.slice();
     for (var x = 0; x < D.extraRivals.length; x++) if (St.hasPerk(D.extraRivals[x].perk)) defs.push(D.extraRivals[x]);
@@ -98,6 +116,7 @@
         p.purchasePrice = p.trueValue; p.purchaseYear = s.year - R.int(1, 15);
         if (rd.leverage > 0.25) p.mortgage = PE.Finance.makeMortgage(Rv.owner(rd.id), p.trueValue * rd.leverage * 0.8, 'io', false);
         St.setOwner(p, Rv.owner(rd.id));
+        Rv.considerShortLet(rd, p);
       }
     }
   };
@@ -159,6 +178,7 @@
     p.purchasePrice = price; p.purchaseYear = s.year; p.forSale = null; p.marginCall = null;
     St.setOwner(p, Rv.owner(id));
     PE.Property.initTenancy(p);
+    Rv.considerShortLet(rd, p);
     rv.stats.bought++;
   };
   /* The player accepted a rival's offer. */
@@ -166,6 +186,8 @@
     var s = PE.S(), rv = s.rivals[id], rd = Rv.def(id), principal = Math.round(price * rd.leverage);
     rv.cash -= (price - principal);
     p.mortgage = principal > 0 ? PE.Finance.makeMortgage(Rv.owner(id), principal, 'io', false) : null;
+    p.letMode = undefined; p.letLockUntil = undefined; // new owner, new strategy: reconsider letting mode
+    Rv.considerShortLet(rd, p);
     rv.stats.bought++; rv.lastAction = 'Bought ' + p.name + ' from you.';
   };
   /* A rival's listing sold (to anyone) or expired (sold to the open market at 95%). */
@@ -203,6 +225,7 @@
     var s = PE.S(); if (rv.bankrupt) return;
     var rd = Rv.def(rv.id), owner = Rv.owner(rv.id), props = St.ownedProps(owner), ctx = { mgmt: 'manager', quality: 0.7, fee: B.managerFeeDefault };
     var income = 0, action = null, i, p;
+    for (i = 0; i < props.length; i++) if (props[i].letMode === undefined) Rv.considerShortLet(rd, props[i]); // safety net: any acquisition path that bypassed the hooks
     for (i = 0; i < props.length; i++) {
       p = props[i];
       if (p.renovation) PE.Property.progressRenovation(p);
@@ -365,7 +388,7 @@
     for (var i = 0; i < props.length; i++) {
       var p = props[i];
       if (by === 'player') { St.setOwner(p, 'player'); p.purchasePrice = Math.round(p.trueValue * 0.8); p.purchaseYear = s.year; if (p.mortgage) p.mortgage = PE.Finance.makeMortgage('player', p.mortgage.principal, 'io', false); PE.Property.initTenancy(p); }
-      else if (by) { St.setOwner(p, Rv.owner(by)); if (p.mortgage) p.mortgage.lender = 'Private bank'; }
+      else if (by) { St.setOwner(p, Rv.owner(by)); if (p.mortgage) p.mortgage.lender = 'Private bank'; p.letMode = undefined; p.letLockUntil = undefined; Rv.considerShortLet(Rv.def(by), p); }
       else St.setOwner(p, null);
     }
     if (by === 'player') { s.cash -= price; s.stats.bought += props.length; }

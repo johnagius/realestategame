@@ -52,7 +52,9 @@ toggle (§4).
 Per property per year, `PE.Property.rentAnnual` gains a mode factor:
 
 - `long`: current formula, unchanged.
-- `short`: `gross × shortLetBase (1.30) × visitorFactor × cycleFactor ×
+- `short`: `gross × shortLetBase (1.25 — tuned down from the drafted 1.30:
+  at 1.30 the letting-aware bot over-converted past the 20–60% share target;
+  the intended shape is unchanged) × visitorFactor × cycleFactor ×
   saturationFactor`, where:
   - `visitorFactor` = 0.85 / 1.0 / 1.15 for district visitor 0/1/2 (0 → short
     let not eligible at all; eligibility is visitor ≥ 1 AND rentable type:

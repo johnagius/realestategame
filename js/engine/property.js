@@ -40,8 +40,8 @@
     p.rentAnnual = P.grossRent(p);
   };
 
-  /* Annual gross rent at full occupancy. */
-  P.grossRent = function (p) {
+  /* Annual gross rent at full occupancy, before the letting-mode factor (LOCATION-SLICE §3). */
+  P.grossRentCore = function (p) {
     var t = P.type(p), c = P.city(p), band = P.band(p), s = PE.S();
     if (!t.canRent || p.condition < B.unrentableBelow) return 0;
     var setting = p.lease ? p.lease.setting : p.rentSetting;
@@ -58,11 +58,21 @@
     if (s.flags.rentBoostYear === s.year && p.ownerId === 'player') r *= 1.10;
     if (s.flags.commercialRentYear === s.year && p.ownerId === 'player' && (t.id === 'shop' || t.id === 'office')) r *= 0.8;
     if (p.flagship && p.ownerId === 'player') r *= (1 + B.flagshipRentBonus); // ENG-B8: the name on the door draws better tenants
-    return Math.round(r);
+    return r;
   };
+  /* Short-let multiplier (LOCATION-SLICE §3): base × visitor × cycle × saturation. Long let: 1.
+     The tourism city trait stays inside the core — choosing short let in Miami stacks the two
+     deliberately (a disclosed strategy, §3 "no double-counting"). */
+  P.shortLetFactor = function (p) {
+    if (P.letModeOf(p) !== 'short' || !P.shortLetEligible(p)) return 1;
+    var s = PE.S(), v = P.visitorRating(p.cityId, p.district);
+    return B.shortLetBase * B.shortLetVisitor[v] * (B.shortLetCycle[s.cycle.phase] || 1) * P.shortLetSaturation(p.ownerId, p.cityId, p.district).factor;
+  };
+  P.grossRent = function (p) { return Math.round(P.grossRentCore(p) * P.shortLetFactor(p)); };
 
-  /* Occupancy for the year, given management context. */
-  P.occupancyFor = function (p, ctx) {
+  /* Occupancy for the year, given management context. est=true skips the RNG noise (estimates must
+     not draw from the gameplay stream). */
+  P.occupancyFor = function (p, ctx, est) {
     var t = P.type(p), s = PE.S(), c = P.city(p);
     if (!t.canRent || p.condition < B.unrentableBelow) return 0;
     if (p.renovation && p.renovation.tier !== 'patch') return 0;
@@ -83,22 +93,24 @@
     vacancy += (1 - tc.stability) * 0.1;
     if (p.ownerId === 'player' && p.tenant) vacancy *= (1 - B.tenantLoyaltyVacancyCut * p.tenant.loyalty); // ENG-B6: a settled tenant stays put
     if (p.ownerId === 'player' && p.reletYear === s.year) vacancy += B.tenantReletVacancy; // ENG-B6: re-letting takes part of the year
-    vacancy += R.range(-0.02, 0.02);
+    if (!est) vacancy += R.range(-0.02, 0.02);
     return U.clamp(1 - vacancy, 0, 1);
   };
 
-  /* Operating costs for a year (bible §3.2, §6.1). */
-  P.costsFor = function (p, rent, ctx) {
+  /* Operating costs for a year (bible §3.2, §6.1). est=true replaces the unmanaged-fines dice roll
+     with its expected value; modeOv evaluates costs as if the property were on that letting mode. */
+  P.costsFor = function (p, rent, ctx, est, modeOv) {
     var c = P.city(p), s = PE.S();
     var era = St.era();
     var maint = p.trueValue * (B.maintenanceMin + (B.maintenanceMax - B.maintenanceMin) * (1 - p.condition / 100));
     if (s.year - (p.builtYear || s.year) > B.decayAgeYears) maint += p.trueValue * B.maintenanceAgeExtra;
     if (p.type === 'land') maint *= 0.2;
     maint += p.trueValue * era.insurance; // compulsory insurance in later eras
+    if ((modeOv || P.letModeOf(p)) === 'short') maint += p.trueValue * B.shortLetOpexPct; // linen, agents, voids between guests (§3)
     var tax = c.trait === 'tax_haven' ? 0 : p.trueValue * c.taxRate * era.propTaxMult;
     var mgmt = 0, fines = 0;
     if (ctx && ctx.mgmt === 'manager') mgmt = rent * (ctx.fee || B.managerFeeDefault);
-    if (ctx && ctx.mgmt === 'none' && R.chance(B.unmanagedFineChance)) fines = p.trueValue * B.unmanagedFine;
+    if (ctx && ctx.mgmt === 'none') fines = est ? p.trueValue * B.unmanagedFine * B.unmanagedFineChance : (R.chance(B.unmanagedFineChance) ? p.trueValue * B.unmanagedFine : 0);
     return { maintenance: Math.round(maint), tax: Math.round(tax), management: Math.round(mgmt), fines: Math.round(fines) };
   };
 
@@ -113,6 +125,7 @@
     d *= (1.3 - tc.care * 0.4);
     if (p.rentSetting < 0.95) d *= 0.85;             // long, careful tenants
     if (p.ownerId === 'player' && p.tenant) d *= (1 - B.tenantLoyaltyDecayCut * p.tenant.loyalty); // ENG-B6
+    if (P.letModeOf(p) === 'short') d += B.shortLetDecay; // LOCATION-SLICE §3: turnover wear
     if (ctx && ctx.mgmt === 'none') d += B.unmanagedDecay;
     if (ctx && ctx.mgmt === 'manager') d *= (1 - 0.3 * (ctx.quality || 0.6));
     p.condition = U.clamp(p.condition - d, 0, 100);
@@ -131,6 +144,7 @@
   };
   P.tenantYear = function (p) {
     var s = PE.S();
+    if (P.letModeOf(p) === 'short') { p.tenant = null; return null; } // short let has no named tenant (LOCATION-SLICE §3)
     if (p.ownerId !== 'player' || p.lease || !P.type(p).canRent || p.condition < B.unrentableBelow) { if (p.tenant && (p.lease || !P.type(p).canRent)) p.tenant = null; return null; }
     if (p.vacantUntil && s.year < p.vacantUntil) { p.tenant = null; return null; } // emptied by an event: they fled
     var t = p.tenant;
@@ -150,12 +164,13 @@
   /* One year of operation: returns the cash-flow lines and mutates the asset. */
   P.operate = function (p, ctx) {
     var s = PE.S();
+    var lastRent = typeof p.lastRent === 'number' ? p.lastRent : null;
     P.revalue(p);
     var gross = P.grossRent(p);
     var occ = P.occupancyFor(p, ctx);
     var rent = Math.round(gross * occ);
     var costs = P.costsFor(p, rent, ctx);
-    p.occupancy = occ; p.rentAnnual = gross;
+    p.occupancy = occ; p.rentAnnual = gross; p.lastRent = rent;
     P.decay(p, ctx);
     if (p.lease) { p.lease.yearsLeft--; if (p.lease.yearsLeft <= 0) p.lease = null; }
     if (p.rentLockUntil && s.year >= p.rentLockUntil) p.rentLockUntil = 0;
@@ -164,7 +179,124 @@
     p.history.push({ year: s.year, value: p.trueValue });
     if (p.history.length > 30) p.history.shift();
     var total = costs.maintenance + costs.tax + costs.management + costs.fines;
-    return { rent: rent, maintenance: costs.maintenance, tax: costs.tax, management: costs.management, fines: costs.fines, costs: total, net: rent - total, line: tenantLine };
+    return { rent: rent, maintenance: costs.maintenance, tax: costs.tax, management: costs.management, fines: costs.fines, costs: total, net: rent - total, line: tenantLine, mode: P.letModeOf(p), lastRent: lastRent };
+  };
+
+  /* ---------- Letting strategy (LOCATION-SLICE §2–§4): long let vs short let ----------
+     p.letMode: 'long' (default; absent means 'long') or 'short'. p.letLockUntil: the year the
+     agent contract ends; the mode cannot change before it. */
+  P.letModeOf = function (p) { return p.letMode === 'short' ? 'short' : 'long'; };
+  P.visitorBase = function (cityId, district) { var m = D.districtVisitor[cityId]; return (m && m[district]) || 0; };
+  /* +1 when a landmark feeding this district is standing (era gate passed); the cap is applied
+     in visitorRating. Pure lookup — nothing is read from rendered positions. */
+  P.landmarkBoost = function (cityId, district) {
+    var lm = D.landmarkDistrict[cityId]; if (!lm) return 0;
+    for (var tok in lm) {
+      if (lm[tok] !== district) continue;
+      var gate = D.landmarkEraGate[tok];
+      if (gate && St.eraIdx() < D.eraIndex(gate)) continue; // not built yet: no draw
+      return 1;
+    }
+    return 0;
+  };
+  P.visitorRating = function (cityId, district) { return Math.min(2, P.visitorBase(cityId, district) + P.landmarkBoost(cityId, district)); };
+  P.shortLetEligibleType = function (p) { return D.shortLetTypes.indexOf(p.type) >= 0; };
+  P.shortLetEligible = function (p) { return P.shortLetEligibleType(p) && P.visitorRating(p.cityId, p.district) >= 1; };
+
+  /* The district's short-let share from one owner's viewpoint: own properties at full weight,
+   every other owner's at half (you compete for the same visitors, §3). */
+  P.shortLetShare = function (ownerId, cityId, district) {
+    var s = PE.S(), mine = 0, myShort = 0, other = 0, otherShort = 0;
+    for (var id in s.properties) {
+      var q = s.properties[id];
+      if (q.cityId !== cityId || q.district !== district || !q.ownerId) continue;
+      if (q.ownerId === ownerId) { mine++; if (P.letModeOf(q) === 'short') myShort++; }
+      else { other++; if (P.letModeOf(q) === 'short') otherShort++; }
+    }
+    var denom = mine + 0.5 * other;
+    return denom > 0 ? (myShort + 0.5 * otherShort) / denom : 0;
+  };
+  P.shortLetSaturation = function (ownerId, cityId, district) {
+    var share = P.shortLetShare(ownerId, cityId, district);
+    return { share: share, factor: Math.max(B.shortLetSaturationFloor, 1 - 0.5 * Math.max(0, share - B.shortLetSaturationStart)) };
+  };
+
+  /* Engine estimate for one mode (§6): gross and net this year as a ±comps-noise range, never a
+     point promise. Draws nothing from the RNG stream, so reading the sheet never moves the game. */
+  P._lettingEstimate = function (p, mode) {
+    var s = PE.S(), noise = PE.Market.compsNoise();
+    var ctx = p.ownerId === 'player' ? (P.assignManagement()[p.id] || { mgmt: 'self' }) : { mgmt: 'manager', quality: 0.7, fee: B.managerFeeDefault };
+    var factor = 1;
+    if (mode === 'short') {
+      var v = P.visitorRating(p.cityId, p.district);
+      factor = B.shortLetBase * B.shortLetVisitor[v] * (B.shortLetCycle[s.cycle.phase] || 1) * P.shortLetSaturation(p.ownerId || 'player', p.cityId, p.district).factor;
+    }
+    var core = P.grossRentCore(p), occ = P.occupancyFor(p, ctx, true);
+    function at(m) {
+      var gross = core * factor * m, rent = gross * occ;
+      var c = P.costsFor(p, rent, ctx, true, mode);
+      return { gross: Math.round(gross), net: Math.round(rent - c.maintenance - c.tax - c.management - c.fines) };
+    }
+    var lo = at(1 - noise), hi = at(1 + noise);
+    return { gross: [lo.gross, hi.gross], net: [lo.net, hi.net] };
+  };
+
+  /* The property sheet's "Letting strategy" block (§6): current mode, eligibility with reasons,
+     lock state, switch cost, and a per-mode estimate payload. Works for owned properties and for
+     board listings (pre-purchase evaluation: mode long, no switch). */
+  P.lettingInfo = function (propertyId) {
+    var s = PE.S(), p = s.properties[propertyId] || s.listings[propertyId];
+    if (!p) return PE.fail('No such property');
+    var owned = p.ownerId === 'player';
+    var mode = P.letModeOf(p), visitor = P.visitorRating(p.cityId, p.district);
+    var lockedUntil = p.letLockUntil || 0, canSwitch = owned && s.year >= lockedUntil;
+    var reasons = [];
+    if (!P.shortLetEligibleType(p)) reasons.push('A ' + P.type(p).name.toLowerCase() + ' cannot be short-let');
+    if (visitor < 1) reasons.push(p.district + ' draws no visitors to speak of');
+    if (P.type(p).canRent && p.condition < B.unrentableBelow) reasons.push('Unrentable in this condition');
+    if (p.lease) reasons.push('A fixed lease has ' + p.lease.yearsLeft + ' year' + (p.lease.yearsLeft > 1 ? 's' : '') + ' left');
+    if (p.renovation) reasons.push('Works are in progress');
+    if (owned && p.flagship) reasons.push('The flagship flies the family name — it cannot change letting mode');
+    if (owned && !canSwitch) reasons.push('The agent contract runs until ' + lockedUntil);
+    var eligible = P.shortLetEligible(p) && p.condition >= B.unrentableBelow;
+    var sat = P.shortLetSaturation(p.ownerId || 'player', p.cityId, p.district);
+    var longEst = P._lettingEstimate(p, 'long'), shortEst = P._lettingEstimate(p, 'short');
+    var shortNote = 'Swings with the cycle; higher running costs, faster wear.';
+    if (sat.share > B.shortLetSaturationStart) shortNote += ' The district is filling with short lets — returns are diluted.';
+    return PE.ok({
+      eligible: eligible, reasons: reasons, mode: mode, lockedUntil: lockedUntil, canSwitch: canSwitch,
+      switchCost: Math.max(1, Math.round(p.trueValue * B.shortLetSwitchCostPct)),
+      visitor: visitor, landmarkBoost: P.landmarkBoost(p.cityId, p.district),
+      long: { gross: longEst.gross, net: longEst.net, note: 'Steady; a named tenant may settle in.' },
+      short: { gross: shortEst.gross, net: shortEst.net, note: shortNote, saturation: sat }
+    });
+  };
+
+  /* Switch the letting strategy (§4): 2% of value once, mode locked for 3 years, one switch per
+     property per year by construction. Flagship, works in progress, an active lease (to short)
+     and the lock all refuse. */
+  P.setLetMode = function (propertyId, mode) {
+    var s = PE.S(), p = s.properties[propertyId];
+    if (!p || p.ownerId !== 'player') return PE.fail('Not your property');
+    if (mode !== 'long' && mode !== 'short') return PE.fail('Unknown letting mode');
+    if (mode === P.letModeOf(p)) return PE.fail(p.name + ' is already on a ' + mode + ' let');
+    if (p.flagship) return PE.fail('The flagship flies the family name — it cannot change letting mode');
+    if (p.renovation) return PE.fail('Finish the works first');
+    if (p.letLockUntil && s.year < p.letLockUntil) return PE.fail('The agent contract runs until ' + p.letLockUntil);
+    if (mode === 'short') {
+      if (!P.shortLetEligibleType(p)) return PE.fail('A ' + P.type(p).name.toLowerCase() + ' cannot be short-let');
+      if (P.visitorRating(p.cityId, p.district) < 1) return PE.fail(p.district + ' draws no visitors to speak of');
+      if (p.condition < B.unrentableBelow) return PE.fail('The building is unrentable; renovate first');
+      if (p.lease) return PE.fail('A fixed lease has ' + p.lease.yearsLeft + ' year' + (p.lease.yearsLeft > 1 ? 's' : '') + ' left; the guests come after');
+    }
+    var cost = Math.max(1, Math.round(p.trueValue * B.shortLetSwitchCostPct));
+    if (s.cash < cost) return PE.fail('Not enough cash (' + U.fmt(cost) + ' needed for the refit)');
+    s.cash -= cost;
+    p.letMode = mode;
+    p.letLockUntil = s.year + B.shortLetLockYears;
+    if (mode === 'short') { p.tenant = null; p.reletYear = 0; }
+    p.rentAnnual = P.grossRent(p);
+    return PE.ok({ message: p.name + (mode === 'short' ? ' is furnished for visiting guests' : ' returns to a long let') + '; the agent contract runs until ' + p.letLockUntil + '. Refit cost ' + U.fmt(cost) + '.', cost: cost, mode: mode, lockedUntil: p.letLockUntil, rentAnnual: p.rentAnnual });
   };
 
   /* ---------- Management capacity (bible §6.1) ---------- */
@@ -459,5 +591,5 @@
       var raw = mod[n]; if (typeof raw !== 'function') return;
       mod[n] = PE.guard(n, raw); mod['_' + n] = raw;
     })(names[i]);
-  })(P, ['commissionQuote', 'commissionBuild', 'speedUpRenovation']);
+  })(P, ['commissionQuote', 'commissionBuild', 'speedUpRenovation', 'lettingInfo', 'setLetMode']);
 })(typeof window !== 'undefined' ? window : global);

@@ -87,6 +87,16 @@ module.exports = function (PE) {
 
   var competent = {
     name: 'competent',
+    /* Greedy letting strategy (LOCATION-SLICE): switch to short only when the estimated short net
+       beats long by shortLetMargin, and never past shortLetShareCap of a district's short-let
+       share — the saturation curve makes converting a whole district self-defeating (§3), and a
+       competent player reads the estimate's saturation warning. */
+    shortLetMargin: 1.15,
+    shortLetShareCap: 0.5,
+    /* Switch back to long only when long beats short by this much — the 3-year lock means the bot
+       rides a crash it dodged into (§5). 1.2 keeps the 100-seed competent bankruptcy rate inside
+       the 5–15% band (sweep on the 30y block: 1.1→4.8%, 1.2→5.8%, 1.3→6.0%). */
+    shortLetBackMargin: 1.2,
     play: function () {
       var s = PE.S(), i, p;
       resolveEvents('competent');
@@ -189,6 +199,34 @@ module.exports = function (PE) {
       props = St.playerProps();
       var setting = (s.cycle.phase === 'depression' || s.cycle.phase === 'recession') ? 0.95 : 1.0;
       for (i = 0; i < props.length; i++) if (props[i].rentSetting !== setting && !props[i].lease) PE.Property.setRent(props[i].id, setting);
+      // letting strategy (LOCATION-SLICE): greedy by estimated net difference, one switch at a time
+      // (saturation makes each further conversion worse, so the loop re-estimates after each one).
+      // The bot keeps at most shortLetShareCap of its eligible visitor-district portfolio on short
+      // let — the estimate's saturation warning makes a fuller conversion self-defeating (§3).
+      var lp0 = St.playerProps(), slTotal = 0, slNow = 0;
+      for (i = 0; i < lp0.length; i++) {
+        p = lp0[i];
+        if (D.shortLetTypes.indexOf(p.type) >= 0 && PE.Property.visitorRating(p.cityId, p.district) >= 1) { slTotal++; if ((p.letMode || 'long') === 'short') slNow++; }
+      }
+      var slGuard = 0;
+      while (slGuard++ < 10) {
+        var bestSl = null, bestGain = 0;
+        var lp = St.playerProps();
+        for (i = 0; i < lp.length; i++) {
+          p = lp[i]; if (p.forSale || p.lease || p.renovation || p.flagship) continue;
+          var info = PE.Property.lettingInfo(p.id);
+          if (!info.ok || !info.canSwitch) continue;
+          var longMid = (info.long.net[0] + info.long.net[1]) / 2, shortMid = (info.short.net[0] + info.short.net[1]) / 2;
+          if ((p.letMode || 'long') === 'long') {
+            if (slTotal > 0 && slNow / slTotal < (competent.shortLetShareCap || 0.5) && info.eligible && shortMid > longMid * (competent.shortLetMargin || 1.15) && shortMid - longMid > bestGain) { bestSl = { id: p.id, to: 'short' }; bestGain = shortMid - longMid; }
+          } else if (longMid > shortMid * (competent.shortLetBackMargin || 1.1) && longMid - shortMid > bestGain) { bestSl = { id: p.id, to: 'long' }; bestGain = longMid - shortMid; }
+        }
+        if (!bestSl) break;
+        var bp = s.properties[bestSl.id], swCost = Math.max(1, Math.round(bp.trueValue * B.shortLetSwitchCostPct));
+        if (s.cash - swCost < reserve()) break;
+        if (!PE.Property.setLetMode(bestSl.id, bestSl.to).ok) break;
+        if (bestSl.to === 'short') slNow++; else slNow--;
+      }
     }
   };
 

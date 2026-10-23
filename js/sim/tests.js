@@ -833,10 +833,13 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   delete old.goals.family; delete old.flags.insuredUntil; delete old.flags.allyRevealId; delete old.dynasty.proposals; delete old.dynasty.mergers;
   ['steals', 'countersClosed', 'marginCallsCleared', 'highLtvYears', 'rank1Years', 'educated', 'marriages', 'mergers', 'vultures', 'cashKingYears', 'trustSuccessions', 'evictions', 'yearlyGoalsDone', 'rothschildLoans', 'outbidRivals'].forEach(function (k) { delete old.stats[k]; });
   for (var id in old.rivals) { delete old.rivals[id].merged; delete old.rivals[id].allied; delete old.rivals[id].mergedYear; old.rivals[id].relation = 62; }
+  for (var pid in old.properties) { delete old.properties[pid].letMode; delete old.properties[pid].letLockUntil; } // a pre-slice save knows no letting modes
+  for (var lid2 in old.listings) { delete old.listings[lid2].letMode; delete old.listings[lid2].letLockUntil; }
   old.saveVersion = 1;
   PE.Storage.useBackend({ get: function () { return JSON.stringify({ saveVersion: 1, state: old }); }, set: function () { return true; }, remove: function () {} });
   var r = PE.Game.load(), m = PE.S();
-  check('SAVE_VERSION is 2 and a v1 save loads', PE.Storage.SAVE_VERSION === 2 && r.ok && m.saveVersion === 2);
+  check('SAVE_VERSION is 3 and a v1 save loads', PE.Storage.SAVE_VERSION === 3 && r.ok && m.saveVersion === 3);
+  check('v1→v3 migration defaults letting mode to long on every property and listing', Object.keys(m.properties).every(function (k) { return m.properties[k].letMode === 'long' && m.properties[k].letLockUntil === 0; }) && Object.keys(m.listings).every(function (k) { return m.listings[k].letMode === 'long'; }));
   check('migration fills relations from rv.relation, rank history, mode, perks, family goal, stats and flags', m.relations && m.relations.wong === 24 && m.ranks && m.ranks.byId && m.mode === 'campaign' && m.scenario === null && m.challenge === null && m.legacyRecorded === false && Array.isArray(m.perks) && m.goals.family === null && m.stats.outbidRivals && m.stats.marriages === 0 && m.flags.insuredUntil === 0 && m.rivals.wong.merged === false && m.dynasty.proposals.length === 0 && m.dynasty.mergers === 0, m.relations);
   check('a migrated save plays on: endYear, leaderboard, summary, dynasty, goals all ok', (function () { clearEvents(PE); var e = PE.Game.endYear(); return e.ok && PE.Rivals.leaderboard().ok && PE.Game.summary().ok && PE.Dynasty.summary().ok && PE.Goals.current().ok && PE.Finance.summary().ok; })());
   // payload compatibility with the current UI
@@ -1727,6 +1730,167 @@ function loadWith(extra) {
   check('P4.4 foreign_buyer: stamp duty carries a 6% surcharge', sdWith - sdWithout === 6000 && sdWithout === Math.round(100000 * Ph.State.era().stampDuty), [sdWith, sdWithout]);
   var gF = driftGain(Ph, 'sydney', 'Bondi'), gF0 = withTrait(Ph, 'sydney', 'heritage_city', function () { return driftGain(Ph, 'sydney', 'Bondi'); });
   check('P4.4 foreign_buyer: districts drift +foreignBuyerDrift a year', Math.abs((gF - gF0) - B.foreignBuyerDrift) < 1e-9, [gF - gF0, B.foreignBuyerDrift]);
+})();
+
+/* ---------- Letting strategy (LOCATION-SLICE §9) ---------- */
+(function () {
+  var PE = fresh('chen', 61), s = PE.S(), D = PE.Data, B = D.balance, P = PE.Property, St = PE.State;
+  function mk(type, district, cond) { var p = PE.Market.genProperty('london', { type: type, district: district, condition: cond === undefined ? 70 : cond }); St.setOwner(p, 'player'); return p; }
+  // landmark-driven effective visitor rating, era gates duplicated in engine data
+  check('visitor ratings: Mayfair 2 (Big Ben standing, capped), Hampstead 0, Canary Wharf 0', P.visitorRating('london', 'Mayfair') === 2 && P.visitorRating('london', 'Hampstead') === 0 && P.visitorRating('london', 'Canary Wharf') === 0);
+  check('Shoreditch is 1 before Tower Bridge (gilded gate)', P.visitorRating('london', 'Shoreditch') === 1);
+  s.year = 1900;
+  check('Shoreditch is 2 once Tower Bridge stands', P.visitorRating('london', 'Shoreditch') === 2);
+  check('Canary Wharf is still 0 before the Shard (digital gate)', P.visitorRating('london', 'Canary Wharf') === 0);
+  s.year = 2008;
+  check('Canary Wharf is 1 once the Shard stands', P.visitorRating('london', 'Canary Wharf') === 1);
+  s.year = 1850;
+  // eligibility matrix: type × visitor rating
+  var may = mk('terrace', 'Mayfair');
+  var info = P.lettingInfo(may.id);
+  check('a terrace in Mayfair is short-let eligible', info.ok && info.eligible && info.visitor === 2 && info.reasons.length === 0, info);
+  var badTypes = ['shop', 'office', 'warehouse', 'tower', 'land', 'mansion'].map(function (t) { return mk(t, 'Mayfair'); });
+  check('shop/office/warehouse/tower/land/mansion are not short-let eligible', badTypes.every(function (p) { return !P.lettingInfo(p.id).eligible && P.lettingInfo(p.id).reasons.length > 0; }));
+  var resTypes = ['townhouse', 'lodging', 'tenement', 'apartment', 'villa', 'house', 'studio', 'penthouse'].map(function (t) { return mk(t, 'Kensington'); });
+  check('the residential types in a visitor district are eligible', resTypes.every(function (p) { return P.lettingInfo(p.id).eligible; }));
+  var ham = mk('terrace', 'Hampstead');
+  check('visitor-0 districts are not eligible, with a reason', !P.lettingInfo(ham.id).eligible && /no visitors/.test(P.lettingInfo(ham.id).reasons.join(' ')));
+  var wreck = mk('terrace', 'Mayfair', 10);
+  check('unrentable condition is not eligible', !P.lettingInfo(wreck.id).eligible);
+  // state-based refusals
+  var leased = mk('terrace', 'Mayfair'); leased.lease = { years: 3, yearsLeft: 3, setting: 1.05 };
+  var rLease = P.setLetMode(leased.id, 'short');
+  check('switching to short with an active lease is refused, years left shown', !rLease.ok && /3 years left/.test(rLease.message), rLease);
+  var reno = mk('terrace', 'Mayfair'); reno.renovation = { tier: 'refurbish', yearsLeft: 2, cost: 100, overrun: 0, delay: 0, started: s.year };
+  check('switching under renovation is refused', !P.setLetMode(reno.id, 'short').ok);
+  var flag = mk('townhouse', 'Mayfair'); flag.flagship = true;
+  var flagNoShort = !P.setLetMode(flag.id, 'short').ok;
+  flag.letMode = 'short'; flag.letLockUntil = 0;
+  check('switching a flagship is refused in both directions', flagNoShort && !P.setLetMode(flag.id, 'long').ok);
+  // switch cost charged once; the lock enforces one switch per 3 years
+  may.tenant = { name: 'Ada Vance', since: s.year - 1, loyalty: 0.6, rentSeen: 1 };
+  var cost = Math.max(1, Math.round(may.trueValue * B.shortLetSwitchCostPct)), cash0 = s.cash;
+  var sw = P.setLetMode(may.id, 'short');
+  check('switching to short charges 2% of value once and sets the 3-year lock', sw.ok && sw.cost === cost && s.cash === cash0 - cost && may.letMode === 'short' && may.letLockUntil === s.year + B.shortLetLockYears && sw.lockedUntil === may.letLockUntil, sw);
+  check('switching to short clears the named tenant', may.tenant === null);
+  var sw2 = P.setLetMode(may.id, 'long');
+  check('a second switch inside the lock fails and charges nothing (switch-spam designed out)', !sw2.ok && s.cash === cash0 - cost);
+  s.year += B.shortLetLockYears;
+  var sw3 = P.setLetMode(may.id, 'long');
+  var cost2 = Math.max(1, Math.round(may.trueValue * B.shortLetSwitchCostPct));
+  check('the switch is allowed once the lock expires, charged once more', sw3.ok && s.cash === cash0 - cost - cost2 && may.letMode === 'long', sw3);
+  s.year = 1850;
+})();
+
+(function () {
+  var PE = fresh('chen', 62), s = PE.S(), B = PE.Data.balance, P = PE.Property, St = PE.State;
+  var p = PE.Market.genProperty('london', { type: 'terrace', district: 'Mayfair', condition: 75 });
+  St.setOwner(p, 'player');
+  p.letMode = 'short'; p.letLockUntil = 0;
+  var core = P.grossRentCore(p);
+  ['boom', 'growth', 'stagnation', 'recession', 'depression'].forEach(function (ph) {
+    s.cycle.phase = ph;
+    var expect = Math.round(core * B.shortLetBase * B.shortLetVisitor[2] * B.shortLetCycle[ph] * P.shortLetSaturation('player', 'london', 'Mayfair').factor);
+    check('short-let cycle factor applied: ' + ph + ' ×' + B.shortLetCycle[ph], P.grossRent(p) === expect, [P.grossRent(p), expect]);
+  });
+  s.cycle.phase = 'growth';
+  check('short let beats the long formula in Mayfair in a growth year', P.grossRent(p) > Math.round(core));
+  p.letMode = 'long';
+  check('long let is the untouched formula', P.grossRent(p) === Math.round(core));
+  var hx = PE.Market.genProperty('london', { type: 'terrace', district: 'Hampstead', condition: 75 });
+  hx.letMode = 'short';
+  check('the short flag on an ineligible property has no effect', P.shortLetFactor(hx) === 1);
+  // costs and decay fold into the existing lines
+  var rngSave = s.rng;
+  p.letMode = 'short'; var c0 = p.condition; P.decay(p, { mgmt: 'self' }); var dShort = c0 - p.condition;
+  s.rng = rngSave; p.condition = c0; p.letMode = 'long'; P.decay(p, { mgmt: 'self' }); var dLong = c0 - p.condition;
+  check('short let wears the building +2 condition/yr', Math.abs(dShort - dLong - B.shortLetDecay) < 1e-9, [dShort, dLong]);
+  var cShort = P.costsFor(p, 1000, { mgmt: 'self' }, false, 'short'), cLong = P.costsFor(p, 1000, { mgmt: 'self' }, false, 'long');
+  check('short let adds 1.5% of value to operating costs', Math.abs(cShort.maintenance - cLong.maintenance - p.trueValue * B.shortLetOpexPct) <= 1, [cShort.maintenance - cLong.maintenance, p.trueValue * B.shortLetOpexPct]);
+  // sticky tenants are long-let only
+  p.letMode = 'short'; p.tenant = { name: 'Ada Vance', since: s.year - 1, loyalty: 0.9, rentSeen: 1 };
+  P.tenantYear(p);
+  check('sticky tenants (ENG-B6) apply to long let only', p.tenant === null);
+  // estimates are ranges and never touch the RNG stream
+  var rng2 = s.rng, inf = P.lettingInfo(p.id);
+  check('lettingInfo returns ranges, never point values', inf.ok && inf.long.gross[0] < inf.long.gross[1] && inf.short.net[0] <= inf.short.net[1] && inf.short.saturation && typeof inf.short.saturation.factor === 'number', inf);
+  check('lettingInfo draws nothing from the RNG stream', s.rng === rng2);
+})();
+
+(function () {
+  var PE = fresh('chen', 63), s = PE.S(), B = PE.Data.balance, P = PE.Property, St = PE.State;
+  // saturation curve on a clean district (Paris: no rival holdings at game start)
+  var props = [], i, j;
+  for (i = 0; i < 8; i++) { var q = PE.Market.genProperty('paris', { type: 'terrace', district: 'Le Marais', condition: 70 }); St.setOwner(q, 'player'); props.push(q); }
+  var shares = [], factors = [];
+  for (i = 0; i <= 8; i++) {
+    for (j = 0; j < 8; j++) props[j].letMode = j < i ? 'short' : 'long';
+    var sat = P.shortLetSaturation('player', 'paris', 'Le Marais');
+    shares.push(sat.share); factors.push(sat.factor);
+  }
+  var inc = true; for (i = 1; i < shares.length; i++) if (shares[i] <= shares[i - 1]) inc = false;
+  check('district short-let share rises as properties convert', inc, shares);
+  check('no saturation penalty up to the 25% start', factors[0] === 1 && factors[1] === 1 && factors[2] === 1, factors);
+  var mono = true; for (i = 3; i < factors.length; i++) if (factors[i] > factors[i - 1]) mono = false;
+  check('saturation factor decays monotonically past the start', mono && factors[5] < factors[3], factors);
+  check('saturation factor respects the 0.75 floor', factors[6] === B.shortLetSaturationFloor && factors[8] === B.shortLetSaturationFloor, factors);
+  check('saturation formula: 1 − 0.5 × max(0, share − start), floored', Math.abs(factors[5] - Math.max(B.shortLetSaturationFloor, 1 - 0.5 * (shares[5] - B.shortLetSaturationStart))) < 1e-9, [factors[5], shares[5]]);
+  for (j = 0; j < 8; j++) props[j].letMode = 'long';
+  var rp = PE.Market.genProperty('paris', { type: 'terrace', district: 'Le Marais', condition: 70 });
+  St.setOwner(rp, 'rival:wong'); rp.letMode = 'short';
+  check('rival short lets count at half weight in the share', Math.abs(P.shortLetShare('player', 'paris', 'Le Marais') - 0.5 / 8.5) < 1e-9, P.shortLetShare('player', 'paris', 'Le Marais'));
+  // archetype flavour
+  var wong = PE.Data.rivalById('wong'), hoarder = PE.Data.rivalById('al_rashid'), petrov = PE.Data.rivalById('petrov');
+  check('rival flavour: Trader/Slumlord short-let the most, Hoarder never', PE.Rivals.shortLetChance(wong) > B.shortLetRivalShare && PE.Rivals.shortLetChance(PE.Data.rivalById('martinez')) > B.shortLetRivalShare && PE.Rivals.shortLetChance(hoarder) === 0 && PE.Rivals.shortLetChance(petrov) === B.shortLetRivalShare);
+  var totalShort = 0, hoarderShort = 0;
+  for (var sd = 1; sd <= 8; sd++) {
+    var PEr = fresh('chen', 100 + sd), sr = PEr.S();
+    for (var id in sr.properties) { var q2 = sr.properties[id]; if (q2.ownerId && q2.ownerId.indexOf('rival:') === 0 && q2.letMode === 'short') { totalShort++; if (q2.ownerId === 'rival:al_rashid') hoarderShort++; } }
+  }
+  check('rivals run some short lets at game start; the Hoarder runs none', totalShort > 0 && hoarderShort === 0, { totalShort: totalShort });
+})();
+
+(function () {
+  var PE = fresh('chen', 64), s = PE.S();
+  check('SAVE_VERSION is 3 with a 2→3 migration', PE.Storage.SAVE_VERSION === 3 && typeof PE.Storage.migrations[2] === 'function');
+  var st = { properties: { a: { id: 'a' }, b: { id: 'b', letMode: 'short', letLockUntil: 1900 } }, listings: { c: { id: 'c' } } };
+  var once = PE.Storage.migrations[2](JSON.parse(JSON.stringify(st)));
+  var twice = PE.Storage.migrations[2](JSON.parse(JSON.stringify(once)));
+  check('migration: absent letMode → long, absent letLockUntil → 0, existing values kept', once.properties.a.letMode === 'long' && once.properties.a.letLockUntil === 0 && once.properties.b.letMode === 'short' && once.properties.b.letLockUntil === 1900 && once.listings.c.letMode === 'long');
+  check('migration is idempotent', JSON.stringify(once) === JSON.stringify(twice));
+  var store = {};
+  PE.Storage.useBackend({ get: function (k) { return store.hasOwnProperty(k) ? store[k] : null; }, set: function (k, v) { store[k] = v; return true; }, remove: function (k) { delete store[k]; } });
+  var raw = JSON.parse(JSON.stringify(s));
+  for (var pid in raw.properties) { delete raw.properties[pid].letMode; delete raw.properties[pid].letLockUntil; } // a v2 save predates letting modes
+  store['v2_save'] = JSON.stringify({ saveVersion: 2, savedAt: s.year, state: raw });
+  var loaded = PE.Storage.load('v2_save');
+  var allMigrated = loaded && Object.keys(loaded.properties).every(function (k) { return loaded.properties[k].letMode === 'long' && loaded.properties[k].letLockUntil === 0; });
+  check('a v2 save loads with letting defaults on every property (rival ones included)', !!allMigrated && loaded.saveVersion === 3);
+})();
+
+(function () {
+  var A = fresh('chen', 65), pa = require('./players.js')(A);
+  var Bv = fresh('chen', 65), pb = require('./players.js')(Bv);
+  playYears(A, pa, 6); playYears(Bv, pb, 6);
+  check('mid-run save works', Bv.Game.save().ok);
+  check('mid-run reload works', Bv.Game.load().ok);
+  pa.competent.play(); var ra = A.Game.endYear(); if (!ra.ok) { pa.resolveEvents('competent'); ra = A.Game.endYear(); }
+  pb.competent.play(); var rb = Bv.Game.endYear(); if (!rb.ok) { pb.resolveEvents('competent'); rb = Bv.Game.endYear(); }
+  check('save/reload mid-year: no income duplication, identical rent and cash', ra.ok && rb.ok && ra.cashFlow.rent === rb.cashFlow.rent && A.S().cash === Bv.S().cash, [ra.cashFlow && ra.cashFlow.rent, rb.cashFlow && rb.cashFlow.rent]);
+  playYears(A, pa, 3); playYears(Bv, pb, 3);
+  // JSON drops undefined-valued keys (the engine keeps object shapes stable that way), so compare round-tripped states
+  check('state after a reload is identical to the uninterrupted run', JSON.stringify(JSON.parse(JSON.stringify(A.S()))) === JSON.stringify(Bv.S()));
+})();
+
+(function () {
+  var PE = fresh('chen', 66), s = PE.S(), St = PE.State;
+  var p = PE.Market.genProperty('london', { type: 'terrace', district: 'Mayfair', condition: 75 });
+  St.setOwner(p, 'player');
+  p.letMode = 'short'; p.letLockUntil = 0; p.lastRent = Math.round(PE.Property.grossRent(p) * 10); // last year was a great visitor year
+  s.cycle.phase = 'recession'; s.cycle.yearsLeft = 3;
+  var rep = PE.Game.endYear(); if (!rep.ok) { s.events.pending = []; rep = PE.Game.endYear(); }
+  check('year report explains the visitor crash for short-let districts', rep.ok && rep.lines.some(function (l) { return /Visitors vanished from Mayfair/.test(l); }), rep && rep.lines);
+  check('the per-property rent line carries the letting mode', rep.ok && s.properties[p.id].letMode === 'short');
 })();
 
 /* ---------- Summary ---------- */

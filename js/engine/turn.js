@@ -46,12 +46,20 @@
 
     // 1. Operate the portfolio
     var mgmt = PE.Property.assignManagement(), props = St.playerProps().slice(), rent = 0, costs = 0;
+    var shortLets = {}; // district -> {rent, last} for the visitor-economy swing note (LOCATION-SLICE §6)
     for (i = 0; i < props.length; i++) {
       p = props[i];
       var line = PE.Property.progressRenovation(p); if (line) rep.lines.push(line.text);
       var r = PE.Property.operate(p, mgmt[p.id]);
       if (r.line) rep.lines.push(r.line);
       rent += r.rent; costs += r.costs;
+      if (r.mode === 'short') { var slk = p.district, sla = shortLets[slk] || (shortLets[slk] = { rent: 0, last: 0 }); sla.rent += r.rent; if (r.lastRent !== null) sla.last += r.lastRent; }
+    }
+    if (s.cycle.phase === 'recession' || s.cycle.phase === 'depression') {
+      for (var slD in shortLets) {
+        var slA = shortLets[slD];
+        if (slA.last > 0 && slA.rent < slA.last * 0.9) rep.lines.push('Visitors vanished from ' + slD + ' in the ' + D.cycles[s.cycle.phase].name.toLowerCase() + ' — your short lets earned ' + U.fmt(slA.rent) + ' against ' + U.fmt(slA.last) + ' last year.');
+      }
     }
     cf.rent = rent; cf.costs = costs; s.cash += rent - costs;
     s.lastRent = s.thisRent || 0; s.thisRent = rent;

@@ -163,6 +163,21 @@
   D.cityById = {};
   for (var ci = 0; ci < D.cities.length; ci++) D.cityById[D.cities[ci].id] = D.cities[ci];
 
+  /* ---------- Visitor economy (LOCATION-SLICE §2): district identity and landmarks as demand ---------- */
+  // visitor: 0 none / 1 some / 2 strong visitor appeal. A district absent from the map is 0 —
+  // short let is simply not offered there (the defined fallback for non-London cities until §10).
+  D.districtVisitor = {
+    london: { 'Mayfair': 2, 'Kensington': 1, 'Chelsea': 1, 'Notting Hill': 1, 'Camden': 1, 'Shoreditch': 1, 'Hampstead': 0, 'Canary Wharf': 0 }
+  };
+  // Which district each 3D landmark feeds: a present landmark adds +1 effective visitor (cap 2).
+  D.landmarkDistrict = { london: { BIG: 'Mayfair', TBR: 'Shoreditch', SHD: 'Canary Wharf' } };
+  // Era gates duplicated from js/cities/london.js landmarkEras (the engine must not load js/cities
+  // files): Tower Bridge opens 1894 (gilded), The Shard rises 2012 (digital). Big Ben stands from
+  // 1859 — no gate. Keep in sync with the city def if landmarks change.
+  D.landmarkEraGate = { TBR: 'gilded', SHD: 'digital' };
+  // Types that can take a short let (LOCATION-SLICE §3) — not land/warehouse/shop/office/tower/mansion.
+  D.shortLetTypes = ['terrace', 'townhouse', 'lodging', 'tenement', 'apartment', 'house', 'studio', 'villa', 'penthouse'];
+
   /* ---------- Families (bible §11) ---------- */
   D.families = [
     { id: 'silva', name: 'The Silva Family', difficulty: 'Hard', color: '#7B6D4E', motto: 'From nothing, we build everything.',
@@ -594,7 +609,20 @@
     // P4.4 city traits v2
     redevelopmentDrift: 0.006,        // below-average districts in redevelopment cities appreciate faster
     techHubDrift: 0.005,              // Modern+ district price drift in tech hubs
-    foreignBuyerDrift: 0.01           // extra yearly appreciation where foreign money chases stock
+    foreignBuyerDrift: 0.01,          // extra yearly appreciation where foreign money chases stock
+    // LOCATION-SLICE §3/§4 short let (visitor letting; "seasonal lodgings" in early eras)
+    shortLetBase: 1.25,               // short-let gross = long-let gross × this before demand factors (tuned down from the 1.30 first pass: at 1.30 the aware bot over-converted and the visitor-2 edge made family guards policy-fragile)
+    shortLetVisitor: [0.85, 1.0, 1.15], // demand by effective district visitor rating 0/1/2
+    shortLetCycle: { boom: 1.25, growth: 1.10, stagnation: 1.00, recession: 0.80, depression: 0.60 },
+    shortLetOpexPct: 0.015,           // +1.5% of value/yr operating cost (linen, agents, voids)
+    shortLetDecay: 2,                 // +2 condition/yr turnover wear
+    shortLetSwitchCostPct: 0.02,      // furnishing/refit, charged once per switch
+    shortLetLockYears: 3,             // the agent contract runs this long after a switch
+    shortLetSaturationStart: 0.25,    // district short-let share above this decays returns
+    shortLetSaturationFloor: 0.75,    // saturation can never push the factor below this
+    shortLetRivalShare: 0.3,          // base chance a rival runs an eligible property as a short let
+    // archetype flavour (LOCATION-SLICE §5): Trader/Slumlord the most, Hoarder never
+    shortLetRivalArchetypeMult: { Trader: 2.0, Slumlord: 2.0, Speculator: 1.0, Banker: 0.5, Builder: 0.5, Magnate: 0.5, Hoarder: 0 }
   };
 
   /* ---------- Historical scripted events (bible §2, §6.4) ---------- */

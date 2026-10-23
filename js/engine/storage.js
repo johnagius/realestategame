@@ -20,7 +20,7 @@
   var Storage = {
     SAVE_KEY: 'pe_v8_save',
     META_KEY: 'pe_v8_meta',
-    SAVE_VERSION: 2,
+    SAVE_VERSION: 3,
     /* P6.3 save slots. */
     SLOTS: 3,
     LEGACY_KEY: 'pe_v8_save',
@@ -49,6 +49,19 @@
           if (!st.stats.outbidRivals) st.stats.outbidRivals = {};
         }
         if (st.flags) { if (st.flags.insuredUntil === undefined) st.flags.insuredUntil = 0; if (st.flags.allyRevealId === undefined) st.flags.allyRevealId = null; }
+        return st;
+      },
+      /* 2 -> 3 (engine 8.10, LOCATION-SLICE §8): letting strategy. Absent letMode → 'long',
+         absent letLockUntil → 0, on owned properties and listings alike. Idempotent: running it
+         twice changes nothing the second time. Old saves gain nothing and lose nothing — a
+         migrated rival property reads as 'long' and is never reconsidered for short let. */
+      2: function (st) {
+        if (!st || typeof st !== 'object') return st;
+        var maps = [st.properties, st.listings];
+        for (var mi = 0; mi < maps.length; mi++) {
+          var m = maps[mi]; if (!m) continue;
+          for (var id in m) { var p = m[id]; if (p.letMode === undefined) p.letMode = 'long'; if (p.letLockUntil === undefined) p.letLockUntil = 0; }
+        }
         return st;
       }
     },
@@ -95,6 +108,11 @@
         v++;
       }
       st.saveVersion = Storage.SAVE_VERSION;
+      /* A JSON round-trip breaks object identity: dynasty.head is the same person as the 'head'
+         entry in dynasty.members. Relink, or the loaded head stops aging and mortality drifts. */
+      if (st.dynasty && st.dynasty.head && Array.isArray(st.dynasty.members)) {
+        for (var mi = 0; mi < st.dynasty.members.length; mi++) if (st.dynasty.members[mi].id === st.dynasty.head.id) { st.dynasty.head = st.dynasty.members[mi]; break; }
+      }
       return st;
     },
     has: function (slot) {
