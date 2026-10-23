@@ -73,3 +73,14 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 ## Phase 7 — Live ops (post-launch)
 
 - [x] Monthly event packs, new cities as paid/earned packs, online weekly leaderboard, dynasty sharing cards. _(infrastructure cf55a08: pack loader + validator with fx-vocabulary tests, city pack registration, local-first leaderboard with the two-function backend swap contract (docs/live-ops.md), heraldic share card; "online" and monthly packs go live when a backend exists — post-launch by design)_
+
+## Phase 8 — Release gate: end-to-end gameplay & competitive-balance audit (owner-mandated; no "release complete" without it)
+
+- [ ] **P8.1 Winning inventory** — campaign objectives, yearly/era goals, scenarios, bankruptcy/comeback paths, victory conditions: prerequisites, deadlines, rewards recorded. Flag contradictions, circular requirements, and objectives that can silently become impossible.
+- [ ] **P8.2 Achievable completion** — reproducible seeds + recorded actions completing representative runs through the REAL UI, new game → actual victory screen; completion registers, rewards apply exactly once, save/reload preserves progress. Engine calls alone do not establish a UI path.
+- [ ] **P8.3 Every objective covered** — a deterministic completion test per goal plus failure/deadline boundary tests. Distinguish "possible under suitable conditions" from "must remain achievable whenever offered"; randomly generated goals must respect that distinction.
+- [ ] **P8.4 Balance across players and seeds** — novice/competent/expert strategies × families × scenarios, enough seeds to expose variation; report distributions and outliers, not averages alone; include strategies beyond the existing sim bots.
+- [ ] **P8.5 Contest measurement** — time to first meaningful success, rival advantage, lead changes, recovery after setbacks, runaway leaders, repetitive optimal actions, dead turns (no useful decision). Investigate both crushing defeats and effortless wins.
+- [ ] **P8.6 Losses and victories inspected** — sample easy wins, close wins, recoverable losses, crushing losses; explain causes; check the player had enough information to respond and that alternative decisions could reasonably have changed the outcome.
+- [ ] **P8.7 Human playtest** — owner plays the opening and a developed save; fresh players where possible. Ask where choices felt obvious, punishment unfair, progress satisfying, another turn appealing.
+- [ ] **P8.8 Evidence report** — concise matrix of tested paths, seeds, strategies, results, bugs, unresolved balance concerns; rerun affected checks after fixes; skipped paths are not passes; never claim "perfect balance".
