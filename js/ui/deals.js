@@ -163,6 +163,19 @@
   /* ---------- Listing sheet ---------- */
   function listingData(id) { var r = PE().Game.property(id); return r.ok && r.property.listing ? r.property : null; }
 
+  /* Pre-purchase letting evaluation (LOCATION-SLICE §6): the district's visitor rating and the
+     short-vs-long net estimate range, so the discovery loop happens before the offer. */
+  var VISITOR_WORD = ['none', 'some', 'strong'];
+  function visitorLine(l) {
+    if (PE().Data.shortLetTypes.indexOf(l.type) < 0) return null;
+    var r = PE().Property.lettingInfo(l.id); if (!r.ok || r.visitor < 1) return null;
+    var box = h('div', { class: 'let-listing' });
+    box.appendChild(h('div', { class: 'let-listing__row' }, [icon('users'), h('span', { text: 'Visitor draw: ' + VISITOR_WORD[r.visitor] + (r.landmarkBoost ? ' · landmark nearby' : '') })]));
+    if (r.eligible)
+      box.appendChild(h('div', { class: 'let-listing__row let-listing__est' }, [h('span', { text: 'Net this year — long let ' + fmt.money(r.long.net[0]) + '–' + fmt.money(r.long.net[1]) + ' · short let ' + fmt.money(r.short.net[0]) + '–' + fmt.money(r.short.net[1]) + ' (swings with the cycle)' })]));
+    return box;
+  }
+
   function statsGrid(l, ap) {
     var g = h('div', { class: 'stat-grid stat-grid--3' });
     function st(label, value, cls) { g.appendChild(h('div', { class: 'stat' }, [h('span', { class: 'stat__label', text: label }), h('span', { class: 'stat__value num' + (cls ? ' ' + cls : ''), text: value })])); }
@@ -305,6 +318,7 @@
     if (note) body.push(h('div', { class: 'note note--info' }, [icon('info'), h('span', { text: note })]));
     body.push(statsGrid(l, ap));
     body.push(h('div', { class: 'chips' }, [PEUI.chip(l.sellerName, l.seller === 'auction' ? 'gold' : null, l.seller === 'auction' ? 'gavel' : 'person'), PEUI.chip(l.era.charAt(0).toUpperCase() + l.era.slice(1) + ' · built ' + l.builtYear, 'outline')]));
+    var vl = visitorLine(l); if (vl) body.push(vl);
     body.push(appraisalPanel(l, ap));
     body.push(h('div', { class: 'divider' }));
     body.push(offerPanel(l));

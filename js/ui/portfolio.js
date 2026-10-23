@@ -32,6 +32,7 @@
     if (p.flagship) flags.appendChild(PEUI.chip('Flagship', 'gold', 'trophy'));
     if (p.forSale) flags.appendChild(PEUI.chip('On the market', 'gold', 'tag'));
     if (p.lease) flags.appendChild(PEUI.chip('Lease ' + p.lease.yearsLeft + ' yrs', 'info'));
+    if (p.letMode === 'short') flags.appendChild(PEUI.chip('Short let', 'info', 'users'));
     for (var i = 0; i < ws.length; i++) flags.appendChild(PEUI.chip(ws[i].kind === 'margin_call' ? 'Margin call: repay ' + fmt.money(ws[i].shortfall) : 'LTV high', ws[i].kind === 'margin_call' ? 'danger' : 'warn', 'warning'));
     c.appendChild(flags);
     return c;
@@ -153,7 +154,7 @@
       var groups = el.querySelector('#pf-groups'), byCity = {}, order = [];
       for (var i = 0; i < r.properties.length; i++) { var p = r.properties[i]; if (!byCity[p.cityId]) { byCity[p.cityId] = []; order.push(p.cityId); } byCity[p.cityId].push(p); }
       if (!r.properties.length) { PEUI.empty(groups); groups.appendChild(h('div', { class: 'empty' }, [icon('building'), h('div', { text: 'You own nothing yet. Find a mispriced listing on the deal board.' })])); }
-      else PEUI.patchList(groups, order, function (c) { return c; }, function (c) { return c + ':' + byCity[c].map(function (p) { return [p.id, p.condition | 0, p.rentSetting, p.occupancy, p.ltv.toFixed(2), p.trueValue, !!p.renovation, !!p.forSale, p.marginCall ? 1 : 0].join(','); }).join(';') + ':' + fs.covenantWarnings.length; }, function (c) {
+      else PEUI.patchList(groups, order, function (c) { return c; }, function (c) { return c + ':' + byCity[c].map(function (p) { return [p.id, p.condition | 0, p.rentSetting, p.occupancy, p.ltv.toFixed(2), p.trueValue, !!p.renovation, !!p.forSale, p.marginCall ? 1 : 0, p.letMode].join(','); }).join(';') + ':' + fs.covenantWarnings.length; }, function (c) {
         var arr = byCity[c], g = h('section', { class: 'stack stack--2', 'aria-label': PEUI.cityName(c) });
         var val = 0, debt = 0, rent = 0; for (var k = 0; k < arr.length; k++) { val += arr[k].trueValue; debt += arr[k].mortgage ? arr[k].mortgage.principal : 0; rent += Math.round(arr[k].rentAnnual * (arr[k].occupancy || 0)); }
         g.appendChild(h('div', { class: 'section-head' }, [h('h2', { text: PEUI.cityName(c) }), h('span', { class: 'small muted', text: arr.length + ' building' + (arr.length === 1 ? '' : 's') })]));
@@ -266,6 +267,7 @@
       body.push(h('div', { class: 'field' }, [h('label', { class: 'field__label', for: 'rent-setting' }, [h('span', { text: 'Rent setting (80–120% of market)' }), h('strong', { id: 'rent-v', text: Math.round(rentNow * 100) + '% · ' + fmt.money(p.rentAnnual) + '/yr' })]), PEUI.range({ id: 'rent-setting', min: 80, max: 120, step: 5, value: Math.round(rentNow * 100), 'data-input': 'rent-setting', 'data-id': id, disabled: !!p.lease || (p.rentLockUntil && s.year < p.rentLockUntil) })]));
       if (p.tenant) body.push(h('p', { class: 'small muted', text: 'Tenant: ' + p.tenant.name + ', here since ' + p.tenant.since + ' · ' + (p.tenantLabel || 'new') + '. A sharp rise risks losing them.' }));
       body.push(h('p', { class: 'small muted', text: p.lease ? 'Fixed by a lease for ' + p.lease.yearsLeft + ' more years.' : 'Higher rent: more income, more vacancy and faster wear. Lower rent: long, careful tenants.' }));
+      var lb = lettingBlock(id, p); if (lb) body.push(lb);
     }
     // Flagship (ENG-B8)
     if (p.type !== 'land' && !p.renovation) {
@@ -312,6 +314,38 @@
     row(delta >= 0 ? 'Cash out' : 'Cash in', fmt.signed(delta), delta >= 0 ? 'pos' : 'neg');
     if (p.mortgage) row('Refinance allowed', 'every ' + PE().Data.balance.refinanceEveryYears + ' yrs (last ' + (p.mortgage.lastRefi || p.mortgage.since) + ')');
     return dl;
+  }
+  /* ---------- Letting strategy (LOCATION-SLICE §6): engine estimates as ranges, never point
+     promises; switching is a commitment (2% refit, 3-year agent contract) behind a confirm. ---------- */
+  var VISITOR_WORD = ['No visitor draw', 'Some visitor draw', 'Strong visitor draw'];
+  function estRange(pair) { return fmt.money(pair[0]) + ' – ' + fmt.money(pair[1]); }
+  function letModeCard(label, est, on) {
+    var card = h('div', { class: 'let__mode' + (on ? ' let__mode--on' : '') });
+    card.appendChild(h('div', { class: 'let__head' }, [h('span', { text: label }), on ? h('span', { class: 'let__current', text: 'current' }) : null]));
+    card.appendChild(h('div', { class: 'let__est num', text: 'Gross ' + estRange(est.gross) + ' · net ' + estRange(est.net) + ' /yr' }));
+    card.appendChild(h('div', { class: 'let__note', text: est.note }));
+    return card;
+  }
+  function lettingBlock(id, p) {
+    var r = PE().Property.lettingInfo(id); if (!r.ok) return null;
+    var box = h('section', { class: 'let stack stack--2', 'aria-label': 'Letting strategy' });
+    box.appendChild(h('div', { class: 'kicker', text: 'Letting strategy' }));
+    box.appendChild(h('div', { class: 'chips' }, [
+      PEUI.chip(r.mode === 'short' ? 'Short let' : 'Long let', r.mode === 'short' ? 'info' : 'outline', r.mode === 'short' ? 'users' : 'home'),
+      PEUI.chip(VISITOR_WORD[r.visitor] + (r.landmarkBoost ? ' · landmark nearby' : ''), r.visitor === 2 ? 'success' : r.visitor === 1 ? 'info' : null, 'users')
+    ]));
+    var modes = h('div', { class: 'let__modes' });
+    modes.appendChild(letModeCard('Long let', r.long, r.mode === 'long'));
+    if (r.eligible || r.mode === 'short') modes.appendChild(letModeCard('Short let', r.short, r.mode === 'short'));
+    box.appendChild(modes);
+    if (r.short.saturation.factor < 1)
+      box.appendChild(h('div', { class: 'note note--warn' }, [icon('warning'), h('span', { text: 'Short lets already cover ' + Math.round(r.short.saturation.share * 100) + '% of ' + p.district + ' — returns are diluted (×' + r.short.saturation.factor.toFixed(2) + ').' })]));
+    for (var i = 0; i < r.reasons.length; i++) box.appendChild(h('p', { class: 'small muted let__reason' }, [icon('info', 'ic--sm'), ' ' + r.reasons[i] + '.']));
+    if (r.mode === 'long' && r.eligible && r.canSwitch && !r.reasons.length)
+      box.appendChild(PEUI.btn('Switch to short let — ' + fmt.money(r.switchCost) + ' refit', { cls: 'btn--secondary btn--block', icon: 'users', action: 'prop-letmode-confirm', 'data-id': id, 'data-mode': 'short' }));
+    if (r.mode === 'short' && r.canSwitch && !p.renovation && !p.flagship)
+      box.appendChild(PEUI.btn('Return to long let — ' + fmt.money(r.switchCost) + ' refit', { cls: 'btn--secondary btn--block', icon: 'home', action: 'prop-letmode-confirm', 'data-id': id, 'data-mode': 'long' }));
+    return box;
   }
   PEUI.actions['open-property'] = function (b, d) { PEUI.openProperty(d.id); };
   PEUI.inputs['rent-setting'] = function (el, d, e) {
@@ -392,6 +426,33 @@
     PEUI.sheet.open({ id: 'confirm-sell', title: 'Quick sale?', sub: raw.name, back: 'open-property-back', body: [h('p', { text: 'Sell now for ' + fmt.money(q.price) + '. After fees' + (q.tax ? ' and tax' : '') + (q.debtRepaid ? ' and repaying the mortgage' : '') + ' you receive ' + fmt.money(q.cashGained) + '. This cannot be undone.' })], foot: h('div', { class: 'btn-row' }, [PEUI.btn('Keep it', { cls: 'btn--ghost', action: 'open-property', 'data-id': d.id }), PEUI.btn('Sell for ' + fmt.money(q.price), { cls: 'btn--danger', action: 'prop-sell', 'data-id': d.id, 'data-mode': 'quick' })]) });
   };
   PEUI.actions['open-property-back'] = function () { if (ps.id) PEUI.openProperty(ps.id); };
+  PEUI.actions['prop-letmode-confirm'] = function (b, d) {
+    var p = propData(d.id); if (!p) return;
+    var r = PE().Property.lettingInfo(d.id); if (!r.ok) return;
+    var toShort = d.mode === 'short', yrs = PE().Data.balance.shortLetLockYears;
+    PEUI.sheet.open({ id: 'confirm-letmode', title: toShort ? 'Switch to short let?' : 'Return to a long let?', sub: p.name, back: 'open-property-back', body: [
+      h('p', { text: toShort
+        ? 'The rooms are furnished for visiting guests. Visitor income swings with the market cycle, running costs rise and the building wears faster.'
+        : 'Back to a steady tenancy with a named tenant.' }),
+      h('dl', { class: 'quote' }, [
+        h('dt', { text: toShort ? 'Short let · net estimate' : 'Long let · net estimate' }),
+        h('dd', { class: 'num', text: estRange(toShort ? r.short.net : r.long.net) + ' /yr' }),
+        h('dt', { text: 'Refit, paid now' }),
+        h('dd', { class: 'num neg', text: fmt.money(r.switchCost) }),
+        h('dt', { text: 'Agent contract' }),
+        h('dd', { text: 'locks the choice for ' + yrs + ' years' })
+      ])
+    ], foot: h('div', { class: 'btn-row' }, [
+      PEUI.btn('Keep as is', { cls: 'btn--ghost', action: 'open-property', 'data-id': d.id }),
+      PEUI.btn((toShort ? 'Switch — ' : 'Return — ') + fmt.money(r.switchCost), { cls: 'btn--primary', icon: toShort ? 'users' : 'home', action: 'prop-letmode', 'data-id': d.id, 'data-mode': d.mode })
+    ]) });
+  };
+  PEUI.actions['prop-letmode'] = function (b, d) {
+    var r = PEUI.call(PE().Property.setLetMode, d.id, d.mode);
+    if (!r.ok) { if (propData(d.id)) PEUI.openProperty(d.id); return; }
+    PEUI.save(); PEUI.sound('stamp'); PEUI.moneyFloat(b, -r.cost); PEUI.toast(r.message, 'success');
+    PEUI.openProperty(d.id); PEUI.refresh(); if (PEUI.cityUpdateProperty) PEUI.cityUpdateProperty(d.id);
+  };
 
   /* ---------- Finance desk (P4.1 bonds, P4.2 own bank) ---------- */
   PEUI.inputs['bond-amount'] = function (el) { pfFin.bondAmt = Math.round(+el.value || 0); };

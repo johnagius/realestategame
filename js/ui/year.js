@@ -203,11 +203,16 @@
     tb.appendChild(h('tr', { class: 'total' }, [h('td', { text: 'Net cash flow' }), money(cf.net, cf.net >= 0 ? 'pos' : 'neg')]));
     t.appendChild(tb); return t;
   }
-  function section(title, items, ic) {
+  function section(title, items, ic, clsFn) {
     if (!items || !items.length) return null;
     var s = h('section', { class: 'card card--flat stack stack--2' }, h('div', { class: 'kicker', text: title }));
     var ul = h('ul', { class: 'lines' });
-    for (var i = 0; i < items.length; i++) ul.appendChild(h('li', {}, [icon(ic || 'info'), h('span', { text: typeof items[i] === 'string' ? items[i] : items[i].text })]));
+    for (var i = 0; i < items.length; i++) {
+      var txt = typeof items[i] === 'string' ? items[i] : items[i].text;
+      var li = h('li', {}, [icon(ic || 'info'), h('span', { text: txt })]);
+      var extra = clsFn ? clsFn(txt) : null; if (extra) li.classList.add(extra);
+      ul.appendChild(li);
+    }
     s.appendChild(ul); return s;
   }
   function reportBody(r) {
@@ -251,7 +256,7 @@
     });
     var ps = section('Goals in progress', prog, 'flag'); if (ps) inner.appendChild(ps);
     var deals = section('Deals', r.deals.map(function (d) { return d.text; }), 'tag'); if (deals) inner.appendChild(deals);
-    var dyn = section('The family', r.lines, 'crown'); if (dyn) inner.appendChild(dyn);
+    var dyn = section('The family', r.lines, 'crown', function (t) { return /visitor|short let/i.test(t) ? 'line--visitor' : null; }); if (dyn) inner.appendChild(dyn);
     var evs = section('Events', r.events.map(function (e) { return e.title + (e.kind === 'historical' ? ' (history)' : ''); }), 'warning'); if (evs) inner.appendChild(evs);
     var rvMoves = r.rivalsMoves || [];
     if (rvMoves.length) {

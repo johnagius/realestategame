@@ -297,6 +297,9 @@ body { overflow: hidden; }
 .lines li { list-style: none; display: flex; gap: var(--sp-2); align-items: flex-start; }
 .lines li .ic { width: 16px; height: 16px; margin-top: 3px; color: var(--ink-3); }
 .lines { padding: 0; margin: 0; }
+/* Visitor-economy report lines (LOCATION-SLICE §6): styling hook only, the text is the engine's. */
+.lines li.line--visitor .ic { color: var(--info); }
+.lines li.line--visitor span { color: var(--ink); font-weight: 600; }
 .rank-move { display: flex; align-items: center; justify-content: center; gap: var(--sp-3); font-family: var(--font-display); font-size: var(--fs-5); font-weight: 800; }
 .rank-move .ic { width: 24px; height: 24px; }
 .titlecard { position: fixed; inset: 0; z-index: 85; display: none; align-items: center; justify-content: center; text-align: center; padding: var(--sp-5); background: var(--hud-bg); color: var(--hud-ink); }

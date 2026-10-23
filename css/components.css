@@ -225,6 +225,21 @@ button { -webkit-tap-highlight-color: transparent; }
 .note--info { background: var(--info-soft); color: var(--info); }
 .note .ic { margin-top: 2px; }
 
+/* ── Letting strategy (LOCATION-SLICE §6) ── */
+.let__modes { display: grid; gap: var(--sp-2); }
+.let__mode { border: 1px solid var(--line); border-radius: var(--r-2); padding: var(--sp-2) var(--sp-3); background: var(--surface); }
+.let__mode--on { border-color: var(--info); background: var(--info-soft); }
+.let__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-2); font-weight: 700; font-size: var(--fs-2); }
+.let__current { font-size: var(--fs-1); font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase; color: var(--info); }
+.let__est { font-size: var(--fs-1); color: var(--ink-2); margin-top: 2px; }
+.let__note { font-size: var(--fs-1); color: var(--ink-3); margin-top: 2px; }
+.let__reason { display: flex; gap: var(--sp-1); align-items: flex-start; }
+.let__reason .ic { margin-top: 1px; flex: none; }
+.let-listing { display: flex; flex-direction: column; gap: 2px; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-2); background: var(--surface-2); font-size: var(--fs-2); }
+.let-listing__row { display: flex; gap: var(--sp-2); align-items: center; }
+.let-listing__row .ic { width: 16px; height: 16px; flex: none; color: var(--ink-3); }
+.let-listing__est { color: var(--ink-2); font-size: var(--fs-1); }
+
 /* ── Guide callouts (first three years) ── */
 .callout {
   display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: var(--sp-2) var(--sp-3);
