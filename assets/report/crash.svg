@@ -1,18 +1,85 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="240" height="120" viewBox="0 0 240 120">
   <symbol id="scene" viewBox="0 0 240 120">
-    <!-- A crash: the ticker line falls through the skyline; a cloud over the city. -->
-    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M20 100h200"/>
-      <path d="M36 100V66h22v34M70 100V54h26v46M108 100V72h20v28M140 100V48h30v52M182 100V62h24v38"/>
-      <path d="M42 74h6M42 84h6M78 62h6M86 62h6M78 74h6M86 74h6M114 80h6M148 58h6M156 58h6M148 70h6M156 70h6M148 82h6M156 82h6M190 70h6M190 82h6"/>
-      <path d="M60 24c-6 0-10 4-10 9 0 3 1 5 3 6h40c5 0 8-4 8-8s-4-8-9-8c-1-8-8-12-14-12-8 0-14 6-15 12-1 0-2 1-3 1z"/>
+    <!-- A crash: the bank's pediment cracks over a run on the doors, 1866. Engraved front-page cut. -->
+    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="5" y="5" width="230" height="110" stroke-width="1.2"/>
+      <rect x="8.5" y="8.5" width="223" height="103" stroke-width="0.5"/>
+      <!-- sky, heavy diagonal hatch -->
+      <g stroke-width="0.75">
+        <path d="M18 20l16-7M18 26l24-11M18 32l32-15M18 38l24-11"/>
+        <path d="M206 16l16 8M200 14l20 10M196 20l18 9"/>
+      </g>
+      <!-- storm cloud, cross-hatched -->
+      <g stroke-width="1.4">
+        <path d="M176 30c-1-5-6-8-11-7c-1-5-7-7-12-5c-4-3-10-2-12 2c-4 0-7 3-6 7h41"/>
+      </g>
+      <g stroke-width="0.7">
+        <path d="M142 21l14 9M150 17l16 10M160 15l14 9M170 16l10 7"/>
+        <path d="M162 14l-14 10M172 16l-12 9"/>
+      </g>
+      <!-- pediment, cracked through the crown -->
+      <g stroke-width="1.8">
+        <path d="M46 52L102 22l4 8l-6 6l5 8l-3 8"/>
+        <path d="M162 52l-52-28"/>
+        <path d="M104 24l-2 8l7 6l-5 8l4 6"/>
+      </g>
+      <!-- tympanum shading, right half slipped a touch -->
+      <g stroke-width="0.75">
+        <path d="M60 46h38M70 40h28M80 34h18"/>
+        <path d="M112 48h38M116 42h32M120 36h24"/>
+      </g>
+      <!-- entablature, broken at the fissure -->
+      <g stroke-width="1.8">
+        <path d="M48 56h50"/>
+        <path d="M110 56h56"/>
+      </g>
+      <!-- columns: one leaning, one broken -->
+      <g stroke-width="1.6">
+        <path d="M58 56v34M66 56v34M55 56h14M55 90h14"/>
+        <path d="M84 56l-3 34M92 56l-3 34M82 56h12M77 90h13"/>
+        <path d="M124 70v20M132 70v20M120 90h16"/>
+        <path d="M126 56l-4 8M134 56l-4 8M122 56h14"/>
+        <path d="M152 56v34M160 56v34M149 56h14M149 90h14"/>
+      </g>
+      <!-- falling masonry -->
+      <g stroke-width="1.2">
+        <path d="M139 60l7-3l2 5l-7 3z"/>
+        <path d="M144 50l2 3M148 52l2 3"/>
+        <path d="M110 40l4-2l1 4l-4 2z"/>
+      </g>
+      <!-- door and steps -->
+      <g stroke-width="1.6">
+        <path d="M102 90V74h14v16"/>
+        <path d="M102 74a7 7 0 0 1 14 0"/>
+        <path d="M46 96h122M50 92h114"/>
+      </g>
+      <!-- the crowd at the doors: heads, top hats, raised arms -->
+      <g stroke-width="1.2">
+        <circle cx="62" cy="87" r="1.8"/><path d="M60 84h4M60.6 81.5h2.8"/>
+        <circle cx="74" cy="88" r="1.8"/><path d="M72 85h4M72.6 82.5h2.8"/>
+        <circle cx="86" cy="88.5" r="1.8"/><path d="M84 85.5h4M84.6 83h2.8"/>
+        <circle cx="134" cy="88" r="1.8"/><path d="M132 85h4M132.6 82.5h2.8"/>
+        <circle cx="146" cy="87" r="1.8"/><path d="M144 84h4M144.6 81.5h2.8"/>
+        <path d="M58 92c0-3 8-3 8 0M70 93c0-3 8-3 8 0M82 93.5c0-3 8-3 8 0M130 93c0-3 8-3 8 0M142 92c0-3 8-3 8 0"/>
+        <path d="M70 86l-4-6M78 86l4-6M140 85l-4-6M150 84l4-6"/>
+      </g>
+      <!-- scattered paper -->
+      <g stroke-width="0.9">
+        <path d="M92 78l6-2l1 4l-6 2zM96 84l5-3l2 4l-5 3z"/>
+      </g>
+      <!-- ground shading -->
+      <g stroke-width="0.75">
+        <path d="M24 100h22M52 101h30M150 100h28M190 102h22"/>
+      </g>
     </g>
-    <g fill="none" style="stroke:var(--scene-accent, #D9B45C)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M24 30l30 6 26-2 22 24 20 10 24 16 26 6 22 8"/>
-      <path d="M186 90l8 8 8-8"/>
-    </g>
+    <!-- sovereigns spilling from the doors -->
     <g style="fill:var(--scene-accent, #D9B45C)">
-      <circle cx="24" cy="30" r="3.5"/>
+      <circle cx="122" cy="46" r="1.8"/>
+      <circle cx="180" cy="93" r="2.1"/>
+    </g>
+    <g fill="none" style="stroke:var(--scene-accent, #D9B45C)" stroke-width="0.9" stroke-linecap="round">
+      <path d="M122 50v4M119 52l-1 3M125 52l1 3"/>
+      <path d="M186 91q4-2 6-6"/>
     </g>
   </symbol>
   <use xlink:href="#scene" href="#scene" width="240" height="120" style="color:#1D1A16"/>

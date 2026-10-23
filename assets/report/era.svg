@@ -1,23 +1,73 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="240" height="120" viewBox="0 0 240 120">
   <symbol id="scene" viewBox="0 0 240 120">
-    <!-- A new era: brick terraces on the left give way to towers on the right under a rising sun. -->
-    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M20 100h200"/>
-      <path d="M28 100V74l12-10 12 10v26M60 100V70l12-10 12 10v30"/>
-      <path d="M34 80h6v6h-6zM66 76h6v6h-6zM38 100v-10h6v10M70 100v-10h6v10"/>
-      <path d="M44 64v-8h4v8M76 60v-8h4v8"/>
-      <path d="M112 100V56h24v44M148 100V34h30v66M190 100V46h26v54"/>
-      <path d="M118 62h4v4h-4zM126 62h4v4h-4zM118 72h4v4h-4zM126 72h4v4h-4zM118 82h4v4h-4zM126 82h4v4h-4z"/>
-      <path d="M154 42h18M154 52h18M154 62h18M154 72h18M154 82h18M154 92h18"/>
-      <path d="M196 54h14M196 64h14M196 74h14M196 84h14M196 94h14"/>
-      <path d="M163 34V22l5-6 5 6"/>
+    <!-- A new era: brick terraces give way to a steel frame and towers, the sun rising gold behind. -->
+    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="5" y="5" width="230" height="110" stroke-width="1.2"/>
+      <rect x="8.5" y="8.5" width="223" height="103" stroke-width="0.5"/>
+      <!-- sky hatch -->
+      <g stroke-width="0.75">
+        <path d="M16 17h26M16 21.5h18"/>
+        <path d="M36 30c2-2 4-2 6 0c2-2 4-2 6 0M52 24c2-2 4-2 6 0c2-2 4-2 6 0"/>
+      </g>
+      <!-- old terraces, left -->
+      <g stroke-width="1.6">
+        <path d="M20 96V64l13-11 13 11v32"/>
+        <path d="M25 58V49h5v6"/>
+        <path d="M29 96V82h7v14"/>
+        <path d="M24 70h5v5h-5zM37 70h5v5h-5z"/>
+        <path d="M46 96V60l13-11 13 11v36"/>
+        <path d="M65 54V45h5v6"/>
+        <path d="M55 96V82h7v14"/>
+        <path d="M51 68h5v5h-5zM64 68h5v5h-5z"/>
+      </g>
+      <!-- smoke and brick shading -->
+      <g stroke-width="0.75">
+        <path d="M27 47c-3-3 3-5 0-8M67 43c-3-3 3-5 0-8"/>
+        <path d="M22 76h4M38 76h4M22 88h4M38 88h4M49 76h4M65 76h4M49 88h4M65 88h4"/>
+        <path d="M26 58l6-5M52 54l6-5M60 58l6-5"/>
+      </g>
+      <!-- the rising frame, centre -->
+      <g stroke-width="1.6">
+        <path d="M96 96V44M108 96V44M120 96V44M132 96V44"/>
+        <path d="M96 52h36M96 64h36M96 76h36M96 88h36"/>
+      </g>
+      <g stroke-width="0.9">
+        <path d="M96 52l12 12M120 64l12 12M108 76L96 88M120 52l12 12"/>
+        <path d="M92 96V52M92 60h4M92 72h4M92 84h4"/>
+      </g>
+      <!-- new towers, right -->
+      <g stroke-width="1.6">
+        <path d="M148 96V52h6V40h20v56"/>
+        <path d="M184 96V36h30v60"/>
+      </g>
+      <!-- tower glazing: dashed hatch rows -->
+      <g stroke-width="0.9">
+        <path d="M152 46h6M162 46h6M152 56h6M162 56h6M152 66h6M162 66h6M152 76h6M162 76h6M152 86h6M162 86h6"/>
+        <path d="M189 42h6M199 42h6M189 52h6M199 52h6M189 62h6M199 62h6M189 72h6M199 72h6M189 82h6M199 82h6"/>
+      </g>
+      <!-- tower shading: one hatched flank each -->
+      <g stroke-width="0.6">
+        <path d="M170 44l4-4M170 50l4-4M170 56l4-4M170 62l4-4M170 68l4-4M170 74l4-4M170 80l4-4M170 86l4-4"/>
+        <path d="M210 40l4-4M210 46l4-4M210 52l4-4M210 58l4-4M210 64l4-4M210 70l4-4M210 76l4-4M210 82l4-4"/>
+      </g>
+      <!-- crane atop the tall tower -->
+      <g stroke-width="1.3">
+        <path d="M199 36V18"/>
+        <path d="M186 22h36"/>
+        <path d="M199 18l-13 4M199 18l23 4"/>
+        <path d="M214 22v13"/>
+        <path d="M212 35h4v4h-4z"/>
+      </g>
+      <!-- ground -->
+      <path d="M14 96h212" stroke-width="1.6"/>
+      <g stroke-width="0.75">
+        <path d="M22 100h20M50 102h24M86 100h40M150 101h30M196 103h18"/>
+      </g>
     </g>
-    <g style="fill:var(--scene-accent, #D9B45C)">
-      <path d="M78 54a26 26 0 0 1 52 0z"/>
-      <rect x="98" y="100" width="6" height="0"/>
-    </g>
-    <g fill="none" style="stroke:var(--scene-accent, #D9B45C)" stroke-width="2" stroke-linecap="round">
-      <path d="M104 14v6M86 22l4 4M122 22l-4 4"/>
+    <!-- the rising sun -->
+    <path d="M84 96a26 26 0 0 1 52 0z" style="fill:var(--scene-accent, #D9B45C)"/>
+    <g fill="none" style="stroke:var(--scene-accent, #D9B45C)" stroke-width="1.6" stroke-linecap="round">
+      <path d="M110 62v-8M92 68l-6-6M128 68l6-6M84 78l-8-3M136 78l8-3"/>
     </g>
   </symbol>
   <use xlink:href="#scene" href="#scene" width="240" height="120" style="color:#1D1A16"/>

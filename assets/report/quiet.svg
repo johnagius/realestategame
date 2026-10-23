@@ -1,21 +1,85 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="240" height="120" viewBox="0 0 240 120">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/2000/svg" width="240" height="120" viewBox="0 0 240 120">
   <symbol id="scene" viewBox="0 0 240 120">
-    <!-- A quiet year: a lamp-lit street at dusk, smoke from a chimney, a moon in the accent colour. -->
-    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M20 100h200"/>
-      <path d="M44 100V62l16-14 16 14v38M76 100V58l16-14 16 14v42"/>
-      <path d="M52 70h6v6h-6zM66 70h6v6h-6zM84 66h6v6h-6zM98 66h6v6h-6zM56 100V88h8v12M88 100V86h8v14"/>
-      <path d="M54 52v-10h5v6M86 48v-10h5v6"/>
-      <path d="M56 42c0-6 4-6 4-12s-4-6-4-12"/>
-      <path d="M140 100V70h26v30M176 100V64h22v36"/>
-      <path d="M146 78h5v5h-5zM156 78h5v5h-5zM182 72h4v4h-4zM190 72h4v4h-4zM182 84h4v4h-4zM190 84h4v4h-4z"/>
-      <path d="M122 100V62M118 62h8M122 62v-6"/>
-      <path d="M116 56h12l-2-8h-8z"/>
+    <!-- A quiet year: washing on the line, a cat on the wall, the lamp lit under a crescent moon. -->
+    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="5" y="5" width="230" height="110" stroke-width="1.2"/>
+      <rect x="8.5" y="8.5" width="223" height="103" stroke-width="0.5"/>
+      <!-- sky hatch -->
+      <g stroke-width="0.75">
+        <path d="M150 17h30M158 21.5h22M154 26h24"/>
+        <path d="M20 30h18M24 34h14"/>
+      </g>
+      <!-- terraces -->
+      <g stroke-width="1.6">
+        <path d="M20 96V64l14-12 14 12v32"/>
+        <path d="M26 58V48h5v6"/>
+        <path d="M30 96V82h8v14"/>
+        <path d="M40 70h6v6h-6z"/>
+        <path d="M48 96V60l14-12 14 12v36"/>
+        <path d="M70 54V44h5v6"/>
+        <path d="M58 96V82h8v14"/>
+        <path d="M54 68h6v6h-6zM66 68h6v6h-6z"/>
+        <path d="M76 96V62l14-12 14 12v34"/>
+        <path d="M86 96V82h8v14"/>
+        <path d="M84 70h6v6h-6zM94 70h6v6h-6z"/>
+      </g>
+      <!-- smoke, brickwork -->
+      <g stroke-width="0.75">
+        <path d="M28 46c-3-3 3-5 0-8c-2-3 2-4 1-7"/>
+        <path d="M72 42c-3-3 3-5 0-8"/>
+        <path d="M24 76h4M24 88h4M50 76h4M68 76h4M50 88h4M68 88h4M80 76h4M96 76h4M80 88h4M96 88h4"/>
+        <path d="M26 57l7-6M34 61l7-6M54 53l7-6M62 57l7-6M82 55l7-6M90 59l7-6"/>
+      </g>
+      <!-- the clothes-line, sagging to its pole -->
+      <g stroke-width="1.2">
+        <path d="M74 50Q112 62 150 50"/>
+        <path d="M150 96V48"/>
+        <circle cx="150" cy="47" r="1"/>
+      </g>
+      <!-- washing: a shirt and two cloths -->
+      <g stroke-width="1.1">
+        <path d="M90 55v13h10V55"/>
+        <path d="M90 56l-4 4M100 56l4 4"/>
+        <path d="M91.5 54v3M98.5 54v3"/>
+        <path d="M110 58v13h12V58"/>
+        <path d="M110 71q3 2 6 0q3-2 6 0"/>
+        <path d="M112 56.5v3M120 56.5v3"/>
+        <path d="M130 55v10h9v-9.5"/>
+        <path d="M132 53.5v3M137 53.5v3"/>
+      </g>
+      <!-- garden wall, right -->
+      <g stroke-width="1.6">
+        <path d="M158 96V84h58v12"/>
+        <path d="M156 84h62"/>
+      </g>
+      <g stroke-width="0.75">
+        <path d="M164 90h8M178 90h8M192 90h8M206 90h6M170 93h8M184 93h8M198 93h8"/>
+      </g>
+      <!-- gas lamp, lit -->
+      <g stroke-width="1.6">
+        <path d="M210 96V56"/>
+        <path d="M205 56h10l-2.5-9h-5z"/>
+        <path d="M210 47v-3"/>
+      </g>
+      <!-- ground -->
+      <path d="M14 96h212" stroke-width="1.6"/>
+      <g stroke-width="0.75">
+        <path d="M22 100h18M48 102h22M78 100h26M112 102h20M150 100h22M190 102h20"/>
+        <path d="M136 96v-3M139 96l1-3M133 96l-1-3"/>
+      </g>
     </g>
+    <!-- the cat, a small ink silhouette on the wall -->
+    <path d="M181 84c0-7 2-11 5-12l-1-5l3 3l2-1.5l2 1.5l3-3l-1 5c3 1 5 5 5 12z" style="fill:currentColor"/>
+    <path d="M199 84c4 0 6-3 5-8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    <!-- moon, stars, lamplight -->
+    <path d="M52 24a11 11 0 1 0 9 17a9 9 0 0 1-9-17z" style="fill:var(--scene-accent, #D9B45C)"/>
     <g style="fill:var(--scene-accent, #D9B45C)">
-      <path d="M196 20a12 12 0 1 0 10 18 10 10 0 0 1-10-18z"/>
-      <rect x="150" y="92" width="6" height="8"/>
-      <rect x="120" y="50" width="4" height="4"/>
+      <circle cx="96" cy="20" r="0.9"/>
+      <circle cx="124" cy="26" r="0.7"/>
+      <circle cx="210" cy="52" r="2"/>
+    </g>
+    <g fill="none" style="stroke:var(--scene-accent, #D9B45C)" stroke-width="0.8" stroke-linecap="round">
+      <path d="M203 49l-2-2M217 49l2-2M203 55l-2 2M217 55l2 2"/>
     </g>
   </symbol>
   <use xlink:href="#scene" href="#scene" width="240" height="120" style="color:#1D1A16"/>

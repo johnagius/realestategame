@@ -1,27 +1,84 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="240" height="120" viewBox="0 0 240 120">
   <symbol id="scene" viewBox="0 0 240 120">
-    <!-- A deal done: a terrace with a SOLD sign and a key. Two colours: currentColor strokes, accent fill. -->
-    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M20 100h200"/>
-      <path d="M40 100V52l24-18 24 18v48"/>
-      <path d="M52 100V78h24v22"/>
-      <path d="M48 62h8v8h-8zM72 62h8v8h-8z"/>
-      <path d="M88 100V60h30v40"/>
-      <path d="M96 70h6v6h-6zM108 70h6v6h-6zM96 84h6v6h-6zM108 84h6v6h-6z"/>
-      <path d="M118 60l-6-8"/>
-      <path d="M150 100V40l30-14 30 14v60"/>
-      <path d="M158 56h10v10h-10zM182 56h10v10h-10zM158 76h10v10h-10zM182 76h10v10h-10z"/>
-      <path d="M140 100V70h-6"/>
+    <!-- A deal done: the handshake over the terraces, the keys passed in gold. Engraved front-page cut:
+         contours in currentColor, shading in hand-laid hatch, one accent colour. -->
+    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <!-- plate border -->
+      <rect x="5" y="5" width="230" height="110" stroke-width="1.2"/>
+      <rect x="8.5" y="8.5" width="223" height="103" stroke-width="0.5"/>
+      <!-- sky hatch -->
+      <g stroke-width="0.75">
+        <path d="M16 17h30M16 21.5h22M20 26h26"/>
+        <path d="M196 17h28M202 21.5h22M198 26h24"/>
+      </g>
+      <!-- terraces, left -->
+      <g stroke-width="1.6">
+        <path d="M20 96V62l15-13 15 13v34"/>
+        <path d="M26 57V47h6v6"/>
+        <path d="M31 96V81h8v15"/>
+        <path d="M24 67h6v6h-6zM40 67h6v6h-6z"/>
+        <path d="M50 96V58l15-13 15 13v38"/>
+        <path d="M71 53V43h6v7"/>
+        <path d="M60 96V81h8v15"/>
+        <path d="M56 65h6v6h-6zM68 65h6v6h-6z"/>
+      </g>
+      <!-- brick + roof shading -->
+      <g stroke-width="0.75">
+        <path d="M24 86h4M42 86h4M24 91h4M42 91h4M52 86h5M71 86h5M52 91h5M71 91h5"/>
+        <path d="M28 56l6-5M36 60l7-6M58 52l6-5M66 56l7-6"/>
+      </g>
+      <!-- house + gas lamp, right -->
+      <g stroke-width="1.6">
+        <path d="M170 96V58l16-14 16 14v38"/>
+        <path d="M180 96V82h8v14"/>
+        <path d="M176 66h6v6h-6zM190 66h6v6h-6z"/>
+        <path d="M156 96V58"/>
+        <path d="M151 58h10l-2.5-10h-5z"/>
+        <path d="M156 48v-3"/>
+      </g>
+      <g stroke-width="0.75">
+        <path d="M174 74h6M188 74h6M174 88h4M192 88h4"/>
+        <path d="M176 52l7-6M184 56l7-6"/>
+      </g>
+      <!-- ground -->
+      <path d="M14 96h212" stroke-width="1.6"/>
+      <g stroke-width="0.75">
+        <path d="M26 100h18M54 102h22M168 100h24M200 103h16M96 101h48"/>
+      </g>
+      <!-- the handshake -->
+      <g stroke-width="1.8">
+        <path d="M60 62l22 2v18l-22 3z"/>
+        <path d="M67 63v20"/>
+        <path d="M82 64c12-5 24-4 32 2"/>
+        <path d="M82 82c10 3 20 3 28-1"/>
+        <path d="M114 66c6 2 8 7 6 13"/>
+        <path d="M180 62l-22 2v18l22 3z"/>
+        <path d="M173 63v20"/>
+        <path d="M158 64c-10-4-20-4-28 1"/>
+        <path d="M158 82c-12 5-24 5-32-1"/>
+        <path d="M126 83c-5-2-7-7-5-12"/>
+        <path d="M130 65c-3-4-3-9 1-12"/>
+      </g>
+      <!-- knuckles + finger hatching -->
+      <g stroke-width="0.9">
+        <path d="M96 62.5l1 6M104 62l1 6"/>
+        <path d="M144 62.5l-1 6M136 62l-1 6"/>
+        <path d="M117 70q3 4 1 8M123 71q3 4 1 8"/>
+        <path d="M64 84l-2 3M180 84l2 3"/>
+      </g>
     </g>
-    <g style="fill:var(--scene-accent, #D9B45C)">
-      <rect x="126" y="48" width="30" height="16" rx="2"/>
-      <circle cx="212" cy="26" r="7"/>
-      <rect x="212" y="23" width="18" height="5"/>
-      <rect x="225" y="28" width="4" height="5"/>
+    <!-- the keys, passed in gold -->
+    <g fill="none" style="stroke:var(--scene-accent, #D9B45C)" stroke-width="1.5" stroke-linecap="round">
+      <circle cx="122" cy="88" r="2.6"/>
+      <path d="M122 90.6v9"/>
+      <path d="M122 96h3M122 99.6h2"/>
+      <path d="M125 90l4 8"/>
+      <path d="M128 95.5l2.5-1M129 98l2.5-1"/>
     </g>
-    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-      <path d="M126 64v36M156 64v36"/>
-      <path d="M131 56h20"/>
+    <!-- lamplight -->
+    <circle cx="156" cy="54" r="2" style="fill:var(--scene-accent, #D9B45C)"/>
+    <g fill="none" style="stroke:var(--scene-accent, #D9B45C)" stroke-width="0.8" stroke-linecap="round">
+      <path d="M149 51l-2-2M163 51l2-2M149 57l-2 2M163 57l2 2"/>
     </g>
   </symbol>
   <use xlink:href="#scene" href="#scene" width="240" height="120" style="color:#1D1A16"/>
