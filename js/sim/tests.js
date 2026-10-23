@@ -2138,6 +2138,178 @@ function loadWith(extra) {
   check('P8.5: a depression that fells four houses no longer ends the contest', ['wong', 'petrov', 'martinez', 'okonkwo'].every(function (id) { return !s3.rivals[id].bankrupt && P3.State.ownedProps('rival:' + id).length >= 1; }));
 })();
 
+/* ---------- 36. P8.3 Every achievement: deterministic completion + boundary ----------
+   One satisfying path per achievement not already exercised through its real
+   engine path in §11/§22/§33. The meta-check at the end enforces coverage of
+   the whole list — add a test here when adding an achievement. */
+(function () {
+  // own n generated properties through the real setOwner path (district counts
+  // and owner maps update as in play); stats.bought is set because portfolio
+  // predicates also require a real purchase to have happened.
+  var own = function (P, n, cityId, district) {
+    var out = [];
+    for (var i = 0; i < n; i++) {
+      var p = P.Market.genProperty(cityId || 'london', {});
+      if (district) p.district = district;
+      P.State.setOwner(p, 'player');
+      out.push(p);
+    }
+    var st = P.S().stats; if (st.bought < 1) st.bought = 1;
+    return out;
+  };
+
+  // real counter wiring through the public engine calls
+  (function () {
+    var P = fresh('chen', 51), s = P.S(); s.cash += 1e6;
+    var l = P.Market.genListing('london', 1500, 'landlord');
+    P.Market.buy(l, l.askingPrice - 1, null, 'player');
+    check('P8.3 first_deal: buying below asking wires belowAsk and satisfies', s.stats.belowAsk === 1 && P.Goals.achievementSatisfied('first_deal'));
+  })();
+  (function () {
+    var P = fresh('chen', 52), s = P.S(); s.cash += 1e6;
+    var l = P.Market.genListing('london', 1500, 'landlord');
+    var r = P.Market.startAuction(l, l.askingPrice, null, false, []);
+    check('P8.3 auction_winner: an uncontested auction wires auctionsWon and satisfies', r.ok && r.outcome === 'accepted' && s.stats.auctionsWon === 1 && P.Goals.achievementSatisfied('auction_winner'), r.outcome);
+  })();
+  (function () {
+    var P = fresh('chen', 53), s = P.S(); s.cash += 1e6;
+    var l = P.Market.genListing('london', 1500, 'landlord');
+    var b = P.Market.buy(l, l.askingPrice, null, 'player');
+    var p = s.properties[b.property.id];
+    p.purchasePrice = Math.round(p.trueValue / 2); // force the 1.3x resale margin deterministically
+    var r = P.Market.sell(p.id, 'quick');
+    check('P8.3 flipper: a resale at 1.3x+ purchase wires flips and satisfies', r.ok && r.sold && s.stats.flips === 1 && P.Goals.achievementSatisfied('flipper'));
+  })();
+  (function () {
+    var P = fresh('chen', 54), s = P.S(); s.cash += 1e6;
+    var l = P.Market.genListing('london', 1500, 'landlord');
+    var b = P.Market.buy(l, l.askingPrice, null, 'player');
+    var p = s.properties[b.property.id];
+    p.lastRenovated = s.year; p.purchasePrice = Math.round(p.trueValue * 0.7);
+    var r = P.Finance.refinance(p.id); // max cash-out: 0.7 x trueValue >= 0.95 x 0.7 x trueValue
+    check('P8.3 brrrr: cash-out refinance of a renovated property recovers the deposit', r.ok && s.stats.brrrr === 1 && P.Goals.achievementSatisfied('brrrr'), r.message);
+  })();
+
+  // counter predicates with boundaries
+  (function () {
+    var P = fresh('chen', 55), st = P.S().stats;
+    st.bought = 9; var d9 = P.Goals.achievementSatisfied('ten_deals');
+    st.bought = 10; var d10 = P.Goals.achievementSatisfied('ten_deals');
+    st.bought = 49; var f49 = P.Goals.achievementSatisfied('fifty_deals');
+    st.bought = 50; var f50 = P.Goals.achievementSatisfied('fifty_deals');
+    st.refinances = 9; var r9 = P.Goals.achievementSatisfied('refinancer');
+    st.refinances = 10; var r10 = P.Goals.achievementSatisfied('refinancer');
+    st.rebuilds = 0; var b0 = P.Goals.achievementSatisfied('rebuilder');
+    st.rebuilds = 1; var b1 = P.Goals.achievementSatisfied('rebuilder');
+    check('P8.3 counter achievements fire at their exact thresholds', !d9 && d10 && !f49 && f50 && !r9 && r10 && !b0 && b1);
+  })();
+
+  // portfolio size predicates (real setOwner path; bought flag as in play)
+  (function () {
+    var P = fresh('chen', 56);
+    own(P, 4); var p4 = P.Goals.achievementSatisfied('portfolio_5');
+    own(P, 1); var p5 = P.Goals.achievementSatisfied('portfolio_5');
+    own(P, 9); var p14 = P.Goals.achievementSatisfied('portfolio_15');
+    own(P, 1); var p15 = P.Goals.achievementSatisfied('portfolio_15');
+    own(P, 24); var p39 = P.Goals.achievementSatisfied('portfolio_40');
+    own(P, 1); var p40 = P.Goals.achievementSatisfied('portfolio_40');
+    check('P8.3 portfolio_5/15/40 fire at exact sizes through the real ownership path', !p4 && p5 && !p14 && p15 && !p39 && p40);
+  })();
+
+  // debt_free: 5+ unmortgaged after the start year
+  (function () {
+    var P = fresh('chen', 57), s = P.S(), ps = own(P, 5);
+    var atStart = P.Goals.achievementSatisfied('debt_free');
+    s.year++; var later = P.Goals.achievementSatisfied('debt_free');
+    ps[0].mortgage = { principal: 100 }; var mortgaged = P.Goals.achievementSatisfied('debt_free');
+    check('P8.3 debt_free needs 5+ unmortgaged properties past the start year', !atStart && later && !mortgaged);
+  })();
+
+  // wealth multiples
+  (function () {
+    var P = fresh('chen', 58), s = P.S();
+    s.cash = s.startCash * 99; var w99 = P.Goals.achievementSatisfied('wealth_100x');
+    s.cash = s.startCash * 100; var w100 = P.Goals.achievementSatisfied('wealth_100x');
+    s.cash = s.startCash * 999; var w999 = P.Goals.achievementSatisfied('wealth_1000x');
+    s.cash = s.startCash * 1000; var w1000 = P.Goals.achievementSatisfied('wealth_1000x');
+    check('P8.3 wealth_100x/1000x fire at exact net-worth multiples', !w99 && w100 && !w999 && w1000);
+  })();
+
+  // dynasty generations
+  (function () {
+    var P = fresh('chen', 59), s = P.S();
+    var g1 = P.Goals.achievementSatisfied('generation_2');
+    s.dynasty.generation = 2; var g2 = P.Goals.achievementSatisfied('generation_2') && !P.Goals.achievementSatisfied('generation_4');
+    s.dynasty.generation = 4; var g4 = P.Goals.achievementSatisfied('generation_4') && !P.Goals.achievementSatisfied('generation_6');
+    s.dynasty.generation = 6; var g6 = P.Goals.achievementSatisfied('generation_6');
+    check('P8.3 generation_2/4/6 fire at exact generations', !g1 && g2 && g4 && g6);
+  })();
+
+  // reputation, rank
+  (function () {
+    var P = fresh('chen', 60), s = P.S();
+    s.reputation = 89; var r89 = P.Goals.achievementSatisfied('reputation_90');
+    s.reputation = 90; var r90 = P.Goals.achievementSatisfied('reputation_90');
+    s.cash = 1e9; var rankAtStart = P.Goals.achievementSatisfied('rank_1'); // year === startYear must not count
+    s.year++; var rankLater = P.Goals.achievementSatisfied('rank_1');
+    check('P8.3 reputation_90 at exactly 90; rank_1 needs the lead past the start year', !r89 && r90 && !rankAtStart && rankLater);
+  })();
+
+  // city unlocks: second_city needs an unlock AFTER the start; 5/10/all by count
+  (function () {
+    var P = fresh('chen', 61), s = P.S(), ids = Object.keys(s.cities), D = P.Data;
+    s.cities[ids[1]].unlocked = true;
+    var noTrack = P.Goals.achievementSatisfied('second_city');
+    s.stats.cityUnlockYear = s.stats.cityUnlockYear || {}; s.stats.cityUnlockYear[ids[1]] = s.startYear + 1;
+    var tracked = P.Goals.achievementSatisfied('second_city');
+    for (var i = 2; i < 5; i++) s.cities[ids[i]].unlocked = true;
+    var five = P.Goals.achievementSatisfied('five_cities') && !P.Goals.achievementSatisfied('ten_cities');
+    for (i = 5; i < 10; i++) s.cities[ids[i]].unlocked = true;
+    var ten = P.Goals.achievementSatisfied('ten_cities') && !P.Goals.achievementSatisfied('all_cities');
+    ids.forEach(function (id) { s.cities[id].unlocked = true; });
+    var all = P.Goals.achievementSatisfied('all_cities') && ids.length === D.cities.length;
+    check('P8.3 second_city needs a post-start unlock; five/ten/all_cities by exact count', !noTrack && tracked && five && ten && all, ids.length);
+  })();
+
+  // world_citizen: property in five cities at once
+  (function () {
+    var P = fresh('chen', 62), s = P.S(), ids = Object.keys(s.cities);
+    own(P, 1, ids[0]); own(P, 1, ids[1]); own(P, 1, ids[2]); own(P, 1, ids[3]);
+    var four = P.Goals.achievementSatisfied('world_citizen');
+    own(P, 1, ids[4]);
+    check('P8.3 world_citizen needs property in five cities at once', !four && P.Goals.achievementSatisfied('world_citizen'));
+  })();
+
+  // district_king: 30% of a district's stock, minimum 3 — real playerCount path
+  (function () {
+    var P = fresh('chen', 63), s = P.S(), dName = Object.keys(s.cities.london.districts)[0];
+    own(P, 2, 'london', dName);
+    var d = P.State.district('london', dName); d.stock = 10;
+    var two = P.Goals.achievementSatisfied('district_king');
+    own(P, 1, 'london', dName);
+    check('P8.3 district_king needs 30% of stock and at least 3 holdings', !two && d.playerCount === 3 && P.Goals.achievementSatisfied('district_king'), d.playerCount + '/' + d.stock);
+  })();
+
+  // tower
+  (function () {
+    var P = fresh('chen', 64), ps = own(P, 1);
+    var before = P.Goals.achievementSatisfied('tower');
+    ps[0].type = 'tower';
+    check('P8.3 tower fires on owning a tower', !before && P.Goals.achievementSatisfied('tower'));
+  })();
+
+  // meta: the whole list is covered somewhere in the suite
+  (function () {
+    var P = fresh('chen', 65), D = P.Data;
+    var coveredElsewhere = ['bargain_hunter', 'counter_closer', 'scholar', 'top_dog_decade', 'cash_king', 'high_wire', 'vulture', 'friend_of_banks', 'nemesis', 'covenant_kept', 'trust_fund', 'centenarian', 'the_long_game', 'peacemaker', 'merger', 'matchmaker', 'comeback', 'survivor', 'two_depressions']; // §22 + §33 + merger/matchmaker in §13
+    var coveredHere = ['first_deal', 'auction_winner', 'flipper', 'brrrr', 'ten_deals', 'fifty_deals', 'refinancer', 'rebuilder', 'portfolio_5', 'portfolio_15', 'portfolio_40', 'debt_free', 'wealth_100x', 'wealth_1000x', 'generation_2', 'generation_4', 'generation_6', 'reputation_90', 'rank_1', 'second_city', 'five_cities', 'ten_cities', 'all_cities', 'world_citizen', 'district_king', 'tower'];
+    var covered = {}; coveredElsewhere.concat(coveredHere).forEach(function (id) { covered[id] = true; });
+    var missing = D.achievements.filter(function (a) { return !covered[a.id]; }).map(function (a) { return a.id; });
+    var unknown = coveredElsewhere.concat(coveredHere).filter(function (id) { return !D.achievementById(id); });
+    check('P8.3: every achievement has a deterministic completion test and the coverage lists name real ids', missing.length === 0 && unknown.length === 0, { missing: missing, unknown: unknown });
+  })();
+})();
+
 /* ---------- Summary ---------- */
 console.log('tests: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) { console.log('FAILURES:'); failures.forEach(function (f) { console.log('  - ' + f); }); }
