@@ -378,6 +378,7 @@ function main() {
   Object.keys(classes).forEach(function (cls) {
     var rows = classes[cls];
     console.log('\n' + cls + ' — ' + rows.length + ' runs (' + fmt(rows.length / matrix.length * 100, 0) + '%)');
+    console.log('  split: ' + STRATS.map(function (st) { return st + ' ' + rows.filter(function (r) { return r.strategy === st; }).length; }).join(' · '));
     rows.slice(0, 3).forEach(function (r) {
       console.log('  replay: ' + replay(r) + ' → NW ratio vs best rival (' + r.bestRivalId + ') ' + fmt(r._ratio, 2)
         + ', rank #' + r.rankEnd + ', bk ' + r.bankruptcies.length + ', lead changes ' + r.leadChanges + ', dead ' + fmt(r.deadYears / r.years * 100, 0) + '%');

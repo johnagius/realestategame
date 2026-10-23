@@ -29,7 +29,7 @@ f13+f14 5907c58) with regression tests in `js/sim/tests.js` §33.
 | f1–f11 regression tests (goal integrity) | tests.js §33 | ✅ |
 | Per-goal deterministic completion: 10/10 yearly templates, 6/6 era kinds, campaign tier chain, reward-once, era deadline boundary | tests.js §34 | ✅ 680/680 total |
 | "Possible under suitable conditions" vs "achievable whenever offered" | inventory + f5/f6/f7 | ✅ yearly goals fall back to null when infeasible; scenario-era goals clamped; assignment-honesty invariant over 16 runs × 12 years |
-| Achievements | tests.js §22 + §33 | ⚠️ stat-driven and mode-gated ones covered; not every one of 30+ has a dedicated completion test |
+| Achievements | tests.js §22 + §33 + §36 | ✅ all 44 have a deterministic completion test with boundary assertions (79c7a82); a meta-check fails the suite if a future achievement ships untested |
 
 ## 4. Balance across players and seeds (P8.4)
 
@@ -96,6 +96,11 @@ final NW; close = within 25%, easy = ≥ 1.25×):
 | Recoverable loss | 95 runs (26%) | silva/seed 3/competent (0.95, rk #3, lc 8) · silva/seed 5 (0.71, rk #2) · silva/seed 11 (0.89, rk #2) | Player in striking distance; earlier 2nd city or less crash-year leverage plausibly flips these |
 | Crushing loss | 191 runs (53%) | silva/seed 1/naive (0.25, rk #5) · silva/seed 2/naive (0.19, lc 13) · silva/seed 3/naive (0.12, lc 20) | Concentrated in naive play (never borrows, buys cheapest): naive median 17.4× vs 176.2× competent. The compound cost of passive play |
 
+Strategy split per class (naive / competent / expert): easy 0/22/20 · close
+0/13/19 · recoverable 0/46/49 · crushing 120/39/32. Every naive run is
+crushed — naive never reaches even a recoverable loss at the 60y horizon.
+Skilled losses split between recoverable (the modal class) and crushing.
+
 Alternative decisions could reasonably change outcomes in the close and
 recoverable classes (small final ratios, high lead-change counts). Easy wins
 are market-driven, not exploit-driven (bk 0, normal decision cadence).
@@ -130,10 +135,11 @@ sessions (opening + developed save) and any fresh-player observation.
    full 181y (62556× vs 23763×) but a 60-year session barely rewards it, and
    expert full-length bankruptcy is 33% vs competent 17% — high variance.
    Playtest question: does skilful play feel rewarded soon enough?
-3. **Crushing losses (53%) are concentrated in naive play.** All sampled
-   crushing replays are naive; competent's typical bad outcome is a
-   recoverable loss. Whether a human novice gets enough feedback to see *why*
-   they are losing is a P8.7 question.
+3. **Crushing losses (53%) are concentrated in naive play — but not exclusive
+   to it.** All 120 naive runs end crushed (naive never reaches even a
+   recoverable loss at 60y); skilled losses split recoverable 46/49 vs
+   crushing 39/32 (competent/expert). Whether a human novice gets enough
+   feedback to see *why* they are losing is a P8.7 question.
 4. **Aggression is penalised in crash scenarios, rewarded in gfc2008**
    (expert 43–47% vs competent 60% in crash1929/oilshock1973; 70% vs 63% in
    gfc2008). Intentional — timing matters — but watch it in playtests.
