@@ -469,3 +469,30 @@ simulator was tuned against them. They are now canon.
 - **Scenarios** (1929, 1973, 2008) fast-forward prices and era deterministically, give five buildings at 55–64% LTV in two cities, and are won by holding net worth ≥ start fifteen years later. Competent win rate 47–77% by scenario.
 - **Armstrong** carries a family goal track: LTV below 50% by 1860 for 3% NW and +5 reputation, −5 reputation if missed.
 - **Save version 2** with a migration from version 1.
+
+### 16.2 Decisions added with the engagement programme (v8.5–v8.7, ENG-A/B/C)
+
+- **Unreliable foreshadowing (ENG-B5).** Scripted recession/depression years are
+  jittered ±1 per seed (booms and stagnation keep their historical dates;
+  scenarios keep them too — they are curated set-pieces). Cycle-carrying
+  historical events move with their crash. The jitter draws from an isolated
+  RNG stream keyed on the seed, so replay determinism is untouched. The paper
+  also cries wolf in 10% of quiet years (never for the Town Crier, never in
+  scenarios) as an extra rumour line. Old saves fall back to the historical
+  calendar.
+- **Sticky named tenants (ENG-B6).** Every rentable player building gains a
+  named tenant after its first year. Holding or cutting the rent builds
+  loyalty (−vacancy, −wear); a rise above 3% risks losing exactly that tenant
+  (re-letting costs 35% extra vacancy next year). Tenancy ends with the
+  building's sale; leases and event-emptied buildings skip it. Boom-jacking
+  rents is no longer dominant play.
+- **Behaviour-weighted heir traits (ENG-B7).** `endYear` records a behaviour
+  snapshot (lifetime-counter deltas plus yearly flags) in a rolling baseline +
+  10-year window; trait rolls at birth are weighted by it: building → Builder,
+  leverage → Banker, charity/standing → Charmer, deal flow → Negotiator, buying
+  under ask → Surveyor, auctions/flips → Gambler, evictions and decaying stock
+  → Spendthrift.
+- **Flagship (ENG-B8).** One nameable crown jewel per city (3–40 chars):
+  +5% rent, +1 reputation a year, but rivals are 3× as likely to bid on it
+  (+15% premium) and random events target it 2.5× as often. Selling lowers
+  the colours.

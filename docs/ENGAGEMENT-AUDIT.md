@@ -113,6 +113,13 @@ C5. Period-voice icon pass on the 40-icon sprite. [S]
 C6. Low-quality 3D uplift (grade-only pass + warm windows) + user quality toggle in settings. [M]
 C7. Vendor fonts into assets/ + precache; strip emoji from landmark names at source. [XS]
 
+### Implementation status
+Phase A (A1–A6) shipped in v8.5 (`ea0dd61`); B1–B4 in v8.5 (`ea0dd61`). C2/C4/C7 in v8.6
+(`c8b908f`, `30430ff`), C1 portraits in v8.6 (`bd9b4eb`), C1 advisor poses `5d95401`, C5 `5d0e569`,
+C6 `78693ab` (quality toggle already existed in Settings), C3 `12552df`. B5 `0f648c3`, B6 `59412f2`,
+B7 `eb8693c`, B8 `a0cba14`. All engine phases shipped with 10/10 balance tables in their commits;
+canon decisions folded into REDESIGN.md §16.2.
+
 ### §9 deliverable — the exceptional first 10–15 minutes
 Phases A + B1–B3 converge on the opening: first bargain hunt on a *starved* board, first win with
 stamp + push-in to *your* building, first renovation with a visible transformation, first rent
