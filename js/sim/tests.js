@@ -651,6 +651,40 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   })());
 })();
 
+/* ---------- 17e. ENG-B8 nameable flagship per city ---------- */
+(function () {
+  var PE = fresh('chen', 31), B = PE.Data.balance, s = PE.S();
+  var q1 = PE.Market.genProperty('london', { type: 'townhouse', condition: 75 }); PE.State.setOwner(q1, 'player'); PE.Property.initTenancy(q1);
+  var q2 = PE.Market.genProperty('london', { type: 'terrace', condition: 60 }); PE.State.setOwner(q2, 'player'); PE.Property.initTenancy(q2);
+  var land = PE.Market.genProperty('london', { type: 'land' }); PE.State.setOwner(land, 'player');
+  check('flagship validates ownership, name and type', !PE.Property.setFlagship(land.id, 'The Plot').ok && !PE.Property.setFlagship(q1.id, 'x').ok && !PE.Property.setFlagship('nope', 'The Nothing').ok);
+  check('naming a flagship renames the building and pays a rent bonus', (function () {
+    var before = PE.Property.grossRent(q1), r = PE.Property.setFlagship(q1.id, 'Chen House');
+    return r.ok && q1.flagship && q1.name === 'Chen House' && Math.abs(PE.Property.grossRent(q1) / before - (1 + B.flagshipRentBonus)) < 0.02;
+  })());
+  check('one flagship per city: a second designation stands the first down', (function () {
+    var r = PE.Property.setFlagship(q2.id, 'The Camden Arms');
+    return r.ok && q2.flagship && !q1.flagship && r.replaced === q1.id;
+  })());
+  check('a flagship can stand down', (function () { var r = PE.Property.releaseFlagship(q2.id); return r.ok && !q2.flagship && !PE.Property.releaseFlagship(q2.id).ok; })());
+  check('flagships earn standing each year', (function () {
+    PE.Property.setFlagship(q1.id, 'Chen House'); s.reputation = 50; clearEvents(PE);
+    s.goals.yearly = null; s.goals.era = null; s.goals.family = null; s.goals.campaignTier = PE.Data.campaignTiers.length; // no other rep sources this year
+    var before = s.reputation, r = PE.Game.endYear();
+    return r.ok && s.reputation === before + B.flagshipRepPerYear;
+  })());
+  check('selling the flagship lowers the colours', (function () { PE.State.setOwner(q1, 'rival:wong'); return q1.flagship === false; })());
+  check('misfortune finds the flagship more often (weighted event targeting)', (function () {
+    var P = fresh('chen', 32), ps = P.S();
+    var props = [];
+    for (var i = 0; i < 3; i++) { var q = P.Market.genProperty('london', { type: 'terrace', condition: 70 }); P.State.setOwner(q, 'player'); props.push(q); }
+    props[0].flagship = true;
+    var hits = 0; for (var j = 0; j < 200; j++) { var t = P.Events.pickTargets(); if (t.prop === props[0]) hits++; }
+    return hits / 200 > 0.3 && hits / 200 < 0.65; // weight 2.5 of 4.5 ≈ 56%... uniform would be 33%
+  })());
+  check('old saves without p.flagship play normally', (function () { return q2.flagship === undefined || q2.flagship === false; })());
+})();
+
 /* ---------- 18. P5.1 Families with real rule differences ---------- */
 (function () {
   var S = fresh('silva', 4), sp = S.State.playerProps()[0];

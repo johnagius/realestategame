@@ -60,7 +60,7 @@
       State.districtCount(p, p.ownerId, -1);
     }
     p.ownerId = ownerId;
-    if (ownerId !== 'player') { p.tenant = null; p.reletYear = 0; } // ENG-B6: the named tenant is the player's relationship
+    if (ownerId !== 'player') { p.tenant = null; p.reletYear = 0; p.flagship = false; } // ENG-B6/B8: tenants and the flagship are the player's relationships
     if (ownerId) { State.ownedIds(ownerId).push(p.id); s.properties[p.id] = p; State.districtCount(p, ownerId, +1); }
     else delete s.properties[p.id];
   };

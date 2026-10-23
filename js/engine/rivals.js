@@ -320,7 +320,9 @@
       if (Rv.wants(rv, p) > 0) cands.push(p);
     }
     if (!cands.length) return;
-    var p2 = R.pick(cands), prem = R.range(B.rivalOfferPremium[0], rd.prefers === 'prestige' ? B.rivalOfferPremium[1] : 1.25);
+    var p2 = R.weighted(cands, cands.map(function (x) { return x.flagship ? B.flagshipRivalWeight : 1; })); // ENG-B8: rivals covet the flagship
+    var prem = R.range(B.rivalOfferPremium[0], rd.prefers === 'prestige' ? B.rivalOfferPremium[1] : 1.25);
+    if (p2.flagship) prem *= B.flagshipOfferPremiumMult;
     var price = Math.round(p2.trueValue * prem);
     if (!Rv.canPay(rv, price, p2)) return;
     s.offers.push({ id: St.nextId('o'), propertyId: p2.id, rivalId: rv.id, price: price, year: s.year });

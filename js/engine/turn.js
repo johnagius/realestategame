@@ -78,6 +78,8 @@
     PE.Finance.bankWriteOffs(rep); // a borrower that just went bankrupt defaults on its loan (P4.2)
     var dl = PE.Dynasty.yearly(rep); for (i = 0; i < dl.length; i++) rep.lines.push(dl[i]);
     rep.succession = rep.dynasty.some(function (d) { return d.kind === 'succession'; });
+    // ENG-B8: flying a flagship lends the family name standing
+    if (St.playerProps().some(function (x) { return x.flagship; })) St.rep(B.flagshipRepPerYear);
     // 6. Goals (evaluated on the year just played)
     PE.Goals.evaluate(rep);
     if (wasDepression && s.cycle.phase !== 'depression' && debtAtStart > 0 && s.stats.forcedSalesThisEra === 0) s.stats.depressionsSurvived++;

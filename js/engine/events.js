@@ -28,7 +28,7 @@
   E.pickTargets = function () {
     var s = PE.S(), props = St.playerProps().filter(function (p) { return !p.renovation && p.type !== 'land'; }), t = {};
     if (!props.length) props = St.playerProps().filter(function (p) { return !p.renovation; });
-    if (props.length) t.prop = R.pick(props);
+    if (props.length) t.prop = R.weighted(props, props.map(function (x) { return x.flagship ? B.flagshipEventWeight : 1; })); // ENG-B8: misfortune finds the flagship
     var counts = {}, bestC = null; for (var i = 0; i < props.length; i++) { counts[props[i].cityId] = (counts[props[i].cityId] || 0) + 1; if (!bestC || counts[props[i].cityId] > counts[bestC]) bestC = props[i].cityId; }
     t.cityId = bestC || 'london';
     var adults = s.dynasty.members.filter(function (m) { return m.alive && m.relation !== 'head' && m.age >= 16 && !m.disgraced; });

@@ -399,6 +399,12 @@
     tenantLoyaltyVacancyCut: 0.5,     // vacancy × (1 − this × loyalty)
     tenantLoyaltyDecayCut: 0.25,      // decay × (1 − this × loyalty) — long tenants care for the place
     tenantReletVacancy: 0.35,         // extra vacancy in the re-letting year after a tenant leaves
+    // ENG-B8 flagship: one named crown jewel per city — rent and standing, but a target
+    flagshipRentBonus: 0.05,
+    flagshipRepPerYear: 1,            // reputation a year while you hold at least one flagship
+    flagshipRivalWeight: 3,           // rivals are this much more likely to bid on it
+    flagshipOfferPremiumMult: 1.15,   // ...and they pay up for the crown jewel
+    flagshipEventWeight: 2.5,         // random events find the flagship more often
     // finance
     maxLtv: 0.70,
     bankerLtvBonus: 0.05,

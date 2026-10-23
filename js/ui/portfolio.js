@@ -26,6 +26,7 @@
     flags.appendChild(PEUI.chip(p.type === 'land' ? 'Plot' : 'Occupancy ' + Math.round((p.occupancy || 0) * 100) + '%', p.occupancy < 0.7 && p.type !== 'land' ? 'warn' : null, 'users'));
     var m = mgmt[p.id]; flags.appendChild(PEUI.chip(m ? (m.mgmt === 'manager' ? 'Managed' : m.mgmt === 'self' ? 'Self-managed' : 'Unmanaged') : '', m && m.mgmt === 'none' ? 'danger' : null, 'person'));
     if (p.renovation) flags.appendChild(PEUI.chip(PE().Data.renovation[p.renovation.tier].name + ' · ' + p.renovation.yearsLeft + ' yr left', 'info', 'hammer'));
+    if (p.flagship) flags.appendChild(PEUI.chip('Flagship', 'gold', 'trophy'));
     if (p.forSale) flags.appendChild(PEUI.chip('On the market', 'gold', 'tag'));
     if (p.lease) flags.appendChild(PEUI.chip('Lease ' + p.lease.yearsLeft + ' yrs', 'info'));
     for (var i = 0; i < ws.length; i++) flags.appendChild(PEUI.chip(ws[i].kind === 'margin_call' ? 'Margin call: repay ' + fmt.money(ws[i].shortfall) : 'LTV high', ws[i].kind === 'margin_call' ? 'danger' : 'warn', 'warning'));
@@ -132,7 +133,7 @@
   PEUI.openProperty = function (id) {
     var p = propData(id); if (!p) { PEUI.toast('Not your property.', 'danger'); return; }
     var s = PEUI.summary(), fs = PE().Finance.summary(), B = PE().Data.balance;
-    if (ps.id !== id) { ps.id = id; ps.refiLtv = null; ps.repay = 0; ps.rent = null; }
+    if (ps.id !== id) { ps.id = id; ps.refiLtv = null; ps.repay = 0; ps.rent = null; ps.flagshipName = p.name; }
     if (ps.refiLtv === null) ps.refiLtv = Math.min(B.refinanceLtv, fs.maxLtv);
     var body = [];
     var pay = p.mortgage ? PE().Finance.annualPayment(p.mortgage) : 0;
@@ -166,6 +167,17 @@
       body.push(h('div', { class: 'field' }, [h('label', { class: 'field__label', for: 'rent-setting' }, [h('span', { text: 'Rent setting (80–120% of market)' }), h('strong', { id: 'rent-v', text: Math.round(rentNow * 100) + '% · ' + fmt.money(p.rentAnnual) + '/yr' })]), PEUI.range({ id: 'rent-setting', min: 80, max: 120, step: 5, value: Math.round(rentNow * 100), 'data-input': 'rent-setting', 'data-id': id, disabled: !!p.lease || (p.rentLockUntil && s.year < p.rentLockUntil) })]));
       if (p.tenant) body.push(h('p', { class: 'small muted', text: 'Tenant: ' + p.tenant.name + ', here since ' + p.tenant.since + ' · ' + (p.tenantLabel || 'new') + '. A sharp rise risks losing them.' }));
       body.push(h('p', { class: 'small muted', text: p.lease ? 'Fixed by a lease for ' + p.lease.yearsLeft + ' more years.' : 'Higher rent: more income, more vacancy and faster wear. Lower rent: long, careful tenants.' }));
+    }
+    // Flagship (ENG-B8)
+    if (p.type !== 'land' && !p.renovation) {
+      body.push(h('div', { class: 'kicker', text: 'Flagship' }));
+      if (p.flagship) {
+        body.push(h('p', { class: 'small muted', text: 'The flagship of your ' + p.cityName + ' holdings: +' + Math.round(B.flagshipRentBonus * 100) + '% rent and the family name on the door — but rivals bid for it and misfortune finds it.' }));
+        body.push(PEUI.btn('Stand down as flagship', { cls: 'btn--ghost btn--sm', action: 'prop-flagship-clear', 'data-id': id }));
+      } else {
+        body.push(h('p', { class: 'small muted', text: 'Name one crown jewel per city: +' + Math.round(B.flagshipRentBonus * 100) + '% rent and standing each year — but rivals covet it and events target it.' }));
+        body.push(h('div', { class: 'row' }, [h('input', { class: 'input', type: 'text', maxlength: 40, value: p.name, 'data-input': 'flagship-name', 'aria-label': 'Flagship name' }), PEUI.btn('Name as flagship', { cls: 'btn--secondary', icon: 'trophy', action: 'prop-flagship', 'data-id': id })]));
+      }
     }
     // Finance
     if (!p.renovation) {
@@ -218,6 +230,16 @@
     var btn = document.querySelector('[data-action="prop-refi"]'); if (btn) btn.disabled = !(q.ok && q.principal !== (p.mortgage ? p.mortgage.principal : 0));
   };
   PEUI.inputs['repay-amount'] = function (el) { ps.repay = Math.round(+el.value || 0); };
+  PEUI.inputs['flagship-name'] = function (el) { ps.flagshipName = el.value; };
+  PEUI.actions['prop-flagship'] = function (b, d) {
+    var r = PEUI.call(PE().Property.setFlagship, d.id, ps.flagshipName || '');
+    if (!r.ok) { PEUI.toast(r.message, 'warn'); return; }
+    PEUI.save(); PEUI.sound('stamp'); PEUI.toast(r.message, 'success'); PEUI.openProperty(d.id);
+  };
+  PEUI.actions['prop-flagship-clear'] = function (b, d) {
+    var r = PEUI.call(PE().Property.releaseFlagship, d.id); if (!r.ok) return;
+    PEUI.save(); PEUI.toast(r.message); PEUI.openProperty(d.id);
+  };
   PEUI.actions['prop-renovate'] = function (b, d) {
     var before = propData(d.id);
     var r = PEUI.call(PE().Property.renovate, d.id, d.tier); if (!r.ok) return;

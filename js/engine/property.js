@@ -57,6 +57,7 @@
     if (s.flags.warLeaseUntil && s.year < s.flags.warLeaseUntil && p.ownerId === 'player') r *= 0.8;
     if (s.flags.rentBoostYear === s.year && p.ownerId === 'player') r *= 1.10;
     if (s.flags.commercialRentYear === s.year && p.ownerId === 'player' && (t.id === 'shop' || t.id === 'office')) r *= 0.8;
+    if (p.flagship && p.ownerId === 'player') r *= (1 + B.flagshipRentBonus); // ENG-B8: the name on the door draws better tenants
     return Math.round(r);
   };
 
@@ -383,6 +384,27 @@
     if (p.history.length > 30) p.history.shift();
     s.stats.buildsDone = (s.stats.buildsDone || 0) + 1;
     return 'The ' + D.buildClasses[j.cls].name.toLowerCase() + ' build completes on ' + p.name + ': ' + D.propertyTypes[p.type].name + ' (' + sp.name + ', ' + P.band(p).name + '), worth ' + U.fmt(p.trueValue) + '.';
+  };
+
+  /* ENG-B8: one named flagship per city. Prestige (+rent, +standing) but a target:
+     rivals bid on it more (and pay up), random events find it more often. */
+  P.setFlagship = function (propertyId, name) {
+    var s = PE.S(), p = s.properties[propertyId];
+    if (!p || p.ownerId !== 'player') return PE.fail('Not your property');
+    if (p.type === 'land') return PE.fail('Land cannot be a flagship');
+    if (p.renovation) return PE.fail('Finish the works first');
+    name = String(name === undefined || name === null ? '' : name).trim().replace(/\s+/g, ' ');
+    if (name.length < 3 || name.length > 40) return PE.fail('Give it a name (3–40 characters)');
+    var props = St.playerProps(), cleared = null;
+    for (var i = 0; i < props.length; i++) if (props[i].cityId === p.cityId && props[i].flagship && props[i].id !== p.id) { props[i].flagship = false; cleared = props[i]; }
+    p.flagship = true; p.name = name;
+    return PE.ok({ message: name + ' now flies as the flagship of your ' + D.cityById[p.cityId].name + ' holdings.' + (cleared ? ' ' + cleared.name + ' stands down.' : ''), replaced: cleared ? cleared.id : null });
+  };
+  P.releaseFlagship = function (propertyId) {
+    var s = PE.S(), p = s.properties[propertyId];
+    if (!p || p.ownerId !== 'player' || !p.flagship) return PE.fail('No flagship here');
+    p.flagship = false;
+    return PE.ok({ message: p.name + ' no longer flies as the flagship.' });
   };
 
   P.setRent = function (propertyId, setting) {
