@@ -244,7 +244,11 @@
     inner.appendChild(eq);
     var achieved = r.goals.achieved.map(function (g) { return g.desc + (g.reward ? ' (+' + fmt.money(g.reward) + ')' : ''); });
     var ach = section('Goals achieved', achieved, 'check'); if (ach) { ach.classList.add('goal--done'); inner.appendChild(ach); if (achieved.length) PEUI.confetti(30); }
-    var prog = r.goals.progress.filter(function (g) { return g.kind === 'era'; }).map(function (g) { return g.failed ? 'Era goal missed: ' + g.desc : g.desc + ' — ' + (g.progress || 'not yet'); });
+    var prog = r.goals.progress.map(function (g) {
+      if (g.kind === 'yearly') return 'Yearly goal missed: ' + g.desc;
+      if (g.kind === 'family') return g.failed ? 'Family goal failed: ' + g.desc : g.desc + ' — ' + (g.progress || 'not yet');
+      return g.failed ? 'Era goal missed: ' + g.desc : g.desc + ' — ' + (g.progress || 'not yet');
+    });
     var ps = section('Goals in progress', prog, 'flag'); if (ps) inner.appendChild(ps);
     var deals = section('Deals', r.deals.map(function (d) { return d.text; }), 'tag'); if (deals) inner.appendChild(deals);
     var dyn = section('The family', r.lines, 'crown'); if (dyn) inner.appendChild(dyn);
