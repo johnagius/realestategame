@@ -6,7 +6,7 @@
   var D = PE.Data, U = PE.util, St = PE.State, g = PE.guard;
 
   var Game = {};
-  Game.version = '8.4.0';
+  Game.version = '8.5.0';
 
   /* newGame({ familyId, seed, traitId, perks?, modes?, scenario? }). Perks default to the owned 'passive' perks in meta
      plus the selected 'mode' perks (opts.modes, else the selection stored in meta.modes via Game.setModes).
