@@ -465,7 +465,11 @@ var City3D = {
     var tmp = new THREE.Color();
     // SKYLINE-4: deep dusk (night >= 0.6) makes lit windows burn brighter (intensity only,
     // no sprites — the lit ratio itself is set at build time via the threshold range)
-        var glow = night >= 0.6 ? (this._composer ? 2.0 : 1.3) : 1;
+    // ENG-C6: low tier has no bloom to carry the 2.0 burn, so it boosts earlier
+    // (night >= 0.5) and shifts the lit colour amber-ward for warmth.
+    var glow = 1, warm = false;
+    if (this._quality === 'low') { glow = night >= 0.6 ? 1.55 : (night >= 0.5 ? 1.2 : 1); warm = glow > 1; }
+    else if (night >= 0.6) glow = this._composer ? 2.0 : 1.3;
     for (var mi = 0; mi < meshes.length; mi++) {
       var mesh = meshes[mi], W = mesh.userData.win;
       var attr = mesh.geometry.attributes.color;
@@ -491,7 +495,7 @@ var City3D = {
           if (cur === -1) tmp.copy(board);
           else if (cur === -2) tmp.copy(broken);
           else if (cur <= 0) tmp.copy(dim);
-          else { tmp.copy(dim).lerp(W.lit, cur); if (glow > 1) tmp.multiplyScalar(glow); }
+          else { tmp.copy(dim).lerp(W.lit, cur); if (glow > 1) { tmp.multiplyScalar(glow); if (warm) { tmp.g *= 0.96; tmp.b *= 0.84; } } }
           for (var k = 0; k < 4; k++) attr.setXYZ(i * 4 + k, tmp.r, tmp.g, tmp.b);
           changed = true;
         }
@@ -1120,23 +1124,28 @@ var City3D = {
   },
 
   // ───────────────────────────── Scene setup ─────────────────────────────
-  /* SKYLINE-12 post chain (quality high only): render -> SSAO -> bloom -> grade.
+  /* SKYLINE-12 post chain: high quality runs render -> SSAO -> bloom -> grade;
+     low quality (ENG-C6) runs render -> grade only, sharing the same grade
+     uniforms so both tiers keep the same colour/mood.
      SSAO ships with the PERSPECTIVE_CAMERA define cleared for our ortho rig.
      photo() bypasses the composer (its passes hold the live camera). */
   _initPost: function(w, h) {
     var comp = new THREE.EffectComposer(this._renderer);
     comp.addPass(new THREE.RenderPass(this._scene, this._cam));
-    var ssao = new THREE.SSAOPass(this._scene, this._cam, w, h);
-    ssao.kernelRadius = 12; ssao.minDistance = 0.002; ssao.maxDistance = 0.08;
-    if (!this._camPersp) {
-      ssao.ssaoMaterial.defines.PERSPECTIVE_CAMERA = 0;
-      if (ssao.blurMaterial) ssao.blurMaterial.defines.PERSPECTIVE_CAMERA = 0;
-      ssao.ssaoMaterial.needsUpdate = true;
-      if (ssao.blurMaterial) ssao.blurMaterial.needsUpdate = true;
+    var ssao = null;
+    if (this._quality !== 'low') {
+      ssao = new THREE.SSAOPass(this._scene, this._cam, w, h);
+      ssao.kernelRadius = 12; ssao.minDistance = 0.002; ssao.maxDistance = 0.08;
+      if (!this._camPersp) {
+        ssao.ssaoMaterial.defines.PERSPECTIVE_CAMERA = 0;
+        if (ssao.blurMaterial) ssao.blurMaterial.defines.PERSPECTIVE_CAMERA = 0;
+        ssao.ssaoMaterial.needsUpdate = true;
+        if (ssao.blurMaterial) ssao.blurMaterial.needsUpdate = true;
+      }
+      comp.addPass(ssao);
+      this._bloom = new THREE.UnrealBloomPass(new THREE.Vector2(w, h), 0.55, 0.4, 0.82);
+      comp.addPass(this._bloom);
     }
-    comp.addPass(ssao);
-    this._bloom = new THREE.UnrealBloomPass(new THREE.Vector2(w, h), 0.55, 0.4, 0.82);
-    comp.addPass(this._bloom);
     this._grade = new THREE.ShaderPass(THREE.GradeShader);
     this._grade.renderToScreen = true;
     comp.addPass(this._grade);
@@ -1234,7 +1243,8 @@ var City3D = {
     renderer.toneMappingExposure = 1.0;
     renderer.outputEncoding = THREE.sRGBEncoding;
     this._renderer = renderer;
-    this._post = !low && opts.post !== false && typeof THREE.EffectComposer !== 'undefined';
+    // ENG-C6: low quality keeps the grade-only composer (render + grade, no SSAO/bloom)
+    this._post = opts.post !== false && typeof THREE.EffectComposer !== 'undefined';
     if (this._post) this._initPost(VW, VH);
     this._assetsOn = !low && opts.assets !== false && typeof THREE.GLTFLoader !== 'undefined';
     this._preloadKit();
