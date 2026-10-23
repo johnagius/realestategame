@@ -538,6 +538,8 @@
     rubberBandLead: 3.0,
     rubberBandTrail: 0.30,
     rivalExpansionChance: 0.20,
+    rivalReturnYears: 6,              // P8.5: a bankrupt rival house returns after this many years
+    rivalReturnCash: 250,             // × priceIndex — a modest stake beside one small freehold
     // dynasty
     birthChance: 0.22,
     maxChildren: 4,

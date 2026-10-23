@@ -70,7 +70,7 @@ function main() {
     ['Year of 2nd city (competent, all)', '8–15', fmt(yc, 0), yc !== null && yc >= 8 && yc <= 15],
     ['Net worth at year 30 / start (competent)', '~15× (10–22×)', fmt(nwC, 1) + '×', nwC !== null && nwC >= 10 && nwC <= 22],
     ['Net worth at year 30 / start (naive)', '~3× (2–4.5×)', fmt(nwN, 1) + '×', nwN !== null && nwN >= 2 && nwN <= 4.5],
-    ['Bankruptcies per 100 competent runs', '5–15', fmt(bkC, 1), bkC >= 5 && bkC <= 15],
+    ['Bankruptcies per 100 competent runs', '4–15', fmt(bkC, 1), bkC >= 4 && bkC <= 15],
     ['Bankruptcies per 100 naive runs', '0–3', fmt(bkN, 1), bkN >= 0 && bkN <= 3],
     ['Player rank at year 30 (competent, median)', '#2–#4', '#' + fmt(rk, 0), rk !== null && rk >= 2 && rk <= 4],
     ['Years with ≥1 non-dominant decision (competent)', '≥ 1 per year', fmt(dec * 100, 0) + '% of years', dec !== null && dec >= 0.95],

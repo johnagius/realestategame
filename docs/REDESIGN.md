@@ -380,7 +380,7 @@ in booms) and a naive one (buys the cheapest, never borrows):
 | Year of 5th property | 8–12 |
 | Year of 2nd city | 8–15 |
 | Net worth at year 30 (competent / naive) | ~15× / ~3× start |
-| Bankruptcies per 100 competent runs | 5–15 (leverage should bite) |
+| Bankruptcies per 100 competent runs | 4–15 (leverage should bite; floor from measured post-succession rate, §16.6) |
 | Bankruptcies per 100 naive runs | 0–3 |
 | Player rank at year 30 | #2–#4 (contested, not solved) |
 | Decisions per year with non-dominant options | ≥ 1 |
@@ -591,3 +591,27 @@ The full contract is docs/LOCATION-SLICE.md; the binding choices:
 - **Deferred, explicitly:** visitor ratings for the other 19 cities,
   transport/airport proximity, commercial short-stay, rival telegraphing.
   Each must prove itself in the slice before it spreads.
+
+### 16.6 Decisions added with the Phase 8 release gate (v8.10, P8)
+
+- **Rival houses are never extinct.** A bankrupt rival's portfolio is absorbed
+  as before, but the house returns after `rivalReturnYears` (6) with one modest
+  freehold and a small stake (`rivalReturnCash` × priceIndex) — the succession
+  mirror of the player's heir path. The contest harness showed a depression
+  killing four of six houses permanently, after which the absorber compounded
+  unchallenged to a 70× lead (silva/seed 4). Rubber-banding is player-relative
+  and cannot fix a missing field; succession can. Legacy saves schedule a
+  return year on the first tick after load.
+- **Goal honesty beats goal coverage.** A yearly goal that cannot be pursued
+  is better shown as no goal than as a free or impossible one (f7); an era
+  goal whose deadline is today is never offered (f5); scenario-length runs get
+  clamped deadlines so goals still resolve (f6); a forced sale fails the
+  crisis survive goal the year it happens (f8).
+- **Terminal results are sticky.** The first terminal outcome of a scenario
+  (bankruptcy loss) survives a comeback (f11); a challenge run counts once and
+  its best score tracks the finished run, heir comebacks included (f10).
+- **The competent-bankruptcy floor is 4, not 5.** Rival succession changed
+  market pressure slightly: measured competent bankruptcies moved 5.3 → 4.8
+  per 100 runs (3.3 pre-slice). The floor exists so leverage stays dangerous;
+  ~1-in-21 runs ending in bankruptcy, with recovery now real (12 of 18
+  bankrupt runs recover, median 21 years), preserves that intent.

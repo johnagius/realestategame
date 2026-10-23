@@ -2110,6 +2110,34 @@ function loadWith(extra) {
   })();
 })();
 
+/* ---------- 35. P8.5 Rival succession (no permanent extinction) ---------- */
+(function () {
+  var P = fresh('chen', 41), s = P.S(), B = P.Data.balance;
+  var rv = s.rivals.petrov, owner = 'rival:petrov';
+  check('P8.5 setup: petrov holds property', P.State.ownedProps(owner).length > 0);
+  P.Rivals.goBankrupt(rv, null); clearEvents(P);
+  check('P8.5: bankruptcy marks the rival, schedules a return, and the portfolio leaves their hands', rv.bankrupt === true && rv.returnYear === s.year + B.rivalReturnYears && P.State.ownedProps(owner).length === 0, rv.returnYear);
+  var act0 = rv.lastAction;
+  P.Rivals.runRival(rv, null);
+  check('P8.5: a bankrupt rival does not act', rv.lastAction === act0);
+  s.year = rv.returnYear - 1; P.Rivals.yearly(null);
+  check('P8.5: the house stays down until the return year', rv.bankrupt === true);
+  s.year = rv.returnYear; var rep5 = { rivalsMoves: [] }; P.Rivals.yearly(rep5);
+  var row = P.Rivals.leaderboard().leaderboard.filter(function (r) { return r.id === 'petrov'; })[0];
+  check('P8.5: the next generation returns with property, a stake, a report line and a leaderboard place', rv.bankrupt === false && rv.returnYear === undefined && rv.generation === 2 && P.State.ownedProps(owner).length >= 1 && row && row.netWorth > 0 && rep5.rivalsMoves.some(function (m) { return m.id === 'petrov' && /returns/.test(m.text); }), { gen: rv.generation, props: P.State.ownedProps(owner).length });
+  // legacy saves: a bankrupt rival without returnYear is scheduled, not instantly revived
+  var P2 = fresh('chen', 42), s2 = P2.S(), rv2 = s2.rivals.wong;
+  P2.Rivals.goBankrupt(rv2, null); clearEvents(P2); delete rv2.returnYear;
+  P2.Rivals.yearly(null);
+  check('P8.5: a legacy bankrupt rival gets a future return year on the first tick after load', rv2.bankrupt === true && rv2.returnYear === s2.year + B.rivalReturnYears, rv2.returnYear);
+  // mass extinction smoke: four houses fall, all four return
+  var P3 = fresh('chen', 43), s3 = P3.S();
+  ['wong', 'petrov', 'martinez', 'okonkwo'].forEach(function (id) { P3.Rivals.goBankrupt(s3.rivals[id], null); });
+  clearEvents(P3);
+  s3.year += B.rivalReturnYears; P3.Rivals.yearly(null);
+  check('P8.5: a depression that fells four houses no longer ends the contest', ['wong', 'petrov', 'martinez', 'okonkwo'].every(function (id) { return !s3.rivals[id].bankrupt && P3.State.ownedProps('rival:' + id).length >= 1; }));
+})();
+
 /* ---------- Summary ---------- */
 console.log('tests: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) { console.log('FAILURES:'); failures.forEach(function (f) { console.log('  - ' + f); }); }

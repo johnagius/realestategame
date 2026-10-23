@@ -212,6 +212,7 @@
     var s = PE.S();
     s.offers = []; // last year's offers expire
     var ids = Object.keys(s.rivals);
+    for (var i = 0; i < ids.length; i++) if (s.rivals[ids[i]].bankrupt) Rv.maybeReturn(s.rivals[ids[i]], report);
     for (var i = 0; i < ids.length; i++) Rv.runRival(s.rivals[ids[i]], report);
     Rv.rubberBand(report);
     // relations drift back toward neutral (allies stay warm)
@@ -366,7 +367,7 @@
 
   Rv.goBankrupt = function (rv, report) {
     var s = PE.S(), rd = Rv.def(rv.id), owner = Rv.owner(rv.id), props = St.ownedProps(owner).slice();
-    rv.bankrupt = true; rv.bankruptYear = s.year; rv.lastAction = 'Bankrupt.';
+    rv.bankrupt = true; rv.bankruptYear = s.year; rv.returnYear = s.year + B.rivalReturnYears; rv.lastAction = 'Bankrupt.';
     var value = 0, debt = 0;
     for (var i = 0; i < props.length; i++) { value += props[i].trueValue; debt += props[i].mortgage ? props[i].mortgage.principal : 0; }
     var price = Math.max(0, Math.round((value - debt) * 0.8));
@@ -376,6 +377,23 @@
       PE.Events.push({ id: 'rival_bankrupt', title: rd.name + ' are bankrupt', text: 'Their ' + props.length + ' building(s) are worth ' + U.fmt(value) + ' with ' + U.fmt(debt) + ' of debt. The receiver offers you the lot for ' + U.fmt(price) + ', debt included.',
         choices: [{ label: 'Buy the portfolio for ' + U.fmt(price), fx: { absorbRival: { rivalId: rv.id, price: price, by: 'player' } } }, { label: 'Let ' + (strongest ? Rv.def(strongest).name : 'the banks') + ' have it', fx: { absorbRival: { rivalId: rv.id, price: 0, by: strongest } } }] });
     } else Rv.absorb(rv.id, strongest, 0, 'rival');
+  };
+  /* Rival succession (P8.5): a bankrupt house is not extinct. The next generation
+     returns after rivalReturnYears with one modest freehold and a small stake, so a
+     depression cannot turn the rest of the run into a one-horse race. Legacy saves
+     (no returnYear) are scheduled from the first yearly tick after load. */
+  Rv.maybeReturn = function (rv, report) {
+    var s = PE.S();
+    if (rv.returnYear === undefined) rv.returnYear = s.year + B.rivalReturnYears;
+    if (s.year < rv.returnYear) return;
+    var rd = Rv.def(rv.id), owner = Rv.owner(rv.id);
+    rv.bankrupt = false; rv.returnYear = undefined; rv.generation = (rv.generation || 1) + 1;
+    var p = PE.Market.genProperty(rv.cities[0] || 'london', {});
+    St.setOwner(p, owner); p.purchasePrice = p.trueValue; p.purchaseYear = s.year;
+    PE.Property.initTenancy(p);
+    rv.cash = Math.round(B.rivalReturnCash * s.priceIndex);
+    rv.lastAction = 'The next generation of the house returns, picking up ' + p.name + '.';
+    if (report) report.rivalsMoves.push({ id: rv.id, name: rd.name, text: rv.lastAction, netWorth: St.netWorth(owner) });
   };
   Rv.strongest = function (excludeId) {
     var s = PE.S(), best = null, bestNw = -Infinity;
