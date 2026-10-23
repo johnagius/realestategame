@@ -2019,6 +2019,97 @@ function loadWith(extra) {
   })();
 })();
 
+/* ---------- 34. P8.3 per-goal deterministic completion tests ---------- */
+(function () {
+  /* Every yearly template: offerable under suitable conditions, not satisfied at
+     its own baseline, and satisfied by the state change it describes. */
+  var T = load().Goals.yearlyTemplates;
+  function tmpl(P, id) { return P.Goals.yearlyTemplates.filter(function (t) { return t.id === id; })[0]; }
+  function propOf(P, opts) { var p = P.Market.genProperty('london', opts || {}); P.State.setOwner(p, 'player'); return p; }
+
+  (function () { var P = fresh('chen', 31), s = P.S(), t = tmpl(P, 'buy_below'), g = { id: t.id, baseline: t.baseline(s) };
+    check('P8.3 buy_below: available, unsatisfied at baseline, satisfied by a below-ask purchase', t.available(s) && !t.check(s, g) && (s.stats.belowAsk++, t.check(s, g))); })();
+  (function () { var P = fresh('chen', 31), s = P.S(), t = tmpl(P, 'renovate'); propOf(P, { condition: 50 }); var g = { id: t.id, baseline: t.baseline(s) };
+    check('P8.3 renovate: available with a worn building, satisfied by a renovation', t.available(s) && !t.check(s, g) && (s.stats.renovations++, t.check(s, g))); })();
+  (function () { var P = fresh('chen', 31), s = P.S(), t = tmpl(P, 'nw_up'), g = { id: t.id, baseline: t.baseline(s) };
+    check('P8.3 nw_up: unsatisfied at baseline, satisfied by +8% net worth', t.available(s) && !t.check(s, g) && (s.cash += Math.ceil(P.State.netWorth('player') * 0.1), t.check(s, g))); })();
+  (function () { var P = fresh('armstrong', 31), s = P.S(), t = tmpl(P, 'cash_cushion'); s.cash = 0; var g = { id: t.id, baseline: t.baseline(s) };
+    var ok = t.available(s) && !t.check(s, g); s.cash = P.State.debt('player');
+    check('P8.3 cash_cushion: available with debt and thin cash, satisfied at 15% of debt', ok && t.check(s, g), { avail: t.available(s) }); })();
+  (function () { var P = fresh('chen', 31), s = P.S(), t = tmpl(P, 'fix_condition'); var p = propOf(P, { condition: 30 }); var g = { id: t.id, baseline: t.baseline(s) };
+    var ok = t.available(s) && !t.check(s, g); p.condition = 80;
+    check('P8.3 fix_condition: available with a Poor building, satisfied when all are above Poor', ok && t.check(s, g)); })();
+  (function () { var P = fresh('chen', 31), s = P.S(), t = tmpl(P, 'rent_up'); s.lastRent = 100; s.thisRent = 100; var g = { id: t.id, baseline: t.baseline(s) };
+    check('P8.3 rent_up: unsatisfied at parity, satisfied at +15%', t.available(s) && !t.check(s, g) && (s.thisRent = 120, t.check(s, g))); })();
+  (function () { var P = fresh('chen', 31), s = P.S(), t = tmpl(P, 'unlock_city'); s.cash = 1e6; var g = { id: t.id, baseline: t.baseline(s) };
+    var ok = t.available(s) && !t.check(s, g); s.cities.paris.unlocked = true;
+    check('P8.3 unlock_city: available when a city is affordable, satisfied by opening it', ok && t.check(s, g)); })();
+  (function () { var P = fresh('armstrong', 31), s = P.S(), t = tmpl(P, 'reduce_ltv'), g = { id: t.id, baseline: t.baseline(s) };
+    var ok = t.available(s) && !t.check(s, g); P.State.playerProps().forEach(function (p) { if (p.mortgage) p.mortgage.principal = Math.round(p.mortgage.principal * 0.2); });
+    check('P8.3 reduce_ltv: available above 50% LTV, satisfied by a 5-point cut', ok && P.State.ltv('player') <= g.baseline - 0.05 && t.check(s, g), { ltv: P.State.ltv('player') }); })();
+  (function () { var P = fresh('chen', 31), s = P.S(), t = tmpl(P, 'sell_profit'); var p = propOf(P, {}); p.purchasePrice = Math.round(p.trueValue / 2); var g = { id: t.id, baseline: t.baseline(s) };
+    check('P8.3 sell_profit: available with appreciated stock, satisfied only by a profitable sale', t.available(s) && !t.check(s, g) && (s.stats.soldProfit++, t.check(s, g))); })();
+  (function () { var P = fresh('chen', 31), s = P.S(), t = tmpl(P, 'reputation_up'), g = { id: t.id, baseline: t.baseline(s) };
+    check('P8.3 reputation_up: unsatisfied at baseline, satisfied at +3', t.available(s) && !t.check(s, g) && (s.reputation += 3, t.check(s, g))); })();
+
+  /* Reward applies exactly once when a satisfied yearly goal is evaluated. */
+  (function () {
+    var P = fresh('chen', 32), s = P.S();
+    s.goals.yearly = { id: 'reputation_up', desc: 'Raise reputation by 3 points this year.', baseline: s.reputation, year: s.year, reward: 50 };
+    s.reputation += 3; clearEvents(P);
+    var rep = P.Game.endYear();
+    var hits = rep.goals.achieved.filter(function (x) { return x.kind === 'yearly' && x.id === 'reputation_up'; });
+    check('P8.3: a satisfied yearly goal is rewarded exactly once and logged done', rep.ok && hits.length === 1 && hits[0].reward === 50 && s.goals.history[s.goals.history.length - 1].done === true, rep.goals.achieved);
+  })();
+
+  /* Every era-goal kind: completable under suitable conditions. */
+  function eraGoal(P, year) { P.S().year = year; P.Goals.assignEra(); return P.S().goals.era; }
+  (function () { var P = fresh('chen', 33), g = eraGoal(P, 1850);
+    for (var i = 0; i < 3; i++) propOf(P, { district: 'Shoreditch' });
+    check('P8.3 victorian district_count: 3 buildings in one London district completes it', g && g.id === 'victorian' && P.Goals.eraSatisfied(g)); })();
+  (function () { var P = fresh('chen', 33), g = eraGoal(P, 1900);
+    ['paris', 'new_york'].forEach(function (c) { P.S().cities[c].unlocked = true; var p = P.Market.genProperty(c, {}); P.State.setOwner(p, 'player'); });
+    propOf(P, {});
+    check('P8.3 gilded cities: property in 3 cities completes it', g && g.id === 'gilded' && P.Goals.eraSatisfied(g)); })();
+  (function () { var P = fresh('chen', 33), g = eraGoal(P, 1948); P.S().year = 1949; P.S().cash = 1e9;
+    check('P8.3 crisis survive: cash ≥ 10% of net worth at 1949 with no forced sales completes it', g && g.id === 'crisis' && P.Goals.eraSatisfied(g)); })();
+  (function () { var P = fresh('chen', 33), g = eraGoal(P, 1950);
+    for (var i = 0; i < 15; i++) propOf(P, {});
+    check('P8.3 boom props: 15 properties completes it', g && g.id === 'boom' && P.Goals.eraSatisfied(g)); })();
+  (function () { var P = fresh('chen', 33), g = eraGoal(P, 1990); propOf(P, { type: 'tower' });
+    check('P8.3 modern type: owning a tower completes it', g && g.id === 'modern' && P.Goals.eraSatisfied(g)); })();
+  (function () { var P = fresh('chen', 33), g = eraGoal(P, 2010); P.S().cash = 1e12;
+    check('P8.3 digital rank: topping the leaderboard completes it', g && g.id === 'digital' && P.State.rank() === 1 && P.Goals.eraSatisfied(g)); })();
+  /* Deadline boundary: an unmet era goal fails at its deadline year, not before. */
+  (function () {
+    var P = fresh('chen', 34), s = P.S(); s.year = 1978; P.Goals.assignEra(); // boom: 15 props before 1980
+    s.cash = 1e9; clearEvents(P);
+    var r1 = P.Game.endYear(); // 1978: still open
+    var open = s.goals.era && !s.goals.era.failed && !s.goals.era.done;
+    s.year = 1979; clearEvents(P);
+    var r2 = P.Game.endYear(); // deadline year: fails (the state then holds the next era's goal after the 1980 era change)
+    check('P8.3 era deadline boundary: open before, failed at the deadline year', r1.ok && open && r2.ok && r2.goals.progress.some(function (x) { return x.kind === 'era' && x.id === 'boom' && x.failed; }), [r2.goals.progress]);
+  })();
+
+  /* Campaign tiers: sequential, each rewarded once, all completable. */
+  (function () {
+    var P = fresh('chen', 35), s = P.S();
+    // satisfy only tier 1 (3 props, NW 1.5x)
+    for (var i = 0; i < 3; i++) propOf(P, {});
+    s.cash += Math.ceil(s.startNetWorth * 2); clearEvents(P);
+    var r1 = P.Game.endYear();
+    check('P8.3 campaign tier 1 completes alone and is rewarded once', r1.ok && s.goals.campaignTier === 1 && r1.goals.achieved.filter(function (x) { return x.kind === 'campaign'; }).length === 1, r1.goals.achieved);
+    // now satisfy everything through tier 6
+    for (var j = 0; j < 23; j++) propOf(P, {});
+    var ids = ['paris', 'new_york', 'amsterdam', 'berlin', 'rome', 'barcelona', 'monaco', 'sydney', 'tokyo'];
+    ids.forEach(function (c) { s.cities[c].unlocked = true; });
+    s.dynasty.generation = 4; s.cash = 1e12; clearEvents(P);
+    var r2 = P.Game.endYear();
+    var camp = r2.goals.achieved.filter(function (x) { return x.kind === 'campaign'; });
+    check('P8.3 campaign tiers 2-6 complete in sequence in one evaluation when satisfied', r2.ok && s.goals.campaignTier === 6 && camp.length === 5 && camp[0].id === 'landlord' && camp[4].id === 'legend', camp.map(function (x) { return x.id; }));
+  })();
+})();
+
 /* ---------- Summary ---------- */
 console.log('tests: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) { console.log('FAILURES:'); failures.forEach(function (f) { console.log('  - ' + f); }); }
