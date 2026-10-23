@@ -478,8 +478,8 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   check('every event has at least one choice with a different risk, reputation or time profile', mc.rows.every(function (r) { var sds = r.choices.map(function (c) { return Math.round(c.sd * 1e4); }), evs = r.choices.map(function (c) { return Math.round(c.ev * 1e4); }); return new Set(sds).size > 1 || new Set(evs).size > 1 || r.choices.length > 1; }));
   var pre = D.historicalEvents.filter(function (h) { return h.prewarn; });
   check('exactly 12 historical set-pieces carry a prewarn', pre.length === 12 && pre.every(function (h) { return typeof h.prewarn === 'string' && h.prewarn.length > 10; }), pre.map(function (h) { return h.year; }));
-  check('the morning paper foreshadows a set-piece one year ahead (Town crier makes it near-certain)', (function () { var P = fresh('chen', 2, { perks: ['town_crier'], unlockedPerks: true }); P.S().year = 1928; P.Events.makePaper(); return P.S().paper.some(function (l) { return l.prewarn && l.text === D.prewarns[1929]; }); })());
-  check('foreshadowing is noisy without the perk (appears in some seeds, not all)', (function () { var n = 0; for (var i = 0; i < 20; i++) { var P = fresh('chen', 100 + i); P.S().year = 1872; P.Events.makePaper(); if (P.S().paper.some(function (l) { return l.prewarn; })) n++; } return n >= 5 && n <= 18; })());
+  check('the morning paper foreshadows a set-piece one year ahead (Town crier makes it near-certain)', (function () { var P = fresh('chen', 2, { perks: ['town_crier'], unlockedPerks: true }); P.S().year = 1913; P.Events.makePaper(); return P.S().paper.some(function (l) { return l.prewarn && l.text === D.prewarns[1914]; }); })()); // 1914 carries no cycle, so the jitter never moves it
+  check('foreshadowing is noisy without the perk (appears in some seeds, not all)', (function () { var n = 0; for (var i = 0; i < 20; i++) { var P = fresh('chen', 100 + i); P.S().year = 1913; P.Events.makePaper(); if (P.S().paper.some(function (l) { return l.prewarn; })) n++; } return n >= 5 && n <= 18; })());
   check('5 era set-pieces with 2 choices each', ['gilded', 'crisis', 'boom', 'modern', 'digital'].every(function (e) { return D.eraSetPieces[e] && D.eraSetPieces[e].choices.length === 2 && D.eraSetPieces[e].title; }));
   var P2 = fresh('chen', 3); P2.S().year = 1899; clearEvents(P2); var rep = P2.Game.endYear();
   check('era transition report carries eraSetPiece and queues an \'era\' event (≤ 2 events that year)', rep.ok && rep.eraChanged && rep.eraSetPiece && rep.eraSetPiece.eraId === 'gilded' && P2.S().events.pending.some(function (e) { return e.kind === 'era'; }) && P2.S().events.pending.length <= 2 && /new era/.test(rep.headline), rep.eraSetPiece);
@@ -501,7 +501,84 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   check('era-gated events never appear outside their eras', D.randomEvents.filter(function (e) { return e.toEra !== undefined; }).length >= 2 && (function () { var P = fresh('chen', 3); P.S().year = 2010; var ids = {}; for (var i = 0; i < 60; i++) { P.S().events.pending = []; var r = { events: [] }; P.Events.rollYearly(r); P.S().events.pending.forEach(function (e) { ids[e.id] = 1; }); } return !ids.plague_house && !ids.antique_find && !ids.factory; })());
 })();
 
-/* ---------- 18. P5.1 Families with real rule differences ---------- */
+/* ---------- 17b. ENG-B5 unreliable crash foreshadowing ---------- */
+(function () {
+  var PE = fresh('chen', 7), D = PE.Data, St = PE.State;
+  var base = D.scriptedCycles, jit = St.scriptedCycles();
+  check('jittered calendar keeps every scripted entry (no collisions)', Object.keys(jit).length === Object.keys(base).length);
+  var movable = Object.keys(base).filter(function (y) { return base[y] === 'recession' || base[y] === 'depression'; });
+  var withinOne = true, fixedHeld = true;
+  for (var y in jit) {
+    var ph = jit[y], orig = Object.keys(base).filter(function (oy) { return base[oy] === ph && Math.abs(oy - y) <= 1; });
+    if (!orig.length) withinOne = false;
+  }
+  ['1945', '1955', '2021'].forEach(function (y) { if (jit[y] !== base[y]) fixedHeld = false; });
+  check('every crash moved at most ±1 year and booms/stagnation stayed put', withinOne && fixedHeld && movable.length > 0);
+  check('jitter is deterministic per seed and differs across seeds', (function () {
+    var a = fresh('chen', 42).State.scriptedCycles(), b = fresh('chen', 42).State.scriptedCycles();
+    if (JSON.stringify(a) !== JSON.stringify(b)) return false;
+    var differs = 0;
+    for (var i = 0; i < 10; i++) if (JSON.stringify(fresh('chen', 500 + i).State.scriptedCycles()) !== JSON.stringify(base)) differs++;
+    return differs >= 5;
+  })());
+  check('jittering does not perturb the main RNG stream', (function () {
+    var A = fresh('chen', 9), Bx = fresh('chen', 9);
+    A.State.jitterCycles('totally different'); // extra draws on the isolated stream
+    return JSON.stringify(A.S().rng) === JSON.stringify(Bx.S().rng);
+  })());
+  check('cycle-carrying historical events move with their crash', (function () {
+    for (var sd = 0; sd < 30; sd++) {
+      var P = fresh('chen', 9000 + sd), sh = P.State.histShift(), years = Object.keys(sh);
+      for (var i = 0; i < years.length; i++) {
+        var h = P.Data.historicalEvents.filter(function (x) { return x.year === Number(years[i]); })[0];
+        if (!h || P.Events.histYear(h) !== h.year + sh[years[i]]) return false;
+        if (h.cycle && P.State.scriptedCycles()[P.Events.histYear(h)] !== h.cycle) return false;
+      }
+      if (years.length) return true;
+    }
+    return false; // no seed in 30 ever moved a crash: suspicious
+  })());
+  check('a jittered depression actually bites on the shifted year', (function () {
+    for (var sd = 0; sd < 40; sd++) {
+      var P = fresh('chen', 7000 + sd), sh = P.State.histShift(), years = Object.keys(sh);
+      if (!years.length) continue;
+      var origYear = Number(years[0]), newYear = origYear + sh[years[0]];
+      P.S().year = newYear - 1; clearEvents(P);
+      var players = require('./players.js')(P); players.resolveEvents('competent');
+      var r = P.Game.endYear(); if (!r.ok) { P.S().events.pending = []; r = P.Game.endYear(); }
+      return r.ok && P.S().year === newYear && P.S().cycle.phase === P.Data.scriptedCycles[origYear];
+    }
+    return false;
+  })());
+  check('old saves without the jitter fields fall back to the historical calendar', (function () {
+    var P = fresh('chen', 7);
+    delete P.S().scriptedCycles; delete P.S().histShift;
+    var h = P.Data.historicalEvents.filter(function (x) { return x.cycle; })[0];
+    return P.State.scriptedCycles() === P.Data.scriptedCycles && P.Events.histYear(h) === h.year;
+  })());
+  check('false alarms only cry wolf when nothing is coming, and never for the Town crier', (function () {
+    var cried = 0, truthful = 0;
+    for (var i = 0; i < 40; i++) {
+      var P = fresh('chen', 3000 + i);
+      for (var y = 1850; y < 2020; y++) {
+        P.S().year = y; P.Events.makePaper();
+        var wolf = P.S().paper.some(function (l) { return l.text === 'Bankers whisper of trouble next year.'; });
+        if (!wolf) continue;
+        var next = P.State.scriptedCycles()[y + 1], trouble = next === 'recession' || next === 'depression';
+        var pre = P.Data.historicalEvents.some(function (h) { return P.Events.histYear(h) === y + 1 && h.prewarn; });
+        if (trouble || pre) truthful++; else cried++;
+      }
+    }
+    var crier = fresh('chen', 3000, { perks: ['town_crier'], unlockedPerks: true }), crierWolf = 0;
+    for (var y2 = 1850; y2 < 2020; y2++) {
+      crier.S().year = y2; crier.Events.makePaper();
+      var next2 = crier.State.scriptedCycles()[y2 + 1], trouble2 = next2 === 'recession' || next2 === 'depression';
+      var pre2 = crier.Data.historicalEvents.some(function (h) { return crier.Events.histYear(h) === y2 + 1 && h.prewarn; });
+      if (!trouble2 && !pre2 && crier.S().paper.some(function (l) { return l.text === 'Bankers whisper of trouble next year.'; })) crierWolf++;
+    }
+    return cried > 0 && crierWolf === 0;
+  })());
+})();
 (function () {
   var S = fresh('silva', 4), sp = S.State.playerProps()[0];
   check('Silva: Builder trait, a free derelict Shoreditch terrace, £900', S.State.hasTrait('builder') && sp.condition < 20 && sp.district === 'Shoreditch' && sp.purchasePrice === 0 && S.S().cash === 900);
@@ -559,7 +636,7 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   check('Thick skin halves reputation losses (not gains)', (function () { var P = withPerks(['thick_skin']); var r0 = P.S().reputation; P.State.rep(-10); var a = r0 - P.S().reputation; P.State.rep(10); return a === 5 && P.S().reputation === r0 + 5; })());
   check('Builders\' guild halves overrun/delay risk', (function () { var P = withPerks(['builders_guild']); var q = P.Market.genProperty('london', { condition: 30 }); P.State.setOwner(q, 'player'); var o = P.Property.renovationOptions(q).filter(function (x) { return x.tier === 'refurbish'; })[0]; return Math.abs(o.risk - 0.05) < 1e-9; })());
   check('Patient capital: savings earn the full bank rate', (function () { var P = withPerks(['patient_capital']); return Math.abs(P.Finance.summary().savingsRate - P.S().baseRate) < 1e-9; })());
-  check('Town crier: the paper warns of 1866 from 1865 in every seed', (function () { for (var i = 0; i < 6; i++) { var P = withPerks(['town_crier'], 'chen', 50 + i); P.S().year = 1865; P.Events.makePaper(); if (!P.S().paper.some(function (l) { return l.prewarn; })) return false; } return true; })());
+  check('Town crier: the paper warns of 1866 the year before it lands, jittered or not, in every seed', (function () { for (var i = 0; i < 6; i++) { var P = withPerks(['town_crier'], 'chen', 50 + i); var h66 = P.Data.historicalEvents.filter(function (h) { return h.year === 1866; })[0]; P.S().year = P.Events.histYear(h66) - 1; P.Events.makePaper(); if (!P.S().paper.some(function (l) { return l.prewarn; })) return false; } return true; })());
   check('perks are saved with the run and survive load', (function () { var P = withPerks(['old_money', 'thick_skin']); P.Game.save(); P._state = null; var r = P.Game.load(); return r.ok && P.S().perks.length === 2 && P.State.hasPerk('thick_skin'); })());
 })();
 

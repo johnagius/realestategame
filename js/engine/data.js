@@ -405,6 +405,7 @@
     bankruptcyNegativeCashYears: 2,
     bankruptcyMissedCalls: 2,
     foreshadowAccuracy: 0.45,          // chance the paper warns of a scripted crash
+    foreshadowFalseAlarm: 0.10,        // ENG-B5: chance the paper cries wolf when no crash is coming (Town crier suppresses)
     // taxes
     wealthTaxThresholdMult: 60,       // × family start cash × priceIndex
     estateTrustFactor: 0.5,

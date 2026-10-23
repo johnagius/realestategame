@@ -16,7 +16,7 @@
   };
 
   T.advanceCycle = function () {
-    var s = PE.S(), c = s.cycle, scripted = D.scriptedCycles[s.year + 1];
+    var s = PE.S(), c = s.cycle, scripted = St.scriptedCycles()[s.year + 1];
     c.prev = c.phase;
     if (scripted) { c.phase = scripted; c.yearsLeft = scripted === 'depression' ? 1 : R.int(1, 2); return; }
     c.yearsLeft--;
@@ -180,7 +180,7 @@
       else rep.headline = 'A quiet year. Net worth ' + (ch >= 0 ? 'up ' : 'down ') + U.fmt(Math.abs(ch)) + '.';
     }
     if (!rep.cliffhanger) {
-      var next = D.scriptedCycles[s.year + 1], hist = D.historicalEvents.filter(function (h) { return h.year === s.year + 1; })[0];
+      var next = St.scriptedCycles()[s.year + 1], hist = D.historicalEvents.filter(function (h) { return PE.Events.histYear(h) === s.year + 1; })[0];
       var mort = PE.Dynasty.mortality(s.dynasty.head.age);
       if (rep.warnings.length) rep.cliffhanger = 'The lender wants an answer by year end.';
       else if (s.events.pending.length) rep.cliffhanger = s.events.pending[0].title + '.';

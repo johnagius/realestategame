@@ -8,6 +8,10 @@
 
   var E = {};
 
+  /* ENG-B5: the year a historical event actually fires in this game — cycle-carrying
+     events move with their jittered crash; everything else keeps its historical date. */
+  E.histYear = function (h) { var sh = St.histShift(); return h.year + (sh[h.year] || 0); };
+
   E.push = function (ev) {
     var s = PE.S(), uid = St.nextId('e');
     var inst = { uid: uid, id: ev.id, title: ev.title, text: ev.text, choices: ev.choices, year: s.year, kind: ev.kind || 'system', targets: ev.targets || {} };
@@ -44,7 +48,7 @@
     }
     for (var i = 0; i < D.historicalEvents.length; i++) {
       var h = D.historicalEvents[i];
-      if (h.year === s.year && n < B.maxEventsPerYear) { var inst = E.push({ id: 'hist_' + h.year, title: h.title, text: h.text, choices: h.choices, kind: 'historical' }); report.events.push({ uid: inst.uid, title: h.title, kind: 'historical' }); n++; }
+      if (E.histYear(h) === s.year && n < B.maxEventsPerYear) { var inst = E.push({ id: 'hist_' + h.year, title: h.title, text: h.text, choices: h.choices, kind: 'historical' }); report.events.push({ uid: inst.uid, title: h.title, kind: 'historical' }); n++; }
     }
     var props = St.playerProps().length, members = s.dynasty.members.filter(function (m) { return m.alive; }).length, eraIdx = St.eraIdx(), debt = St.debt('player');
     var insured = s.flags.insuredUntil && s.year < s.flags.insuredUntil;
@@ -342,17 +346,22 @@
 
   /* ---------- Morning paper (bible §2) ---------- */
   E.makePaper = function () {
-    var s = PE.S(), lines = [], cyc = s.cycle, next = D.scriptedCycles[s.year + 1], crier = St.hasPerk('town_crier');
+    var s = PE.S(), lines = [], cyc = s.cycle, next = St.scriptedCycles()[s.year + 1], crier = St.hasPerk('town_crier');
     lines.push({ kind: 'macro', text: 'The bank rate stands at ' + (s.baseRate * 100).toFixed(1) + '%. The market is in ' + D.cycles[cyc.phase].name.toLowerCase() + '.' });
     // P3.4: the twelve biggest set-pieces are foreshadowed a year ahead (noisy; the Town crier perk makes it reliable)
-    var pre = null; for (var ph = 0; ph < D.historicalEvents.length; ph++) if (D.historicalEvents[ph].year === s.year + 1 && D.historicalEvents[ph].prewarn) pre = D.historicalEvents[ph].prewarn;
-    if (pre && R.chance(crier ? 0.95 : B.prewarnAccuracy)) lines.push({ kind: 'macro', text: pre, prewarn: true });
-    else if (next && R.chance(crier ? 0.95 : B.foreshadowAccuracy)) lines.push({ kind: 'macro', text: (next === 'depression' || next === 'recession') ? 'Bankers whisper of trouble next year.' : 'Bankers talk of a coming boom.' });
-    else if (cyc.yearsLeft <= 1) {
+    var pre = null; for (var ph = 0; ph < D.historicalEvents.length; ph++) if (E.histYear(D.historicalEvents[ph]) === s.year + 1 && D.historicalEvents[ph].prewarn) pre = D.historicalEvents[ph].prewarn;
+    var warned = false;
+    if (pre && R.chance(crier ? 0.95 : B.prewarnAccuracy)) { lines.push({ kind: 'macro', text: pre, prewarn: true }); warned = true; }
+    else if (next && R.chance(crier ? 0.95 : B.foreshadowAccuracy)) { lines.push({ kind: 'macro', text: (next === 'depression' || next === 'recession') ? 'Bankers whisper of trouble next year.' : 'Bankers talk of a coming boom.' }); warned = true; }
+    if (!warned && cyc.yearsLeft <= 1) {
       var nx = D.cycles[cyc.phase].next, bestK = null; for (var k in nx) if (!bestK || nx[k] > nx[bestK]) bestK = k;
       if (R.chance(0.3)) bestK = R.pick(Object.keys(nx));
       lines.push({ kind: 'macro', text: 'The City expects ' + D.cycles[bestK].name.toLowerCase() + ' ahead.' });
     }
+    // ENG-B5: sometimes the whisper is simply wrong — an extra rumour line, never a replacement, so the
+    // main draw sequence does not depend on it. Fixed per seed+year (isolated stream); scenarios are
+    // curated set-pieces and never cry wolf; neither does the Town crier.
+    if (!crier && !pre && !next && s.mode !== 'scenario' && R.chance(B.foreshadowFalseAlarm, { rng: R.hashSeed(String(s.seed) + ':cry:' + s.year) })) lines.push({ kind: 'macro', text: 'Bankers whisper of trouble next year.' });
     var bestD = null, bestM = -1, worstD = null, worstM = 1, cities = St.unlockedCities();
     for (var i = 0; i < cities.length; i++) { var ds = s.cities[cities[i]].districts; for (var dn in ds) { if (ds[dn].momentum > bestM) { bestM = ds[dn].momentum; bestD = { c: cities[i], d: dn }; } if (ds[dn].momentum < worstM) { worstM = ds[dn].momentum; worstD = { c: cities[i], d: dn }; } } }
     if (bestD && bestM > 0.012 && R.chance(0.7)) lines.push({ kind: 'city', text: R.pick(['A new tramline is planned for ', 'Fashionable people are moving to ', 'Builders are busy in ']) + bestD.d + ', ' + D.cityById[bestD.c].name + '.' });
@@ -361,7 +370,7 @@
     if (head.age >= 60 && R.chance(0.6)) lines.push({ kind: 'dynasty', text: head.name + ' is ' + head.age + '. The question of succession is whispered at dinner.' });
     var kids = PE.Dynasty.children();
     for (var j = 0; j < kids.length; j++) if (kids[j].age === B.adultAge - 1) lines.push({ kind: 'dynasty', text: kids[j].name + ' comes of age next year.' });
-    for (var h = 0; h < D.historicalEvents.length; h++) if (D.historicalEvents[h].year === s.year) lines.push({ kind: 'headline', text: D.historicalEvents[h].title + '.' });
+    for (var h = 0; h < D.historicalEvents.length; h++) if (E.histYear(D.historicalEvents[h]) === s.year) lines.push({ kind: 'headline', text: D.historicalEvents[h].title + '.' });
     s.paper = lines;
     return lines;
   };

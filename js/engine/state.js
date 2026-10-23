@@ -92,6 +92,39 @@
   };
   State.hasTrait = function (t) { var h = PE.S().dynasty.head; return h && h.traits.indexOf(t) >= 0; };
   State.hasPerk = function (id) { var s = PE.S(); return !!(s && s.perks && s.perks.indexOf(id) >= 0); };
+
+  /* ENG-B5: scripted crashes are jittered ±1 year per seed (recession/depression only;
+     booms and stagnation stay on their historical dates) so the player cannot memorise
+     the calendar. Drawn from an isolated RNG stream keyed on the seed, leaving the main
+     draw sequence untouched. Old saves without the fields fall back to the data table. */
+  State.scriptedCycles = function () { var s = PE.S(); return (s && s.scriptedCycles) || D.scriptedCycles; };
+  State.histShift = function () { var s = PE.S(); return (s && s.histShift) || {}; };
+  State.jitterCycles = function (seed) {
+    var R = PE.RNG, stream = { rng: R.hashSeed(String(seed) + ':cycles') };
+    var years = Object.keys(D.scriptedCycles).map(Number).sort(function (a, b) { return a - b; });
+    var out = {}, shift = {}, taken = {}, movable = [], i, y;
+    for (i = 0; i < years.length; i++) {
+      y = years[i];
+      if (D.scriptedCycles[y] === 'recession' || D.scriptedCycles[y] === 'depression') movable.push(y);
+      else { out[y] = D.scriptedCycles[y]; taken[y] = true; }
+    }
+    for (i = 0; i < movable.length; i++) {
+      y = movable[i];
+      var first = R.int(-1, 1, stream), cands = [first];
+      for (var d = -1; d <= 1; d++) if (d !== first) cands.push(d);
+      var ny = y;
+      for (var ci = 0; ci < cands.length; ci++) if (!taken[y + cands[ci]]) { ny = y + cands[ci]; break; }
+      out[ny] = D.scriptedCycles[y]; taken[ny] = true;
+      if (ny !== y) shift[y] = ny - y;
+    }
+    // cycle-carrying historical events move with their crash, so the card, the paper and the market stay in sync
+    var hist = {};
+    for (i = 0; i < D.historicalEvents.length; i++) {
+      var h = D.historicalEvents[i];
+      if (h.cycle && shift[h.year]) hist[h.year] = shift[h.year];
+    }
+    return { cycles: out, hist: hist };
+  };
   /* Every reputation change goes through here: 'Thick skin' halves losses; clamps 0..100. Returns the applied delta. */
   State.rep = function (delta) {
     var s = PE.S(); if (!delta) return 0;
@@ -160,6 +193,8 @@
     };
     PE._state = s;
     PE.RNG.bind(s);
+    // ENG-B5: per-seed crash calendar (scenarios keep the historical dates — they are curated set-pieces)
+    if (!scenario) { var jit = State.jitterCycles(seed); s.scriptedCycles = jit.cycles; s.histShift = jit.hist; }
 
     // Cities & districts
     for (var i = 0; i < D.cities.length; i++) {
