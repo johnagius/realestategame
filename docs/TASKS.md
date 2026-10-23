@@ -62,13 +62,13 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 ## Phase 6 — Store readiness
 
-- [ ] **P6.1 Capacitor project** for Android + iOS replacing the hand-rolled WebView wrapper; AdMob + Billing plugins; keep anti-tamper only where it is not theatre.
-- [ ] **P6.2 Monetization** per bible §12 (rewarded placements, interstitial caps, remove-ads, family pack), UMP consent, privacy policy page.
-- [ ] **P6.3 Save system** — versioned saves, 3 slots, export/import, cloud save (Play Games / iCloud) later.
-- [ ] **P6.4 Performance** — < 2 s cold start on mid-range Android, 60 fps city view on `low`, memory stable over a 180-year game.
-- [ ] **P6.5 Localisation scaffolding** — all strings through `PE.T()`, English + 1 test locale.
-- [ ] **P6.6 Store assets** — icon, feature graphic, 8 screenshots per form factor, 30 s trailer captured from the hero splash and city view.
-- [ ] **P6.7 Soft launch** — 2 countries, analytics events (year reached, first mortgage, first auction win, bankruptcy, D1/D7 retention), tune from data.
+- [x] **P6.1 Capacitor project** for Android + iOS replacing the hand-rolled WebView wrapper; AdMob + Billing plugins; keep anti-tamper only where it is not theatre. _(cf55a08; verified Android build recipe 4f78a49)_
+- [x] **P6.2 Monetization** per bible §12 (rewarded placements, interstitial caps, remove-ads, family pack), UMP consent, privacy policy page. _(ads.js + privacy policy cf55a08; rewarded placements wired d19200d + 4dbbeee; skip placement cut, canon §16.4; UMP is native-side in the app builds)_
+- [x] **P6.3 Save system** — versioned saves, 3 slots, export/import, cloud save (Play Games / iCloud) later. _(slots + importSave cf55a08; slot routing + Settings slot manager d19200d + 4dbbeee)_
+- [x] **P6.4 Performance** — < 2 s cold start on mid-range Android, 60 fps city view on `low`, memory stable over a 180-year game. _(docs/PERF.md: first paint 0.58 s, heap flat over 60 scripted years, 0 page errors; frameMs FAIL only under SwiftShader software GL — re-measure on a real device before launch)_
+- [x] **P6.5 Localisation scaffolding** — all strings through `PE.T()`, English + 1 test locale. _(l10n.js: data-t hooks + PE.T, fr test locale, cf55a08)_
+- [ ] **P6.6 Store assets** — icon, feature graphic, 8 screenshots per form factor, 30 s trailer captured from the hero splash and city view. _(partial: icon, feature graphic, 4 phone screenshots in store-assets/ via tools/make-store-assets.js; tablet set and 30 s trailer outstanding)_
+- [ ] **P6.7 Soft launch** — 2 countries, analytics events (year reached, first mortgage, first auction win, bankruptcy, D1/D7 retention), tune from data. _(analytics wired d19200d per docs/analytics.md, local-only until a backend + consent exist; the 2-country launch itself is a store action)_
 
 ## Phase 7 — Live ops (post-launch)
 

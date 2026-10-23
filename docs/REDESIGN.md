@@ -305,7 +305,9 @@ that differ**. The retention stack:
 ## 12. Monetization (store-safe)
 
 - **Rewarded ads** (opt-in): re-roll the deal board, insider tip (true value of
-  one listing), one free renovation speed-up per year, skip quiet years instantly.
+  one listing), one free renovation speed-up per year. (This section once also
+  listed "skip quiet years instantly" — cut: the skip cap of 5 is
+  non-negotiable and the free skip is already one tap; see §16.4.)
 - **IAP:** Remove ads €3.99; Dynasty Pack (2 new families) €2.99; city art
   packs; no pay-to-win beyond what a rewarded ad already gives.
 - **Interstitials:** only at year report, at most 1 per 6 years and 1 per 4
@@ -535,3 +537,25 @@ simulator was tuned against them. They are now canon.
   rules, tax shelters. (The insurance *event card* and compulsory era
   insurance cost stay — they are decisions and background, not menus.) These
   return only redesigned to pass pillar 1.
+
+### 16.4 Decisions added with Phase 6 store readiness (v8.9, P6.2/P6.3/P6.7)
+
+- **Rewarded placements are extra uses of capped mechanics, never new power.**
+  Board re-roll is ad-only, once per year (`flags.adRerollYear`). The insider
+  tip stays free once a year; a rewarded ad buys one *more* the same year
+  (`flags.insiderAdYear`). Renovation speed-up is ad-only, once a year, and
+  cuts one year off a renovation or a build-to-suit job (floor 1; completion
+  stays with the year-end machinery). All placement buttons hide when ads are
+  removed; a reward is granted only on a completed ad.
+- **The skip-quiet-years placement from §12 is NOT wired.** The non-negotiable
+  rule (skip max 5, stops on any decision) outranks the monetization line, and
+  the free skip is already one tap — an ad cannot add anything without
+  breaking the rule. §12 is amended accordingly.
+- **Save slots (P6.3).** Three slots; the state carries `saveSlot` and the
+  meta carries `activeSlot` so a relaunch continues the slot last played.
+  Legacy single saves migrate into slot 1. The slot manager lives in Settings;
+  the active slot cannot be deleted from under a running game.
+- **Analytics (P6.7)** fire at the engine source moments into the local ring
+  buffer (200 events, `pe_v8_analytics`). Web builds buffer but transmit
+  nothing — there is no backend and `flush()` is a no-op without `onFlush`.
+  The privacy policy states this plainly.

@@ -20,12 +20,14 @@ policy covers the web build (played in a browser) and the mobile app builds
 
 ## Analytics
 
-- **Web build: no analytics.** No trackers, no cookies, no fingerprinting, no
-  third-party requests beyond the Google Fonts stylesheet (and only if your
-  browser allows it; the game works fully offline).
-- **App builds (soft launch):** lightweight, privacy-preserving game events
-  (e.g. the year reached, the first mortgage taken, a bankruptcy) are buffered
-  **locally** (a ring buffer capped at 200 events) and only sent when an
+- **Web build:** no trackers, no cookies, no fingerprinting, and no
+  third-party requests — fonts and libraries are bundled, and the game works
+  fully offline. Lightweight game events (e.g. the year reached, the first
+  mortgage taken) are buffered **locally on your device only** (a ring buffer
+  capped at 200 events, inspectable and erased by clearing site data);
+  **nothing is transmitted** — the web build has no analytics backend.
+- **App builds (soft launch):** the same local buffer applies, and events are
+  only sent when an
   analytics backend is configured for the build. Events contain no personal
   data, no device identifiers, no precise timestamps beyond coarse ordering —
   and nothing is transmitted without the consent flow described below.
