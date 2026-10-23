@@ -164,6 +164,7 @@
       var rentNow = p.lease ? p.lease.setting : p.rentSetting;
       body.push(h('div', { class: 'kicker', text: 'Rent' }));
       body.push(h('div', { class: 'field' }, [h('label', { class: 'field__label', for: 'rent-setting' }, [h('span', { text: 'Rent setting (80–120% of market)' }), h('strong', { id: 'rent-v', text: Math.round(rentNow * 100) + '% · ' + fmt.money(p.rentAnnual) + '/yr' })]), PEUI.range({ id: 'rent-setting', min: 80, max: 120, step: 5, value: Math.round(rentNow * 100), 'data-input': 'rent-setting', 'data-id': id, disabled: !!p.lease || (p.rentLockUntil && s.year < p.rentLockUntil) })]));
+      if (p.tenant) body.push(h('p', { class: 'small muted', text: 'Tenant: ' + p.tenant.name + ', here since ' + p.tenant.since + ' · ' + (p.tenantLabel || 'new') + '. A sharp rise risks losing them.' }));
       body.push(h('p', { class: 'small muted', text: p.lease ? 'Fixed by a lease for ' + p.lease.yearsLeft + ' more years.' : 'Higher rent: more income, more vacancy and faster wear. Lower rent: long, careful tenants.' }));
     }
     // Finance
@@ -207,6 +208,7 @@
     PEUI.setText(document.getElementById('rent-v'), el.value + '%');
     if (e.type !== 'change') return;
     var r = PEUI.call(PE().Property.setRent, d.id, (+el.value) / 100); if (!r.ok) { el.value = Math.round(p.rentSetting * 100); return; }
+    if (r.tenant && r.tenantRisk > 0) PEUI.toast(r.tenant + ' may give notice over this (' + r.tenantRisk + '% risk)', 'warn');
     PEUI.save(); PEUI.setText(document.getElementById('rent-v'), Math.round(r.rentSetting * 100) + '% · ' + fmt.money(r.rentAnnual) + '/yr'); el.value = Math.round(r.rentSetting * 100); PEUI.refresh();
   };
   PEUI.inputs['refi-ltv'] = function (el) {

@@ -80,6 +80,8 @@
     if (s.flags.cityVacancyYear === s.year && s.flags.cityVacancyCity === p.cityId && p.ownerId === 'player') vacancy += s.flags.cityVacancyAmount || 0.2;
     var tc = D.tenantClasses[p.tenantClass] || D.tenantClasses.clerks;
     vacancy += (1 - tc.stability) * 0.1;
+    if (p.ownerId === 'player' && p.tenant) vacancy *= (1 - B.tenantLoyaltyVacancyCut * p.tenant.loyalty); // ENG-B6: a settled tenant stays put
+    if (p.ownerId === 'player' && p.reletYear === s.year) vacancy += B.tenantReletVacancy; // ENG-B6: re-letting takes part of the year
     vacancy += R.range(-0.02, 0.02);
     return U.clamp(1 - vacancy, 0, 1);
   };
@@ -109,10 +111,39 @@
     var tc = D.tenantClasses[p.tenantClass] || D.tenantClasses.clerks;
     d *= (1.3 - tc.care * 0.4);
     if (p.rentSetting < 0.95) d *= 0.85;             // long, careful tenants
+    if (p.ownerId === 'player' && p.tenant) d *= (1 - B.tenantLoyaltyDecayCut * p.tenant.loyalty); // ENG-B6
     if (ctx && ctx.mgmt === 'none') d += B.unmanagedDecay;
     if (ctx && ctx.mgmt === 'manager') d *= (1 - 0.3 * (ctx.quality || 0.6));
     p.condition = U.clamp(p.condition - d, 0, 100);
     if (c.trait === 'heritage_city' && p.condition < 30) p.condition = 30;
+  };
+
+  /* ENG-B6: the named tenant's year. A tenant arrives quietly once the building has been operated
+     a year; raising the rent past their tolerance risks losing exactly that tenant (the building
+     stands empty next year); holding or cutting the rent builds loyalty, which keeps them and
+     lowers vacancy and decay. Returns a report line when someone leaves. */
+  P.tenantLeaveChance = function (p, rise) {
+    var t = p.tenant;
+    if (!t || rise <= B.tenantRiseTolerance) return 0;
+    var heat = Math.min(1, (rise - B.tenantRiseTolerance) / 0.1);
+    return U.clamp(B.tenantLeaveBase * (0.4 + heat) * (1 - t.loyalty * B.tenantLoyaltyRetention), 0, 1);
+  };
+  P.tenantYear = function (p) {
+    var s = PE.S();
+    if (p.ownerId !== 'player' || p.lease || !P.type(p).canRent || p.condition < B.unrentableBelow) { if (p.tenant && (p.lease || !P.type(p).canRent)) p.tenant = null; return null; }
+    if (p.vacantUntil && s.year < p.vacantUntil) { p.tenant = null; return null; } // emptied by an event: they fled
+    var t = p.tenant;
+    if (!t) { p.tenant = { name: R.pick(D.tenantNames), since: s.year, loyalty: B.tenantStartLoyalty, rentSeen: p.rentSetting }; return null; } // arrivals are quiet
+    var rise = p.rentSetting - t.rentSeen;
+    t.rentSeen = p.rentSetting;
+    var lc = P.tenantLeaveChance(p, rise);
+    if (lc > 0 && R.chance(lc)) {
+      p.tenant = null;
+      p.reletYear = s.year + 1; // they paid this year; re-letting costs part of next year
+      return t.name + ' leaves ' + p.name + ' over the rent rise.';
+    }
+    t.loyalty = U.clamp(t.loyalty + (rise <= 0.005 ? B.tenantLoyaltyGain : B.tenantLoyaltyGain * 0.25), 0, 1);
+    return null;
   };
 
   /* One year of operation: returns the cash-flow lines and mutates the asset. */
@@ -128,10 +159,11 @@
     if (p.lease) { p.lease.yearsLeft--; if (p.lease.yearsLeft <= 0) p.lease = null; }
     if (p.rentLockUntil && s.year >= p.rentLockUntil) p.rentLockUntil = 0;
     p.tenantClass = P.tenantClassFor(p);
+    var tenantLine = P.tenantYear(p);
     p.history.push({ year: s.year, value: p.trueValue });
     if (p.history.length > 30) p.history.shift();
     var total = costs.maintenance + costs.tax + costs.management + costs.fines;
-    return { rent: rent, maintenance: costs.maintenance, tax: costs.tax, management: costs.management, fines: costs.fines, costs: total, net: rent - total };
+    return { rent: rent, maintenance: costs.maintenance, tax: costs.tax, management: costs.management, fines: costs.fines, costs: total, net: rent - total, line: tenantLine };
   };
 
   /* ---------- Management capacity (bible §6.1) ---------- */
@@ -365,13 +397,17 @@
     if (setting > 1.1 && p.condition < 40 && setting > was) St.rep(-1); // slumlording
     p.rentAnnual = P.grossRent(p);
     p.tenantClass = P.tenantClassFor(p);
-    return PE.ok({ message: 'Rent set to ' + Math.round(setting * 100) + '% of market.', rentAnnual: p.rentAnnual, rentSetting: setting });
+    var r = { message: 'Rent set to ' + Math.round(setting * 100) + '% of market.', rentAnnual: p.rentAnnual, rentSetting: setting };
+    if (p.tenant) { r.tenant = p.tenant.name; r.tenantRisk = Math.round(P.tenantLeaveChance(p, setting - p.tenant.rentSeen) * 100); } // ENG-B6
+    return PE.ok(r);
   };
 
   /* Public view of a property for the UI. */
+  P.tenantLabel = function (t) { return t.loyalty >= 0.75 ? 'settled' : t.loyalty >= 0.45 ? 'warming to you' : 'new'; };
   P.view = function (p) {
     var v = U.clone(p); v.conditionLabel = P.band(p).name; v.cityName = D.cityById[p.cityId].name; v.typeName = P.type(p).name;
     v.equity = p.trueValue - (p.mortgage ? p.mortgage.principal : 0); v.ltv = p.mortgage ? p.mortgage.principal / p.trueValue : 0;
+    if (p.tenant) v.tenantLabel = P.tenantLabel(p.tenant);
     v.renovationOptions = p.ownerId === 'player' && !p.buildJob ? P.renovationOptions(p) : [];
     v.buildOptions = p.ownerId === 'player' && p.type === 'land' && !p.renovation && !p.buildJob ? D.buildClassIds.map(function (cid) { return D.buildClasses[cid].name; }) : [];
     return v;

@@ -93,6 +93,8 @@
     corporate:  { name: 'Corporate',     care: 0.9, stability: 0.95 },
     luxury:     { name: 'Luxury',        care: 0.95, stability: 0.85 }
   };
+  // ENG-B6: the named tenant in the building (sticky, with a memory for rent rises)
+  D.tenantNames = ['Ada Vance', 'Elias Trout', 'Beatrice Holloway', 'Otto Weiss', 'Margaret Pruitt', 'Silas Cobb', 'Harriet Nokes', 'Edwin Bramble', 'Florence Teal', 'Albert Griggs', 'Rosa Lindt', 'Samuel Okafor', 'Nellie Barlow', 'Victor Hale', 'Iris Fenwick', 'Walter Dodd', 'Clara Mews', 'George Pargeter', 'Emmeline Frost', 'Jonah Reed'];
 
   /* ---------- Cities (8 traits kept from the v7 twelve; P4.4: tourism joins, elite enclave is cut/dormant) ---------- */
   D.cityTraits = {
@@ -388,6 +390,15 @@
     marginCallWindowYears: 2,         // two forced sales within this window = bankruptcy                // buildings older than this decay +1
     unrentableBelow: 20,
     highVacancyBelow: 40,
+    // ENG-B6 sticky named tenants: the person in the building remembers what you charge them
+    tenantRiseTolerance: 0.03,        // yearly rent rises above this risk notice
+    tenantLeaveBase: 0.25,            // leave chance at a minimal breach; scales with the rise
+    tenantLoyaltyRetention: 0.7,      // a fully loyal tenant is this much less likely to leave
+    tenantLoyaltyGain: 0.15,          // loyalty per year the rent is held or cut
+    tenantStartLoyalty: 0.3,
+    tenantLoyaltyVacancyCut: 0.5,     // vacancy × (1 − this × loyalty)
+    tenantLoyaltyDecayCut: 0.25,      // decay × (1 − this × loyalty) — long tenants care for the place
+    tenantReletVacancy: 0.35,         // extra vacancy in the re-letting year after a tenant leaves
     // finance
     maxLtv: 0.70,
     bankerLtvBonus: 0.05,

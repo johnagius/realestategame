@@ -50,6 +50,7 @@
       p = props[i];
       var line = PE.Property.progressRenovation(p); if (line) rep.lines.push(line.text);
       var r = PE.Property.operate(p, mgmt[p.id]);
+      if (r.line) rep.lines.push(r.line);
       rent += r.rent; costs += r.costs;
     }
     cf.rent = rent; cf.costs = costs; s.cash += rent - costs;

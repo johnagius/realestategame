@@ -185,9 +185,9 @@ module.exports = function (PE) {
       }
       // trust when wealthy
       if (!s.dynasty.trust && St.netWorth('player') > 40 * s.startCash * s.priceIndex) PE.Dynasty.setupTrust();
-      // rent: lean into booms, protect tenants in slumps
+      // rent: hold the line in good times (sticky tenants punish boom-jacking, ENG-B6), cut in slumps
       props = St.playerProps();
-      var setting = s.cycle.phase === 'boom' ? 1.1 : (s.cycle.phase === 'depression' || s.cycle.phase === 'recession') ? 0.95 : 1.0;
+      var setting = (s.cycle.phase === 'depression' || s.cycle.phase === 'recession') ? 0.95 : 1.0;
       for (i = 0; i < props.length; i++) if (props[i].rentSetting !== setting && !props[i].lease) PE.Property.setRent(props[i].id, setting);
     }
   };

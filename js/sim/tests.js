@@ -579,6 +579,41 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
     return cried > 0 && crierWolf === 0;
   })());
 })();
+
+/* ---------- 17c. ENG-B6 sticky named tenants ---------- */
+(function () {
+  var PE = fresh('chen', 15), B = PE.Data.balance, s = PE.S();
+  var q = PE.Market.genProperty('london', { type: 'terrace', condition: 70 }); PE.State.setOwner(q, 'player'); PE.Property.initTenancy(q);
+  check('a named tenant moves in after the first year of operation', (function () { PE.Property.operate(q, { mgmt: 'self' }); return !!(q.tenant && q.tenant.name && q.tenant.since === s.year && Math.abs(q.tenant.loyalty - B.tenantStartLoyalty) < 1e-9); })());
+  check('holding the rent flat builds loyalty, and a loyal tenant lowers vacancy', (function () {
+    for (var i = 0; i < 4; i++) PE.Property.operate(q, { mgmt: 'self' });
+    if (q.tenant.loyalty <= B.tenantStartLoyalty) return false;
+    var mean = function (fn) { var t = 0; for (var j = 0; j < 40; j++) t += fn(); return t / 40; };
+    var saved = q.tenant;
+    var withT = mean(function () { return PE.Property.occupancyFor(q, { mgmt: 'self' }); });
+    q.tenant = null;
+    var withoutT = mean(function () { return PE.Property.occupancyFor(q, { mgmt: 'self' }); });
+    q.tenant = saved;
+    return withT > withoutT;
+  })());
+  check('a sharp rise loses exactly that tenant: re-letting costs next year, the line names them', (function () {
+    q.tenant.loyalty = 0; var name = q.tenant.name, saved = B.tenantLeaveBase; B.tenantLeaveBase = 1;
+    PE.Property.setRent(q.id, 1.2);
+    var r = PE.Property.operate(q, { mgmt: 'self' });
+    B.tenantLeaveBase = saved;
+    if (q.tenant || q.reletYear !== s.year + 1 || !r.line || r.line.indexOf(name) < 0) return false;
+    s.year++;
+    var mean = 0; for (var j = 0; j < 40; j++) mean += PE.Property.occupancyFor(q, { mgmt: 'self' }); mean /= 40;
+    s.year--;
+    return mean < 0.75 && mean > 0;
+  })());
+  check('a new tenant arrives during the re-letting year', (function () { s.year += 1; PE.Property.operate(q, { mgmt: 'self' }); var ok = !!q.tenant; s.year -= 1; return ok; })());
+  check('setRent reports the tenant and the risk of losing them', (function () { q.tenant = { name: 'Ada Vance', since: s.year, loyalty: 0.3, rentSeen: 1.0 }; var r = PE.Property.setRent(q.id, 1.15); return r.ok && r.tenant === 'Ada Vance' && r.tenantRisk > 0; })());
+  check('selling the building ends the named tenancy', (function () { PE.State.setOwner(q, 'rival:wong'); return q.tenant === null; })());
+  check('old saves without p.tenant operate normally and gain a tenant', (function () { var q2 = PE.Market.genProperty('london', { type: 'terrace', condition: 70 }); PE.State.setOwner(q2, 'player'); delete q2.tenant; PE.Property.operate(q2, { mgmt: 'self' }); return !!(q2.tenant && q2.tenant.name); })());
+})();
+
+/* ---------- 18. P5.1 Families with real rule differences ---------- */
 (function () {
   var S = fresh('silva', 4), sp = S.State.playerProps()[0];
   check('Silva: Builder trait, a free derelict Shoreditch terrace, £900', S.State.hasTrait('builder') && sp.condition < 20 && sp.district === 'Shoreditch' && sp.purchasePrice === 0 && S.S().cash === 900);
