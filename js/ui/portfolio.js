@@ -5,10 +5,13 @@
 (function (root) {
   var PEUI = root.PEUI, h = PEUI.h, fmt = PEUI.fmt, icon = PEUI.icon;
   function PE() { return root.PE; }
-  var ps = { id: null, refiLtv: null, repay: 0, rent: null };
+  var ps = { id: null, refiLtv: null, repay: 0, rent: null, buildCls: null, buildSpec: null, buildDev: false };
+  var pfFin = { bondAmt: 0, bankAmt: 0 }; /* finance-desk form amounts (portfolio screen) */
   var mcSeen = {}; /* margin calls already alarmed, so the sound fires once per call */
 
   function stat(label, value, cls) { return h('div', { class: 'stat' }, [h('span', { class: 'stat__label', text: label }), h('span', { class: 'stat__value num' + (cls ? ' ' + cls : ''), text: value })]); }
+  /* Data.renovation has no 'build' entry: a commission uses the renovation flag as scaffolding. */
+  function renoName(tier) { var t = PE().Data.renovation[tier]; return t ? t.name : (tier === 'build' ? 'Build' : 'Works'); }
   function warningsFor(id, fs) { var out = []; if (fs.ok) for (var i = 0; i < fs.covenantWarnings.length; i++) if (fs.covenantWarnings[i].propertyId === id) out.push(fs.covenantWarnings[i]); return out; }
 
   function propCard(p, mgmt, fs) {
@@ -25,7 +28,7 @@
     flags.appendChild(PEUI.chip('Rent ' + Math.round((p.lease ? p.lease.setting : p.rentSetting) * 100) + '%', null, 'coin'));
     flags.appendChild(PEUI.chip(p.type === 'land' ? 'Plot' : 'Occupancy ' + Math.round((p.occupancy || 0) * 100) + '%', p.occupancy < 0.7 && p.type !== 'land' ? 'warn' : null, 'users'));
     var m = mgmt[p.id]; flags.appendChild(PEUI.chip(m ? (m.mgmt === 'manager' ? 'Managed' : m.mgmt === 'self' ? 'Self-managed' : 'Unmanaged') : '', m && m.mgmt === 'none' ? 'danger' : null, 'person'));
-    if (p.renovation) flags.appendChild(PEUI.chip(PE().Data.renovation[p.renovation.tier].name + ' · ' + p.renovation.yearsLeft + ' yr left', 'info', 'hammer'));
+    if (p.renovation) flags.appendChild(PEUI.chip(renoName(p.renovation.tier) + ' · ' + p.renovation.yearsLeft + ' yr left', 'info', 'hammer'));
     if (p.flagship) flags.appendChild(PEUI.chip('Flagship', 'gold', 'trophy'));
     if (p.forSale) flags.appendChild(PEUI.chip('On the market', 'gold', 'tag'));
     if (p.lease) flags.appendChild(PEUI.chip('Lease ' + p.lease.yearsLeft + ' yrs', 'info'));
@@ -45,6 +48,59 @@
       c.appendChild(h('div', { class: 'btn-row' }, [PEUI.btn('Decline', { cls: 'btn--ghost', action: 'offer-respond', 'data-id': o.id, 'data-accept': '0' }), PEUI.btn('Accept ' + fmt.money(o.price), { cls: 'btn--primary', icon: 'check', action: 'offer-respond', 'data-id': o.id, 'data-accept': '1' })]));
       box.appendChild(c);
     }
+  }
+  /* ---------- Finance desk: government stock (P4.1) and the own bank (P4.2) ---------- */
+  function financeBlock(el) {
+    var box = el.querySelector('#pf-finance'); PEUI.empty(box);
+    box.appendChild(bondsCard());
+    box.appendChild(bankCard());
+  }
+  function bondsCard() {
+    var B = PE().Data.balance, r = PE().Finance.bonds(), b = r.ok ? r : null;
+    var card = h('section', { class: 'card stack stack--2', 'aria-label': 'Government stock' });
+    card.appendChild(h('div', { class: 'section-head' }, [h('h2', { text: 'Government stock' }), h('span', { class: 'small muted', text: 'Fixed coupons, yearly' })]));
+    if (!b || !b.available) {
+      card.appendChild(h('p', { class: 'small muted', text: (b && b.message) || 'Government stock opens to private houses in 1950.' }));
+      return card;
+    }
+    for (var i = 0; i < b.holdings.length; i++) {
+      var hd = b.holdings[i], row = h('div', { class: 'list-row' });
+      row.appendChild(h('div', { class: 'list-row__main' }, [h('div', { class: 'list-row__title num', text: fmt.money(hd.face) + ' at ' + hd.couponPct.toFixed(2) + '%' }), h('div', { class: 'list-row__sub', text: 'bought ' + hd.bought + ' · matures ' + hd.matures + ' · ' + hd.yearsLeft + ' yr' + (hd.yearsLeft === 1 ? '' : 's') + ' left' })]));
+      row.appendChild(h('span', { class: 'num ' + (hd.marketValue >= hd.face ? 'pos' : 'neg'), text: fmt.money(hd.marketValue) }));
+      row.appendChild(PEUI.btn('Sell', { cls: 'btn--ghost btn--sm', action: 'bond-sell', 'data-id': hd.id }));
+      card.appendChild(row);
+    }
+    if (b.holdings.length) card.appendChild(h('div', { class: 'stat-grid stat-grid--3' }, [stat('Face held', fmt.money(b.totalFace)), stat('Market value', fmt.money(b.totalMarketValue), b.totalMarketValue < b.totalFace ? 'neg' : ''), stat('Room to buy', fmt.money(b.headroom))]));
+    card.appendChild(h('p', { class: 'small muted', text: 'Today’s stock pays ' + (b.couponNow * 100).toFixed(2) + '% for ' + B.bondTermYears + ' years; the face returns at maturity. Sell early and the market value moves against the bank rate. Cap ' + fmt.money(b.cap) + ' (' + Math.round(B.bondCapPct * 100) + '% of net worth).' }));
+    if (!pfFin.bondAmt || pfFin.bondAmt < b.minBuy) pfFin.bondAmt = b.minBuy;
+    card.appendChild(h('div', { class: 'row' }, [h('input', { class: 'input num', type: 'number', inputmode: 'numeric', min: b.minBuy, max: b.maxBuy, step: 1, value: pfFin.bondAmt, 'data-input': 'bond-amount', 'aria-label': 'Amount of stock to buy' }), PEUI.btn('Buy stock', { cls: 'btn--secondary', icon: 'coin', action: 'bond-buy', disabled: b.maxBuy < b.minBuy })]));
+    return card;
+  }
+  function bankCard() {
+    var B = PE().Data.balance, r = PE().Finance.bank(), bk = r.ok ? r.bank : null;
+    var card = h('section', { class: 'card stack stack--2', 'aria-label': 'Private bank' });
+    card.appendChild(h('div', { class: 'section-head' }, [h('h2', { text: 'Private bank' }), h('span', { class: 'small muted', text: 'Lend to rival houses' })]));
+    if (!bk || !bk.eraOk || !bk.perkOk) {
+      card.appendChild(h('p', { class: 'small muted' }, [icon('lock', 'ic--sm'), ' ' + ((bk && bk.gate) || 'Banking is not yet open to your house.')]));
+      return card;
+    }
+    if (!bk.open) {
+      card.appendChild(h('p', { class: 'small muted', text: 'Lend capital to rival houses above the bank rate — the interest is yours, but a borrower’s bankruptcy writes the loan off against your capital.' }));
+      if (!pfFin.bankAmt || pfFin.bankAmt < bk.minCapital) pfFin.bankAmt = bk.minCapital;
+      card.appendChild(h('div', { class: 'row' }, [h('input', { class: 'input num', type: 'number', inputmode: 'numeric', min: bk.minCapital, step: 1, value: pfFin.bankAmt, 'data-input': 'bank-amount', 'aria-label': 'Opening capital' }), PEUI.btn('Open the bank', { cls: 'btn--primary', icon: 'bank', action: 'bank-open' })]));
+      return card;
+    }
+    card.appendChild(h('div', { class: 'stat-grid stat-grid--3' }, [stat('Capital', fmt.money(bk.capital)), stat('Out on loan', fmt.money(bk.out)), stat('Vault', fmt.money(bk.vault)), stat('Interest last year', fmt.money(bk.lastIncome), 'pos'), stat('Lifetime interest', fmt.money(bk.incomeTotal)), stat('Written off', fmt.money(bk.writtenOff), bk.writtenOff ? 'neg' : '')]));
+    for (var i = 0; i < bk.loans.length; i++) {
+      var L = bk.loans[i], row = h('div', { class: 'list-row' });
+      row.appendChild(h('div', { class: 'list-row__main' }, [h('div', { class: 'list-row__title', text: L.rivalName }), h('div', { class: 'list-row__sub', text: (L.rate * 100).toFixed(2) + '% · ' + L.yearsLeft + ' yr' + (L.yearsLeft === 1 ? '' : 's') + ' left' })]));
+      row.appendChild(h('span', { class: 'num', text: fmt.money(L.principal) }));
+      card.appendChild(row);
+    }
+    if (!bk.loans.length) card.appendChild(h('p', { class: 'small muted', text: bk.recalling ? 'All loans are called in; the vault returns as they clear.' : 'No loans out yet — the idle pool is lent to solvent rivals at year end.' }));
+    card.appendChild(h('p', { class: 'small muted', text: 'Recall stops new lending and winds the bank up over ' + B.bankRecallYears + ' years; the remaining vault returns as the loans clear.' }));
+    card.appendChild(PEUI.btn(bk.recalling ? 'Recall in progress…' : 'Recall the bank', { cls: 'btn--danger', action: 'bank-recall', disabled: bk.recalling }));
+    return card;
   }
   function managersBlock(el) {
     var s = PEUI.summary(), cl = PE().Cities.list(), box = el.querySelector('#pf-mgmt'); PEUI.empty(box);
@@ -71,6 +127,7 @@
       inner.appendChild(h('div', { id: 'pf-summary', class: 'span' }));
       inner.appendChild(h('div', { id: 'pf-warn', class: 'span stack stack--2' }));
       inner.appendChild(h('div', { id: 'pf-offers', class: 'span stack' }));
+      inner.appendChild(h('div', { id: 'pf-finance', class: 'span stack stack--4' }));
       inner.appendChild(h('div', { id: 'pf-groups', class: 'span stack stack--4' }));
       inner.appendChild(h('div', { id: 'pf-mgmt', class: 'span' }));
       sc.appendChild(inner); el.appendChild(sc);
@@ -92,6 +149,7 @@
       mcSeen = mcNow;
       if (s.cash < 0) wb.appendChild(h('div', { class: 'note note--danger' }, [icon('warning'), h('span', { text: 'Cash is negative. Two years without cash and nothing to sell means bankruptcy.' })]));
       offersBlock(el);
+      financeBlock(el);
       var groups = el.querySelector('#pf-groups'), byCity = {}, order = [];
       for (var i = 0; i < r.properties.length; i++) { var p = r.properties[i]; if (!byCity[p.cityId]) { byCity[p.cityId] = []; order.push(p.cityId); } byCity[p.cityId].push(p); }
       if (!r.properties.length) { PEUI.empty(groups); groups.appendChild(h('div', { class: 'empty' }, [icon('building'), h('div', { text: 'You own nothing yet. Find a mispriced listing on the deal board.' })])); }
@@ -133,7 +191,7 @@
   PEUI.openProperty = function (id) {
     var p = propData(id); if (!p) { PEUI.toast('Not your property.', 'danger'); return; }
     var s = PEUI.summary(), fs = PE().Finance.summary(), B = PE().Data.balance;
-    if (ps.id !== id) { ps.id = id; ps.refiLtv = null; ps.repay = 0; ps.rent = null; ps.flagshipName = p.name; }
+    if (ps.id !== id) { ps.id = id; ps.refiLtv = null; ps.repay = 0; ps.rent = null; ps.flagshipName = p.name; ps.buildCls = null; ps.buildSpec = null; ps.buildDev = false; }
     if (ps.refiLtv === null) ps.refiLtv = Math.min(B.refinanceLtv, fs.maxLtv);
     var body = [];
     var pay = p.mortgage ? PE().Finance.annualPayment(p.mortgage) : 0;
@@ -142,13 +200,48 @@
     body.push(h('div', { class: 'meter' }, [h('span', { text: 'LTV' }), PEUI.bar(p.ltv, PEUI.ltvKind(p.ltv), [0.85]), h('span', { text: p.mortgage ? Math.round(p.ltv * 100) + '% · covenant 85%' : 'No mortgage' })]));
     var ws = warningsFor(id, fs);
     for (var w = 0; w < ws.length; w++) body.push(h('div', { class: 'note ' + (ws[w].kind === 'margin_call' ? 'note--danger' : 'note--warn') }, [icon('warning'), h('span', { text: ws[w].text })]));
-    if (p.renovation) body.push(h('div', { class: 'note note--info' }, [icon('hammer'), h('span', { text: PE().Data.renovation[p.renovation.tier].name + ' in progress: ready in ' + p.renovation.yearsLeft + ' year' + (p.renovation.yearsLeft > 1 ? 's' : '') + '. No rent meanwhile.' })]));
+    if (p.renovation) body.push(h('div', { class: 'note note--info' }, [icon('hammer'), h('span', { text: renoName(p.renovation.tier) + ' in progress: ready in ' + p.renovation.yearsLeft + ' year' + (p.renovation.yearsLeft > 1 ? 's' : '') + '. No rent meanwhile.' })]));
     if (p.forSale) body.push(h('div', { class: 'note note--warn' }, [icon('tag'), h('span', { class: 'grow', text: 'On the market since ' + p.forSale.year + '; a buyer is expected by year end.' }), PEUI.btn('Withdraw', { cls: 'btn--ghost btn--sm', action: 'prop-sell', 'data-id': id, 'data-mode': 'cancel' })]));
     if (p.mortgage) body.push(h('dl', { class: 'quote' }, [h('dt', { text: 'Mortgage · ' + p.mortgage.lender }), h('dd', { class: 'num', text: fmt.money(p.mortgage.principal) }), h('dt', { text: (p.mortgage.type === 'amort' ? 'Amortising, ' + p.mortgage.yearsLeft + ' yrs left' : 'Interest-only') + (p.mortgage.fixed ? ', fixed' : ', variable') }), h('dd', { class: 'num', text: (p.mortgage.rate * 100).toFixed(2) + '%' }), h('dt', { text: 'Annual payment' }), h('dd', { class: 'num neg', text: fmt.money(pay) })]));
     // rival offers on this property
     var offers = PE().Market.offersOnMyProperties(); if (offers.ok) for (var o = 0; o < offers.offers.length; o++) if (offers.offers[o].propertyId === id) {
       var off = offers.offers[o];
       body.push(h('div', { class: 'card card--flat stack stack--2' }, [h('div', { class: 'list-row__title', text: off.rivalName + ' offers ' + fmt.money(off.price) + ' (' + (off.premium >= 0 ? '+' : '') + off.premium + '%)' }), h('div', { class: 'small muted', text: 'You would receive ' + fmt.money(off.quote.cashGained) + ' after fees, tax and mortgage.' }), h('div', { class: 'btn-row' }, [PEUI.btn('Decline', { cls: 'btn--ghost', action: 'offer-respond', 'data-id': off.id, 'data-accept': '0' }), PEUI.btn('Accept', { cls: 'btn--primary', icon: 'check', action: 'offer-respond', 'data-id': off.id, 'data-accept': '1' })])]));
+    }
+    // Commission a build (P4.3): owned land with no works under way
+    if (p.type === 'land' && p.buildOptions && p.buildOptions.length && !p.renovation) {
+      if (!ps.buildCls) ps.buildCls = 'workhorse';
+      if (!ps.buildSpec) ps.buildSpec = 'standard';
+      var BC = PE().Data.buildClasses, BS = PE().Data.buildSpecs;
+      body.push(h('div', { class: 'kicker', text: 'Commission a build' }));
+      body.push(h('p', { class: 'small muted', text: 'Raise a new building on this plot: pick a class and a specification and the yard stages the cost over the build.' }));
+      var cseg = h('div', { class: 'seg seg--block', role: 'group', 'aria-label': 'Building class' });
+      for (var ci = 0; ci < PE().Data.buildClassIds.length; ci++) { var cid = PE().Data.buildClassIds[ci]; cseg.appendChild(h('button', { type: 'button', class: 'seg__btn', 'data-action': 'prop-build-cls', 'data-cls': cid, 'aria-pressed': String(ps.buildCls === cid), text: BC[cid].name })); }
+      body.push(cseg);
+      body.push(h('p', { class: 'small muted', text: BC[ps.buildCls].desc }));
+      var sseg = h('div', { class: 'seg seg--block', role: 'group', 'aria-label': 'Specification' });
+      for (var si = 0; si < PE().Data.buildSpecIds.length; si++) { var sid = PE().Data.buildSpecIds[si]; sseg.appendChild(h('button', { type: 'button', class: 'seg__btn', 'data-action': 'prop-build-spec', 'data-spec': sid, 'aria-pressed': String(ps.buildSpec === sid), text: BS[sid].name })); }
+      body.push(sseg);
+      var q0 = PE().Property.commissionQuote(id, ps.buildCls, ps.buildSpec, false);
+      var devOk = q0.ok && q0.developerAvailable;
+      if (ps.buildDev && !devOk) ps.buildDev = false;
+      var q = ps.buildDev ? PE().Property.commissionQuote(id, ps.buildCls, ps.buildSpec, true) : q0;
+      body.push(h('button', { type: 'button', class: 'btn ' + (ps.buildDev ? 'btn--primary' : 'btn--secondary') + ' btn--block', 'data-action': 'prop-build-dev', 'aria-pressed': String(ps.buildDev), disabled: !devOk }, [icon('hammer'), h('span', { text: 'Okonkwo & Sons (+10%, half delay risk)' + (devOk ? '' : ' — ' + (q0.developerReason || 'unavailable')) })]));
+      if (q.ok) {
+        var dq = h('dl', { class: 'quote' });
+        function brow(k, v, cls) { dq.appendChild(h('dt', { text: k })); dq.appendChild(h('dd', { class: 'num' + (cls ? ' ' + cls : ''), text: v })); }
+        brow('Delivered building', q.targetName + ' · ' + q.specName.toLowerCase());
+        brow('Total cost', fmt.money(q.totalCost) + ' · ' + q.stages + ' × ' + fmt.money(q.stageCost));
+        brow('Build time', q.years + ' yr' + (q.years > 1 ? 's' : '') + ' · ' + q.delayRiskPct + '% delay risk');
+        brow('Expected value', fmt.money(q.lowEstimate) + ' – ' + fmt.money(q.highEstimate));
+        brow('Delivered condition', String(q.condition));
+        if (q.developer) brow('Okonkwo fee', fmt.money(q.developerFee));
+        body.push(dq);
+        body.push(h('p', { class: 'small muted', text: q.specDesc + '. ' + fmt.money(q.stageCost) + ' leaves your cash each year of the build.' }));
+        body.push(PEUI.btn('Break ground — ' + fmt.money(q.stageCost) + ' now', { cls: 'btn--primary btn--block', icon: 'hammer', action: 'prop-build', 'data-id': id }));
+      } else {
+        body.push(h('div', { class: 'note note--warn' }, [icon('warning'), h('span', { text: q.message })]));
+      }
     }
     // Renovate
     body.push(h('div', { class: 'kicker', text: 'Renovate' }));
@@ -286,4 +379,35 @@
     PEUI.sheet.open({ id: 'confirm-sell', title: 'Quick sale?', sub: raw.name, back: 'open-property-back', body: [h('p', { text: 'Sell now for ' + fmt.money(q.price) + '. After fees' + (q.tax ? ' and tax' : '') + (q.debtRepaid ? ' and repaying the mortgage' : '') + ' you receive ' + fmt.money(q.cashGained) + '. This cannot be undone.' })], foot: h('div', { class: 'btn-row' }, [PEUI.btn('Keep it', { cls: 'btn--ghost', action: 'open-property', 'data-id': d.id }), PEUI.btn('Sell for ' + fmt.money(q.price), { cls: 'btn--danger', action: 'prop-sell', 'data-id': d.id, 'data-mode': 'quick' })]) });
   };
   PEUI.actions['open-property-back'] = function () { if (ps.id) PEUI.openProperty(ps.id); };
+
+  /* ---------- Finance desk (P4.1 bonds, P4.2 own bank) ---------- */
+  PEUI.inputs['bond-amount'] = function (el) { pfFin.bondAmt = Math.round(+el.value || 0); };
+  PEUI.inputs['bank-amount'] = function (el) { pfFin.bankAmt = Math.round(+el.value || 0); };
+  PEUI.actions['bond-buy'] = function (b) {
+    var r = PEUI.call(PE().Finance.buyBond, pfFin.bondAmt); if (!r.ok) return;
+    PEUI.save(); PEUI.sound('coin'); PEUI.moneyFloat(b, -r.bond.face); PEUI.toast(r.message, 'success'); PEUI.refresh();
+  };
+  PEUI.actions['bond-sell'] = function (b, d) {
+    var r = PEUI.call(PE().Finance.sellBond, d.id); if (!r.ok) return;
+    PEUI.save(); PEUI.sound('coin'); PEUI.moneyFloat(b, r.proceeds); PEUI.toast(r.message, 'success'); PEUI.refresh();
+  };
+  PEUI.actions['bank-open'] = function (b) {
+    var r = PEUI.call(PE().Finance.openBank, pfFin.bankAmt); if (!r.ok) return;
+    PEUI.save(); PEUI.sound('stamp'); PEUI.moneyFloat(b, -r.capital); PEUI.toast(r.message, 'success'); PEUI.refresh();
+  };
+  PEUI.actions['bank-recall'] = function () {
+    var r = PEUI.call(PE().Finance.bankRecall); if (!r.ok) return;
+    PEUI.save(); PEUI.toast(r.message, 'success'); PEUI.refresh();
+  };
+
+  /* ---------- Commission a build (P4.3) ---------- */
+  PEUI.actions['prop-build-cls'] = function (b, d) { ps.buildCls = d.cls; PEUI.openProperty(ps.id); };
+  PEUI.actions['prop-build-spec'] = function (b, d) { ps.buildSpec = d.spec; PEUI.openProperty(ps.id); };
+  PEUI.actions['prop-build-dev'] = function () { ps.buildDev = !ps.buildDev; PEUI.openProperty(ps.id); };
+  PEUI.actions['prop-build'] = function (b, d) {
+    var r = PEUI.call(PE().Property.commissionBuild, d.id, ps.buildCls, ps.buildSpec, ps.buildDev); if (!r.ok) return;
+    PEUI.save(); PEUI.sound('stamp'); PEUI.moneyFloat(b, -r.cost); PEUI.toast(r.message, 'success');
+    PEUI.openProperty(d.id);
+    PEUI.refresh(); if (PEUI.cityUpdateProperty) PEUI.cityUpdateProperty(d.id);
+  };
 })(window);
