@@ -300,6 +300,9 @@
       if (score > bestScore) { bestScore = score; best = rv; }
     }
     if (!best) return false;
+    if (!s.snappedUp) s.snappedUp = [];
+    s.snappedUp.push({ id: l.id, name: l.name, cityId: l.cityId, district: l.district, type: l.type, askingPrice: l.askingPrice, rivalId: best.id, year: s.year });
+    while (s.snappedUp.length > 4) s.snappedUp.shift();
     PE.Market.buy(l, l.askingPrice, null, Rv.owner(best.id));
     best.lastAction = 'Snapped up ' + l.name + ' before it was advertised.';
     return true;

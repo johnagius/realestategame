@@ -140,7 +140,7 @@
       baseRate: D.eras[0].baseRate, nextRateHint: null,
       priceIndex: 1,
       cities: {}, properties: {}, owned: { player: [] },
-      listings: {}, auction: null, offers: [], boardYear: D.startYear,
+      listings: {}, auction: null, offers: [], boardYear: D.startYear, snappedUp: [],
       bonds: [], bank: null,
       rivals: {}, relations: {},
       ranks: { year: D.startYear, byId: {}, prevYear: null, prevById: {} },

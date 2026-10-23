@@ -88,6 +88,13 @@
     else if (view.sort === 'yield') out.sort(function (a, b) { return (b.rentAnnual / b.askingPrice) - (a.rentAnnual / a.askingPrice); });
     return out;
   }
+  function snappedCard(sp) {
+    var c = h('div', { class: 'card deal deal--snapped', 'aria-label': sp.typeName + ' in ' + sp.district + ', snapped up by ' + sp.rivalName });
+    c.appendChild(h('div', {}, [h('div', { class: 'deal__type', text: sp.typeName }), h('div', { class: 'deal__loc' }, [h('span', { text: sp.name + ' · ' + sp.district })])]));
+    c.appendChild(h('div', { class: 'deal__price' }, [h('div', { class: 'deal__ask deal__ask--struck num', text: fmt.money(sp.askingPrice) }), h('div', { class: 'deal__psqm', text: 'Gone before the board opened' })]));
+    c.appendChild(h('div', { class: 'deal__meta' }, [PEUI.chip('Snapped up by ' + sp.rivalName, 'outline', 'person')]));
+    return c;
+  }
   function board(el) {
     var s = PEUI.summary(), cities = s.cities;
     if (view.city === null || cities.indexOf(view.city) < 0) view.city = cities[0];
@@ -97,6 +104,8 @@
     });
     var r = PE().Market.listings(view.city), list = el.querySelector('#deal-list');
     if (!r.ok) { PEUI.empty(list); list.appendChild(h('div', { class: 'empty', text: r.message })); return; }
+    var snapBox = el.querySelector('#deal-snapped'), snapped = (r.snappedUp || []).filter(function (sp) { return sp.cityId === view.city; }).slice(0, 2);
+    PEUI.patchList(snapBox, snapped, function (sp) { return 'snap:' + sp.id; }, function (sp) { return [sp.askingPrice, sp.rivalId].join('|'); }, snappedCard);
     var items = sortListings(r.listings);
     if (view.affordable) items = items.filter(function (l) { return affordability(l, s.cash).text !== 'Stretch deal'; });
     PEUI.setText(el.querySelector('#deal-count'), items.length + ' listing' + (items.length === 1 ? '' : 's') + ' in ' + PEUI.cityName(view.city));
@@ -126,6 +135,7 @@
       boardWrap.appendChild(tools);
       var auc = h('div', { class: 'note note--warn hidden', id: 'deal-auction' }, [icon('gavel'), h('span', { class: 'grow', text: 'An auction is in progress.' }), PEUI.btn('Resume', { cls: 'btn--primary btn--sm', action: 'resume-auction' })]);
       boardWrap.appendChild(auc);
+      boardWrap.appendChild(h('div', { class: 'list', id: 'deal-snapped' }));
       boardWrap.appendChild(h('div', { class: 'list', id: 'deal-list' }));
       inner.appendChild(boardWrap);
       sc.appendChild(inner); el.appendChild(sc);

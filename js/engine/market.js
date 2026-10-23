@@ -126,6 +126,7 @@
   /* Refresh the board for the new year: age listings, drop stale ones, top up. */
   M.refreshBoard = function () {
     var s = PE.S(), tier = St.tier(), target = B.listingsBase + tier, bp = M.buyingPower();
+    s.snappedUp = []; // pre-emptions are this year's news; the record is rebuilt as the board is topped up
     var byCity = {};
     for (var id in s.listings) {
       var l = s.listings[id];
@@ -225,7 +226,13 @@
     var arr = M.listingArray(cityId), out = [];
     for (var i = 0; i < arr.length; i++) out.push(M.listingView(arr[i]));
     out.sort(function (a, b) { return a.askingPrice - b.askingPrice; });
-    return PE.ok({ listings: out, boardYear: s.boardYear, revealedId: s.flags.chenRevealId, allyRevealedId: s.flags.allyRevealId || null });
+    var snapped = [];
+    for (var j = 0; j < (s.snappedUp || []).length; j++) {
+      var sp = s.snappedUp[j], rd = D.rivalById(sp.rivalId);
+      if (sp.year !== s.year) continue;
+      snapped.push({ id: sp.id, name: sp.name, cityId: sp.cityId, district: sp.district, typeName: (D.propertyTypes[sp.type] || {}).name || sp.type, askingPrice: sp.askingPrice, rivalId: sp.rivalId, rivalName: rd ? rd.name : 'a rival family' });
+    }
+    return PE.ok({ listings: out, snappedUp: snapped, boardYear: s.boardYear, revealedId: s.flags.chenRevealId, allyRevealedId: s.flags.allyRevealId || null });
   };
   M.insiderTip = function (listingId) {
     var s = PE.S(), l = s.listings[listingId];
