@@ -123,7 +123,7 @@ function runCampaign(PE, ctx, familyId, seed, stratName, horizon) {
     years: 0, deadYears: 0, nwEnd: null, nwMult: null, rankEnd: null, statusEnd: null, endReason: null,
     bankruptcies: [], year2ndProp: null, yearFirstGoal: null, leadChanges: 0, rank1Years: 0, everRank1: false, rank1FinalStreak: 0,
     maxLeadRatio: 0, finalLeadRatio: null, goalsDone: 0, goalsOffered: 0, eraGoalsDone: 0, erasCompleted: 0, campaignTier: 0,
-    bestRivalNW: null, bestRivalId: null, errors: 0 };
+    bestRivalNW: null, bestRivalId: null, errors: 0, leadTrace: [] };
   var prevLeader = null, streak = 0, i;
   for (var y = 0; y < horizon && s.status === 'playing'; y++) {
     var before = stateHash(PE);
@@ -148,6 +148,7 @@ function runCampaign(PE, ctx, familyId, seed, stratName, horizon) {
       var lr = leader.netWorth / runner.netWorth;
       if (lr > rec.maxLeadRatio) rec.maxLeadRatio = lr;
       rec.finalLeadRatio = lr;
+      rec.leadTrace.push({ calYear: rep.year, leader: leader.id, ratio: lr });
     }
     for (i = 0; i < rec.bankruptcies.length; i++) {
       var bk = rec.bankruptcies[i];
@@ -232,6 +233,22 @@ function main() {
   var t0 = Date.now();
   var PE = load(), players = require('./players.js')(PE);
   var ctx = { players: players, strats: { naive: players.naive, competent: players.competent, expert: makeExpert(PE, players) } };
+
+  /* probe mode: node js/sim/contest.js probe <family> <seed> <strategy>
+     prints the yearly leaderboard ratio for one matrix coordinate (P8.5/P8.6
+     investigations — e.g. how long does a bankruptcy-window lead spike last?) */
+  if (process.argv[2] === 'probe') {
+    var pf = process.argv[3] || 'silva', pseed = +process.argv[4] || 4, pst = process.argv[5] || 'competent';
+    var pr = runCampaign(PE, ctx, pf, pseed, pst, MATRIX_HORIZON);
+    console.log('probe: ' + replay(pr) + ' — yearly leader/runner-up NW ratio');
+    console.log(pad('year', 7) + pad('leader', 14) + 'ratio');
+    pr.leadTrace.forEach(function (t) { console.log(pad(t.calYear, 7) + pad(t.leader, 14) + fmt(t.ratio, 2)); });
+    var over5 = pr.leadTrace.filter(function (t) { return t.ratio > 5; }), over10 = pr.leadTrace.filter(function (t) { return t.ratio > 10; });
+    console.log('years above 5×: ' + over5.length + (over5.length ? ' (' + over5[0].calYear + '–' + over5[over5.length - 1].calYear + ')' : ''));
+    console.log('years above 10×: ' + over10.length + (over10.length ? ' (' + over10[0].calYear + '–' + over10[over10.length - 1].calYear + ')' : ''));
+    console.log('peak ' + fmt(pr.maxLeadRatio, 1) + '×, final ' + fmt(pr.finalLeadRatio, 2) + '×, player rank #' + pr.rankEnd + ', player NW× ' + fmt(pr.nwMult, 1) + ', bankruptcies ' + pr.bankruptcies.length);
+    return;
+  }
 
   /* ---------- 1. campaign matrix, 60-year horizon ---------- */
   var tm = Date.now(), matrix = [];

@@ -126,11 +126,15 @@ sessions (opening + developed save) and any fresh-player observation.
 
 1. **Transient lead spike during mass-bankruptcy windows.** With several
    rivals bankrupt at once, the leader/runner-up ratio can spike to ~70×
-   (near-zero denominator) before succession restores the field within the
-   6-year return window. Self-corrects (final ratio 2.09 in the worst repro);
-   the median peak is healthy (1.74). If human play finds the leaderboard
-   demoralising in those years, shorten `rivalReturnYears` — do not hide the
-   number.
+   (near-zero denominator) before succession restores the field. Measured by
+   `node js/sim/contest.js probe silva 4 competent`: the spike lasts exactly
+   the return window — 5 years above 5× (1896–1900), normalising to 2.36× in
+   1901 when the houses return (`rivalReturnYears` 6 after the 1895
+   bankruptcies) — and the repro's peak is amplified by the player's *own*
+   bankruptcy collapsing the runner-up denominator. Final ratio 2.09; the
+   median peak across runs is healthy (1.74). If human play finds the
+   leaderboard demoralising in those years, shorten `rivalReturnYears` — do
+   not hide the number.
 2. **Expert ≈ competent at 60y** (182.8× vs 176.2×). Mastery pays over the
    full 181y (62556× vs 23763×) but a 60-year session barely rewards it, and
    expert full-length bankruptcy is 33% vs competent 17% — high variance.
