@@ -26,9 +26,10 @@ f13+f14 5907c58) with regression tests in `js/sim/tests.js` §33.
 | Layer | Coverage | Result |
 |---|---|---|
 | No goal satisfied at start (4 families × 5 seeds, scenarios, challenge) | tests.js §11 | ✅ |
-| f1–f11 regression tests (goal integrity) | tests.js §33 | ✅ 653/653 |
-| Per-goal deterministic completion tests | tests.js (various) + §33 | ⚠️ era/family/yearly/achievement coverage is broad but not yet one-test-per-goal |
-| "Possible under suitable conditions" vs "achievable whenever offered" | inventory §Goals | ⚠️ yearly goals fall back to null when infeasible (f7); scenario-era goals clamped (f5/f6) |
+| f1–f11 regression tests (goal integrity) | tests.js §33 | ✅ |
+| Per-goal deterministic completion: 10/10 yearly templates, 6/6 era kinds, campaign tier chain, reward-once, era deadline boundary | tests.js §34 | ✅ 673/673 |
+| "Possible under suitable conditions" vs "achievable whenever offered" | inventory + f5/f6/f7 | ✅ yearly goals fall back to null when infeasible; scenario-era goals clamped; assignment-honesty invariant over 16 runs × 12 years |
+| Achievements | tests.js §22 + §33 | ⚠️ stat-driven and mode-gated ones covered; not every one of 30+ has a dedicated completion test |
 
 ## 4. Balance across players and seeds (P8.4)
 
