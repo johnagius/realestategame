@@ -27,5 +27,104 @@
       <circle cx="41" cy="58" r="1.5"/>
     </g>
   </symbol>
+  <symbol id="advisor-warn" viewBox="0 0 64 64">
+    <!-- grave warning: same solicitor, brows lowered, mouth flattened, index finger raised -->
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <!-- shoulders and frock coat -->
+      <path d="M8 60c1-9 6-14 14-16l4-1h12l4 1c8 2 13 7 14 16"/>
+      <path d="M26 44l6 6 6-6"/>
+      <path d="M32 50v10"/>
+      <path d="M22 60l4-14M42 60l-4-14"/>
+      <!-- collar and cravat -->
+      <path d="M26 43l6 3 6-3"/>
+      <path d="M29 47h6"/>
+      <!-- head -->
+      <path d="M22 24c0-7 4-12 10-12s10 5 10 12-3 15-10 15-10-8-10-15z"/>
+      <!-- hair and whiskers -->
+      <path d="M22 24c1-6 5-9 10-9s9 3 10 9"/>
+      <path d="M22 26c-1 5 0 10 3 13M42 26c1 5 0 10-3 13"/>
+      <path d="M24 30c-1 4 0 8 2 9"/>
+      <!-- spectacles -->
+      <path d="M25 27a3.2 3.2 0 1 0 6.4 0 3.2 3.2 0 1 0-6.4 0zM32.6 27a3.2 3.2 0 1 0 6.4 0 3.2 3.2 0 1 0-6.4 0z"/>
+      <path d="M31.4 27h1.2M22 25l3 2M42 25l-3 2"/>
+      <!-- brows lowered toward the nose -->
+      <path d="M24.5 23l5 2.5M39.5 23l-5 2.5"/>
+      <!-- nose and flattened mouth -->
+      <path d="M32 29v4"/>
+      <path d="M29 36.5h6"/>
+      <!-- pocket watch chain -->
+      <path d="M38 52c2 1 3 3 3 5"/>
+      <circle cx="41" cy="58" r="1.5"/>
+      <!-- raised hand, index finger extended: mark my words -->
+      <path d="M46 57c1-5 3-11 4-16M55 56c0-5 0-10-1-15"/>
+      <path d="M50 41c-1-3 1-5 3-5s4 2 4 4c0 3-2 4-4 4s-3-1-3-3z"/>
+      <path d="M53 36v-7"/>
+    </g>
+  </symbol>
+  <symbol id="advisor-somber" viewBox="0 0 64 64">
+    <!-- somber condolence: same solicitor, head bowed, eyes closed, small flat mouth -->
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <!-- shoulders and frock coat -->
+      <path d="M8 60c1-9 6-14 14-16l4-1h12l4 1c8 2 13 7 14 16"/>
+      <path d="M26 44l6 6 6-6"/>
+      <path d="M32 50v10"/>
+      <path d="M22 60l4-14M42 60l-4-14"/>
+      <!-- collar and cravat -->
+      <path d="M26 43l6 3 6-3"/>
+      <path d="M29 47h6"/>
+      <!-- head bowed: whole head lowered ~2 units with a slight forward tilt -->
+      <g transform="translate(0 2) rotate(3 32 27)">
+        <path d="M22 24c0-7 4-12 10-12s10 5 10 12-3 15-10 15-10-8-10-15z"/>
+        <!-- hair and whiskers -->
+        <path d="M22 24c1-6 5-9 10-9s9 3 10 9"/>
+        <path d="M22 26c-1 5 0 10 3 13M42 26c1 5 0 10-3 13"/>
+        <path d="M24 30c-1 4 0 8 2 9"/>
+        <!-- spectacle frames kept, eyes closed behind them -->
+        <path d="M25 27a3.2 3.2 0 1 0 6.4 0 3.2 3.2 0 1 0-6.4 0zM32.6 27a3.2 3.2 0 1 0 6.4 0 3.2 3.2 0 1 0-6.4 0z"/>
+        <path d="M31.4 27h1.2M22 25l3 2M42 25l-3 2"/>
+        <path d="M26 28.5c1 1.3 3.2 1.3 4.4 0M33.6 28.5c1 1.3 3.2 1.3 4.4 0"/>
+        <!-- nose and small flat mouth -->
+        <path d="M32 29v4"/>
+        <path d="M30 36h4"/>
+      </g>
+      <!-- tucked neck under the bowed chin -->
+      <path d="M28 40.5c1 2 2.5 3 4 3s3-1 4-3"/>
+      <!-- pocket watch chain -->
+      <path d="M38 52c2 1 3 3 3 5"/>
+      <circle cx="41" cy="58" r="1.5"/>
+    </g>
+  </symbol>
+  <symbol id="advisor-keen" viewBox="0 0 64 64">
+    <!-- keen and engaged: same solicitor, one brow raised, spectacles slipped down, knowing smile -->
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <!-- shoulders and frock coat -->
+      <path d="M8 60c1-9 6-14 14-16l4-1h12l4 1c8 2 13 7 14 16"/>
+      <path d="M26 44l6 6 6-6"/>
+      <path d="M32 50v10"/>
+      <path d="M22 60l4-14M42 60l-4-14"/>
+      <!-- collar and cravat -->
+      <path d="M26 43l6 3 6-3"/>
+      <path d="M29 47h6"/>
+      <!-- head -->
+      <path d="M22 24c0-7 4-12 10-12s10 5 10 12-3 15-10 15-10-8-10-15z"/>
+      <!-- hair and whiskers -->
+      <path d="M22 24c1-6 5-9 10-9s9 3 10 9"/>
+      <path d="M22 26c-1 5 0 10 3 13M42 26c1 5 0 10-3 13"/>
+      <path d="M24 30c-1 4 0 8 2 9"/>
+      <!-- one eyebrow raised -->
+      <path d="M33.5 22.5l5-1.5"/>
+      <!-- spectacles slipped a touch down the nose -->
+      <g transform="translate(0 1)">
+        <path d="M25 27a3.2 3.2 0 1 0 6.4 0 3.2 3.2 0 1 0-6.4 0zM32.6 27a3.2 3.2 0 1 0 6.4 0 3.2 3.2 0 1 0-6.4 0z"/>
+        <path d="M31.4 27h1.2M22 25l3 2M42 25l-3 2"/>
+      </g>
+      <!-- nose and knowing smile -->
+      <path d="M32 29v4"/>
+      <path d="M29 36.5c2 1.2 4.5 1 6-1"/>
+      <!-- pocket watch chain -->
+      <path d="M38 52c2 1 3 3 3 5"/>
+      <circle cx="41" cy="58" r="1.5"/>
+    </g>
+  </symbol>
   <use xlink:href="#advisor" href="#advisor" width="64" height="64" style="color:#1D1A16"/>
 </svg>

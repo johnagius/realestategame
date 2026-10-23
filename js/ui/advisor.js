@@ -11,6 +11,13 @@
   A.name = function () { var D = PE().Data; return (D && D.advisor && D.advisor.name) || 'Mr. Ashworth'; };
   A.PORTRAIT = 'assets/advisor.svg';
 
+  /* Pose per context (ENG-C1): the same solicitor, three extra moods. */
+  var POSES = {
+    margin_call: 'advisor-warn', negative_cash: 'advisor-warn', stretch: 'advisor-warn',
+    covenant: 'advisor-somber', succession: 'advisor-somber',
+    auction: 'advisor-keen'
+  };
+
   /* Era voice: the same man, a little older each time. */
   function voice() {
     var s = PE().Game.state(), id = s ? s.eraId : 'victorian';
@@ -94,7 +101,8 @@
     var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('class', 'advisor__portrait'); svg.setAttribute('aria-hidden', 'true');
     var use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-    use.setAttribute('href', A.PORTRAIT + '#advisor'); use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', A.PORTRAIT + '#advisor');
+    var sym = POSES[a.key] || 'advisor';
+    use.setAttribute('href', A.PORTRAIT + '#' + sym); use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', A.PORTRAIT + '#' + sym);
     svg.appendChild(use); el.appendChild(svg);
     var bubble = h('div', { class: 'advisor__bubble' });
     bubble.appendChild(h('div', { class: 'advisor__name', text: A.name() + ', solicitor' }));
