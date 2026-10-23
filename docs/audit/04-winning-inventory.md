@@ -156,17 +156,17 @@ Selection logic (`goals.js:30-47`): candidates must pass `available(s)` and not 
 
 | # | Finding | Status |
 |---|---|---|
-| 1 | Armstrong × purist → family goal satisfied at start | pending (state.js, after slice engine lands) |
-| 2 | `the_long_game` fires in scenarios/challenges | pending (goals.js mode gate) |
-| 3 | `survivor`/`two_depressions` era scope vs desc | pending (desc or counter) |
-| 4 | yearly `sell_profit` desc ≠ check | pending (real profit check) |
-| 5 | crash1929 gilded era goal impossible (rep 50 < 51) | pending (scenario/goal data) |
-| 6 | gfc2008 digital era goal outlives the run | pending (goal assignment) |
-| 7 | yearly fallback pool bypasses `available()` | pending (goals.js) |
-| 8 | crisis `survive` fails silently-early | pending (set `failed` on the forced sale) |
-| 9 | era goal re-armed by comeback → double reward | pending (read `eraDone` in `assignEra`) |
-| 10 | challenge score locked at 0 by mid-run bankruptcy | pending (recordChallenge re-record at end) |
-| 11 | scenario `lost` not sticky after comeback | pending (first terminal result sticks) |
+| 1 | Armstrong × purist → family goal satisfied at start | **fixed 38a30de** (purist strips the ltv track with the mortgages) |
+| 2 | `the_long_game` fires in scenarios/challenges | **fixed 38a30de** (campaign-only gate) |
+| 3 | `survivor`/`two_depressions` era scope vs desc | **fixed 38a30de** (descs say "that era"/"in their eras") |
+| 4 | yearly `sell_profit` desc ≠ check | **fixed 38a30de** (`stats.soldProfit` counts only sales above purchase price) |
+| 5 | crash1929 gilded era goal impossible (rep 50 < 51) | **fixed 38a30de** (same-year-deadline era goals are never offered) |
+| 6 | gfc2008 digital era goal outlives the run | **fixed 38a30de** (deadline clamped to `endYear`) |
+| 7 | yearly fallback pool bypasses `available()` | **fixed 38a30de** (pool filtered; satisfied-at-assignment loops; null when nothing feasible) |
+| 8 | crisis `survive` fails silently-early | **fixed 38a30de** (forced sale sets `failed` the year it happens) |
+| 9 | era goal re-armed by comeback → double reward | **fixed 38a30de** (`eraDone` + unwinnable-survive guards in `assignEra`) |
+| 10 | challenge score locked at 0 by mid-run bankruptcy | **fixed 38a30de** (`recordChallenge`: runs once, best re-tracks at a finished run) |
+| 11 | scenario `lost` not sticky after comeback | **fixed 38a30de** (first terminal result sticks) |
 | 12 | slot-less `deleteSave` wipes slot 1 | **fixed df14e39** (UI passes the run's `saveSlot`) |
 | 13 | Armstrong family goal never displayed | **fixed 5907c58** (deals strip family row) |
 | 14 | failed yearly goals invisible in the report | **fixed 5907c58** (report progress section) |
