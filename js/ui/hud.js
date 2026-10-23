@@ -43,11 +43,26 @@
   }
 
   var cycleCls = { boom: 'hud__chip--warn', growth: '', stagnation: '', recession: 'hud__chip--danger', depression: 'hud__chip--danger' };
+  /* Pulse cash/net worth briefly on change (green up, red down). No pulse on
+     the first render; class add/remove only, so no layout thrash. */
+  var prevHUD = { cash: null, nw: null };
+  function pulse(el, now, was) {
+    if (was === null || now === was) return;
+    var cls = now > was ? 'hud__value--pulse-up' : 'hud__value--pulse-down';
+    el.classList.remove('hud__value--pulse-up', 'hud__value--pulse-down');
+    void el.offsetWidth;
+    el.classList.add(cls);
+    clearTimeout(el._pulseT);
+    el._pulseT = setTimeout(function () { el.classList.remove(cls); }, 800);
+  }
   PEUI.updateHUD = function () {
     var s = PEUI.summary(); if (!s.ok) return;
     var cash = document.getElementById('hud-cash'); if (!cash) return;
+    var nw = document.getElementById('hud-nw');
     PEUI.setText(cash, fmt.money(s.cash)); cash.classList.toggle('hud__value--neg', s.cash < 0);
-    PEUI.setText(document.getElementById('hud-nw'), fmt.money(s.netWorth));
+    pulse(cash, Math.round(s.cash), prevHUD.cash); prevHUD.cash = Math.round(s.cash);
+    PEUI.setText(nw, fmt.money(s.netWorth));
+    pulse(nw, Math.round(s.netWorth), prevHUD.nw); prevHUD.nw = Math.round(s.netWorth);
     PEUI.setText(document.querySelector('#hud-year span'), s.year + ' · ' + s.era + (s.challenge ? ' · ' + fmt.int(s.challenge.score) : ''));
     PEUI.setText(document.querySelector('#hud-rank span'), '#' + s.rank);
     PEUI.setText(document.querySelector('#hud-rep span'), 'Rep ' + Math.round(s.reputation));

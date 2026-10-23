@@ -6,6 +6,7 @@
   var PEUI = root.PEUI, h = PEUI.h, fmt = PEUI.fmt, icon = PEUI.icon;
   function PE() { return root.PE; }
   var ps = { id: null, refiLtv: null, repay: 0, rent: null };
+  var mcSeen = {}; /* margin calls already alarmed, so the sound fires once per call */
 
   function stat(label, value, cls) { return h('div', { class: 'stat' }, [h('span', { class: 'stat__label', text: label }), h('span', { class: 'stat__value num' + (cls ? ' ' + cls : ''), text: value })]); }
   function warningsFor(id, fs) { var out = []; if (fs.ok) for (var i = 0; i < fs.covenantWarnings.length; i++) if (fs.covenantWarnings[i].propertyId === id) out.push(fs.covenantWarnings[i]); return out; }
@@ -81,7 +82,13 @@
       var wb = el.querySelector('#pf-warn'); PEUI.empty(wb);
       if (PEUI.advisor) { if (s.offers > 0) PEUI.advisor.trigger('rival_offer', 'portfolio'); var bub = PEUI.advisor.mount('portfolio'); if (bub) wb.appendChild(bub); }
       if (PEUI.guide) { var gc = PEUI.guide.callout('portfolio'); if (gc) wb.appendChild(gc); }
-      for (var w = 0; w < fs.covenantWarnings.length; w++) { var cw = fs.covenantWarnings[w]; wb.appendChild(h('div', { class: 'note ' + (cw.kind === 'margin_call' ? 'note--danger' : 'note--warn') }, [icon('warning'), h('span', { class: 'grow', text: cw.text }), PEUI.btn('Open', { cls: 'btn--secondary btn--sm', action: 'open-property', 'data-id': cw.propertyId })])); }
+      var mcNow = {};
+      for (var w = 0; w < fs.covenantWarnings.length; w++) {
+        var cw = fs.covenantWarnings[w];
+        if (cw.kind === 'margin_call') { mcNow[cw.propertyId] = 1; if (!mcSeen[cw.propertyId]) PEUI.sound('alarm'); }
+        wb.appendChild(h('div', { class: 'note ' + (cw.kind === 'margin_call' ? 'note--danger' : 'note--warn') }, [icon('warning'), h('span', { class: 'grow', text: cw.text }), PEUI.btn('Open', { cls: 'btn--secondary btn--sm', action: 'open-property', 'data-id': cw.propertyId })]));
+      }
+      mcSeen = mcNow;
       if (s.cash < 0) wb.appendChild(h('div', { class: 'note note--danger' }, [icon('warning'), h('span', { text: 'Cash is negative. Two years without cash and nothing to sell means bankruptcy.' })]));
       offersBlock(el);
       var groups = el.querySelector('#pf-groups'), byCity = {}, order = [];
@@ -210,8 +217,28 @@
   };
   PEUI.inputs['repay-amount'] = function (el) { ps.repay = Math.round(+el.value || 0); };
   PEUI.actions['prop-renovate'] = function (b, d) {
+    var before = propData(d.id);
     var r = PEUI.call(PE().Property.renovate, d.id, d.tier); if (!r.ok) return;
-    PEUI.save(); PEUI.sound('coin'); PEUI.moneyFloat(b, -r.cost); PEUI.toast(r.message, 'success'); PEUI.openProperty(d.id); PEUI.refresh(); if (PEUI.cityUpdateProperty) PEUI.cityUpdateProperty(d.id);
+    PEUI.save(); PEUI.sound('stamp'); PEUI.moneyFloat(b, -r.cost); PEUI.toast(r.message, 'success');
+    PEUI.openProperty(d.id);
+    /* Same-year works finish now: show the transformation (before → after from
+       the engine payload) and sweep the condition bar across. */
+    var after = r.property;
+    if (before && after && !after.renovation && Math.round(after.condition) !== Math.round(before.condition)) {
+      var body = PEUI.sheet.body();
+      if (body) {
+        body.insertBefore(h('div', { class: 'note note--success' }, [icon('check'), h('span', { text: 'Condition ' + Math.round(before.condition) + ' → ' + Math.round(after.condition) + ' · Value ' + fmt.money(before.trueValue) + ' → ' + fmt.money(after.trueValue) })]), body.firstChild);
+        var fill = body.querySelector('.meter .bar__fill');
+        if (fill) {
+          fill.style.transition = 'none';
+          fill.style.width = (Math.max(0, Math.min(1, before.condition / 100)) * 100).toFixed(1) + '%';
+          void fill.offsetWidth;
+          fill.style.transition = '';
+          fill.style.width = (Math.max(0, Math.min(1, after.condition / 100)) * 100).toFixed(1) + '%';
+        }
+      }
+    }
+    PEUI.refresh(); if (PEUI.cityUpdateProperty) PEUI.cityUpdateProperty(d.id);
   };
   PEUI.actions['prop-refi'] = function (b, d) {
     var p = propData(d.id); if (!p) return;

@@ -293,6 +293,11 @@
     PEUI.sound('stamp');
   };
   PEUI.actions['open-listing'] = function (b, d) { PEUI.openListing(d.id); };
+  /* Bought sheet: close and jump to the 3D city, where focusNewPurchase pushes in on the new building. */
+  PEUI.actions['bought-goto-city'] = function (b, d) {
+    PEUI.sheet.close();
+    PEUI.render('city', { city: d.city });
+  };
   PEUI.actions['insider-tip'] = function (b, d) {
     var r = PEUI.call(PE().Market.insiderTip, d.id); if (!r.ok) return;
     PEUI.toast('True value: ' + fmt.money(r.trueValue), 'success'); PEUI.save();
@@ -325,7 +330,7 @@
         reveal ? h('div', { class: 'note note--info reveal' }, [icon('percent'), h('span', { text: reveal.text })]) : null,
         h('div', { class: 'stat-grid' }, [stat('Paid', fmt.money(r.price)), stat('Now worth', fmt.money(r.property.trueValue)), stat('Condition', r.property.conditionLabel + (defect ? ' (defect −' + defect + ')' : '')), stat('Mortgage', r.property.mortgage ? fmt.money(r.property.mortgage.principal) : 'None')]),
         defect ? h('div', { class: 'note note--warn' }, [icon('warning'), h('span', { text: 'The survey found hidden problems: condition dropped by ' + defect + '.' })]) : null
-      ], foot: h('div', { class: 'btn-row' }, [PEUI.btn('Back to deals', { cls: 'btn--secondary', action: 'sheet-close' }), PEUI.btn('Open property', { cls: 'btn--primary', action: 'open-property', 'data-id': r.property.id, icon: 'building' })]) });
+      ], foot: h('div', { class: 'btn-row' }, [PEUI.btn('Back to deals', { cls: 'btn--secondary', action: 'sheet-close' }), PEUI.btn('See it in the city', { cls: 'btn--secondary', icon: 'city', action: 'bought-goto-city', 'data-city': r.property.cityId }), PEUI.btn('Open property', { cls: 'btn--primary', action: 'open-property', 'data-id': r.property.id, icon: 'building' })]) });
       body.appendChild(h('div', { class: 'stamp', 'aria-hidden': 'true', text: 'YOURS' }));
       offer.id = null;
       PEUI.refresh();

@@ -5,7 +5,7 @@
 
 const GameAudio = {
   ctx: null,
-  muted: true, // Default muted — user enables in settings
+  muted: false, // Default on for new players (DESIGN-DIRECTION §6); PEUI.applyPrefs overrides from saved prefs
   volume: 0.3,
 
   init() {

@@ -160,6 +160,7 @@
   PEUI.openSettings = function () {
     var p = PEUI.prefs, body = [];
     body.push(h('button', { type: 'button', class: 'toggle', 'data-action': 'set-sound', 'aria-pressed': String(!!p.sound) }, [h('span', {}, [icon('sound'), ' Sound effects']), h('span', { class: 'toggle__knob' })]));
+    body.push(h('p', { class: 'small muted', text: 'Sound is on by default for new players; turn it off here any time.' }));
     body.push(h('div', { class: 'settings__row' }, [h('span', { text: '3D quality' }), seg('3D quality', [['auto', 'Auto'], ['low', 'Low'], ['high', 'High']], p.quality, 'set-quality')]));
     body.push(h('div', { class: 'settings__row' }, [h('span', { text: 'Theme' }), seg('Theme', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], p.theme, 'set-theme')]));
     body.push(h('div', { class: 'settings__row' }, [h('span', { text: 'First-years guide' }), PEUI.btn('Show again', { cls: 'btn--secondary btn--sm', icon: 'sparkle', action: 'guide-reset' })]));

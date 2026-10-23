@@ -24,7 +24,7 @@
   var pendingDone = null;
   PEUI.actions['event-choose'] = function (b, d) {
     var r = PEUI.call(PE().Events.resolve, d.uid, +d.i); if (!r.ok) return;
-    PEUI.save(); PEUI.toast(r.message, 'success');
+    PEUI.save(); PEUI.sound('decision'); PEUI.toast(r.message, 'success');
     var done = pendingDone; pendingDone = null;
     PEUI.sheet.close();
     PEUI.refresh();
@@ -129,7 +129,13 @@
     var btn = PEUI.btn('Continue', { cls: 'btn--gold btn--lg', icon: 'skip', action: 'titlecard-next' });
     inner.appendChild(btn); el.appendChild(inner);
     el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false');
-    titleNext = function () { el.classList.remove('is-open'); el.setAttribute('aria-hidden', 'true'); titleNext = null; next(); };
+    PEUI.confetti(80);
+    titleNext = function () {
+      el.classList.remove('is-open'); el.setAttribute('aria-hidden', 'true'); titleNext = null;
+      /* Shift the 3D city into the new era now, not on the next city-tab visit. */
+      if (PEUI.cityEraNow) { var s = PEUI.summary(); if (s.ok && s.eraId) PEUI.cityEraNow(s.eraId); }
+      next();
+    };
     btn.focus();
   }
   /* ---------- Succession ceremony (P3.3): ink tree, wax-seal reveal, estate-tax breakdown ---------- */
@@ -269,6 +275,27 @@
     el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false'); sc.scrollTop = 0;
     sc.classList.add('is-turning');
     PEUI.sound('page');
+    /* Margin calls and forced sales get the alarm, a beat after the page turn. */
+    var alarmDue = r.deals.some(function (d) { return d.kind === 'forced_sale'; }) || r.warnings.some(function (w) { return w.indexOf('margin_call:') === 0; });
+    if (alarmDue) setTimeout(function () { if (el.classList.contains('is-open')) PEUI.sound('alarm'); }, 350);
+    /* Rent payoff: a small staggered burst of money floats on the rent row,
+       decoupled from the equity direction (a good rent year in a falling
+       market should not sound like failure). */
+    if (!r.preview && r.cashFlow && r.cashFlow.rent > 0 && !reducedMotion()) {
+      var rentCell = el.querySelector('.table tbody td.num');
+      if (rentCell) {
+        var floats = 3, per = Math.round(r.cashFlow.rent / floats);
+        for (var fi = 0; fi < floats; fi++) {
+          (function (k) {
+            setTimeout(function () {
+              if (!el.classList.contains('is-open')) return;
+              PEUI.moneyFloat(rentCell, k === floats - 1 ? r.cashFlow.rent - per * (floats - 1) : per);
+              PEUI.sound('coin');
+            }, 600 + k * 320);
+          })(fi);
+        }
+      }
+    }
     reportNext = function () { el.classList.remove('is-open'); el.setAttribute('aria-hidden', 'true'); reportNext = null; next(); };
     var b = el.querySelector('.report__foot [data-action="report-next"]'); if (b) b.focus();
   }
@@ -343,7 +370,7 @@
     row.appendChild(PEUI.btn('Start a new dynasty', { cls: 'btn--gold btn--lg', icon: 'sparkle', action: 'end-new' }));
     inner.appendChild(row);
     el.appendChild(inner); el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false');
-    if (!fallen) { PEUI.confetti(80); PEUI.sound('fanfare'); } else PEUI.sound('negative');
+    if (!fallen) { PEUI.confetti(80); PEUI.sound('fanfare'); } else PEUI.sound('alarm');
   }
   PEUI.showEnd = showEnd;
   PEUI.actions['end-heir'] = function () {

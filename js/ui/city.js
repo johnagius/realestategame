@@ -68,6 +68,14 @@
     }
   }
   PEUI.cityUpdateProperty = function () { if (cs.renderedId) syncProps(); };
+  /* Era change from outside the city screen (year.js titlecard): shift the live
+     renderer immediately instead of waiting for a city-tab visit. No-op when the
+     renderer is not up. */
+  PEUI.cityEraNow = function (eraId) {
+    if (!cs.renderedId || !root.City3D || !eraId || cs.era === eraId) return;
+    try { root.City3D.setEra(eraId, 1200); root.City3D.setNight(nightFor(eraId)); } catch (e) {}
+    cs.era = eraId;
+  };
   PEUI.cityHas = function (id) { return !!(cs.renderedId && cs.shapes[id] !== undefined); };
 
   /* Pull-up district sheet (phones only; CSS gates the layout to ≤640px). The

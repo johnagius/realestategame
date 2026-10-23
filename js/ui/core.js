@@ -110,7 +110,7 @@
 
   /* ---------- Preferences (per device; game state is in the engine) ---------- */
   var PREF_KEY = 'pe_v8_prefs';
-  PEUI.prefs = { sound: false, quality: 'auto', theme: 'auto', lastAdAt: 0, gameStartedAt: 0, lastAdYear: -99 };
+  PEUI.prefs = { sound: true, quality: 'auto', theme: 'auto', lastAdAt: 0, gameStartedAt: 0, lastAdYear: -99 };
   PEUI.loadPrefs = function () { try { var raw = root.localStorage.getItem(PREF_KEY); if (raw) { var p = JSON.parse(raw); for (var k in p) PEUI.prefs[k] = p[k]; } } catch (e) {} PEUI.applyPrefs(); };
   PEUI.savePrefs = function () { try { root.localStorage.setItem(PREF_KEY, JSON.stringify(PEUI.prefs)); } catch (e) {} PEUI.applyPrefs(); };
   PEUI.applyPrefs = function () {
