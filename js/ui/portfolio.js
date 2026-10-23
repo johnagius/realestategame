@@ -183,8 +183,8 @@
       }
       // Sell
       body.push(h('div', { class: 'kicker', text: 'Sell' }));
-      var raw = rawProp(id), qm = PE().Market.saleQuote(raw, 1), qq = PE().Market.saleQuote(raw, B.quickSaleFactor);
-      body.push(h('div', { class: 'stat-grid' }, [sellStat('Market sale', qm, 'Likely by year end; price moves with the cycle'), sellStat('Quick sale', qq, 'Cash now at ' + Math.round(B.quickSaleFactor * 100) + '% of value')]));
+      var raw = rawProp(id), qm = PE().Market.saleQuote(raw, 1), qf = PE().Market.quickSaleFactor(), qq = PE().Market.saleQuote(raw, qf);
+      body.push(h('div', { class: 'stat-grid' }, [sellStat('Market sale', qm, 'Likely by year end; price moves with the cycle'), sellStat('Quick sale', qq, 'Cash now at ' + Math.round(qf * 100) + '% of value')]));
       body.push(h('div', { class: 'btn-row' }, [PEUI.btn('List on market', { cls: 'btn--secondary', icon: 'tag', action: 'prop-sell', 'data-id': id, 'data-mode': 'market', disabled: !!p.forSale }), PEUI.btn('Quick sale', { cls: 'btn--danger', action: 'prop-sell-confirm', 'data-id': id })]));
     }
     PEUI.sheet.open({ id: 'property:' + id, title: p.name, sub: p.typeName + ' · ' + p.district + ', ' + p.cityName, body: body, onClose: function () { if (PEUI.current === 'city' && root.City3D) root.City3D.setSelected(null); } });
@@ -258,7 +258,7 @@
   };
   PEUI.actions['prop-sell-confirm'] = function (b, d) {
     var raw = rawProp(d.id); if (!raw) return;
-    var q = PE().Market.saleQuote(raw, PE().Data.balance.quickSaleFactor);
+    var q = PE().Market.saleQuote(raw, PE().Market.quickSaleFactor());
     PEUI.sheet.open({ id: 'confirm-sell', title: 'Quick sale?', sub: raw.name, back: 'open-property-back', body: [h('p', { text: 'Sell now for ' + fmt.money(q.price) + '. After fees' + (q.tax ? ' and tax' : '') + (q.debtRepaid ? ' and repaying the mortgage' : '') + ' you receive ' + fmt.money(q.cashGained) + '. This cannot be undone.' })], foot: h('div', { class: 'btn-row' }, [PEUI.btn('Keep it', { cls: 'btn--ghost', action: 'open-property', 'data-id': d.id }), PEUI.btn('Sell for ' + fmt.money(q.price), { cls: 'btn--danger', action: 'prop-sell', 'data-id': d.id, 'data-mode': 'quick' })]) });
   };
   PEUI.actions['open-property-back'] = function () { if (ps.id) PEUI.openProperty(ps.id); };

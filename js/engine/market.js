@@ -179,7 +179,7 @@
       else if (n === 0) desired = bp * B.listingCheapMult; // one genuinely cheap way in
       else desired = bp * Math.exp(R.range(Math.log(B.listingAffordLow), Math.log(B.listingAffordHigh)));
       var nl = M.genListing(cid, desired, seller);
-      if (nl.m < 0.9 && R.chance(B.rivalPreemptChance) && PE.Rivals.preempt(nl)) continue;
+      if (nl.m < 0.9 && n > 0 && R.chance(B.rivalPreemptChance) && PE.Rivals.preempt(nl)) continue; // the cheap way in (n === 0) is never sniped
       n++;
     }
     s.flags.extraDistressed = extraD;
@@ -404,6 +404,8 @@
 
   /* ---------- Selling ---------- */
   M.saleMood = function () { return B.cycleSaleMood[PE.S().cycle.phase]; };
+  /* Quick-sale factor moves with the cycle (ENG-B3): dumping a building in a crash hurts. */
+  M.quickSaleFactor = function () { var s = PE.S(), t = B.quickSaleFactorByPhase; return (t && t[s.cycle.phase]) || B.quickSaleFactor; };
   M.saleQuote = function (p, factor) {
     var s = PE.S(), era = St.era(), price = Math.round(p.trueValue * M.saleMood() * (factor || 1));
     var fees = Math.round(price * B.agentFee), gain = price - (p.purchasePrice || 0);
@@ -427,7 +429,7 @@
     mode = mode || 'market';
     if (mode === 'cancel') { p.forSale = null; return PE.ok({ message: 'Withdrawn from sale.' }); }
     if (mode === 'quick') {
-      var q = M.saleQuote(p, B.quickSaleFactor);
+      var q = M.saleQuote(p, M.quickSaleFactor());
       M.completeSale(p, q, null, null);
       return PE.ok({ price: q.price, fees: q.fees, tax: q.tax, debtRepaid: q.debtRepaid, cashGained: q.cashGained, sold: true, message: 'Quick sale: ' + p.name + ' gone for ' + U.fmt(q.price) + '.' });
     }

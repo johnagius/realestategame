@@ -89,7 +89,7 @@
     if (s.cash < 0) { s.stats.negativeCashYears++; rep.warnings.push('negative_cash'); } else s.stats.negativeCashYears = 0;
     s.stats.lastNetCashFlow = rep.cashFlow.net;
     var nw = St.netWorth('player');
-    var sellable = St.playerProps().some(function (x) { return !x.renovation && PE.Market.saleQuote(x, B.quickSaleFactor).cashGained > 0; });
+    var sellable = St.playerProps().some(function (x) { return !x.renovation && PE.Market.saleQuote(x, PE.Market.quickSaleFactor()).cashGained > 0; });
     var missedRecent = (s.stats.forcedSaleYears || []).filter(function (y) { return s.year - y < B.marginCallWindowYears; }).length;
     if (nw < 0 || (s.stats.negativeCashYears >= B.bankruptcyNegativeCashYears && !sellable) || missedRecent >= B.bankruptcyMissedCalls) {
       s.status = 'bankrupt'; s.endReason = nw < 0 ? 'Net worth below zero' : (missedRecent >= B.bankruptcyMissedCalls ? 'Two missed margin calls' : 'Two years without cash');

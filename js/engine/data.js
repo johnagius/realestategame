@@ -348,13 +348,13 @@
     // listings
     listingsBase: 4,                 // + tier
     listingAffordLow: 0.14,          // listing trueValue range as a fraction of buying power
-    listingAffordHigh: 1.05,
+    listingAffordHigh: 1.45,
     listingCheapMult: 0.09,          // the cheapest listing on a fresh board (≈ cash / 4)
     stretchDealMult: [2.0, 3.2],
     buyingPowerDivisor: 0.36,        // cash / this = what the player can plausibly buy (deposit + duty)
     listingMaxYears: 3,
     listingPriceDropPerYear: 0.04,
-    listingSoldElsewhereBase: 0.25,  // chance a good deal disappears each year
+    listingSoldElsewhereBase: 0.30,  // chance a good deal disappears each year
     compsNoise: 0.10,
     estimateBand: 0.12,
     offersPerListingPerYear: 2,
@@ -366,7 +366,8 @@
     // transaction costs
     agentFee: 0.03,
     cgtYears: 3,
-    quickSaleFactor: 0.85,
+    quickSaleFactor: 0.85,           // fallback; the live factor is quickSaleFactorByPhase[cycle.phase] (ENG-B3)
+    quickSaleFactorByPhase: { boom: 0.88, growth: 0.85, stagnation: 0.80, recession: 0.78, depression: 0.75 },
     cycleSaleMood: { boom: 1.08, growth: 1.02, stagnation: 0.97, recession: 0.90, depression: 0.78 },
     // rents and costs
     baseOccupancy: 0.95,
@@ -423,7 +424,7 @@
     // rivals
     rivalMaxProperties: 30,
     rivalStartWealthMult: 3.0,        // × family start cash × archetype wealthMult
-    rivalPreemptChance: 0.20,         // a fresh bargain is snapped up by a rival before the board opens
+    rivalPreemptChance: 0.25,         // a fresh bargain is snapped up by a rival before the board opens
     hiddenDefectChance: 0.5,          // estate/distressed/auction purchases may hide problems
     hiddenDefectRange: [5, 20],
     rivalMaxBuysPerYear: 2,

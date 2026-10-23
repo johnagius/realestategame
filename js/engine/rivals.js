@@ -163,7 +163,7 @@
     rv.stats.sold++;
   };
   Rv.quickSell = function (rv, p) {
-    var debt = p.mortgage ? p.mortgage.principal : 0, price = Math.round(p.trueValue * B.quickSaleFactor);
+    var debt = p.mortgage ? p.mortgage.principal : 0, price = Math.round(p.trueValue * PE.Market.quickSaleFactor());
     rv.cash += Math.round(price * (1 - B.agentFee)) - debt;
     St.setOwner(p, null); rv.stats.sold++;
     return price;

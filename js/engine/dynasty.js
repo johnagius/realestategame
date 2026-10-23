@@ -90,7 +90,7 @@
     var sold = 0;
     while (s.cash < 0 && St.propertyCount('player') > 0) {
       var props = St.playerProps().slice().sort(function (a, b) { return (b.trueValue - (b.mortgage ? b.mortgage.principal : 0)) - (a.trueValue - (a.mortgage ? a.mortgage.principal : 0)); });
-      var p = props[0], q = PE.Market.saleQuote(p, B.quickSaleFactor);
+      var p = props[0], q = PE.Market.saleQuote(p, PE.Market.quickSaleFactor());
       if (q.cashGained <= 0) break;
       PE.Market.completeSale(p, q, null, report); sold++;
     }

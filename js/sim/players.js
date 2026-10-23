@@ -46,10 +46,10 @@ module.exports = function (PE) {
     var called = props.filter(function (x) { return x.marginCall; });
     for (i = 0; i < called.length; i++) {
       var p = called[i], need = Math.round(p.mortgage.principal - p.trueValue * B.covenantLtv) + 5;
-      if (s.cash < need && !p.renovation && PE.Market.saleQuote(p, B.quickSaleFactor).cashGained >= 0) { PE.Market.sell(p.id, 'quick'); continue; }
+      if (s.cash < need && !p.renovation && PE.Market.saleQuote(p, PE.Market.quickSaleFactor()).cashGained >= 0) { PE.Market.sell(p.id, 'quick'); continue; }
       var guard2 = 0;
       while (s.cash < need && guard2++ < 10) {
-        var others = St.playerProps().filter(function (x) { return !x.marginCall && !x.renovation && PE.Market.saleQuote(x, B.quickSaleFactor).cashGained > 0; }).sort(function (a, b) { return PE.Market.saleQuote(b, B.quickSaleFactor).cashGained - PE.Market.saleQuote(a, B.quickSaleFactor).cashGained; });
+        var others = St.playerProps().filter(function (x) { return !x.marginCall && !x.renovation && PE.Market.saleQuote(x, PE.Market.quickSaleFactor()).cashGained > 0; }).sort(function (a, b) { return PE.Market.saleQuote(b, PE.Market.quickSaleFactor()).cashGained - PE.Market.saleQuote(a, PE.Market.quickSaleFactor()).cashGained; });
         if (!others.length) break;
         PE.Market.sell(others[0].id, 'quick');
       }
@@ -60,7 +60,7 @@ module.exports = function (PE) {
     while (s.cash < 0 && St.propertyCount('player') > 0 && guard++ < 20) {
       var ps = St.playerProps().filter(function (x) { return !x.renovation; }).sort(function (a, b) { return (a.trueValue - (a.mortgage ? a.mortgage.principal : 0)) - (b.trueValue - (b.mortgage ? b.mortgage.principal : 0)); });
       if (!ps.length) break;
-      var best = ps.filter(function (x) { return PE.Market.saleQuote(x, B.quickSaleFactor).cashGained > 0; });
+      var best = ps.filter(function (x) { return PE.Market.saleQuote(x, PE.Market.quickSaleFactor()).cashGained > 0; });
       if (!best.length) break;
       PE.Market.sell(best[best.length - 1].id, 'quick');
     }
