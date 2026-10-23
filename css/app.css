@@ -182,6 +182,12 @@ body { overflow: hidden; }
 #screen-city .screen__scroll { padding: 0; display: flex; flex-direction: column; overflow: hidden; }
 .city-top { flex: none; padding: calc(var(--hud-h) + var(--safe-top) + var(--sp-2)) var(--sp-3) var(--sp-2); background: linear-gradient(180deg, var(--bg) 70%, transparent); z-index: 2; }
 .city-top__inner { max-width: var(--content-max); margin: 0 auto; }
+/* City tabs float over the 3D render (the top bar fades to transparent, and on
+   desktop has no backing at all), so every tab pill carries its own opaque
+   surface: text never sits directly on sky or water. */
+.city-top .tab { background: var(--surface); color: var(--ink-2); border: 1px solid var(--line); box-shadow: var(--shadow-1); }
+.city-top .tab--locked { background: var(--surface-2); color: var(--ink-2); border-style: dashed; }
+.city-top .tab[aria-selected="true"] { background: var(--primary); color: var(--primary-ink); border-color: transparent; }
 .city-view { flex: 1 1 auto; position: relative; min-height: 220px; background: #0b1024; }
 .city-view__canvas { position: absolute; inset: 0; }
 .city-view__canvas canvas { display: block; width: 100%; height: 100%; }
