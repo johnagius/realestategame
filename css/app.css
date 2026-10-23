@@ -195,6 +195,12 @@ body { overflow: hidden; }
 .city-view__legend span { display: inline-flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.35); padding: 2px 8px; border-radius: var(--r-pill); }
 .city-view__legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .city-view__fallback { position: absolute; inset: 0; display: grid; place-items: center; color: #F4EFE4; text-align: center; padding: var(--sp-4); }
+.city-view__fallback--list { display: block; overflow-y: auto; text-align: left; background: rgba(10,11,20,0.92); }
+.city-fb { max-width: var(--content-max); margin: 0 auto; display: flex; flex-direction: column; gap: var(--sp-2); padding-bottom: 72px; /* clears the floating legend */ }
+.city-fb__msg { margin: 0 0 var(--sp-2); color: #F4EFE4; }
+.city-fb__kicker { color: #d9b45c; margin-top: var(--sp-2); }
+.city-fb__row { text-align: left; white-space: normal; height: auto; min-height: 40px; }
+.city-fb__row--rival { padding: 8px 12px; font-size: var(--fs-1); color: rgba(244,239,228,0.75); border: 1px dashed rgba(255,255,255,0.2); border-radius: var(--r-2); }
 .city-view__tools { position: absolute; right: var(--sp-3); top: var(--sp-3); display: flex; gap: var(--sp-1); z-index: 2; }
 .city-view__tools .btn { background: rgba(10,11,20,0.6); color: #F4EFE4; border-color: rgba(255,255,255,0.2); }
 .city-bottom { flex: none; max-height: 42%; overflow-y: auto; padding: var(--sp-3) var(--sp-3) calc(var(--nav-h) + var(--safe-bottom) + var(--sp-3)); background: var(--bg); border-top: 1px solid var(--line); }

@@ -77,10 +77,33 @@
     }
   }
 
+  /* No-WebGL fallback: the canvas is replaced by a DOM list of the same properties
+     the 3D view would show — yours, for sale, rivals — each opening the same sheets
+     as a 3D tap, so every essential city action survives without WebGL. */
+  function fallbackList(fb, msg) {
+    fb.classList.remove('hidden'); fb.classList.add('city-view__fallback--list');
+    PEUI.empty(fb);
+    var wrap = h('div', { class: 'city-fb' });
+    wrap.appendChild(h('p', { class: 'city-fb__msg', text: msg }));
+    var props = cityProps(cs.id), types = PE().Data.propertyTypes;
+    [{ label: 'Yours', keep: function (p) { return !p.isListing && p.ownerId === 'player'; }, action: 'open-property' },
+     { label: 'For sale', keep: function (p) { return p.isListing; }, action: 'open-listing' },
+     { label: 'Rivals', keep: function (p) { return !p.isListing && p.ownerId !== 'player'; } }].forEach(function (g) {
+      var items = props.filter(g.keep); if (!items.length) return;
+      wrap.appendChild(h('div', { class: 'kicker city-fb__kicker', text: g.label + ' (' + items.length + ')' }));
+      items.forEach(function (p) {
+        var t = types[p.type], label = p.name + ' · ' + p.district + (t ? ' · ' + t.name : '');
+        if (g.action) wrap.appendChild(PEUI.btn(label, { cls: 'btn--secondary btn--block city-fb__row', action: g.action, 'data-id': p.id }));
+        else wrap.appendChild(h('div', { class: 'city-fb__row city-fb__row--rival', text: label + ' · ' + PEUI.rivalName(p.ownerId) }));
+      });
+    });
+    fb.appendChild(wrap);
+  }
+
   function render3D(el) {
     var host = el.querySelector('.city-view__canvas'), fb = el.querySelector('.city-view__fallback');
     var def = root[DEF[cs.id]], s = PEUI.summary();
-    if (!root.City3D || !root.THREE || !def) { fb.classList.remove('hidden'); PEUI.setText(fb, 'The 3D view is not available on this device.'); return; }
+    if (!root.City3D || !root.THREE || !def) { fallbackList(fb, 'The 3D view is not available on this device. Every property is listed below instead.'); return; }
     var props = cityProps(cs.id), q = PEUI.prefs.quality === 'auto' ? undefined : PEUI.prefs.quality;
     var ok = false;
     try {
@@ -88,7 +111,8 @@
         onSelect: function (p) { if (!p) return; if (p.isListing) PEUI.openListing(p.id); else if (p.ownerId === 'player') PEUI.openProperty(p.id); else PEUI.toast(p.name + ' · owned by ' + PEUI.rivalName(p.ownerId)); } });
     } catch (e) { console.warn('3D failed', e); ok = false; }
     fb.classList.toggle('hidden', !!ok);
-    if (!ok) PEUI.setText(fb, 'The 3D view could not start (WebGL unavailable).');
+    if (!ok) fallbackList(fb, 'The 3D view could not start (WebGL unavailable). Every property is listed below instead.');
+    else fb.classList.remove('city-view__fallback--list');
     cs.renderedId = ok ? cs.id : null; cs.era = s.eraId; cs.cycle = s.cycle; cs.shapes = {};
     for (var i = 0; i < props.length; i++) cs.shapes[props[i].id] = hashShape(props[i]);
     applyOverlay(); syncDistrictBtn(el);

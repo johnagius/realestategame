@@ -42,7 +42,23 @@ function check(name, cond, detail) {
     return el ? { hidden: el.classList.contains('hidden'), text: el.textContent.trim() } : null;
   });
   check('city tab shows the WebGL fallback message', !!fb && !fb.hidden && /WebGL|not available/.test(fb.text), fb);
+
+  // the fallback is a DOM list of the same properties, opening the same sheets
+  const fbList = await page.evaluate(() => {
+    const root = document.querySelector('.city-view__fallback');
+    return root ? { rows: root.querySelectorAll('.city-fb__row').length, forSale: root.querySelectorAll('[data-action="open-listing"]').length, yours: root.querySelectorAll('[data-action="open-property"]').length } : null;
+  });
+  check('fallback lists city properties with real actions', !!fbList && fbList.rows > 0 && fbList.forSale > 0, fbList);
   await page.screenshot({ path: path.join(OUT, '2-city-fallback.png') });
+  if (fbList && fbList.forSale) {
+    await page.locator('.city-view__fallback [data-action="open-listing"]').first().click(); await sleep(800);
+    const fbSheet = await page.evaluate(() => { const el = document.querySelector('.sheet.is-open'); return el ? el.textContent : ''; });
+    check('fallback listing row opens the real listing sheet', /£/.test(fbSheet), fbSheet.slice(0, 80));
+    await page.screenshot({ path: path.join(OUT, '2b-fallback-listing.png') });
+    await page.keyboard.press('Escape'); await sleep(300);
+    const fc = page.locator('.sheet.is-open [data-action="sheet-close"]').first();
+    if (await page.locator('.sheet.is-open').count() && await fc.count()) { await fc.click({ force: true }); await sleep(400); }
+  }
 
   // essential action 1: listing sheet with district/location info (DOM alternative to 3D selection)
   await page.evaluate(() => PEUI.render('deals')); await sleep(600);
@@ -103,6 +119,23 @@ function check(name, cond, detail) {
   await page.screenshot({ path: path.join(OUT, '6-report.png') });
 
   check('no page errors without WebGL', errors.length === 0, errors.slice(0, 3));
+
+  // desktop viewport: same fallback list at 1280x800
+  const ctx2 = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  await ctx2.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
+  const page2 = await ctx2.newPage();
+  await page2.goto(URL, { waitUntil: 'load' }); await sleep(2500);
+  try { await page2.locator('[data-action="start-new"]').click({ timeout: 8000 }); }
+  catch (e) { await page2.locator('[data-action="start-new"]').click({ timeout: 15000 }); }
+  await sleep(400);
+  await page2.locator('[data-action="start-begin"]').click(); await sleep(900);
+  while (await page2.locator('.sheet.is-open .choice').count()) { await page2.locator('.sheet.is-open .choice').first().click(); await sleep(300); }
+  await page2.evaluate(() => PEUI.render('city')); await sleep(1200);
+  const fb2 = await page2.evaluate(() => { const el = document.querySelector('.city-view__fallback'); return el ? { hidden: el.classList.contains('hidden'), rows: el.querySelectorAll('.city-fb__row').length } : null; });
+  check('desktop: fallback list renders at 1280x800', !!fb2 && !fb2.hidden && fb2.rows > 0, fb2);
+  await page2.screenshot({ path: path.join(OUT, '7-city-fallback-desktop.png') });
+  await ctx2.close();
+
   await browser.close();
   console.log(`\nno-webgl: ${pass} passed, ${fail} failed`);
   process.exitCode = fail ? 1 : 0;

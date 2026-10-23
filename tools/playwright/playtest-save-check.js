@@ -10,6 +10,7 @@ const { launch, URL } = require('./config');
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const OUT = path.join(__dirname, 'out', 'playtest-save');
 const SAVE = path.join(__dirname, '..', 'playtest-save.json');
+const PE_VERSION = fs.readFileSync(path.join(__dirname, '..', '..', 'js', 'engine', 'game.js'), 'utf8').match(/Game\.version = '([^']+)'/)[1];
 fs.mkdirSync(OUT, { recursive: true });
 
 let pass = 0, fail = 0;
@@ -52,7 +53,7 @@ function check(name, cond, detail) {
     const shortLets = props.filter(p => (p.letMode || 'long') === 'short');
     return { year: s.year, family: s.familyId, props: props.length, shortLets: shortLets.map(p => p.district), version: PE.Game.version, bankruptRivals: Object.keys(s.rivals).filter(id => s.rivals[id].bankrupt) };
   });
-  check('loaded save is Chen 1872 with the Mayfair short let on v8.10', st.year === 1872 && st.family === 'chen' && st.props >= 3 && st.shortLets.map(x => String(x).toLowerCase()).indexOf('mayfair') >= 0 && st.version === '8.10.0', st);
+  check('loaded save is Chen 1872 with the Mayfair short let on the current build', st.year === 1872 && st.family === 'chen' && st.props >= 3 && st.shortLets.map(x => String(x).toLowerCase()).indexOf('mayfair') >= 0 && st.version === PE_VERSION, st);
 
   // The save loads with pending decisions queued; end-year is blocked until they
   // are resolved (by design). Drain them like a player would.
