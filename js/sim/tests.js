@@ -1893,6 +1893,132 @@ function loadWith(extra) {
   check('the per-property rent line carries the letting mode', rep.ok && s.properties[p.id].letMode === 'short');
 })();
 
+/* ---------- 33. P8.1 goal-integrity fixes (f1–f11) ---------- */
+(function () {
+  // f2: The Long Game is a campaign-only trophy — a finished scenario or challenge must not award it
+  (function () {
+    var P = fresh('chen', 2, { scenario: 'crash1929' }), s = P.S();
+    s.year = s.endYear; s.cash += s.startNetWorth * 2; clearEvents(P);
+    var r = P.Game.endYear();
+    check('P8 f2: a finished scenario does not award The Long Game', r.ok && r.ended && s.goals.achievements.indexOf('the_long_game') < 0 && !P.Goals.achievementSatisfied('the_long_game') && !r.goals.achieved.some(function (g) { return g.id === 'the_long_game'; }), s.goals.achievements);
+    var C = load(); C.Game.newChallenge({ week: '2026-W47' }); var cs = C.S();
+    cs.year = cs.endYear; cs.cash += 1e6; clearEvents(C);
+    var rc = C.Game.endYear();
+    check('P8 f2: a finished challenge does not award The Long Game', rc.ok && rc.ended && cs.goals.achievements.indexOf('the_long_game') < 0 && !C.Goals.achievementSatisfied('the_long_game'), cs.goals.achievements);
+  })();
+  // f4: sell_profit counts real profitable sales, not all sales
+  (function () {
+    var P = fresh('chen', 5), s = P.S(), p = P.Market.genProperty('london', { type: 'terrace' });
+    P.State.setOwner(p, 'player');
+    var t = P.Goals.yearlyTemplates.filter(function (x) { return x.id === 'sell_profit'; })[0];
+    var rep = { deals: [], lines: [] };
+    p.purchasePrice = 1000;
+    P.Market.completeSale(p, { price: 800, cashGained: 800 }, null, rep);
+    check('P8 f4: selling below the purchase price does not count as a profitable sale', s.stats.sold === 1 && (s.stats.soldProfit || 0) === 0, s.stats.soldProfit);
+    var g = { id: 'sell_profit', baseline: t.baseline(s) };
+    P.Market.completeSale(p, { price: 1500, cashGained: 1500 }, null, rep);
+    check('P8 f4: selling above the purchase price increments soldProfit and satisfies the goal', s.stats.soldProfit === 1 && t.check(s, g), s.stats.soldProfit);
+  })();
+  // f5/f6: era goals are not offered with a same-year deadline; deadlines clamp to the run's end
+  (function () {
+    var P = fresh('chen', 1, { scenario: 'crash1929' }), s = P.S();
+    check('P8 f5: crash1929 (starts 1929, gilded era ends 1929) offers no gilded era goal', s.goals.era === null, s.goals.era);
+    var G8 = fresh('chen', 1, { scenario: 'gfc2008' }), s8 = G8.S();
+    check('P8 f6: gfc2008 clamps the digital era goal deadline to the scenario end year', s8.goals.era && s8.goals.era.deadline === s8.endYear, s8.goals.era);
+    s8.year = s8.endYear; clearEvents(G8);
+    var r8 = G8.Game.endYear();
+    check('P8 f6: the clamped era goal still resolves on the final report', r8.ok && (r8.goals.achieved.some(function (x) { return x.kind === 'era'; }) || r8.goals.progress.some(function (x) { return x.kind === 'era' && x.failed; })), r8.goals);
+    var O = fresh('chen', 1, { scenario: 'oilshock1973' }), so = O.S();
+    check('P8 f6: oilshock1973 clamps the boom era goal to 1979 (era end), not the scenario end', so.goals.era && so.goals.era.deadline === 1979, so.goals.era && so.goals.era.deadline);
+  })();
+  // f7: when nothing feasible exists the yearly goal is honestly null, and an assigned goal is never already satisfied
+  (function () {
+    var P = fresh('chen', 9), s = P.S();
+    s.reputation = 100; s.listings = {}; s.cash = -1e9;
+    P.State.playerProps().forEach(function (p) { p.mortgage = null; p.condition = 100; p.purchasePrice = p.trueValue; p.renovation = null; });
+    var g = P.Goals.assignYearly();
+    check('P8 f7: with no feasible template the yearly goal is null, not an impossible or free goal', g === null && s.goals.yearly === null, g);
+    var bad = 0;
+    ['silva', 'chen', 'armstrong', 'vanderbilt'].forEach(function (fam) {
+      for (var seed = 1; seed <= 4; seed++) {
+        var Q = fresh(fam, 500 + seed), pl = require('./players.js')(Q), qs = Q.S();
+        for (var y = 0; y < 12 && qs.status === 'playing'; y++) {
+          pl.competent.play(); var r = Q.Game.endYear();
+          if (!r.ok) { pl.resolveEvents('competent'); r = Q.Game.endYear(); }
+          if (!r.ok || qs.status !== 'playing') break;
+          if (qs.goals.yearly && Q.Goals.yearlySatisfied(qs.goals.yearly)) { bad++; break; }
+        }
+      }
+    });
+    check('P8 f7: no freshly assigned yearly goal is already satisfied (16 runs × 12 years)', bad === 0, bad);
+  })();
+  // f8: a forced sale fails the crisis 'survive' era goal immediately, not at the deadline
+  (function () {
+    var P = fresh('chen', 7), s = P.S();
+    s.year = 1935; P.Goals.assignEra();
+    check('P8 f8: the crisis era goal is the survive kind with the 1949 deadline', s.goals.era && s.goals.era.def.kind === 'survive' && s.goals.era.deadline === 1949, s.goals.era);
+    s.stats.forcedSalesThisEra = 1; s.cash = 1e9; clearEvents(P);
+    var r = P.Game.endYear();
+    check('P8 f8: a forced sale fails the survive goal the year it happens', r.ok && s.goals.era.failed === true && r.goals.progress.some(function (x) { return x.kind === 'era' && x.failed; }), r.goals.progress);
+  })();
+  // f9: an era goal pays once per run — a completed era goal is not re-armed for the heir after bankruptcy
+  (function () {
+    var P = fresh('chen', 8), s = P.S();
+    for (var i = 0; i < 3; i++) { var q = P.Market.genProperty('london', { district: 'Shoreditch' }); P.State.setOwner(q, 'player'); }
+    clearEvents(P); P.Game.endYear();
+    check('P8 f9 setup: the victorian era goal completes', s.goals.eraDone.victorian === true, s.goals.eraDone);
+    s.cash = -10 * P.State.assets('player'); clearEvents(P);
+    var rb = P.Game.endYear();
+    check('P8 f9 setup: the house falls', rb.ok && rb.bankrupt === true);
+    var cb = P.Game.continueAsHeir();
+    check('P8 f9: the heir is not offered the already-paid victorian era goal again', cb.ok && s.goals.era === null, s.goals.era);
+  })();
+  // f9 companion: forcedSalesThisEra survives the heir, so a bankrupted crisis goal stays failed
+  (function () {
+    var P = fresh('chen', 12), s = P.S();
+    s.year = 1935; P.Goals.assignEra(); s.stats.forcedSalesThisEra = 1; s.cash = 1e9; clearEvents(P);
+    P.Game.endYear(); // goal fails (f8)
+    s.cash = -1e9; clearEvents(P); P.Game.endYear(); // bankrupt (chen owns nothing here, so net worth must be forced below zero directly)
+    var cb = P.Game.continueAsHeir();
+    check('P8 f9: bankruptcy does not reset the forced-sale counter, and the unwinnable survive goal is not re-armed for the heir', cb.ok && s.stats.forcedSalesThisEra === 1 && s.goals.era === null, [s.stats.forcedSalesThisEra, s.goals.era]);
+  })();
+  // f11: a scenario lost to bankruptcy stays lost even if the heir recovers and reaches the end
+  (function () {
+    var P = fresh('chen', 2, { scenario: 'crash1929' }), s = P.S();
+    s.cash = -10 * P.State.assets('player'); clearEvents(P);
+    var rb = P.Game.endYear();
+    check('P8 f11 setup: bankruptcy loses the scenario', rb.ok && rb.bankrupt && s.scenario.result === 'lost');
+    var cb = P.Game.continueAsHeir();
+    s.cash += 1e9; s.year = s.endYear; clearEvents(P);
+    var re = P.Game.endYear();
+    check('P8 f11: the heir’s recovery does not flip the scenario result back to won', cb.ok && re.ok && re.ended && s.scenario.result === 'lost' && /beat the House/.test(re.headline), [s.scenario.result, re.headline]);
+  })();
+  // f10: a challenge run that bankrupts mid-run and comes back records its final score once
+  (function () {
+    var C = load(); C.Game.newChallenge({ week: '2026-W48' }); var s = C.S();
+    s.cash = -1e9; clearEvents(C); // chen starts without property: force net worth below zero directly
+    var rb = C.Game.endYear();
+    check('P8 f10 setup: the bankrupt sprint records a zero score', rb.ok && rb.bankrupt && C.Storage.loadMeta().challenges['2026-W48'].runs === 1 && C.Storage.loadMeta().challenges['2026-W48'].best === 0);
+    var cb = C.Game.continueAsHeir();
+    s.cash += 1e6; s.year = s.challenge.endYear; clearEvents(C);
+    var re = C.Game.endYear();
+    var meta = C.Storage.loadMeta().challenges['2026-W48'];
+    check('P8 f10: the heir comeback updates the week’s best without counting a second run', cb.ok && re.ok && re.ended && meta.runs === 1 && meta.best === re.challenge.score && re.challenge.score > 0 && s.challenge.recordedEnd === true, meta);
+    C.Game.recordChallenge();
+    check('P8 f10: a third record attempt is a no-op once the final result is recorded', C.Storage.loadMeta().challenges['2026-W48'].runs === 1);
+  })();
+  // f1: purist + Armstrong — the deleverage family track is stripped with the mortgages it is about
+  (function () {
+    var P = load(); var r = P.Game.newGame({ familyId: 'armstrong', seed: 4, perks: ['purist'], unlockedPerks: true });
+    check('P8 f1: purist Armstrong starts with no mortgages and no LTV family track', r.ok && P.State.playerProps().every(function (p) { return !p.mortgage; }) && P.S().goals.family === null, P.S().goals.family);
+  })();
+  // f3: the survival achievement descriptions name the era scope honestly
+  (function () {
+    var D = load().Data, a = function (id) { return D.achievements.filter(function (x) { return x.id === id; })[0]; };
+    check('P8 f3: survivor/two_depressions descriptions say the no-forced-sale rule is per era', /era/.test(a('survivor').desc) && /era/.test(a('two_depressions').desc));
+  })();
+})();
+
 /* ---------- Summary ---------- */
 console.log('tests: ' + passed + ' passed, ' + failed + ' failed');
 if (failed) { console.log('FAILURES:'); failures.forEach(function (f) { console.log('  - ' + f); }); }

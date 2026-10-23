@@ -133,7 +133,7 @@
     // Scenario (P5.4) and weekly challenge (P5.3) outcomes
     if (s.scenario) {
       if (s.status === 'bankrupt') s.scenario.result = 'lost';
-      else if (rep.ended) s.scenario.result = St.netWorth('player') >= s.scenario.targetNetWorth ? 'won' : 'lost';
+      else if (rep.ended && !s.scenario.result) s.scenario.result = St.netWorth('player') >= s.scenario.targetNetWorth ? 'won' : 'lost'; // P8.1 f11: a bankruptcy loss sticks even if the heir recovers
       rep.scenario = U.clone(s.scenario);
       if (s.scenario.result) { rep.headline = s.scenario.result === 'won' ? 'You came through the ' + s.scenario.name + ' with the house intact.' : 'The ' + s.scenario.name + ' beat the House of ' + s.dynasty.surname + '.'; }
     }
@@ -237,7 +237,7 @@
     s.stats.comebackFrom = s.stats.peakNetWorth; s.stats.bankruptcies++;
     s.cash = Math.max(Math.round(20 * s.priceIndex), Math.round(Math.max(0, s.cash) * B.comebackCashPct));
     s.reputation = B.comebackReputation; s.status = 'playing'; s.endReason = null;
-    s.stats.negativeCashYears = 0; s.stats.marginCallsMissed = 0; s.stats.forcedSalesThisEra = 0;
+    s.stats.negativeCashYears = 0; s.stats.marginCallsMissed = 0; // forcedSalesThisEra deliberately survives the heir: the crisis 'survive' goal cannot be un-failed by bankruptcy (P8.1 f9)
     s.events.pending = []; s.offers = []; s.auction = null;
     for (var k = 0; k < St.playerProps().length; k++) St.playerProps()[k].forSale = null;
     // the heir takes over without estate tax

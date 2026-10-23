@@ -16,7 +16,7 @@
     { id: 'rent_up', desc: 'Collect 15% more rent than last year.', available: function (s) { return s.lastRent > 0; }, baseline: function (s) { return s.lastRent; }, check: function (s, g) { return s.thisRent >= g.baseline * 1.15; } },
     { id: 'unlock_city', desc: 'Open an office in a new city this year.', available: function (s) { var c = PE.Cities.cheapestLocked(); return c && c.cost <= s.cash * 1.5 && c.repRequired <= s.reputation + 3; }, baseline: function (s) { return St.unlockedCities().length; }, check: function (s, g) { return St.unlockedCities().length > g.baseline; } },
     { id: 'reduce_ltv', desc: 'Cut your portfolio LTV by 5 points this year.', available: function (s) { return St.ltv('player') > 0.5; }, baseline: function (s) { return St.ltv('player'); }, check: function (s, g) { return St.ltv('player') <= g.baseline - 0.05; } },
-    { id: 'sell_profit', desc: 'Sell a building for more than you paid.', available: function (s) { return St.playerProps().some(function (p) { return p.purchasePrice && p.trueValue > p.purchasePrice * 1.2 && !p.renovation; }); }, baseline: function (s) { return s.stats.sold; }, check: function (s, g) { return s.stats.sold > g.baseline; } },
+    { id: 'sell_profit', desc: 'Sell a building for more than you paid.', available: function (s) { return St.playerProps().some(function (p) { return p.purchasePrice && p.trueValue > p.purchasePrice * 1.2 && !p.renovation; }); }, baseline: function (s) { return s.stats.soldProfit || 0; }, check: function (s, g) { return (s.stats.soldProfit || 0) > g.baseline; } },
     { id: 'reputation_up', desc: 'Raise reputation by 3 points this year.', available: function (s) { return s.reputation < 90; }, baseline: function (s) { return s.reputation; }, check: function (s, g) { return s.reputation >= g.baseline + 3; } }
   ];
   G.rewardFor = function () { var s = PE.S(); return Math.max(Math.round(10 * s.priceIndex), Math.round(Math.max(0, St.netWorth('player')) * 0.01)) * (St.hasPerk('purist') ? B.perkPuristGoalMult : 1); };
@@ -35,13 +35,20 @@
       s.goals.yearly = cg;
       return cg;
     }
-    if (!cands.length) cands = G.yearlyTemplates.filter(function (t) { return t.id === 'nw_up' || t.id === 'buy_below'; });
+    if (!cands.length) cands = G.yearlyTemplates.filter(function (t) { return (t.id === 'nw_up' || t.id === 'buy_below') && t.available(s); });
     // Armstrong's deleveraging track (P5.1) leans the yearly goals toward cutting LTV until it is done
     var fam = s.goals.family;
     if (fam && !fam.done && !fam.failed) { var rl = cands.filter(function (t) { return t.id === 'reduce_ltv'; }); if (rl.length) cands = cands.concat(rl, rl); }
+    if (!cands.length) { s.goals.yearly = null; return null; } // nothing feasible this year: no goal is honest (P8.1 f7)
     var t = R.pick(cands);
     var g = { id: t.id, desc: t.desc, baseline: t.baseline(s), year: s.year, reward: G.rewardFor() };
-    if (t.check(s, g)) { var alt = G.yearlyTemplates.filter(function (x) { return x.id !== t.id && x.available(s); })[0] || G.yearlyTemplates[0]; g = { id: alt.id, desc: alt.desc, baseline: alt.baseline(s), year: s.year, reward: G.rewardFor() }; }
+    if (t.check(s, g)) {
+      // already satisfied at assignment: swap to the first available template that isn't (P8.1 f7)
+      var alts = G.yearlyTemplates.filter(function (x) { return x.id !== t.id && x.available(s); });
+      g = null;
+      for (var ai = 0; ai < alts.length; ai++) { var ag = { id: alts[ai].id, desc: alts[ai].desc, baseline: alts[ai].baseline(s), year: s.year, reward: G.rewardFor() }; if (!alts[ai].check(s, ag)) { g = ag; break; } }
+      if (!g) { s.goals.yearly = null; return null; }
+    }
     s.goals.yearly = g;
     return g;
   };
@@ -65,10 +72,14 @@
   G.familyProgress = function (g) { if (!g) return ''; if (g.kind === 'ltv_below') return 'LTV ' + Math.round(St.ltv('player') * 100) + '% (target below ' + Math.round(g.target * 100) + '%)'; return ''; };
   G.assignEra = function () {
     var s = PE.S(), era = St.era(), def = D.eraGoals[era.id];
-    s.goals.era = { id: era.id, desc: def.desc, deadline: era.to, kind: def.kind, def: def, done: false, failed: false };
+    if (s.goals.eraDone[era.id]) { s.goals.era = null; return null; } // an era goal pays once per era per run (P8.1 f9: continueAsHeir re-arms)
+    if (era.to <= s.year) { s.goals.era = null; return null; } // a goal whose deadline is today is offered and failed in the same breath (P8.1 f5)
+    if (def.kind === 'survive' && s.stats.forcedSalesThisEra > 0) { s.goals.era = null; return null; } // already unwinnable this era; do not offer a doomed goal (P8.1 f9)
+    s.goals.era = { id: era.id, desc: def.desc, deadline: Math.min(era.to, s.endYear), kind: def.kind, def: def, done: false, failed: false }; // clamped so scenario-length runs still resolve the goal (P8.1 f6)
     return s.goals.era;
   };
   G.eraSatisfied = function (g) {
+    if (!g) return false;
     var s = PE.S(), def = g.def, props = St.playerProps();
     switch (def.kind) {
       case 'district_count': { var counts = {}; for (var i = 0; i < props.length; i++) if (props[i].cityId === def.city) { counts[props[i].district] = (counts[props[i].district] || 0) + 1; if (counts[props[i].district] >= def.count) return true; } return false; }
@@ -81,6 +92,7 @@
     return false;
   };
   G.eraProgress = function (g) {
+    if (!g) return '';
     var s = PE.S(), def = g.def, props = St.playerProps();
     switch (def.kind) {
       case 'district_count': { var best = 0, counts = {}; for (var i = 0; i < props.length; i++) if (props[i].cityId === def.city) { counts[props[i].district] = (counts[props[i].district] || 0) + 1; best = Math.max(best, counts[props[i].district]); } return best + '/' + def.count; }
@@ -138,7 +150,7 @@
       case 'two_depressions': return st.depressionsSurvived >= 2;
       case 'cash_king': return st.cashKingYears >= 1;
       case 'centenarian': return s.year - s.startYear >= 100;
-      case 'the_long_game': return s.status === 'ended' && s.year > s.endYear;
+      case 'the_long_game': return !s.scenario && !s.challenge && s.status === 'ended' && s.year > s.endYear; // campaign-only trophy (P8.1 f2)
       case 'wealth_1000x': return St.netWorth('player') >= s.startCash * 1000;
       case 'generation_6': return s.dynasty.generation >= 6;
       case 'scholar': return st.educated >= 3;
@@ -170,8 +182,9 @@
       g.history.push({ year: s.year, id: g.yearly.id, done: true });
       if (g.yearly.comeback && s.comeback) { s.comeback.stage++; if (s.comeback.stage >= G.comebackStages.length) { report.lines.push('The house is rebuilt. The comeback is complete.'); s.comeback = null; } }
     } else if (g.yearly) { g.history.push({ year: s.year, id: g.yearly.id, done: false }); report.goals.progress.push({ kind: 'yearly', id: g.yearly.id, desc: g.yearly.desc, done: false }); }
-    if (g.era && !g.era.done) {
+    if (g.era && !g.era.done && !g.era.failed) {
       if (G.eraSatisfied(g.era)) { g.era.done = true; var rw = Math.round(Math.max(0, St.netWorth('player')) * 0.03); s.cash += rw; s.reputation = U.clamp(s.reputation + 5, 0, 100); report.goals.achieved.push({ kind: 'era', id: g.era.id, desc: g.era.desc, reward: rw }); G._trackAchieved('era', g.era.id); g.eraDone[g.era.id] = true; }
+      else if (g.era.def.kind === 'survive' && s.stats.forcedSalesThisEra > 0) { g.era.failed = true; report.goals.progress.push({ kind: 'era', id: g.era.id, desc: g.era.desc, done: false, failed: true }); } // P8.1 f8: a forced sale fails the survive goal the year it happens, not at the deadline
       else if (s.year >= g.era.deadline) { g.era.failed = true; report.goals.progress.push({ kind: 'era', id: g.era.id, desc: g.era.desc, done: false, failed: true }); }
       else report.goals.progress.push({ kind: 'era', id: g.era.id, desc: g.era.desc, progress: G.eraProgress(g.era) });
     }

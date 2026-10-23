@@ -444,6 +444,7 @@
   M.completeSale = function (p, q, toOwner, report) {
     var s = PE.S();
     s.cash += q.cashGained; s.stats.sold++;
+    if (p.purchasePrice && q.price > p.purchasePrice) s.stats.soldProfit = (s.stats.soldProfit || 0) + 1; // P8.1 f4: the sell_profit yearly goal counts real profitable sales
     if (p.purchasePrice && q.price >= p.purchasePrice * 1.3) s.stats.flips++;
     for (var i = s.offers.length - 1; i >= 0; i--) if (s.offers[i].propertyId === p.id) s.offers.splice(i, 1);
     if (toOwner) { St.setOwner(p, toOwner); p.mortgage = null; p.purchasePrice = q.price; p.purchaseYear = s.year; p.forSale = null; }

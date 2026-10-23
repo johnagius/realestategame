@@ -113,10 +113,14 @@
     return r;
   });
   Game.recordChallenge = function () {
-    var s = PE.S(); if (!s || !s.challenge || s.challenge.recorded) return null;
+    var s = PE.S(); if (!s || !s.challenge) return null;
+    if (s.challenge.recordedEnd) return null; // final result already recorded
+    if (s.challenge.recorded && s.status !== 'ended') return null; // mid-run record already taken; only a finished run records again
     var meta = PE.Storage.loadMeta(), score = PE.Goals.challengeScore(), c = meta.challenges[s.challenge.week] || { best: 0, runs: 0, lastYear: null };
-    c.runs++; c.lastYear = s.year; c.best = Math.max(c.best, score); meta.challenges[s.challenge.week] = c;
+    if (!s.challenge.recorded) c.runs++; // one run counted once; best keeps tracking even across a mid-run bankruptcy + heir comeback (P8.1 f10)
+    c.lastYear = s.year; c.best = Math.max(c.best, score); meta.challenges[s.challenge.week] = c;
     PE.Storage.saveMeta(meta); s.challenge.recorded = true; s.challenge.score = score;
+    if (s.status === 'ended') s.challenge.recordedEnd = true;
     return c;
   };
   Game.challengeInfo = function (opts) {

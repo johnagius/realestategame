@@ -183,7 +183,7 @@
       events: { pending: [], thisYear: 0, log: [], modifiers: {} },
       paper: [],
       goals: { yearly: null, era: null, eraDone: {}, campaignTier: 0, achievements: [], history: [], family: null },
-      stats: { bought: 0, sold: 0, belowAsk: 0, auctionsWon: 0, renovations: 0, rebuilds: 0, refinances: 0, forcedSales: 0, forcedSalesThisEra: 0,
+      stats: { bought: 0, sold: 0, soldProfit: 0, belowAsk: 0, auctionsWon: 0, renovations: 0, rebuilds: 0, refinances: 0, forcedSales: 0, forcedSalesThisEra: 0,
                marginCallsMissed: 0, forcedSaleYears: [], negativeCashYears: 0, peakNetWorth: 0, bankruptcies: 0, comebackFrom: 0, flips: 0, brrrr: 0,
                rentTotal: 0, costTotal: 0, firstBuyYear: {}, cityUnlockYear: {}, depressionsSurvived: 0,
                steals: 0, countersClosed: 0, marginCallsCleared: 0, highLtvYears: 0, rank1Years: 0, educated: 0, marriages: 0, mergers: 0, vultures: 0, cashKingYears: 0, trustSuccessions: 0, evictions: 0, yearlyGoalsDone: 0, rothschildLoans: 0, outbidRivals: {},
@@ -234,7 +234,7 @@
     }
     if (scenario) State.scenarioPortfolio(fam, scenario);
     if (State.hasPerk('second_city') && !s.cities.paris.unlocked) { s.cities.paris.unlocked = true; s.cities.paris.unlockedYear = s.year; s.stats.cityUnlockYear.paris = s.year; }
-    if (State.hasPerk('purist')) { var pur = State.playerProps(); for (var qi = 0; qi < pur.length; qi++) pur[qi].mortgage = null; }
+    if (State.hasPerk('purist')) { var pur = State.playerProps(); for (var qi = 0; qi < pur.length; qi++) pur[qi].mortgage = null; if (s.goals.family && s.goals.family.kind === 'ltv_below') s.goals.family = null; } // P8.1 f1: purist strips the mortgages the deleverage track is about — the track would be satisfied at start
     for (var pi = 0, pp = State.playerProps(); pi < pp.length; pi++) PE.Property.initTenancy(pp[pi]);
 
     // Rivals

@@ -62,6 +62,7 @@
           var m = maps[mi]; if (!m) continue;
           for (var id in m) { var p = m[id]; if (p.letMode === undefined) p.letMode = 'long'; if (p.letLockUntil === undefined) p.letLockUntil = 0; }
         }
+        if (st.stats && st.stats.soldProfit === undefined) st.stats.soldProfit = 0; // P8.1 f4 counter
         return st;
       }
     },
