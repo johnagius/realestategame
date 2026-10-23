@@ -165,7 +165,29 @@
     body.push(h('div', { class: 'settings__row' }, [h('span', { text: '3D quality' }), seg('3D quality', [['auto', 'Auto'], ['low', 'Low'], ['high', 'High']], p.quality, 'set-quality')]));
     body.push(h('div', { class: 'settings__row' }, [h('span', { text: 'Theme' }), seg('Theme', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], p.theme, 'set-theme')]));
     body.push(h('div', { class: 'settings__row' }, [h('span', { text: 'First-years guide' }), PEUI.btn('Show again', { cls: 'btn--secondary btn--sm', icon: 'sparkle', action: 'guide-reset' })]));
-    body.push(h('div', { class: 'settings__row' }, [h('span', { text: 'Export save as JSON' }), PEUI.btn('Export', { cls: 'btn--secondary btn--sm', icon: 'download', action: 'set-export' })]));
+    body.push(h('div', { class: 'settings__row' }, [h('span', { text: 'Export current game as JSON' }), PEUI.btn('Export', { cls: 'btn--secondary btn--sm', icon: 'download', action: 'set-export' })]));
+    /* Save slots (P6.3): play, delete and import per slot. Export above always
+       exports the running game; slots below are the three on-device saves. */
+    body.push(h('div', { class: 'kicker', text: 'Save slots' }));
+    var cur = PE().Game.state(), activeSlot = cur ? (cur.saveSlot || 1) : 0;
+    var slots = PE().Storage.listSaves();
+    for (var si = 0; si < slots.length; si++) {
+      var sl = slots[si], isActive = sl.slot === activeSlot;
+      var row = h('div', { class: 'list-row' });
+      var title = h('div', { class: 'list-row__title' }, [h('span', { text: 'Slot ' + sl.slot + ' ' })]);
+      if (isActive) title.appendChild(PEUI.chip('Playing', 'success'));
+      var sub;
+      if (sl.corrupt) sub = h('div', { class: 'list-row__sub' }, [PEUI.chip('corrupt save', 'warn', 'warning')]);
+      else if (sl.exists) sub = h('div', { class: 'list-row__sub', text: (sl.familyName || 'A house') + ' · ' + (sl.year !== null ? sl.year : '?') + ' · ' + (sl.mode || 'campaign') });
+      else sub = h('div', { class: 'list-row__sub', text: 'Empty' });
+      row.appendChild(h('div', { class: 'list-row__main' }, [title, sub]));
+      var btns = h('div', { class: 'btn-row' });
+      if (sl.exists && !sl.corrupt && !isActive) btns.appendChild(PEUI.btn('Play', { cls: 'btn--secondary btn--sm', icon: 'check', action: 'slot-play', 'data-slot': sl.slot }));
+      btns.appendChild(PEUI.btn('Import', { cls: 'btn--ghost btn--sm', icon: 'download', action: 'slot-import', 'data-slot': sl.slot }));
+      if (sl.exists) btns.appendChild(PEUI.btn('Delete', { cls: 'btn--ghost btn--sm', icon: 'trash', action: 'slot-delete', 'data-slot': sl.slot }));
+      row.appendChild(btns);
+      body.push(row);
+    }
     body.push(h('div', { class: 'settings__row' }, [h('span', { text: 'Delete the saved game' }), PEUI.btn('Delete', { cls: 'btn--danger btn--sm', icon: 'trash', action: 'set-delete' })]));
     body.push(h('p', { class: 'small muted', text: 'Property Empire ' + PEUI.VERSION + ' · engine ' + PE().Game.version + '. Saves live on this device.' }));
     PEUI.sheet.open({ id: 'settings', title: 'Settings', body: body });
@@ -178,4 +200,67 @@
     PEUI.sheet.open({ id: 'confirm-delete', title: 'Delete the save?', back: 'open-settings', body: [h('p', { text: 'This removes the saved game from this device. The current run ends and cannot be recovered.' })], foot: h('div', { class: 'btn-row' }, [PEUI.btn('Keep it', { cls: 'btn--ghost', action: 'open-settings' }), PEUI.btn('Delete save', { cls: 'btn--danger', icon: 'trash', action: 'set-delete-confirm' })]) });
   };
   PEUI.actions['set-delete-confirm'] = function () { var r = PEUI.call(PE().Game.deleteSave); if (!r.ok) return; PEUI.sheet.close(); PE()._state = null; PEUI.toast('Save deleted.'); PEUI.leaveGame(); };
+
+  /* ---------- Save slots (P6.3) ---------- */
+  function slotRow(slot) { var slots = PE().Storage.listSaves(); for (var i = 0; i < slots.length; i++) if (slots[i].slot === slot) return slots[i]; return null; }
+  function activeSlot() { var s = PE().Game.state(); return s ? (s.saveSlot || 1) : 0; }
+  function slotName(sl) { return (sl && sl.familyName) || 'that house'; }
+
+  PEUI.actions['slot-play'] = function (b, d) {
+    var slot = +d.slot, sl = slotRow(slot); if (!sl || !sl.exists) return;
+    PEUI.sheet.open({
+      id: 'slot-play-confirm', title: 'Load slot ' + slot + '?', back: 'open-settings',
+      body: [h('p', { text: 'Load the ' + slotName(sl) + ' save from ' + (sl.year !== null ? sl.year : '?') + '? Your current game is saved first.' })],
+      foot: h('div', { class: 'btn-row' }, [PEUI.btn('Keep playing', { cls: 'btn--ghost', action: 'open-settings' }), PEUI.btn('Load save', { cls: 'btn--primary', icon: 'check', action: 'slot-play-confirm', 'data-slot': slot })])
+    });
+  };
+  PEUI.actions['slot-play-confirm'] = function (b, d) {
+    PEUI.call(PE().Game.save);
+    var r = PEUI.call(PE().Game.load, +d.slot); if (!r.ok) return;
+    PEUI.sheet.close(); PEUI.enterGame();
+  };
+  PEUI.actions['slot-delete'] = function (b, d) {
+    var slot = +d.slot;
+    if (slot === activeSlot()) { PEUI.toast('Finish or abandon this game from the start screen instead.', 'warn'); return; }
+    var sl = slotRow(slot); if (!sl || !sl.exists) return;
+    PEUI.sheet.open({
+      id: 'slot-delete-confirm', title: 'Delete slot ' + slot + '?', back: 'open-settings',
+      body: [h('p', { text: (sl.corrupt ? 'That corrupt save' : 'The ' + slotName(sl) + ' save from ' + (sl.year !== null ? sl.year : '?')) + ' is removed from this device. This cannot be undone.' })],
+      foot: h('div', { class: 'btn-row' }, [PEUI.btn('Keep it', { cls: 'btn--ghost', action: 'open-settings' }), PEUI.btn('Delete save', { cls: 'btn--danger', icon: 'trash', action: 'slot-delete-confirm', 'data-slot': slot })])
+    });
+  };
+  PEUI.actions['slot-delete-confirm'] = function (b, d) {
+    var r = PEUI.call(PE().Game.deleteSave, +d.slot); if (!r.ok) return;
+    PEUI.toast(r.message); PEUI.openSettings();
+  };
+  /* Import: a hidden file input behind the Import button; occupied slots confirm first. */
+  function pickImportFile(slot) {
+    var inp = h('input', { type: 'file', accept: '.json,application/json', style: 'position:absolute;left:-9999px;top:0' });
+    inp.addEventListener('change', function () {
+      var f = inp.files && inp.files[0];
+      if (inp.parentNode) inp.parentNode.removeChild(inp);
+      if (!f) return;
+      var rd = new FileReader();
+      rd.onload = function () {
+        var r = PEUI.call(PE().Storage.importSave, String(rd.result), slot); if (!r.ok) return;
+        PEUI.toast(r.message, 'success'); PEUI.openSettings();
+      };
+      rd.onerror = function () { PEUI.toast('Could not read that file.', 'danger'); };
+      rd.readAsText(f);
+    });
+    root.document.body.appendChild(inp);
+    inp.click();
+  }
+  PEUI.actions['slot-import'] = function (b, d) {
+    var slot = +d.slot, sl = slotRow(slot);
+    if (!sl || !sl.exists) { pickImportFile(slot); return; }
+    var msg = 'Slot ' + slot + ' holds the ' + slotName(sl) + ' save' + (sl.year !== null ? ' from ' + sl.year : '') + '. Importing a file overwrites it.';
+    if (slot === activeSlot()) msg += ' Your running game is untouched until you load this slot.';
+    PEUI.sheet.open({
+      id: 'slot-import-confirm', title: 'Import into slot ' + slot + '?', back: 'open-settings',
+      body: [h('p', { text: msg })],
+      foot: h('div', { class: 'btn-row' }, [PEUI.btn('Cancel', { cls: 'btn--ghost', action: 'open-settings' }), PEUI.btn('Choose file', { cls: 'btn--primary', icon: 'download', action: 'slot-import-pick', 'data-slot': slot })])
+    });
+  };
+  PEUI.actions['slot-import-pick'] = function (b, d) { pickImportFile(+d.slot); };
 })(window);

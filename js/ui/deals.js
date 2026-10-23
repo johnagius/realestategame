@@ -111,6 +111,8 @@
     PEUI.setText(el.querySelector('#deal-count'), items.length + ' listing' + (items.length === 1 ? '' : 's') + ' in ' + PEUI.cityName(view.city));
     var segs = el.querySelectorAll('#deal-sort .seg__btn'); for (var i = 0; i < segs.length; i++) segs[i].setAttribute('aria-pressed', String(segs[i].dataset.sort === view.sort));
     el.querySelector('#deal-afford').setAttribute('aria-pressed', String(view.affordable));
+    var gstate = PE().Game.state(), rr = el.querySelector('#deal-reroll');
+    if (rr) rr.classList.toggle('hidden', PEUI.adsRemoved() || !!(gstate && gstate.flags && gstate.flags.adRerollYear === gstate.year));
     if (!items.length) { PEUI.empty(list); list.appendChild(h('div', { class: 'empty' }, [icon('tag'), h('div', { text: 'Nothing on the board here. End the year for fresh listings.' })])); return; }
     PEUI.patchList(list, items, function (l) { return l.id; }, function (l) { return [l.askingPrice, l.condition, l.yearsListed, l.counterPrice, l.revealed, l.lowEstimate, s.cash, l.districtTrend].join('|'); }, function (l) { return dealCard(l, s.cash); });
     var auc = el.querySelector('#deal-auction');
@@ -132,6 +134,7 @@
       [['price', 'Price'], ['value', 'Best value'], ['yield', 'Yield']].forEach(function (o) { seg.appendChild(h('button', { type: 'button', class: 'seg__btn', 'data-action': 'deal-sort', 'data-sort': o[0], 'aria-pressed': 'false', text: o[1] })); });
       tools.appendChild(seg);
       tools.appendChild(h('button', { type: 'button', class: 'chip chip--tap chip--outline', id: 'deal-afford', 'data-action': 'deal-afford', 'aria-pressed': 'false' }, [icon('coin'), 'Affordable only']));
+      tools.appendChild(h('span', { class: 'row', id: 'deal-reroll' }, [PEUI.btn('Re-roll the board', { cls: 'btn--ghost btn--sm', icon: 'refresh', action: 'reroll-board', ariaLabel: 'Re-roll the deal board by watching an ad' }), h('span', { class: 'small muted', text: 'watch an ad' })]));
       boardWrap.appendChild(tools);
       var auc = h('div', { class: 'note note--warn hidden', id: 'deal-auction' }, [icon('gavel'), h('span', { class: 'grow', text: 'An auction is in progress.' }), PEUI.btn('Resume', { cls: 'btn--primary btn--sm', action: 'resume-auction' })]);
       boardWrap.appendChild(auc);
@@ -201,7 +204,12 @@
     if (!ap.revealed && PEUI.appraisal) box.appendChild(PEUI.appraisal.field(l, ap));
     var ratio = l.askingPrice / ap.estimate;
     box.appendChild(h('div', { class: 'note ' + (ratio < 0.93 ? 'note--success' : ratio > 1.07 ? 'note--warn' : '') }, [icon(ratio < 0.93 ? 'sparkle' : 'info'), h('span', { text: 'Asking is ' + Math.abs(Math.round((ratio - 1) * 100)) + '% ' + (ratio < 1 ? 'below' : 'above') + ' your estimate.' })]));
-    if (!ap.revealed) box.appendChild(PEUI.btn('Insider tip: reveal true value (1 per year)', { cls: 'btn--secondary btn--block', icon: 'key', action: 'insider-tip', 'data-id': l.id }));
+    if (!ap.revealed) {
+      box.appendChild(PEUI.btn('Insider tip: reveal true value (1 per year)', { cls: 'btn--secondary btn--block', icon: 'key', action: 'insider-tip', 'data-id': l.id }));
+      var gst = PE().Game.state(), fl = gst ? gst.flags : null;
+      if (fl && fl.insiderUsedYear === gst.year && fl.insiderAdYear !== gst.year && !PEUI.adsRemoved())
+        box.appendChild(PEUI.btn('One more tip — watch an ad', { cls: 'btn--ghost btn--block', icon: 'key', action: 'insider-tip-ad', 'data-id': l.id }));
+    }
     return box;
   }
 
@@ -312,6 +320,25 @@
     var r = PEUI.call(PE().Market.insiderTip, d.id); if (!r.ok) return;
     PEUI.toast('True value: ' + fmt.money(r.trueValue), 'success'); PEUI.save();
     offer.id = null; PEUI.openListing(d.id); PEUI.refresh();
+  };
+  /* Rewarded (P6.2): one extra tip a year once the free one is spent. */
+  PEUI.actions['insider-tip-ad'] = function (b, d) {
+    PEUI.rewarded('insider_tip', function () {
+      var r = PEUI.call(PE().Market.insiderTip, d.id, true); if (!r.ok) return;
+      PEUI.toast('True value: ' + fmt.money(r.trueValue), 'success'); PEUI.save();
+      offer.id = null; PEUI.openListing(d.id); PEUI.refresh();
+    });
+  };
+  /* Rewarded (P6.2): re-roll the deal board, once per year. The engine refuses a
+     second roll; we gate the button on flags.adRerollYear so the refusal only
+     surfaces if state moved under an open screen. */
+  PEUI.actions['reroll-board'] = function () {
+    var s = PE().Game.state(); if (!s) return;
+    if (s.flags && s.flags.adRerollYear === s.year) { PEUI.toast('The board was already re-rolled this year.', 'warn'); return; }
+    PEUI.rewarded('reroll_board', function () {
+      var r = PEUI.call(PE().Market.rerollBoard); if (!r.ok) return;
+      PEUI.save(); PEUI.sound('stamp'); PEUI.toast(r.message, 'success'); PEUI.refresh();
+    });
   };
   PEUI.inputs['offer-price'] = function (el) { offer.price = +el.value; el.setAttribute('aria-valuetext', fmt.money(offer.price)); var l = listingData(offer.id); if (l) refreshOffer(l); };
   PEUI.inputs['offer-ltv'] = function (el) { offer.ltv = (+el.value) / 100; var l = listingData(offer.id); if (l) refreshOffer(l); };

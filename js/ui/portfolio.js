@@ -200,7 +200,13 @@
     body.push(h('div', { class: 'meter' }, [h('span', { text: 'LTV' }), PEUI.bar(p.ltv, PEUI.ltvKind(p.ltv), [0.85]), h('span', { text: p.mortgage ? Math.round(p.ltv * 100) + '% · covenant 85%' : 'No mortgage' })]));
     var ws = warningsFor(id, fs);
     for (var w = 0; w < ws.length; w++) body.push(h('div', { class: 'note ' + (ws[w].kind === 'margin_call' ? 'note--danger' : 'note--warn') }, [icon('warning'), h('span', { text: ws[w].text })]));
-    if (p.renovation) body.push(h('div', { class: 'note note--info' }, [icon('hammer'), h('span', { text: renoName(p.renovation.tier) + ' in progress: ready in ' + p.renovation.yearsLeft + ' year' + (p.renovation.yearsLeft > 1 ? 's' : '') + '. No rent meanwhile.' })]));
+    if (p.renovation) {
+      body.push(h('div', { class: 'note note--info' }, [icon('hammer'), h('span', { text: renoName(p.renovation.tier) + ' in progress: ready in ' + p.renovation.yearsLeft + ' year' + (p.renovation.yearsLeft > 1 ? 's' : '') + '. No rent meanwhile.' })]));
+      /* Rewarded (P6.2): shave a year off the works, once per year, never the last year. */
+      var gst = PE().Game.state(), sfl = gst ? gst.flags : null;
+      if (p.renovation.yearsLeft > 1 && !(sfl && sfl.speedupYear === gst.year) && !PEUI.adsRemoved())
+        body.push(PEUI.btn('Speed up the works — watch an ad (1 per year)', { cls: 'btn--secondary btn--block', icon: 'hammer', action: 'prop-speedup', 'data-id': id }));
+    }
     if (p.forSale) body.push(h('div', { class: 'note note--warn' }, [icon('tag'), h('span', { class: 'grow', text: 'On the market since ' + p.forSale.year + '; a buyer is expected by year end.' }), PEUI.btn('Withdraw', { cls: 'btn--ghost btn--sm', action: 'prop-sell', 'data-id': id, 'data-mode': 'cancel' })]));
     if (p.mortgage) body.push(h('dl', { class: 'quote' }, [h('dt', { text: 'Mortgage · ' + p.mortgage.lender }), h('dd', { class: 'num', text: fmt.money(p.mortgage.principal) }), h('dt', { text: (p.mortgage.type === 'amort' ? 'Amortising, ' + p.mortgage.yearsLeft + ' yrs left' : 'Interest-only') + (p.mortgage.fixed ? ', fixed' : ', variable') }), h('dd', { class: 'num', text: (p.mortgage.rate * 100).toFixed(2) + '%' }), h('dt', { text: 'Annual payment' }), h('dd', { class: 'num neg', text: fmt.money(pay) })]));
     // rival offers on this property
@@ -356,6 +362,13 @@
       }
     }
     PEUI.refresh(); if (PEUI.cityUpdateProperty) PEUI.cityUpdateProperty(d.id);
+  };
+  PEUI.actions['prop-speedup'] = function (b, d) {
+    PEUI.rewarded('renovation_speedup', function () {
+      var r = PEUI.call(PE().Property.speedUpRenovation, d.id); if (!r.ok) return;
+      PEUI.save(); PEUI.sound('stamp'); PEUI.toast(r.message, 'success');
+      PEUI.openProperty(d.id); PEUI.refresh();
+    });
   };
   PEUI.actions['prop-refi'] = function (b, d) {
     var p = propData(d.id); if (!p) return;

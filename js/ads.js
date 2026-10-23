@@ -273,6 +273,7 @@ var AdManager = {
   _onAdsRemoved: function () {
     this._adsRemoved = true;
     try { localStorage.setItem('pe_ads_removed', 'true'); } catch (e) {}
+    try { if (typeof PE !== 'undefined' && PE.Analytics && PE.Analytics.track) PE.Analytics.track('remove_ads_purchased'); } catch (e) {}
     var ad = document.getElementById('ad-interstitial'); if (ad) ad.remove();
     if (this._peui() && this._peui().toast) this._peui().toast('Ads removed. Thank you for supporting Property Empire.', 'success');
   },

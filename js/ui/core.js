@@ -128,6 +128,24 @@
   };
   PEUI.save = function () { try { if (root.PE && root.PE.Game && root.PE.Game.state()) root.PE.Game.save(); } catch (e) {} };
 
+  /* ---------- Rewarded ads: one helper for every placement.
+     Callers decide button visibility; this only plays the ad, grants on a true
+     reward, and reports the watch to analytics. skip_quiet_years stays unwired
+     by design (the 5-year free skip is the only time skip). ---------- */
+  PEUI.rewarded = function (placement, grant) {
+    var AM = root.AdManager;
+    if (!AM || typeof AM.rewarded !== 'function') { PEUI.toast('Ads are not available here.'); return; }
+    AM.rewarded(placement, function (res) {
+      if (res && res.rewarded === true) {
+        try { if (root.PE && root.PE.Analytics) root.PE.Analytics.track('rewarded_watched', { placement: placement }); } catch (e) {}
+        try { grant(); } catch (e) { console.error('reward grant', e); PEUI.toast('Something went wrong: ' + e.message, 'danger'); }
+      } else {
+        PEUI.toast('No reward — the ad was not completed.');
+      }
+    });
+  };
+  PEUI.adsRemoved = function () { return !!(root.AdManager && root.AdManager.isAdsRemoved && root.AdManager.isAdsRemoved()); };
+
   /* ---------- Toast: one element, aria-live, coalesced ---------- */
   var toastEl = null, toastTimer = null, toastLast = { text: '', count: 0, at: 0 };
   PEUI.toast = function (text, kind) {
