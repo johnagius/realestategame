@@ -362,10 +362,16 @@
   function showEnd() {
     var L = PE().Game.legacy(), s = PE().Game.state(), st = PE().Game.summary(); if (!L.ok) return;
     var fallen = s.status === 'bankrupt', el = document.getElementById('titlecard'); PEUI.empty(el);
+    var scen = L.mode === 'scenario' ? (L.scenario || s.scenario) : null, chall = L.mode === 'challenge' ? (L.challenge || s.challenge) : null;
+    var scenWon = scen && scen.result === 'won', lost = fallen || (scen && !scenWon);
     var inner = h('div', { class: 'titlecard__inner' });
-    inner.appendChild(h('div', { class: 'titlecard__k', text: fallen ? 'The end of a chapter' : 'The year 2030' }));
-    inner.appendChild(h('h1', { class: 'titlecard__t', text: fallen ? 'The House of ' + s.dynasty.surname + ' has fallen' : 'The House of ' + s.dynasty.surname + ' endures' }));
-    inner.appendChild(h('p', { class: 'titlecard__s', text: fallen ? (s.endReason || '') + '. ' + L.generation + ' generation' + (L.generation > 1 ? 's' : '') + ', ' + L.cities + ' cit' + (L.cities === 1 ? 'y' : 'ies') + ', reputation ' + Math.round(L.reputation) + '.' : 'From 1850 to 2030: ' + L.generation + ' generations, ' + L.cities + ' cities, net worth ' + fmt.money(L.netWorth) + ', rank #' + st.rank + '.' }));
+    inner.appendChild(h('div', { class: 'titlecard__k', text: fallen ? 'The end of a chapter' : scen ? scen.name : chall ? 'Weekly challenge · ' + chall.week : 'The year ' + s.endYear }));
+    inner.appendChild(h('h1', { class: 'titlecard__t', text: fallen ? 'The House of ' + s.dynasty.surname + ' has fallen' : scen ? (scenWon ? 'The House of ' + s.dynasty.surname + ' endures' : 'The ' + scen.name + ' beats the House of ' + s.dynasty.surname) : 'The House of ' + s.dynasty.surname + ' endures' }));
+    var years = 'From ' + s.startYear + ' to ' + Math.min(s.year - 1, s.endYear) + ': ';
+    inner.appendChild(h('p', { class: 'titlecard__s', text: fallen ? (s.endReason || '') + '. ' + L.generation + ' generation' + (L.generation > 1 ? 's' : '') + ', ' + L.cities + ' cit' + (L.cities === 1 ? 'y' : 'ies') + ', reputation ' + Math.round(L.reputation) + '.' :
+      scen ? (scenWon ? 'You came through with the house intact. ' : 'The house is beaten, but the name survives. ') + years + 'net worth ' + fmt.money(L.netWorth) + ' (started at ' + fmt.money(s.startNetWorth) + ').' :
+      chall ? years + 'net worth ' + fmt.money(L.netWorth) + '. Final score ' + fmt.int((s.challenge && s.challenge.score) || 0) + '.' :
+      years + L.generation + ' generations, ' + L.cities + ' cities, net worth ' + fmt.money(L.netWorth) + ', rank #' + st.rank + '.' }));
     var absorbed = s.lastReport && s.lastReport.absorbed;
     if (fallen && absorbed) {
       var absDef = PE().Data.rivalById(absorbed.rivalId);
@@ -375,14 +381,14 @@
     inner.appendChild(h('div', { class: 'stat-grid stat-grid--3', style: 'width:100%;text-align:left' }, [
       h('div', { class: 'stat' }, [h('span', { class: 'stat__label', style: 'color:var(--hud-ink-2)', text: 'Legacy score' }), h('span', { class: 'stat__value num', text: fmt.int(L.score) })]),
       h('div', { class: 'stat' }, [h('span', { class: 'stat__label', style: 'color:var(--hud-ink-2)', text: 'Achievements' }), h('span', { class: 'stat__value num', text: String(L.achievements) })]),
-      h('div', { class: 'stat' }, [h('span', { class: 'stat__label', style: 'color:var(--hud-ink-2)', text: 'Legacy points' }), h('span', { class: 'stat__value num', text: fmt.int((L.meta && L.meta.legacyPoints) || 0) + ' + ' + fmt.int(L.score) })])
+      h('div', { class: 'stat' }, [h('span', { class: 'stat__label', style: 'color:var(--hud-ink-2)', text: 'Legacy points' }), h('span', { class: 'stat__value num', text: fmt.int((L.meta && L.meta.legacyPoints) || 0) + ' + ' + fmt.int(L.pointsIfRecorded) })])
     ]));
     var row = h('div', { class: 'btn-row', style: 'width:100%' });
     if (fallen) row.appendChild(PEUI.btn('Continue as the heir', { cls: 'btn--secondary btn--lg', icon: 'crown', action: 'end-heir' }));
     row.appendChild(PEUI.btn('Start a new dynasty', { cls: 'btn--gold btn--lg', icon: 'sparkle', action: 'end-new' }));
     inner.appendChild(row);
     el.appendChild(inner); el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false');
-    if (!fallen) { PEUI.confetti(80); PEUI.sound('fanfare'); } else PEUI.sound('alarm');
+    if (!lost) { PEUI.confetti(80); PEUI.sound('fanfare'); } else PEUI.sound('alarm');
   }
   PEUI.showEnd = showEnd;
   PEUI.actions['end-heir'] = function () {
@@ -395,7 +401,7 @@
     var r = PEUI.call(PE().Game.newDynasty, {}); if (!r.ok) return;
     document.getElementById('titlecard').classList.remove('is-open');
     PE().Game.deleteSave(slot); PE()._state = null;
-    PEUI.toast('Legacy recorded: ' + fmt.int(r.legacyScore) + ' points.', 'success');
+    PEUI.toast('Legacy recorded: ' + fmt.int(r.legacyPointsEarned || 0) + ' prestige point' + (r.legacyPointsEarned === 1 ? '' : 's') + '.', 'success');
     PEUI.leaveGame();
   };
 

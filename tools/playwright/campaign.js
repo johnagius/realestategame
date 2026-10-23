@@ -144,7 +144,7 @@ async function tryBuy(page) {
       if (s2.year > s2.endYear) { endState = s2; break; } // fell at the finish line: terminal
       heirs++;
       await act(page, 'end-heir'); await sleep(500); await dismissOverlays(page);
-    }
+    } else if (r === 'end' && s2.status !== 'playing') { endState = await summary(page); break; }
     if (!reloadChecked && s2.year >= 1900 && s2.status === 'playing') {
       reloadChecked = true;
       const before = { year: s2.year, cash: s2.cash, nw: s2.netWorth, props: s2.properties };
@@ -153,7 +153,6 @@ async function tryBuy(page) {
       const after = await summary(page);
       check('save/reload preserves progress mid-campaign', after.year === before.year && after.cash === before.cash && after.netWorth === before.nw && after.properties === before.props, { before, after: { year: after.year, cash: after.cash, nw: after.netWorth, props: after.properties } });
     }
-    if (r === 'end' && s2.status !== 'playing') { endState = await summary(page); break; }
     if (yearsPlayed > 220) { console.log('ABORT: runaway loop'); break; }
   }
   const fin = await page.evaluate(() => ({ status: PE.S().status, year: PE.S().year, endYear: PE.S().endYear, achievements: PE.S().goals.achievements.slice(), legacy: PE.Goals.legacyScore(), eraDone: Object.keys(PE.S().goals.eraDone), cash: PE.S().cash }));
@@ -164,13 +163,12 @@ async function tryBuy(page) {
   // end-new records legacy and returns to the start screen
   await act(page, 'end-new'); await sleep(800);
   const meta = await page.evaluate(() => PE.Storage.loadMeta());
-  check('legacy recorded exactly once for the finished run', (meta.runs || []).length === 1 && meta.legacyPoints === fin.legacy, { runs: (meta.runs || []).length, legacyPoints: meta.legacyPoints, legacy: fin.legacy });
+  check('legacy recorded exactly once for the finished run', (meta.runs || []).length === 1 && meta.legacyPoints === Math.floor(fin.legacy / 500), { runs: (meta.runs || []).length, legacyPoints: meta.legacyPoints, legacy: fin.legacy });
   console.log('campaign: years played', yearsPlayed, 'heir continuations', heirs, 'final year', fin.year);
 
   /* ---------- Part 2: crash1929 scenario through the real UI ---------- */
   await page.goto(URL, { waitUntil: 'load' }); await sleep(2000);
-  await act(page, 'start-new'); await sleep(300);
-  await act(page, 'open-scenarios'); await sleep(500);
+  await act(page, 'open-scenarios'); await sleep(500); // splash link; the New dynasty panel covers it
   await act(page, 'scen-start', '[data-id="crash1929"]'); await sleep(800);
   await dismissOverlays(page);
   const scenSeed = await page.evaluate(() => PE.S().seed);
