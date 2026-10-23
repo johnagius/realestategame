@@ -67,9 +67,9 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 - [x] **P6.3 Save system** — versioned saves, 3 slots, export/import, cloud save (Play Games / iCloud) later. _(slots + importSave cf55a08; slot routing + Settings slot manager d19200d + 4dbbeee)_
 - [x] **P6.4 Performance** — < 2 s cold start on mid-range Android, 60 fps city view on `low`, memory stable over a 180-year game. _(docs/PERF.md: first paint 0.58 s, heap flat over 60 scripted years, 0 page errors; frameMs FAIL only under SwiftShader software GL — re-measure on a real device before launch)_
 - [x] **P6.5 Localisation scaffolding** — all strings through `PE.T()`, English + 1 test locale. _(l10n.js: data-t hooks + PE.T, fr test locale, cf55a08)_
-- [ ] **P6.6 Store assets** — icon, feature graphic, 8 screenshots per form factor, 30 s trailer captured from the hero splash and city view. _(partial: icon, feature graphic, 4 phone screenshots in store-assets/ via tools/make-store-assets.js; tablet set and 30 s trailer outstanding)_
+- [ ] **P6.6 Store assets** — icon, feature graphic, 8 screenshots per form factor, 30 s trailer captured from the hero splash and city view. _(icon, feature graphic, 4 styled phone frames via tools/make-store-assets.js; 8 REAL in-game screenshots per form factor (phone 1290×2796, tablet 2048×2732) via tools/playwright/store-shots.js in store-assets/real-*.png; 30 s trailer outstanding — capture from hero splash + city view)_
 - [ ] **P6.7 Soft launch** — 2 countries, analytics events (year reached, first mortgage, first auction win, bankruptcy, D1/D7 retention), tune from data. _(analytics wired d19200d per docs/analytics.md, local-only until a backend + consent exist; the 2-country launch itself is a store action)_
 
 ## Phase 7 — Live ops (post-launch)
 
-- [ ] Monthly event packs, new cities as paid/earned packs, online weekly leaderboard, dynasty sharing cards.
+- [x] Monthly event packs, new cities as paid/earned packs, online weekly leaderboard, dynasty sharing cards. _(infrastructure cf55a08: pack loader + validator with fx-vocabulary tests, city pack registration, local-first leaderboard with the two-function backend swap contract (docs/live-ops.md), heraldic share card; "online" and monthly packs go live when a backend exists — post-launch by design)_
