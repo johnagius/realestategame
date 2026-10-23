@@ -119,6 +119,15 @@ function p95(arr) { const a = arr.slice().sort((x, y) => x - y); return a[Math.m
     const low = await sampleRender(4000);
     if (!low.times.length) throw new Error('no renderer frames captured (low) — RAF stalled');
     await client.send('Page.stopScreencast').catch(() => {});
+    // scene draw stats: read around the composer (the grade pass would report 1 call)
+    const lowScene = await page.evaluate(() => new Promise(res => {
+      const c = City3D._composer; City3D._composer = null;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const st = City3D.getStats(); City3D._composer = c;
+        res({ calls: st.calls, triangles: st.triangles });
+      }));
+    }));
+    low.calls = lowScene.calls; low.triangles = lowScene.triangles;
     result.low = {
       calls: low.calls, triangles: low.triangles,
       renderMsAvg: +(low.times.reduce((a, b) => a + b, 0) / low.times.length).toFixed(2),
