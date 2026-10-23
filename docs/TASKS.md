@@ -46,11 +46,11 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done.
 
 ## Phase 4 — Breadth returns as era unlocks (only what passed the audit)
 
-- [ ] **P4.1 Fixed-rate mortgages and bonds** (Boom era) — hedge vs rate cycle.
-- [ ] **P4.2 Own bank** (Modern era, prestige-gated) — lend to rivals, earn spread, risk defaults.
-- [ ] **P4.3 Build-to-suit** (land + developer deals) — replace old build-on-land; tie to Okonkwo rival behaviour.
-- [ ] **P4.4 City traits v2** — keep: rent control, boom & bust, tax haven, heritage, redevelopment, tourism, tech hub, foreign-buyer; cut: density premium, crime pressure, elite enclave, monsoon (fold into events).
-- [ ] **P4.5 Cut list** — businesses/stakes/mergers, stocks, savings-as-feature, insurance menus, auto-sell rules, tax shelters: do not return unless redesigned to pass pillar 1.
+- [x] **P4.1 Fixed-rate mortgages and bonds** (Boom era) — hedge vs rate cycle. _(engine cf55a08; fixed-rate in the offer sheet since v8.x; bonds desk UI 66ae40f; 18 tests + accounting fixes d2a261f; canon §16.3)_
+- [x] **P4.2 Own bank** (Modern era, prestige-gated) — lend to rivals, earn spread, risk defaults. _(engine cf55a08; triple-counted-principal bug fixed + 14 tests d2a261f; bank panel UI 66ae40f; canon §16.3)_
+- [x] **P4.3 Build-to-suit** (land + developer deals) — replace old build-on-land; tie to Okonkwo rival behaviour. _(engine cf55a08; commission UI on land sheets 66ae40f; 14 tests d2a261f; canon §16.3)_
+- [x] **P4.4 City traits v2** — keep: rent control, boom & bust, tax haven, heritage, redevelopment, tourism, tech hub, foreign-buyer; cut: density premium, crime pressure, elite enclave, monsoon (fold into events). _(engine cf55a08; 18 effect-proof tests d2a261f; canon §16.3)_
+- [x] **P4.5 Cut list** — businesses/stakes/mergers, stocks, savings-as-feature, insurance menus, auto-sell rules, tax shelters: verified absent from the v8 engine in v8.8; do not return unless redesigned to pass pillar 1. _(canon §16.3)_
 
 ## Phase 5 — Retention systems
 

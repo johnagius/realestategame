@@ -496,3 +496,42 @@ simulator was tuned against them. They are now canon.
   +5% rent, +1 reputation a year, but rivals are 3× as likely to bid on it
   (+15% premium) and random events target it 2.5× as often. Selling lowers
   the colours.
+
+### 16.3 Decisions added with Phase 4 breadth (v8.8, P4.1–P4.5)
+
+- **Fixed-rate mortgages (P4.1)** exist from the Boom era at +1% over the
+  variable quote (`fixedPremium`); the rate is locked for the life of the loan
+  while variable loans re-price every year. This is the hedge against the
+  announced-but-noisy rate cycle: you pay for certainty.
+- **Government bonds (P4.1)** open in the Boom era: 5-year stock, coupon fixed
+  at base rate + 0.5% at purchase, face repaid at maturity. Early sale is at a
+  market value that moves inversely to the base rate (±(coupon − base) × years
+  left, clamped 0.5–1.5× face) — rates up, bonds down. Total face is capped at
+  30% of net worth. Bonds are the low-yield safe harbour with rate risk, not a
+  wealth engine.
+- **Own bank (P4.2)** opens in the Modern era behind the own_bank prestige
+  perk (6 legacy points). Capital is committed cash; the engine lends the idle
+  pool to solvent rivals at base + 2.5–4% (aggressive houses borrow more and
+  pay more). Interest is income; loan repayments stay in the vault (they are
+  already counted in net worth as bank capital — paying them out as cash
+  duplicated money, fixed in v8.8). A borrower's bankruptcy writes its loan
+  off against capital; losing all capital ruins the bank. Recall stops new
+  lending and winds every loan back over 2 years, returning the capital.
+- **Build-to-suit (P4.3)** replaces v7 build-on-land: commission a class
+  (tenement/workhorse/prestige, era-mapped to real types) at a spec
+  (modest/standard/grand: cost fraction vs value multiple). Cost is staged
+  over the build years; delivered value = cost × era factor × spec multiple ×
+  the district's drift during the build ± noise — a rising district makes the
+  same commission profitable, a falling one burns it. Okonkwo & Sons charge
+  +10% for half the delay risk (unavailable if bankrupt; allied-only after a
+  merger). The Builder trait still cuts 15%.
+- **City traits v2 (P4.4)** keeps eight traits, each with one legible
+  mechanical effect (rent control, redevelopment, tax haven, tech hub,
+  heritage, boom & bust, tourism, foreign-buyer). Elite enclave, density
+  premium, crime pressure and monsoon are cut — no city carries them and the
+  modifiers are removed; monsoon-style weather lives in events.
+- **Cut list (P4.5)** verified absent from the v8 engine: businesses, stakes,
+  business mergers, stocks, savings products, insurance menus, auto-sell
+  rules, tax shelters. (The insurance *event card* and compulsory era
+  insurance cost stay — they are decisions and background, not menus.) These
+  return only redesigned to pass pillar 1.
