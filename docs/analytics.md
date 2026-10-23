@@ -23,9 +23,21 @@ PE.Analytics.onFlush = null          // the future backend hook — assign a sen
 Storage: `localStorage` key `pe_v8_analytics`, a plain JSON array — survives
 restarts, trivially inspectable, capped at 200 events (~25 KB worst case).
 
-The **web build tracks nothing** (`docs/privacy-policy.md`). Call-sites are
-wired by the UI owner where the moments happen (see table); until then the
-queue simply stays empty in shipped builds.
+Engine call-sites fire the gameplay events at the source moments (see table):
+`PE.Game.newGame`/`newChallenge` (`game_started`), `PE.Turn.endYear`
+(`year_reached`, `bankruptcy`), `PE.Turn.continueAsHeir` (`comeback`),
+`PE.Finance.takeMortgage` (`first_mortgage`), the `PE.Market` auction-win paths
+(`first_auction_win`), `PE.Property.renovate`/`commissionBuild`
+(`first_renovation`), `PE.Cities.unlock` (`city_unlocked`),
+`PE.Dynasty.proposeMarriage`/`mergeWithAlly` (`heir_married`/`dynasty_merged`)
+and `PE.Goals.evaluate` (`goal_achieved`, yearly/era/family/campaign kinds).
+The `first_*` events are deduped once per run via flags in `s.flags`.
+The two monetisation events (`remove_ads_purchased`, `rewarded_watched`) are
+UI/ads.js moments, wired by the UI owner.
+
+Everything stays in the local ring buffer: nothing is transmitted until a
+backend assigns `onFlush` and the app build's consent flow has run
+(`docs/privacy-policy.md`).
 
 ## Event taxonomy
 

@@ -106,6 +106,7 @@
     if (q.principal <= 0) return PE.fail('Nothing to borrow');
     p.mortgage = F.makeMortgage('player', q.principal, q.type, q.fixed);
     s.cash += q.principal;
+    if (PE.Analytics && !s.flags.firstMortgageTracked) { s.flags.firstMortgageTracked = true; PE.Analytics.track('first_mortgage', { ltv: q.ltv, type: q.type }); }
     if (p.mortgage.lender === 'N M Rothschild & Sons') s.stats.rothschildLoans++;
     return PE.ok({ message: 'Borrowed ' + U.fmt(q.principal) + ' at ' + (q.rate * 100).toFixed(2) + '%.', mortgage: p.mortgage, cash: s.cash });
   };

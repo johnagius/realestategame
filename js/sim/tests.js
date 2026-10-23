@@ -967,6 +967,60 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   })());
 })();
 
+/* ---------- P6.2 Rewarded-ad rewards (engine half) ---------- */
+(function () {
+  var PE = fresh('vanderbilt', 31), s = PE.S();
+  var before = JSON.stringify(s.listings);
+  var r1 = PE.Market.rerollBoard();
+  check('P6.2: rerollBoard refreshes the board and reports the listing count', r1.ok && r1.count === Object.keys(s.listings).length && r1.count > 0 && JSON.stringify(s.listings) !== before && s.flags.adRerollYear === s.year, r1.message);
+  var r2 = PE.Market.rerollBoard();
+  check('P6.2: a second re-roll the same year is refused', !r2.ok && /already re-rolled/.test(r2.message), r2.message);
+  s.year++;
+  var r3 = PE.Market.rerollBoard();
+  check('P6.2: the board can be re-rolled again next year', r3.ok && s.flags.adRerollYear === s.year);
+  check('P6.2: rerollBoard and speedUpRenovation are guarded public calls (no game => ok:false, never throws)', (function () { var P9 = load(); return P9.Market.rerollBoard().ok === false && P9.Property.speedUpRenovation('x').ok === false && typeof P9.Market._rerollBoard === 'function' && typeof P9.Property._speedUpRenovation === 'function'; })());
+})();
+(function () {
+  var PE = fresh('vanderbilt', 32), s = PE.S();
+  var L = PE.Market.listingArray('london');
+  var free = PE.Market.insiderTip(L[0].id);
+  var freeAgain = PE.Market.insiderTip(L[1].id);
+  var ad = PE.Market.insiderTip(L[1].id, true);
+  var adAgain = PE.Market.insiderTip(L[2].id, true);
+  check('P6.2: free tip then one ad tip the same year both succeed; a third tip is refused', free.ok && !freeAgain.ok && ad.ok && !adAgain.ok && L[0].revealed && L[1].revealed && !L[2].revealed && s.flags.insiderUsedYear === s.year && s.flags.insiderAdYear === s.year, [freeAgain.message, adAgain.message]);
+  check('P6.2: the ad-tip refusal is in-world', /whispered/.test(adAgain.message), adAgain.message);
+  var P2 = fresh('vanderbilt', 33), s2 = P2.S();
+  var M2 = P2.Market.listingArray('london');
+  var adFirst = P2.Market.insiderTip(M2[0].id, true);
+  var freeAfter = P2.Market.insiderTip(M2[1].id);
+  check('P6.2: an ad tip while the free tip is unused leaves the free tip available', adFirst.ok && freeAfter.ok && s2.flags.insiderAdYear === s2.year && s2.flags.insiderUsedYear === s2.year);
+})();
+(function () {
+  var PE = fresh('vanderbilt', 34), s = PE.S(), P = PE.Property;
+  var idle = PE.Market.genProperty('london', { type: 'terrace', condition: 70 }); PE.State.setOwner(idle, 'player');
+  check('P6.2: speed-up refuses a property with no work under way', !P.speedUpRenovation(idle.id).ok);
+  s.cash = 1e6;
+  var p = PE.Market.genProperty('london', { type: 'terrace', condition: 30 }); PE.State.setOwner(p, 'player');
+  var rf = P.renovate(p.id, 'refurbish'); // London is a heritage city: 2 years
+  check('P6.2: speed-up shaves a year off a renovation', rf.ok && p.renovation.yearsLeft === 2 && P.speedUpRenovation(p.id).ok && p.renovation.yearsLeft === 1 && s.flags.speedupYear === s.year);
+  var again = P.speedUpRenovation(p.id);
+  check('P6.2: one speed-up a year', !again.ok && /bribed twice/.test(again.message), again.message);
+  s.flags.speedupYear = -1;
+  var late = P.speedUpRenovation(p.id);
+  check('P6.2: a job with one year left needs no encouragement', !late.ok && /Nearly done/.test(late.message) && p.renovation.yearsLeft === 1, late.message);
+  clearEvents(PE);
+  var rep = PE.Game.endYear();
+  check('P6.2: the sped-up renovation completes on the next endYear', rep.ok && !p.renovation && p.condition > 60, [rep.message, p.condition]);
+  var P2 = fresh('chen', 35), s2 = P2.S();
+  var land = P2.Market.genProperty('london', { type: 'land', district: 'Camden' }); P2.State.setOwner(land, 'player'); s2.cash = 1e7;
+  var cb = P2.Property.commissionBuild(land.id, 'prestige', 'grand'); // 2-year build (+1 if delayed)
+  var yl0 = land.buildJob.yearsLeft;
+  var sp = P2.Property.speedUpRenovation(land.id);
+  check('P6.2: speed-up ticks a commissioned build on both timers', cb.ok && sp.ok && land.renovation.tier === 'build' && land.buildJob.yearsLeft === yl0 - 1 && land.renovation.yearsLeft === yl0 - 1, [yl0, sp.yearsLeft]);
+  var g2 = 0; while (land.buildJob && g2++ < 6) { clearEvents(P2); P2.Game.endYear(); }
+  check('P6.2: the sped-up build completes normally via endYear', !land.buildJob && !land.renovation && land.type !== 'land' && s2.stats.buildsDone === 1, [g2, land.type]);
+})();
+
 /* ---------- P6.3 Save slots + import ---------- */
 (function () {
   var PE = fresh('chen', 701), pl = require('./players.js')(PE);
@@ -1017,6 +1071,35 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
     P6.Game.deleteSave();
     return ok && P6.Game.hasSave().hasSave === false && !P6.Game.load().ok;
   })());
+})();
+
+/* ---------- P6.3 Game-level slot plumbing (saveSlot + meta.activeSlot) ---------- */
+(function () {
+  var PE = fresh('chen', 702), s = PE.S();
+  s.saveSlot = 2;
+  var sv = PE.Game.save();
+  check('P6.3: Game.save writes to s.saveSlot and remembers it in meta.activeSlot', sv.ok && sv.slot === 2 && PE.Storage.has(2) && !PE.Storage.has(1) && PE.Storage.loadMeta().activeSlot === 2);
+  var l = PE.Storage.listSaves();
+  check('P6.3: listSaves meta (year/familyName/mode) is right for the used slot', l[1].exists && l[1].year === s.year && l[1].familyName === s.familyName && l[1].mode === 'campaign' && !l[0].exists && !l[2].exists);
+  s.cash = -777;
+  var ld = PE.Game.load();
+  check('P6.3: Game.load() defaults to meta.activeSlot and restores saveSlot', ld.ok && ld.slot === 2 && PE.S().saveSlot === 2 && PE.S().cash !== -777);
+  PE.S().cash = 555;
+  var ld2 = PE.Game.load(2);
+  check('P6.3: Game.load(2) loads slot 2 and sets saveSlot=2', ld2.ok && ld2.slot === 2 && PE.S().saveSlot === 2 && PE.S().cash !== 555);
+  check('P6.3: Game.hasSave passes the slot through', PE.Game.hasSave(2).hasSave === true && PE.Game.hasSave(3).hasSave === false);
+  PE.Game.deleteSave(2);
+  check('P6.3: Game.deleteSave(2) clears only slot 2', !PE.Storage.has(2) && PE.Game.hasSave(2).hasSave === false);
+  var P2 = fresh('silva', 703);
+  delete P2.S().saveSlot; // a pre-P6.3 save has no slot field
+  P2.Storage.save(P2.S(), 1);
+  var ld3 = P2.Game.load(1);
+  check('P6.3: an old save without saveSlot loads as slot 1', ld3.ok && P2.S().saveSlot === 1);
+  var exported = JSON.stringify({ saveVersion: P2.Storage.SAVE_VERSION, state: P2.S() });
+  var P3 = load();
+  var imp = P3.Storage.importSave(exported, 3);
+  var ld4 = P3.Game.load(3);
+  check('P6.3: importSave into slot 3, then Game.load(3) starts that run', imp.ok && imp.slot === 3 && ld4.ok && ld4.slot === 3 && P3.S().familyId === 'silva' && P3.S().saveSlot === 3 && P3.Storage.loadMeta().activeSlot === 3);
 })();
 
 /* ---------- P6.5 l10n scaffolding ---------- */
@@ -1092,6 +1175,48 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
     var sent = PE.Analytics.flush(), n2 = PE.Analytics.count();
     PE.Analytics.onFlush = null;
     return kept === 0 && n1 === 200 && sent === 200 && n2 === 0 && PE.Analytics.flush() === 0;
+  })());
+  check('P6.7: newGame fires game_started once; a challenge run reports mode challenge', (function () {
+    var P2 = load();
+    P2.Game.newGame({ familyId: 'chen', seed: 1 });
+    var ev = P2.Analytics.events().filter(function (e) { return e.e === 'game_started'; });
+    var ok1 = ev.length === 1 && ev[0].p.family === 'chen' && ev[0].p.mode === 'campaign';
+    P2.Game.newChallenge({ week: '2025-W01' });
+    var ev2 = P2.Analytics.events().filter(function (e) { return e.e === 'game_started'; });
+    return ok1 && ev2.length === 2 && ev2[1].p.mode === 'challenge' && ev2[1].p.family === 'chen';
+  })());
+  check('P6.7: endYear fires year_reached once with the taxonomy props', (function () {
+    var P3 = fresh('chen', 2); P3.Analytics.clear();
+    P3.S().events.pending = [];
+    var r = P3.Game.endYear();
+    var ev = P3.Analytics.events().filter(function (e) { return e.e === 'year_reached'; });
+    return r.ok && ev.length === 1 && ev[0].p.year === P3.S().year && typeof ev[0].p.era === 'string' && typeof ev[0].p.netWorth === 'number' && typeof ev[0].p.rank === 'number';
+  })());
+  check('P6.7: the first mortgage fires first_mortgage exactly once', (function () {
+    var P4 = fresh('chen', 3); P4.Analytics.clear();
+    var a = P4.Market.genProperty('london', { type: 'terrace', condition: 70 }); P4.State.setOwner(a, 'player');
+    var b = P4.Market.genProperty('london', { type: 'terrace', condition: 70 }); P4.State.setOwner(b, 'player');
+    var t1 = P4.Finance.takeMortgage(a.id, 0.5, 'io');
+    var t2 = P4.Finance.takeMortgage(b.id, 0.6, 'amort');
+    var ev = P4.Analytics.events().filter(function (e) { return e.e === 'first_mortgage'; });
+    return t1.ok && t2.ok && ev.length === 1 && ev[0].p.ltv === 0.5 && ev[0].p.type === 'io';
+  })());
+  check('P6.7: the house falling fires bankruptcy with year and netWorth', (function () {
+    var P5 = fresh('chen', 4); P5.Analytics.clear();
+    P5.S().cash = -1e9; P5.S().events.pending = [];
+    var r = P5.Game.endYear();
+    var ev = P5.Analytics.events().filter(function (e) { return e.e === 'bankruptcy'; });
+    return r.ok && r.bankrupt && ev.length === 1 && ev[0].p.year === r.year && typeof ev[0].p.netWorth === 'number';
+  })());
+  check('P6.7: the first renovation fires first_renovation exactly once (renovate, then commissionBuild)', (function () {
+    var P6 = fresh('vanderbilt', 5); P6.Analytics.clear();
+    var p = P6.Market.genProperty('london', { type: 'terrace', condition: 30 }); P6.State.setOwner(p, 'player');
+    var land = P6.Market.genProperty('london', { type: 'land', district: 'Camden' }); P6.State.setOwner(land, 'player');
+    P6.S().cash = 1e7;
+    var r1 = P6.Property.renovate(p.id, 'patch');
+    var r2 = P6.Property.commissionBuild(land.id, 'workhorse', 'standard');
+    var ev = P6.Analytics.events().filter(function (e) { return e.e === 'first_renovation'; });
+    return r1.ok && r2.ok && ev.length === 1 && ev[0].p.tier === 'patch';
   })());
 })();
 

@@ -20,18 +20,30 @@
         .concat(sel.filter(function (id) { var p = D.perkById(id); return p && p.kind === 'mode' && (owned.indexOf(id) >= 0 || opts.unlockedPerks === true); }));
     } else opts.perks = opts.perks.filter(function (id) { return owned.indexOf(id) >= 0 || opts.unlockedPerks === true; });
     var s = St.newGame(opts);
+    if (PE.Analytics) { var gp = { family: s.familyId, mode: s.mode || 'campaign' }; if (s.scenario) gp.scenario = s.scenario.id; PE.Analytics.track('game_started', gp); }
     var where = s.scenario ? D.cityById[St.unlockedCities()[0]].name + ', ' + s.year + ' (' + s.scenario.name + ')' : 'London, ' + s.year;
     return PE.ok({ state: s, message: 'The ' + s.dynasty.surname + ' dynasty begins in ' + where + '.', scenario: s.scenario ? U.clone(s.scenario) : null, perks: s.perks.slice() });
   });
   Game.state = function () { return PE.S(); };
-  Game.save = g('save', function () { PE.Storage.save(PE.S()); return PE.ok({ message: 'Saved.' }); });
-  Game.load = g('load', function () {
-    var s = PE.Storage.load(); if (!s) return PE.fail('No save');
-    PE._state = s; PE.RNG.bind(s);
-    return PE.ok({ state: s, message: 'Loaded ' + s.familyName + ', ' + s.year + '.' });
+  /* P6.3: saves go to the run's slot (s.saveSlot, default 1); the slot the player
+     last played is remembered in meta.activeSlot so a relaunch continues there. */
+  Game.save = g('save', function () {
+    var s = PE.S(), slot = s.saveSlot || 1;
+    PE.Storage.save(s, slot);
+    var meta = PE.Storage.loadMeta(); meta.activeSlot = slot; PE.Storage.saveMeta(meta);
+    return PE.ok({ message: 'Saved.', slot: slot });
   });
-  Game.hasSave = g('hasSave', function () { return PE.ok({ hasSave: PE.Storage.has() }); });
-  Game.deleteSave = g('deleteSave', function () { PE.Storage.remove(); return PE.ok({ message: 'Save deleted.' }); });
+  Game.load = g('load', function (slot) {
+    var meta = PE.Storage.loadMeta();
+    var n = (slot === undefined || slot === null) ? (meta.activeSlot || PE.Storage.DEFAULT_SLOT) : slot;
+    var s = PE.Storage.load(n); if (!s) return PE.fail('No save');
+    s.saveSlot = PE.Storage.slotOf(n) || PE.Storage.DEFAULT_SLOT; // old saves without the field behave as slot 1
+    meta.activeSlot = s.saveSlot; PE.Storage.saveMeta(meta);
+    PE._state = s; PE.RNG.bind(s);
+    return PE.ok({ state: s, slot: s.saveSlot, message: 'Loaded ' + s.familyName + ', ' + s.year + '.' });
+  });
+  Game.hasSave = g('hasSave', function (slot) { return PE.ok({ hasSave: PE.Storage.has(slot) }); });
+  Game.deleteSave = g('deleteSave', function (slot) { PE.Storage.remove(slot); return PE.ok({ message: 'Save deleted.' }); });
   Game.endYear = g('endYear', PE.Turn.endYear);
   Game.skipQuietYears = g('skipQuietYears', PE.Turn.skipQuietYears);
   Game.continueAsHeir = g('continueAsHeir', PE.Turn.continueAsHeir);
@@ -131,7 +143,7 @@
 
   /* Public, guarded API per bible §13 (modules keep their raw functions for internal use). */
   function wrap(mod, names) { for (var i = 0; i < names.length; i++) (function (n) { var raw = mod[n]; mod[n] = g(n, raw); mod['_' + n] = raw; })(names[i]); }
-  wrap(PE.Market, ['listings', 'appraise', 'makeOffer', 'bid', 'withdraw', 'sell', 'offersOnMyProperties', 'respondToOffer', 'insiderTip']);
+  wrap(PE.Market, ['listings', 'appraise', 'makeOffer', 'bid', 'withdraw', 'sell', 'offersOnMyProperties', 'respondToOffer', 'insiderTip', 'rerollBoard']);
   wrap(PE.Finance, ['mortgageQuote', 'takeMortgage', 'refinance', 'repay', 'summary']);
   wrap(PE.Property, ['renovate', 'setRent', 'setFlagship', 'releaseFlagship', 'hireManager', 'fireManager']);
   wrap(PE.Dynasty, ['summary', 'chooseHeir', 'educate', 'setupTrust', 'dissolveTrust', 'toggleCharity', 'proposeMarriage', 'mergeWithAlly']);

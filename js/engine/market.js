@@ -165,6 +165,16 @@
     s.boardYear = s.year;
   };
 
+  /* Rewarded ad (P6.2): re-roll the deal board, once per year. */
+  M.rerollBoard = function () {
+    var s = PE.S();
+    if (s.flags.adRerollYear === s.year) return PE.fail('The board was already re-rolled this year');
+    s.flags.adRerollYear = s.year;
+    M.refreshBoard();
+    var n = M.listingArray(null).length;
+    return PE.ok({ message: 'Word goes round the agents; fresh cards come in. ' + n + ' properties on the board.', count: n });
+  };
+
   /* Fill a city's board up to the target count (used on refresh and on unlock). */
   M.topUpCity = function (cid, n, target, bp) {
     var s = PE.S();
@@ -234,11 +244,18 @@
     }
     return PE.ok({ listings: out, snappedUp: snapped, boardYear: s.boardYear, revealedId: s.flags.chenRevealId, allyRevealedId: s.flags.allyRevealId || null });
   };
-  M.insiderTip = function (listingId) {
+  /* One free tip a year; a rewarded ad (P6.2) buys ONE more via a separate flag. */
+  M.insiderTip = function (listingId, viaAd) {
     var s = PE.S(), l = s.listings[listingId];
     if (!l) return PE.fail('No such listing');
-    if (s.flags.insiderUsedYear === s.year) return PE.fail('One insider tip per year');
-    s.flags.insiderUsedYear = s.year; l.revealed = true;
+    if (viaAd) {
+      if (s.flags.insiderAdYear === s.year) return PE.fail('The agent has already whispered to you this year.');
+      s.flags.insiderAdYear = s.year;
+    } else {
+      if (s.flags.insiderUsedYear === s.year) return PE.fail('One insider tip per year');
+      s.flags.insiderUsedYear = s.year;
+    }
+    l.revealed = true;
     return PE.ok({ trueValue: l.trueValue, listingId: l.id });
   };
 
@@ -263,6 +280,15 @@
     if (s.cycle.phase === 'boom') f += 0.03;
     if (s.cycle.phase === 'depression') f -= 0.05;
     return f;
+  };
+
+  /* P6.7: the first auction the player ever wins above asking. Fires once per run. */
+  M._trackAuctionWin = function (price, asking) {
+    var s = PE.S();
+    if (!PE.Analytics || s.flags.firstAuctionTracked) return;
+    if (!(asking > 0) || price <= asking) return;
+    s.flags.firstAuctionTracked = true;
+    PE.Analytics.track('first_auction_win', { premium: Math.round((price / asking - 1) * 100) });
   };
 
   M.buy = function (l, price, financing, buyerId) {
@@ -340,12 +366,13 @@
     s.auction = a;
     if (!bidders.length) {
       // nobody turned up
+      M._trackAuctionWin(openingBid, l.askingPrice);
       var res = M.buy(l, openingBid, financing, 'player'); s.auction = null; s.stats.auctionsWon++;
       return PE.ok({ outcome: 'accepted', price: openingBid, property: PE.Property.view(res.property), message: 'No rival bid. ' + res.property.name + ' is yours for ' + U.fmt(openingBid) + '.' });
     }
     // rivals open against the player's price
     var resp = M.rivalResponse(a, openingBid);
-    if (!resp) { var r2 = M.buy(l, openingBid, financing, 'player'); s.auction = null; s.stats.auctionsWon++; return PE.ok({ outcome: 'accepted', price: openingBid, property: PE.Property.view(r2.property), message: 'Rivals looked, but none bid. Yours for ' + U.fmt(openingBid) + '.' }); }
+    if (!resp) { M._trackAuctionWin(openingBid, l.askingPrice); var r2 = M.buy(l, openingBid, financing, 'player'); s.auction = null; s.stats.auctionsWon++; return PE.ok({ outcome: 'accepted', price: openingBid, property: PE.Property.view(r2.property), message: 'Rivals looked, but none bid. Yours for ' + U.fmt(openingBid) + '.' }); }
     return PE.ok({ outcome: 'auction', auction: M.auctionView(a), taunt: resp.taunt, message: D.rivalById(resp.rivalId).name + ' bid ' + U.fmt(resp.bid) + ' against you. Bid again or withdraw.' });
   };
   M.rivalResponse = function (a, playerBid) {
@@ -372,6 +399,7 @@
     a.round++; a.playerBid = price; a.currentBid = price; a.leader = 'player'; a.log.push({ who: 'player', bid: price });
     var resp = M.rivalResponse(a, price);
     if (!resp) {
+      M._trackAuctionWin(price, l.askingPrice);
       var res = M.buy(l, price, a.financing, 'player'); s.auction = null; s.stats.auctionsWon++;
       M.outbidRivals(a);
       return PE.ok({ outcome: 'won', price: price, round: a.round, currentBid: price, property: PE.Property.view(res.property), taunt: a.bidders && a.bidders.length ? PE.Rivals.taunt(a.bidders[0].id, 'lose') : '', message: 'Going, going, gone. ' + res.property.name + ' for ' + U.fmt(price) + '.' });

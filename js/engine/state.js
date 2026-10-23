@@ -159,6 +159,7 @@
     var endYear = scenario ? Math.min(D.endYear, startYear + B.scenarioYears) : (opts.endYear || D.endYear);
     var s = {
       saveVersion: PE.Storage.SAVE_VERSION,
+      saveSlot: (function () { var n = Math.floor(Number(opts.saveSlot)); return (n >= 1 && n <= PE.Storage.SLOTS) ? n : 1; })(),
       seed: seed, rng: PE.RNG.hashSeed(seed),
       year: D.startYear, startYear: startYear, endYear: endYear,
       mode: scenario ? 'scenario' : (opts.challenge ? 'challenge' : 'campaign'),
@@ -190,7 +191,9 @@
       history: [],
       lastReport: null,
       perks: perks,
-      flags: { insiderUsedYear: 0, chenRevealId: null, allyRevealId: null, warLeaseUntil: 0, vacancyUntil: 0, renoDiscountUntil: 0, surveyorUntil: 0, bombInsured: false, insuredUntil: 0, extraDistressed: 0, extraLand: 0 }
+      flags: { insiderUsedYear: 0, chenRevealId: null, allyRevealId: null, warLeaseUntil: 0, vacancyUntil: 0, renoDiscountUntil: 0, surveyorUntil: 0, bombInsured: false, insuredUntil: 0, extraDistressed: 0, extraLand: 0,
+               adRerollYear: 0, insiderAdYear: 0, speedupYear: 0,
+               firstMortgageTracked: false, firstAuctionTracked: false, firstRenoTracked: false }
     };
     PE._state = s;
     PE.RNG.bind(s);

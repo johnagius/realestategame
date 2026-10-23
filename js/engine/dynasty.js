@@ -220,6 +220,7 @@
     }
     m.married = rivalId; rv.allied = true; s.stats.marriages++;
     s.dynasty.alliances.push({ rivalId: rivalId, memberId: memberId, year: s.year });
+    if (PE.Analytics) PE.Analytics.track('heir_married', { rival: rivalId });
     PE.Rivals.adjustRelation(rivalId, B.marriageAcceptRelation, 'marriage');
     rv.lastAction = 'Welcomed ' + m.name + ' into the family.';
     return PE.ok({ accepted: true, chance: p, message: m.name + ' marries into ' + rd.name + '. Their agents will share one listing a year and they will never bid against you.' });
@@ -250,6 +251,7 @@
     }
     rv.cash = 0; rv.merged = true; rv.mergedYear = s.year; rv.bankrupt = true; rv.bankruptYear = s.year; rv.allied = false; rv.lastAction = 'Merged into the House of ' + s.dynasty.surname + '.';
     s.dynasty.mergers = (s.dynasty.mergers || 0) + 1; s.stats.mergers++;
+    if (PE.Analytics) PE.Analytics.track('dynasty_merged', { rival: a.rivalId });
     return PE.ok({ message: 'The ' + a.name.replace(/^The /, '') + ' fold ' + props.length + ' building(s) into your house for ' + U.fmt(a.cost) + ' in duties.', properties: props.length, cost: a.cost, rivalId: a.rivalId });
   };
 

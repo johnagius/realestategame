@@ -157,22 +157,26 @@
     return false;
   };
 
+  /* P6.7: one analytics event per goal achieved (yearly/era/family/campaign). */
+  G._trackAchieved = function (kind, id) { if (PE.Analytics) PE.Analytics.track('goal_achieved', { kind: kind, id: id }); };
+
   /* Called at endYear before the year advances. */
   G.evaluate = function (report) {
     var s = PE.S(), g = s.goals, i;
     if (g.yearly && G.yearlySatisfied(g.yearly)) {
       s.cash += g.yearly.reward; s.reputation = U.clamp(s.reputation + 1, 0, 100); s.stats.yearlyGoalsDone++;
       report.goals.achieved.push({ kind: 'yearly', id: g.yearly.id, desc: g.yearly.desc, reward: g.yearly.reward });
+      G._trackAchieved('yearly', g.yearly.id);
       g.history.push({ year: s.year, id: g.yearly.id, done: true });
       if (g.yearly.comeback && s.comeback) { s.comeback.stage++; if (s.comeback.stage >= G.comebackStages.length) { report.lines.push('The house is rebuilt. The comeback is complete.'); s.comeback = null; } }
     } else if (g.yearly) { g.history.push({ year: s.year, id: g.yearly.id, done: false }); report.goals.progress.push({ kind: 'yearly', id: g.yearly.id, desc: g.yearly.desc, done: false }); }
     if (g.era && !g.era.done) {
-      if (G.eraSatisfied(g.era)) { g.era.done = true; var rw = Math.round(Math.max(0, St.netWorth('player')) * 0.03); s.cash += rw; s.reputation = U.clamp(s.reputation + 5, 0, 100); report.goals.achieved.push({ kind: 'era', id: g.era.id, desc: g.era.desc, reward: rw }); g.eraDone[g.era.id] = true; }
+      if (G.eraSatisfied(g.era)) { g.era.done = true; var rw = Math.round(Math.max(0, St.netWorth('player')) * 0.03); s.cash += rw; s.reputation = U.clamp(s.reputation + 5, 0, 100); report.goals.achieved.push({ kind: 'era', id: g.era.id, desc: g.era.desc, reward: rw }); G._trackAchieved('era', g.era.id); g.eraDone[g.era.id] = true; }
       else if (s.year >= g.era.deadline) { g.era.failed = true; report.goals.progress.push({ kind: 'era', id: g.era.id, desc: g.era.desc, done: false, failed: true }); }
       else report.goals.progress.push({ kind: 'era', id: g.era.id, desc: g.era.desc, progress: G.eraProgress(g.era) });
     }
     if (g.family && !g.family.done && !g.family.failed) {
-      if (G.familySatisfied(g.family)) { g.family.done = true; g.family.doneYear = s.year; var rw3 = Math.round(Math.max(0, St.netWorth('player')) * 0.03); s.cash += rw3; s.reputation = U.clamp(s.reputation + 5, 0, 100); report.goals.achieved.push({ kind: 'family', id: g.family.id, desc: g.family.desc, reward: rw3 }); }
+      if (G.familySatisfied(g.family)) { g.family.done = true; g.family.doneYear = s.year; var rw3 = Math.round(Math.max(0, St.netWorth('player')) * 0.03); s.cash += rw3; s.reputation = U.clamp(s.reputation + 5, 0, 100); report.goals.achieved.push({ kind: 'family', id: g.family.id, desc: g.family.desc, reward: rw3 }); G._trackAchieved('family', g.family.id); }
       else if (s.year >= g.family.deadline) { g.family.failed = true; St.rep(-5); report.goals.progress.push({ kind: 'family', id: g.family.id, desc: g.family.desc, done: false, failed: true }); }
       else report.goals.progress.push({ kind: 'family', id: g.family.id, desc: g.family.desc, progress: G.familyProgress(g.family) });
     }
@@ -180,6 +184,7 @@
       var t = D.campaignTiers[g.campaignTier]; g.campaignTier++;
       var rw2 = Math.round(Math.max(0, St.netWorth('player')) * 0.02); s.cash += rw2; s.reputation = U.clamp(s.reputation + 3, 0, 100);
       report.goals.achieved.push({ kind: 'campaign', id: t.id, desc: t.name + ': ' + t.desc, reward: rw2 });
+      G._trackAchieved('campaign', t.id);
     }
     G.checkAchievements(report);
   };

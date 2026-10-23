@@ -39,6 +39,7 @@
     if (s.reputation < rep) return PE.fail('Reputation ' + rep + ' needed to be received in ' + c.name);
     if (s.cash < cost) return PE.fail('Expansion costs ' + U.fmt(cost));
     s.cash -= cost; cs.unlocked = true; cs.unlockedYear = s.year; s.stats.cityUnlockYear[cityId] = s.year;
+    if (PE.Analytics) PE.Analytics.track('city_unlocked', { city: cityId });
     PE.Market.topUpCity(cityId);
     return PE.ok({ message: 'An office opens in ' + c.name + '.', cost: cost, city: C.info(cityId) });
   };

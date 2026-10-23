@@ -113,6 +113,7 @@
         var abRv = s.rivals[absorbRival]; if (abRv) abRv.lastAction = 'Absorbed ' + absorbCount + ' of your buildings.';
       }
       s.comeback = { from: Math.max(1, s.stats.peakNetWorth), year: s.year, stage: 0 };
+      if (PE.Analytics) PE.Analytics.track('bankruptcy', { year: s.year, netWorth: nw });
     }
     s.stats.peakNetWorth = Math.max(s.stats.peakNetWorth, nw);
     // 8. Advance the year
@@ -150,6 +151,7 @@
     if (s.bhvLog.length > 11) s.bhvLog.splice(1, 1); // keep the baseline plus the last 10 years
     rep.netWorthAfter = St.netWorth('player'); rep.equityChange = rep.netWorthAfter - rep.netWorthBefore; rep.cashAfter = s.cash; rep.rank.after = St.rank();
     s.history.push({ year: s.year, netWorth: rep.netWorthAfter, cash: s.cash, debt: St.debt('player'), rank: rep.rank.after, props: St.propertyCount('player') });
+    if (PE.Analytics) PE.Analytics.track('year_reached', { year: s.year, era: St.era().id, netWorth: rep.netWorthAfter, rank: rep.rank.after });
     T.decorate(rep);
     s.lastReport = { headline: rep.headline, cliffhanger: rep.cliffhanger, year: rep.year, equityChange: rep.equityChange, rank: rep.rank, absorbed: rep.absorbed || null };
     return PE.ok(rep);
@@ -235,6 +237,7 @@
     if (kids.length) { var old = s.dynasty.head; old.alive = false; s.dynasty.deaths.push({ year: s.year, name: old.name, age: old.age, generation: s.dynasty.generation, disgraced: true }); kids[0].relation = 'head'; s.dynasty.head = kids[0]; s.dynasty.generation++; }
     s.dynasty.trust = false;
     PE.Market.refreshBoard(); PE.Goals.assignYearly(); PE.Goals.assignEra(); PE.Events.makePaper();
+    if (PE.Analytics) PE.Analytics.track('comeback');
     return PE.ok({ message: 'The heir keeps ' + (keep ? keep.name : 'nothing but the name') + ' and ' + U.fmt(s.cash) + '. The rest is gone.', kept: keep ? keep.id : null, cash: s.cash });
   };
 

@@ -238,6 +238,7 @@
     s.cash -= cost;
     s.stats.renovations++;
     var years = t.years; if (tier === 'refurbish' && P.city(p).trait === 'heritage_city') years += 1;
+    if (PE.Analytics && !s.flags.firstRenoTracked) { s.flags.firstRenoTracked = true; PE.Analytics.track('first_renovation', { tier: tier }); }
     if (years === 0) { P.applyRenovation(p, tier); return PE.ok({ message: D.renovation[tier].name + ' done. Condition now ' + Math.round(p.condition) + ' (' + P.band(p).name + ').', cost: cost, property: p }); }
     // Risk is rolled now but revealed at completion.
     var risk = t.risk * (St.hasPerk('builders_guild') ? 0.5 : 1);
@@ -279,6 +280,21 @@
     P.applyRenovation(p, r.tier);
     line += ' Now ' + P.band(p).name + ', worth ' + U.fmt(p.trueValue) + '.';
     return { propertyId: p.id, text: line };
+  };
+
+  /* Rewarded ad (P6.2): shave one year off work in progress, once per year.
+     Covers build-to-suit jobs too (renovation {tier:'build'} + buildJob): both
+     timers tick, never below 1 — completion stays with the endYear machinery. */
+  P.speedUpRenovation = function (propertyId) {
+    var s = PE.S(), p = s.properties[propertyId];
+    if (!p || p.ownerId !== 'player') return PE.fail('Not your property');
+    if (!p.renovation) return PE.fail('No works under way here');
+    if (s.flags.speedupYear === s.year) return PE.fail('One speed-up a year; the yard cannot be bribed twice.');
+    if (p.renovation.yearsLeft <= 1) return PE.fail('Nearly done — the yard needs no encouragement.');
+    s.flags.speedupYear = s.year;
+    p.renovation.yearsLeft = Math.max(1, p.renovation.yearsLeft - 1);
+    if (p.buildJob) p.buildJob.yearsLeft = Math.max(1, p.buildJob.yearsLeft - 1);
+    return PE.ok({ message: 'Coin in the foreman\'s pocket: ' + p.name + ' will be ready a year sooner (' + p.renovation.yearsLeft + ' to go).', yearsLeft: p.renovation.yearsLeft });
   };
 
   /* ---------- Build-to-suit (P4.3): commission a building on a plot you own ----------
@@ -351,6 +367,7 @@
     p.buildJob = { cls: cls, spec: spec, developer: q.developer, targetType: q.targetType, totalCost: q.totalCost, stageCost: q.stageCost, lastStage: q.lastStage, stages: q.stages, paid: 1, yearsLeft: years, delay: delay, ppsqmAtStart: St.district(p.cityId, p.district).ppsqm, started: s.year };
     p.renovation = { tier: 'build', yearsLeft: years, started: s.year }; // scaffolding on the 3D map
     s.stats.builds = (s.stats.builds || 0) + 1;
+    if (PE.Analytics && !s.flags.firstRenoTracked) { s.flags.firstRenoTracked = true; PE.Analytics.track('first_renovation', { tier: 'build' }); }
     var msg = (q.developer ? 'Okonkwo & Sons break ground' : 'Builders break ground') + ' on ' + p.name + ': a ' + q.specName.toLowerCase() + ' ' + q.targetName.toLowerCase() + ', ready in about ' + sp.years + ' year' + (sp.years > 1 ? 's' : '') + '.';
     return PE.ok({ message: msg, cost: q.stageCost, years: years, job: U.clone(p.buildJob) });
   };
@@ -442,5 +459,5 @@
       var raw = mod[n]; if (typeof raw !== 'function') return;
       mod[n] = PE.guard(n, raw); mod['_' + n] = raw;
     })(names[i]);
-  })(P, ['commissionQuote', 'commissionBuild']);
+  })(P, ['commissionQuote', 'commissionBuild', 'speedUpRenovation']);
 })(typeof window !== 'undefined' ? window : global);
