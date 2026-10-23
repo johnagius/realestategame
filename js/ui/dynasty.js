@@ -41,6 +41,7 @@
     fam.appendChild(h('div', { class: 'section-head' }, [h('h2', { text: 'Heirs and family' }), h('span', { class: 'small muted', text: 'Education ' + fmt.money(d.educationCost) })]));
     var members = d.members.filter(function (m) { return m.relation !== 'head'; });
     if (!members.length) fam.appendChild(h('p', { class: 'small muted', style: 'padding:8px 0', text: 'No children yet. Births happen while the head is 22–45. Without an heir, a cousin inherits with a tax penalty.' }));
+    else fam.appendChild(h('p', { class: 'small muted', style: 'padding:8px 0', text: 'Children grow up watching how you run the empire — the last decade shapes their traits.' }));
     for (var i = 0; i < members.length; i++) {
       var m = members[i], row = h('div', { class: 'member' });
       row.appendChild(h('span', { class: 'crest', style: 'background:' + (m.disgraced ? '#777' : s.color), text: m.name.charAt(0) }));

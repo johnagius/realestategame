@@ -12,9 +12,37 @@
     var s = PE.S();
     return { id: St.nextId('m'), name: R.pick(D.firstNames[gender]), gender: gender, age: age, born: s.year - age, traits: traits, relation: relation, educated: false, married: null, alive: true, disgraced: false };
   };
+  /* ENG-B7: children grow up watching how the house is run — trait rolls are weighted by the
+     player's last-decade behaviour (see the yearly snapshot in turn.js). No log → uniform. */
+  Dy.traitWeights = function () {
+    var w = {}, i;
+    for (i = 0; i < D.traitIds.length; i++) w[D.traitIds[i]] = 1;
+    var log = PE.S().bhvLog || [];
+    if (log.length < 2) return w;
+    var sum = { renovations: 0, builds: 0, refinances: 0, bought: 0, sold: 0, belowAsk: 0, auctionsWon: 0, flips: 0, evictions: 0, highLtv: 0, charity: 0, repHigh: 0, decay: 0 };
+    for (i = 1; i < log.length; i++) {
+      var e = log[i], pr = log[i - 1];
+      sum.renovations += e.renovations - pr.renovations; sum.builds += e.builds - pr.builds;
+      sum.refinances += e.refinances - pr.refinances; sum.bought += e.bought - pr.bought; sum.sold += e.sold - pr.sold;
+      sum.belowAsk += e.belowAsk - pr.belowAsk; sum.auctionsWon += e.auctionsWon - pr.auctionsWon;
+      sum.flips += e.flips - pr.flips; sum.evictions += e.evictions - pr.evictions;
+      sum.highLtv += e.highLtv; sum.charity += e.charity; sum.repHigh += e.repHigh; sum.decay += e.decay;
+    }
+    w.builder += 2 * U.clamp((sum.renovations + sum.builds) / 8, 0, 1);
+    w.banker += 2 * U.clamp((sum.refinances + sum.highLtv) / 6, 0, 1);
+    w.charmer += 2 * U.clamp((sum.charity + sum.repHigh) / 6, 0, 1);
+    w.negotiator += 1.5 * U.clamp((sum.bought + sum.sold) / 12, 0, 1);
+    w.surveyor += 1.5 * U.clamp(sum.belowAsk / 6, 0, 1);
+    w.gambler += 1.5 * U.clamp((sum.auctionsWon + sum.flips) / 6, 0, 1);
+    w.spendthrift += 2 * U.clamp((sum.evictions + sum.decay) / 6, 0, 1);
+    return w;
+  };
   Dy.rollTraits = function (n) {
-    var out = [], pool = D.traitIds.slice();
-    while (out.length < n && pool.length) { var t = R.pick(pool); pool.splice(pool.indexOf(t), 1); out.push(t); }
+    var out = [], pool = D.traitIds.slice(), w = Dy.traitWeights();
+    while (out.length < n && pool.length) {
+      var t = R.weighted(pool, pool.map(function (x) { return w[x]; }));
+      pool.splice(pool.indexOf(t), 1); out.push(t);
+    }
     return out;
   };
   Dy.create = function (fam, traitId) {

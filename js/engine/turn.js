@@ -138,6 +138,14 @@
     } else if (rep.ended && !rep.bankrupt) PE.Goals.checkAchievements(rep); // 'The Long Game' is checked on the final report
     // 10. Report
     s.cash = Math.round(s.cash);
+    // ENG-B7: yearly behaviour snapshot (lifetime counters + yearly flags); heir traits are
+    // weighted by the diff over the last 10 entries. Old saves start from a zero-effect baseline.
+    if (!s.bhvLog) s.bhvLog = [{ baseline: true, renovations: s.stats.renovations, builds: s.stats.builds, refinances: s.stats.refinances, bought: s.stats.bought, sold: s.stats.sold, belowAsk: s.stats.belowAsk, auctionsWon: s.stats.auctionsWon, flips: s.stats.flips, evictions: s.stats.evictions, highLtv: 0, charity: 0, repHigh: 0, decay: 0 }];
+    var bhvProps = St.playerProps(), bhvCond = 0, bhvN = 0;
+    for (var bhvI = 0; bhvI < bhvProps.length; bhvI++) if (bhvProps[bhvI].type !== 'land') { bhvCond += bhvProps[bhvI].condition; bhvN++; }
+    s.bhvLog.push({ renovations: s.stats.renovations, builds: s.stats.builds, refinances: s.stats.refinances, bought: s.stats.bought, sold: s.stats.sold, belowAsk: s.stats.belowAsk, auctionsWon: s.stats.auctionsWon, flips: s.stats.flips, evictions: s.stats.evictions,
+      highLtv: St.ltv('player') > 0.65 ? 1 : 0, charity: s.dynasty.charity ? 1 : 0, repHigh: s.reputation >= 65 ? 1 : 0, decay: bhvN && bhvCond / bhvN < 45 ? 1 : 0 });
+    if (s.bhvLog.length > 11) s.bhvLog.splice(1, 1); // keep the baseline plus the last 10 years
     rep.netWorthAfter = St.netWorth('player'); rep.equityChange = rep.netWorthAfter - rep.netWorthBefore; rep.cashAfter = s.cash; rep.rank.after = St.rank();
     s.history.push({ year: s.year, netWorth: rep.netWorthAfter, cash: s.cash, debt: St.debt('player'), rank: rep.rank.after, props: St.propertyCount('player') });
     T.decorate(rep);

@@ -613,6 +613,44 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   check('old saves without p.tenant operate normally and gain a tenant', (function () { var q2 = PE.Market.genProperty('london', { type: 'terrace', condition: 70 }); PE.State.setOwner(q2, 'player'); delete q2.tenant; PE.Property.operate(q2, { mgmt: 'self' }); return !!(q2.tenant && q2.tenant.name); })());
 })();
 
+/* ---------- 17d. ENG-B7 behaviour-weighted heir traits ---------- */
+(function () {
+  var PE = fresh('chen', 21), D = PE.Data, Dy = PE.Dynasty, s = PE.S();
+  function zeroLog() { return [{ baseline: true, renovations: 0, builds: 0, refinances: 0, bought: 0, sold: 0, belowAsk: 0, auctionsWon: 0, flips: 0, evictions: 0, highLtv: 0, charity: 0, repHigh: 0, decay: 0 }]; }
+  check('no behaviour log => uniform trait weights (fresh game and old saves)', (function () {
+    var w = Dy.traitWeights();
+    return D.traitIds.every(function (t) { return w[t] === 1; });
+  })());
+  check('endYear starts the behaviour log with a zero-effect baseline entry', (function () {
+    clearEvents(PE); var r = PE.Game.endYear();
+    return r.ok && s.bhvLog && s.bhvLog.length === 2 && s.bhvLog[0].baseline === true;
+  })());
+  check('a decade of building weights the builder trait, nothing else', (function () {
+    s.bhvLog = zeroLog();
+    for (var i = 1; i <= 10; i++) s.bhvLog.push({ renovations: i * 2, builds: 0, refinances: 0, bought: 0, sold: 0, belowAsk: 0, auctionsWon: 0, flips: 0, evictions: 0, highLtv: 0, charity: 0, repHigh: 0, decay: 0 });
+    var w = Dy.traitWeights();
+    return w.builder === 3 && D.traitIds.every(function (t) { return t === 'builder' || w[t] === 1; });
+  })());
+  check('a decade of evictions and decaying stock weights spendthrift', (function () {
+    s.bhvLog = zeroLog();
+    for (var i = 1; i <= 10; i++) s.bhvLog.push({ renovations: 0, builds: 0, refinances: 0, bought: 0, sold: 0, belowAsk: 0, auctionsWon: 0, flips: 0, evictions: i, highLtv: 0, charity: 0, repHigh: 0, decay: 1 });
+    var w = Dy.traitWeights();
+    return w.spendthrift === 3 && D.traitIds.every(function (t) { return t === 'spendthrift' || w[t] === 1; });
+  })());
+  check('the roll follows the weights (rigged decade => the weighted trait dominates)', (function () {
+    var n = 0; for (var i = 0; i < 200; i++) if (Dy.rollTraits(1)[0] === 'spendthrift') n++;
+    return n >= 50 && n <= 110; // weight 3 of 9 ≈ 33% (uniform would be ≈ 14%)
+  })());
+  check('the log is capped at baseline + 10 years, so old behaviour is forgotten', (function () {
+    for (var i = 0; i < 10; i++) { // ten quiet years, applying the same push-and-cap rule endYear uses
+      s.bhvLog.push({ renovations: 0, builds: 0, refinances: 0, bought: 0, sold: 0, belowAsk: 0, auctionsWon: 0, flips: 0, evictions: 0, highLtv: 0, charity: 0, repHigh: 0, decay: 0 });
+      if (s.bhvLog.length > 11) s.bhvLog.splice(1, 1);
+    }
+    var w = Dy.traitWeights();
+    return s.bhvLog.length === 11 && s.bhvLog[0].baseline === true && D.traitIds.every(function (t) { return w[t] === 1; });
+  })());
+})();
+
 /* ---------- 18. P5.1 Families with real rule differences ---------- */
 (function () {
   var S = fresh('silva', 4), sp = S.State.playerProps()[0];
