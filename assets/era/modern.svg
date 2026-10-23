@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">
+  <!-- Era plate: Modern, 1980s - glass-box towers with strict window grids, a tower crane, photocopy air -->
+  <defs>
+    <clipPath id="twc"><path d="M210 136 V74 H222 V62 H256 V136 Z"/></clipPath>
+  </defs>
+  <rect width="320" height="180" fill="#F1EADA"/>
+  <!-- sky: fine photocopy grain -->
+  <g stroke="#1D1A16" stroke-width="0.5" fill="none" opacity="0.2">
+    <path d="M12 14 H308 M12 18 H308 M12 22 H308 M12 26 H308 M12 30 H308 M12 34 H308 M12 38 H308 M12 42 H308 M12 46 H308 M12 50 H308 M12 54 H308 M12 58 H308 M12 62 H308 M12 66 H308 M12 70 H308 M12 74 H308 M12 78 H308 M12 82 H308 M12 86 H308 M12 90 H308 M12 94 H308 M12 98 H308 M12 102 H308 M12 106 H308 M12 110 H308 M12 114 H308 M12 118 H308 M12 122 H308 M12 126 H308 M12 130 H308"/>
+  </g>
+  <!-- left glass box: mid-tone fill, strict ink grid -->
+  <path d="M62 136 V52 H118 V136 Z" fill="#DED2B4" stroke="#1D1A16" stroke-width="1.5"/>
+  <g stroke="#1D1A16" stroke-width="0.55" fill="none" opacity="0.7">
+    <path d="M70 52 V136 M78 52 V136 M86 52 V136 M94 52 V136 M102 52 V136 M110 52 V136"/>
+    <path d="M62 59 H118 M62 66 H118 M62 73 H118 M62 80 H118 M62 87 H118 M62 94 H118 M62 101 H118 M62 108 H118 M62 115 H118 M62 122 H118 M62 129 H118"/>
+  </g>
+  <!-- rooftop plant room -->
+  <path d="M86 52 V44 H102 V52 Z" fill="#CFC2A2" stroke="#1D1A16" stroke-width="1.2"/>
+  <path d="M90 48 h8" stroke="#1D1A16" stroke-width="0.6" fill="none" opacity="0.7"/>
+  <!-- centre slab: dark glass, setback crown -->
+  <path d="M134 136 V34 H150 V28 H176 V34 H192 V136 Z" fill="#2E2A24" stroke="#1D1A16" stroke-width="1.5"/>
+  <g stroke="#F1EADA" stroke-width="0.5" fill="none" opacity="0.5">
+    <path d="M142 36 V136 M150 36 V136 M158 36 V136 M166 36 V136 M174 36 V136 M182 36 V136"/>
+    <path d="M134 41 H192 M134 48 H192 M134 55 H192 M134 62 H192 M134 69 H192 M134 76 H192 M134 83 H192 M134 90 H192 M134 97 H192 M134 104 H192 M134 111 H192 M134 118 H192 M134 125 H192 M134 132 H192"/>
+  </g>
+  <!-- one office floor still lit -->
+  <g fill="#D9B45C">
+    <path d="M146 78 h4 v5 h-4 z M158 78 h4 v5 h-4 z M170 78 h4 v5 h-4 z M182 78 h4 v5 h-4 z"/>
+  </g>
+  <!-- right glass box with setback -->
+  <path d="M210 136 V74 H222 V62 H256 V136 Z" fill="#CFC2A2" stroke="#1D1A16" stroke-width="1.5"/>
+  <g clip-path="url(#twc)" stroke="#1D1A16" stroke-width="0.55" fill="none" opacity="0.7">
+    <path d="M216 60 V136 M224 60 V136 M232 60 V136 M240 60 V136 M248 60 V136"/>
+    <path d="M210 67 H256 M210 74 H256 M210 81 H256 M210 88 H256 M210 95 H256 M210 102 H256 M210 109 H256 M210 116 H256 M210 123 H256 M210 130 H256"/>
+  </g>
+  <!-- tower crane -->
+  <g stroke="#1D1A16" fill="none">
+    <path d="M280 136 V44 M285 136 V44" stroke-width="1.4"/>
+    <path d="M280 128 L285 120 L280 112 L285 104 L280 96 L285 88 L280 80 L285 72 L280 64 L285 56 L280 48" stroke-width="0.7"/>
+    <path d="M282.5 44 V36 M248 48 H306" stroke-width="1.4"/>
+    <path d="M282.5 36 L248 48 M282.5 36 L306 48" stroke-width="0.7"/>
+    <path d="M262 48 V94" stroke-width="0.7"/>
+  </g>
+  <path d="M300 50 h5 v5 h-5 z" fill="#1D1A16"/>
+  <path d="M258 94 h8 v5 h-8 z" fill="#1D1A16"/>
+  <!-- plaza: hard grid underfoot -->
+  <path d="M12 136 H308" stroke="#1D1A16" stroke-width="1.6" fill="none"/>
+  <g stroke="#1D1A16" stroke-width="0.6" fill="none" opacity="0.4">
+    <path d="M12 143 H308 M12 150 H308 M12 157 H308 M12 164 H308"/>
+  </g>
+  <g stroke="#1D1A16" stroke-width="0.5" fill="none" opacity="0.25">
+    <path d="M36 136 V170 M72 136 V170 M108 136 V170 M144 136 V170 M180 136 V170 M216 136 V170 M252 136 V170 M288 136 V170"/>
+  </g>
+  <!-- double frame -->
+  <rect x="4" y="4" width="312" height="172" fill="none" stroke="#1D1A16" stroke-width="2"/>
+  <rect x="8" y="8" width="304" height="164" fill="none" stroke="#1D1A16" stroke-width="0.75"/>
+</svg>

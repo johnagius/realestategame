@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">
+  <!-- Era plate: Gilded Age, 1900 - a steel-framed wedge tower rises over corniced blocks, telegraph wires, electric streetcar -->
+  <defs>
+    <clipPath id="wedge"><path d="M150 136 L172 46 L184 46 L198 136 Z"/></clipPath>
+  </defs>
+  <rect width="320" height="180" fill="#F1EADA"/>
+  <!-- sky: light hatching, room for wires -->
+  <g stroke="#1D1A16" stroke-width="0.6" fill="none" opacity="0.4">
+    <path d="M12 34 l20 -20 M12 46 l26 -26 M12 58 l26 -26 M12 70 l22 -22"/>
+    <path d="M222 18 l20 12 M252 16 l24 14 M282 14 l24 15"/>
+  </g>
+  <!-- telegraph poles with glass insulators -->
+  <g stroke="#1D1A16" fill="none">
+    <path d="M36 136 V52 M284 136 V54" stroke-width="1.6"/>
+    <path d="M29 57 h14 M29 65 h14 M277 59 h14 M277 67 h14" stroke-width="1.2"/>
+  </g>
+  <g fill="#1D1A16">
+    <circle cx="30" cy="55.5" r="0.9"/><circle cx="42" cy="55.5" r="0.9"/><circle cx="30" cy="63.5" r="0.9"/><circle cx="42" cy="63.5" r="0.9"/>
+    <circle cx="278" cy="57.5" r="0.9"/><circle cx="290" cy="57.5" r="0.9"/><circle cx="278" cy="65.5" r="0.9"/><circle cx="290" cy="65.5" r="0.9"/>
+  </g>
+  <!-- wires sagging across the sky -->
+  <g stroke="#1D1A16" stroke-width="0.7" fill="none" opacity="0.75">
+    <path d="M36 57 C120 72 200 72 284 59"/>
+    <path d="M36 65 C120 80 200 80 284 67"/>
+  </g>
+  <!-- left ornate block: cornice, dentils, arched windows -->
+  <path d="M28 136 V86 H100 V136 Z" fill="#1D1A16"/>
+  <path d="M28 88 h72 M28 91 h72" stroke="#F1EADA" stroke-width="0.9" fill="none" opacity="0.9"/>
+  <g fill="#F1EADA">
+    <path d="M31 92.5 h2 v2.5 h-2 z M37 92.5 h2 v2.5 h-2 z M43 92.5 h2 v2.5 h-2 z M49 92.5 h2 v2.5 h-2 z M55 92.5 h2 v2.5 h-2 z M61 92.5 h2 v2.5 h-2 z M67 92.5 h2 v2.5 h-2 z M73 92.5 h2 v2.5 h-2 z M79 92.5 h2 v2.5 h-2 z M85 92.5 h2 v2.5 h-2 z M91 92.5 h2 v2.5 h-2 z"/>
+    <path d="M33 105 v-6 a3.5 3.5 0 0 1 7 0 v6 z M45 105 v-6 a3.5 3.5 0 0 1 7 0 v6 z M57 105 v-6 a3.5 3.5 0 0 1 7 0 v6 z M69 105 v-6 a3.5 3.5 0 0 1 7 0 v6 z M81 105 v-6 a3.5 3.5 0 0 1 7 0 v6 z"/>
+    <path d="M33 118 v-6 a3.5 3.5 0 0 1 7 0 v6 z M45 118 v-6 a3.5 3.5 0 0 1 7 0 v6 z M57 118 v-6 a3.5 3.5 0 0 1 7 0 v6 z M69 118 v-6 a3.5 3.5 0 0 1 7 0 v6 z M81 118 v-6 a3.5 3.5 0 0 1 7 0 v6 z"/>
+    <path d="M36 136 v-9 a4.5 4.5 0 0 1 9 0 v9 z M60 136 v-9 a4.5 4.5 0 0 1 9 0 v9 z M84 136 v-9 a4.5 4.5 0 0 1 9 0 v9 z"/>
+  </g>
+  <!-- right ornate block: balustraded roof, taller cornice -->
+  <path d="M222 136 V78 H292 V136 Z" fill="#1D1A16"/>
+  <g fill="#1D1A16">
+    <path d="M226 78 v-4.5 h1.8 v4.5 M232 78 v-4.5 h1.8 v4.5 M238 78 v-4.5 h1.8 v4.5 M244 78 v-4.5 h1.8 v4.5 M250 78 v-4.5 h1.8 v4.5 M256 78 v-4.5 h1.8 v4.5 M262 78 v-4.5 h1.8 v4.5 M268 78 v-4.5 h1.8 v4.5 M274 78 v-4.5 h1.8 v4.5 M280 78 v-4.5 h1.8 v4.5 M286 78 v-4.5 h1.8 v4.5"/>
+  </g>
+  <path d="M222 80 h70 M222 83 h70" stroke="#F1EADA" stroke-width="0.9" fill="none" opacity="0.9"/>
+  <g fill="#F1EADA">
+    <path d="M227 94 v-5 a3 3 0 0 1 6 0 v5 z M237 94 v-5 a3 3 0 0 1 6 0 v5 z M247 94 v-5 a3 3 0 0 1 6 0 v5 z M257 94 v-5 a3 3 0 0 1 6 0 v5 z M267 94 v-5 a3 3 0 0 1 6 0 v5 z M277 94 v-5 a3 3 0 0 1 6 0 v5 z"/>
+    <path d="M227 104 v-5 a3 3 0 0 1 6 0 v5 z M237 104 v-5 a3 3 0 0 1 6 0 v5 z M247 104 v-5 a3 3 0 0 1 6 0 v5 z M257 104 v-5 a3 3 0 0 1 6 0 v5 z M267 104 v-5 a3 3 0 0 1 6 0 v5 z M277 104 v-5 a3 3 0 0 1 6 0 v5 z"/>
+    <path d="M227 114 v-5 a3 3 0 0 1 6 0 v5 z M237 114 v-5 a3 3 0 0 1 6 0 v5 z M247 114 v-5 a3 3 0 0 1 6 0 v5 z M257 114 v-5 a3 3 0 0 1 6 0 v5 z M267 114 v-5 a3 3 0 0 1 6 0 v5 z M277 114 v-5 a3 3 0 0 1 6 0 v5 z"/>
+    <path d="M230 136 v-9 a4.5 4.5 0 0 1 9 0 v9 z M252 136 v-9 a4.5 4.5 0 0 1 9 0 v9 z M274 136 v-9 a4.5 4.5 0 0 1 9 0 v9 z"/>
+  </g>
+  <!-- the wedge: steel-framed tower, Flatiron profile, flag on top -->
+  <path d="M150 136 L172 46 L184 46 L198 136 Z" fill="#1D1A16"/>
+  <path d="M171 46 L173 40 H183 L185 46 Z" fill="#1D1A16"/>
+  <path d="M178 40 V29" stroke="#1D1A16" stroke-width="1.2" fill="none"/>
+  <path d="M178 29 l9 2.6 l-9 2.6 z" fill="#1D1A16"/>
+  <!-- window grid, clipped to the slanted flanks; one lit top-floor window -->
+  <g clip-path="url(#wedge)" fill="#F1EADA">
+    <path d="M155 54 h5 v6 h-5 z M163 54 h5 v6 h-5 z M171 54 h5 v6 h-5 z M179 54 h5 v6 h-5 z M187 54 h5 v6 h-5 z"/>
+    <path d="M155 63 h5 v6 h-5 z M163 63 h5 v6 h-5 z M171 63 h5 v6 h-5 z M179 63 h5 v6 h-5 z M187 63 h5 v6 h-5 z"/>
+    <path d="M155 72 h5 v6 h-5 z M163 72 h5 v6 h-5 z M171 72 h5 v6 h-5 z M179 72 h5 v6 h-5 z M187 72 h5 v6 h-5 z"/>
+    <path d="M155 81 h5 v6 h-5 z M163 81 h5 v6 h-5 z M171 81 h5 v6 h-5 z M179 81 h5 v6 h-5 z M187 81 h5 v6 h-5 z"/>
+    <path d="M155 90 h5 v6 h-5 z M163 90 h5 v6 h-5 z M171 90 h5 v6 h-5 z M179 90 h5 v6 h-5 z M187 90 h5 v6 h-5 z"/>
+    <path d="M155 99 h5 v6 h-5 z M163 99 h5 v6 h-5 z M171 99 h5 v6 h-5 z M179 99 h5 v6 h-5 z M187 99 h5 v6 h-5 z"/>
+    <path d="M155 108 h5 v6 h-5 z M163 108 h5 v6 h-5 z M171 108 h5 v6 h-5 z M179 108 h5 v6 h-5 z M187 108 h5 v6 h-5 z"/>
+    <path d="M155 117 h5 v6 h-5 z M163 117 h5 v6 h-5 z M171 117 h5 v6 h-5 z M179 117 h5 v6 h-5 z M187 117 h5 v6 h-5 z"/>
+    <path d="M155 126 h5 v6 h-5 z M163 126 h5 v6 h-5 z M171 126 h5 v6 h-5 z M179 126 h5 v6 h-5 z M187 126 h5 v6 h-5 z"/>
+    <path d="M171 54 h5 v6 h-5 z" fill="#D9B45C"/>
+  </g>
+  <!-- streetcar wire and the electric car -->
+  <path d="M14 103 L306 100" stroke="#1D1A16" stroke-width="0.7" fill="none" opacity="0.8"/>
+  <path d="M151 113 L164 101.5" stroke="#1D1A16" stroke-width="1.3" fill="none"/>
+  <circle cx="164" cy="101.5" r="1" fill="#1D1A16"/>
+  <path d="M114 136 v-15 q0 -7 8 -8 l30 -1 q12 0 14 9 l0 15 z" fill="#1D1A16"/>
+  <g fill="#F1EADA">
+    <path d="M120 118 h7 v8 h-7 z M130 118 h7 v8 h-7 z M140 117.5 h7 v8 h-7 z M150 117 h7 v8 h-7 z"/>
+  </g>
+  <circle cx="166" cy="126" r="1.6" fill="#F1EADA"/>
+  <g fill="#F1EADA" stroke="#1D1A16" stroke-width="1.2">
+    <circle cx="126" cy="133" r="4.5"/>
+    <circle cx="154" cy="133" r="4.5"/>
+  </g>
+  <circle cx="126" cy="133" r="1.1" fill="#1D1A16"/>
+  <circle cx="154" cy="133" r="1.1" fill="#1D1A16"/>
+  <!-- ground -->
+  <path d="M12 136 H308" stroke="#1D1A16" stroke-width="1.6" fill="none"/>
+  <g stroke="#1D1A16" stroke-width="0.6" fill="none" opacity="0.5">
+    <path d="M22 142 h26 M66 144 h34 M120 143 h30 M170 145 h36 M224 143 h30 M266 145 h28"/>
+    <path d="M40 152 h20 M96 153 h26 M150 152 h22 M204 154 h28 M256 152 h24"/>
+  </g>
+  <!-- double frame -->
+  <rect x="4" y="4" width="312" height="172" fill="none" stroke="#1D1A16" stroke-width="2"/>
+  <rect x="8" y="8" width="304" height="164" fill="none" stroke="#1D1A16" stroke-width="0.75"/>
+</svg>

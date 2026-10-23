@@ -300,6 +300,7 @@ body { overflow: hidden; }
 .titlecard__t { font-family: var(--font-display); font-size: clamp(32px, 8vw, 56px); font-weight: 800; line-height: 1.05; }
 .titlecard__s { font-size: var(--fs-3); color: var(--hud-ink-2); line-height: 1.5; }
 .titlecard .btn--gold { min-width: 220px; }
+.titlecard__plate { width: min(360px, 82vw); height: auto; border-radius: 2px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45); }
 @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 .sparkline { width: 100%; height: 64px; display: block; }
 .sparkline path { fill: none; stroke: var(--gold); stroke-width: 2; }

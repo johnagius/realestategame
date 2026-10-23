@@ -116,16 +116,19 @@
   }
   function presentReport(r, done) {
     var steps = [];
-    if (r.eraChanged) steps.push(function (next) { titleCard('A new era', PE().Data.eraFor(r.year + 1).name, 'Year ' + (r.year + 1) + '. New property types, finance tools and a new skyline.', next); });
+    if (r.eraChanged) steps.push(function (next) { var ne = PE().Data.eraFor(r.year + 1); titleCard('A new era', ne.name, 'Year ' + (r.year + 1) + '. New property types, finance tools and a new skyline.', next, ne.id); });
     if (r.succession) { var sc = r.dynasty.filter(function (d) { return d.kind === 'succession'; })[0]; steps.push(function (next) { ceremony(sc, next); }); }
     steps.push(function (next) { showReport(r, next); });
     (function run(i) { if (i >= steps.length) { done(); return; } steps[i](function () { run(i + 1); }); })(0);
   }
 
   /* ---------- Title card ---------- */
-  function titleCard(kicker, title, sub, next) {
+  function titleCard(kicker, title, sub, next, plateEra) {
     var el = document.getElementById('titlecard'); PEUI.empty(el);
-    var inner = h('div', { class: 'titlecard__inner' }, [h('div', { class: 'titlecard__k', text: kicker }), h('h1', { class: 'titlecard__t', text: title }), h('p', { class: 'titlecard__s', text: sub })]);
+    var kids = [];
+    if (plateEra) { var img = document.createElement('img'); img.src = 'assets/era/' + plateEra + '.svg'; img.className = 'titlecard__plate'; img.alt = title + ' era engraving'; kids.push(img); }
+    kids.push(h('div', { class: 'titlecard__k', text: kicker }), h('h1', { class: 'titlecard__t', text: title }), h('p', { class: 'titlecard__s', text: sub }));
+    var inner = h('div', { class: 'titlecard__inner' }, kids);
     var btn = PEUI.btn('Continue', { cls: 'btn--gold btn--lg', icon: 'skip', action: 'titlecard-next' });
     inner.appendChild(btn); el.appendChild(inner);
     el.classList.add('is-open'); el.setAttribute('aria-hidden', 'false');

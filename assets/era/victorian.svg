@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">
+  <!-- Era plate: Victorian London, 1850 - sooty terraces, chimney smoke, gaslight, a distant clock tower -->
+  <rect width="320" height="180" fill="#F1EADA"/>
+  <!-- sky: dense diagonal hatching, soot weight -->
+  <g stroke="#1D1A16" stroke-width="0.6" fill="none" opacity="0.45">
+    <path d="M14 100 l58 -58 M27 100 l58 -58 M40 100 l58 -58 M53 100 l58 -58 M66 100 l58 -58 M79 100 l58 -58 M92 100 l58 -58 M105 100 l58 -58 M118 100 l58 -58 M131 100 l58 -58 M144 100 l58 -58 M157 100 l58 -58 M170 100 l58 -58 M183 100 l58 -58 M196 100 l58 -58 M209 100 l58 -58 M222 100 l58 -58 M235 100 l58 -58 M248 100 l58 -58 M261 100 l58 -58 M274 100 l58 -58 M287 100 l58 -58 M300 100 l58 -58"/>
+    <path d="M12 30 l18 -18 M12 44 l26 -26 M12 58 l26 -26 M12 72 l26 -26 M12 86 l26 -26"/>
+  </g>
+  <!-- cross-hatch top band for soot depth -->
+  <g stroke="#1D1A16" stroke-width="0.5" fill="none" opacity="0.3">
+    <path d="M14 14 l44 26 M42 14 l44 26 M70 14 l44 26 M98 14 l44 26 M126 14 l44 26 M154 14 l44 26 M182 14 l44 26 M210 14 l44 26 M238 14 l44 26 M266 14 l42 25"/>
+  </g>
+  <!-- distant roofline and chimney stacks, darker ink -->
+  <path d="M156 136 V118 H168 V112 H186 V118 H204 V110 H222 V118 H240 V114 H252 V136 Z" fill="#2E2A24"/>
+  <path d="M172 104 h4 v8 h-4 z M210 102 h4 v8 h-4 z M244 107 h4 v7 h-4 z" fill="#2E2A24"/>
+  <!-- distant clock tower, Big Ben suggestion -->
+  <path d="M258 136 V66 H262 V58 H274 V66 H278 V136 Z M262 58 L268 43 L274 58 Z" fill="#2E2A24"/>
+  <circle cx="268" cy="72" r="4.5" fill="#F1EADA"/>
+  <path d="M268 72 L268 68 M268 72 L270.6 73.2" stroke="#1D1A16" stroke-width="0.8" fill="none"/>
+  <path d="M267 84 h2 v5 h-2 z M267 94 h2 v5 h-2 z M267 104 h2 v5 h-2 z" fill="#F1EADA" opacity="0.85"/>
+  <!-- terraced houses: four tall narrow fronts with chimney stacks and pots -->
+  <g fill="#1D1A16">
+    <path d="M20 136 V82 H54 V136 Z M54 136 V76 H88 V136 Z M88 136 V80 H122 V136 Z M122 136 V74 H156 V136 Z"/>
+    <path d="M25 82 V68 H30 V82 Z M44 82 V66 H49 V82 Z M59 76 V62 H64 V76 Z M78 76 V64 H83 V76 Z M94 80 V66 H99 V80 Z M112 80 V68 H117 V80 Z M128 74 V60 H133 V74 Z M146 74 V62 H151 V74 Z"/>
+    <path d="M25.5 68 v-4 h2 v4 M27.8 68 v-4 h2 v4 M44.5 66 v-4 h2 v4 M46.8 66 v-4 h2 v4 M59.5 62 v-4 h2 v4 M61.8 62 v-4 h2 v4 M78.5 64 v-4 h2 v4 M80.8 64 v-4 h2 v4 M94.5 66 v-4 h2 v4 M96.8 66 v-4 h2 v4 M112.5 68 v-4 h2 v4 M114.8 68 v-4 h2 v4 M128.5 60 v-4 h2 v4 M130.8 60 v-4 h2 v4 M146.5 62 v-4 h2 v4 M148.8 62 v-4 h2 v4"/>
+  </g>
+  <!-- smoke curling from the pots, drifting left -->
+  <g stroke="#1D1A16" stroke-width="0.9" fill="none" opacity="0.65">
+    <path d="M26 63 c-6 -1 -7 -6 -2 -9 c4 -2 3 -6 -1 -8 M45 61 c-6 -1 -7 -6 -2 -9 c4 -2 3 -6 -1 -8 M60 57 c-6 -1 -7 -6 -2 -9 c4 -2 3 -6 -1 -8 M79 59 c-6 -1 -7 -6 -2 -9 c4 -2 3 -6 -1 -8 M95 61 c-6 -1 -7 -6 -2 -9 c4 -2 3 -6 -1 -8 M113 63 c-6 -1 -7 -6 -2 -9 c4 -2 3 -6 -1 -8 M129 55 c-6 -1 -7 -6 -2 -9 c4 -2 3 -6 -1 -8 M147 57 c-6 -1 -7 -6 -2 -9 c4 -2 3 -6 -1 -8"/>
+  </g>
+  <!-- sash windows: reserved paper with ink mullions -->
+  <g fill="#F1EADA">
+    <path d="M26 90 h6 v9 h-6 z M40 90 h6 v9 h-6 z M26 104 h6 v9 h-6 z M40 104 h6 v9 h-6 z"/>
+    <path d="M60 86 h6 v9 h-6 z M74 86 h6 v9 h-6 z M60 100 h6 v9 h-6 z M74 100 h6 v9 h-6 z"/>
+    <path d="M94 90 h6 v9 h-6 z M108 90 h6 v9 h-6 z M94 104 h6 v9 h-6 z M108 104 h6 v9 h-6 z"/>
+    <path d="M128 84 h6 v9 h-6 z M142 84 h6 v9 h-6 z M128 98 h6 v9 h-6 z M142 98 h6 v9 h-6 z"/>
+    <path d="M44 120 h6 v9 h-6 z M77 116 h6 v9 h-6 z M112 118 h6 v9 h-6 z M146 116 h6 v9 h-6 z"/>
+  </g>
+  <g stroke="#1D1A16" stroke-width="0.5" fill="none" opacity="0.8">
+    <path d="M29 90 v9 M43 90 v9 M29 104 v9 M43 104 v9 M26 94.5 h6 M40 94.5 h6 M26 108.5 h6 M40 108.5 h6"/>
+    <path d="M63 86 v9 M77 86 v9 M63 100 v9 M77 100 v9 M60 90.5 h6 M74 90.5 h6 M60 104.5 h6 M74 104.5 h6"/>
+    <path d="M97 90 v9 M111 90 v9 M97 104 v9 M111 104 v9 M94 94.5 h6 M108 94.5 h6 M94 108.5 h6 M108 108.5 h6"/>
+    <path d="M131 84 v9 M145 84 v9 M131 98 v9 M145 98 v9 M128 88.5 h6 M142 88.5 h6 M128 102.5 h6 M142 102.5 h6"/>
+    <path d="M47 120 v9 M80 116 v9 M115 118 v9 M149 116 v9 M44 124.5 h6 M77 120.5 h6 M112 122.5 h6 M146 120.5 h6"/>
+  </g>
+  <!-- panelled doors with fanlight arches -->
+  <g fill="#F1EADA">
+    <path d="M33 136 V123 a3.5 3.5 0 0 1 7 0 V136 Z M66 136 V123 a3.5 3.5 0 0 1 7 0 V136 Z M101 136 V123 a3.5 3.5 0 0 1 7 0 V136 Z M135 136 V123 a3.5 3.5 0 0 1 7 0 V136 Z"/>
+  </g>
+  <g stroke="#1D1A16" stroke-width="0.5" fill="none" opacity="0.8">
+    <path d="M36.5 126 v10 M33 130 h7 M69.5 126 v10 M66 130 h7 M104.5 126 v10 M101 130 h7 M138.5 126 v10 M135 130 h7"/>
+  </g>
+  <!-- basement line -->
+  <path d="M20 132 H156" stroke="#F1EADA" stroke-width="0.8" fill="none" opacity="0.7"/>
+  <!-- gas street lamp: the one warm glow -->
+  <path d="M173 136 l1 -4 h4 l1 4 z" fill="#1D1A16"/>
+  <path d="M176 132 V99" stroke="#1D1A16" stroke-width="1.8" fill="none"/>
+  <path d="M173.5 108 h5 M173.5 118 h5" stroke="#1D1A16" stroke-width="0.8" fill="none"/>
+  <path d="M176 84 v3 M171 92 L176 86 L181 92" stroke="#1D1A16" stroke-width="1.2" fill="none"/>
+  <path d="M172 92 L173.5 99 H178.5 L180 92 Z" fill="#D9B45C" stroke="#1D1A16" stroke-width="1"/>
+  <path d="M176 99 v2.5" stroke="#1D1A16" stroke-width="1.2" fill="none"/>
+  <path d="M168 95 h-3.5 M184 95 h3.5 M170 90 l-2.5 -2.5 M182 90 l2.5 -2.5" stroke="#D9B45C" stroke-width="0.9" fill="none" opacity="0.85"/>
+  <!-- horse-drawn cart passing -->
+  <g fill="#1D1A16">
+    <path d="M196 124 V110 H216 V124 Z"/>
+    <path d="M226 118 c-1 -5 2 -9 7 -10 l9 -1 c4 0 7 1 9 4 l3 -5 c1 -2 3 -2 4 -1 l1 3 c1 1 1 2 0 3 l-3 3 c0 3 -2 5 -5 5 l-12 1 c-6 0 -12 -1 -13 -4 z"/>
+    <circle cx="207" cy="105" r="2.6"/>
+    <path d="M205 99 h4 v3.5 h-4 z"/>
+    <path d="M203 118 c0 -6 2 -10 4 -10 c2 0 4 4 4 10 z"/>
+  </g>
+  <path d="M202.5 102.8 h9" stroke="#1D1A16" stroke-width="1.2" fill="none"/>
+  <g stroke="#1D1A16" fill="none">
+    <path d="M229 121 V133 M233 121 V134 M245 122 V133 M249 122 V134" stroke-width="2.2"/>
+    <path d="M226 113 c-3 1 -4.5 4 -4.5 8" stroke-width="1.6"/>
+    <path d="M215 115 L229 113 M215 119 L229 117" stroke-width="1.1"/>
+    <path d="M210 107 L252 112.5" stroke-width="0.5" opacity="0.7"/>
+  </g>
+  <!-- cart wheels with spokes -->
+  <g fill="#F1EADA" stroke="#1D1A16" stroke-width="1.5">
+    <circle cx="203" cy="129" r="7"/>
+    <circle cx="213" cy="131" r="5.5"/>
+  </g>
+  <g stroke="#1D1A16" stroke-width="0.6" fill="none">
+    <path d="M203 122 v14 M196 129 h14 M198 124 l10 10 M208 124 l-10 10"/>
+    <path d="M213 125.5 v11 M207.5 131 h11 M209 127 l8 8 M217 127 l-8 8"/>
+  </g>
+  <circle cx="203" cy="129" r="1.2" fill="#1D1A16"/>
+  <circle cx="213" cy="131" r="1" fill="#1D1A16"/>
+  <!-- street: ground line and cobble hatching -->
+  <path d="M12 136 H308" stroke="#1D1A16" stroke-width="1.6" fill="none"/>
+  <g stroke="#1D1A16" stroke-width="0.6" fill="none" opacity="0.5">
+    <path d="M20 142 h28 M58 144 h38 M112 142 h34 M162 145 h40 M216 143 h36 M262 145 h30"/>
+    <path d="M34 151 h22 M84 153 h30 M140 151 h26 M196 154 h34 M250 152 h28"/>
+    <path d="M52 160 h18 M120 161 h24 M188 160 h22 M240 162 h20"/>
+  </g>
+  <!-- double frame -->
+  <rect x="4" y="4" width="312" height="172" fill="none" stroke="#1D1A16" stroke-width="2"/>
+  <rect x="8" y="8" width="304" height="164" fill="none" stroke="#1D1A16" stroke-width="0.75"/>
+</svg>
