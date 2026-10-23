@@ -477,7 +477,7 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
   check('Monte-Carlo: every event\'s choices have EVs within ±20% and no choice dominates on both EV and variance', mc.failures.length === 0, mc.failures);
   check('every event has at least one choice with a different risk, reputation or time profile', mc.rows.every(function (r) { var sds = r.choices.map(function (c) { return Math.round(c.sd * 1e4); }), evs = r.choices.map(function (c) { return Math.round(c.ev * 1e4); }); return new Set(sds).size > 1 || new Set(evs).size > 1 || r.choices.length > 1; }));
   var pre = D.historicalEvents.filter(function (h) { return h.prewarn; });
-  check('exactly 12 historical set-pieces carry a prewarn', pre.length === 12 && pre.every(function (h) { return typeof h.prewarn === 'string' && h.prewarn.length > 10; }), pre.map(function (h) { return h.year; }));
+  check('exactly 15 historical set-pieces carry a prewarn', pre.length === 15 && pre.every(function (h) { return typeof h.prewarn === 'string' && h.prewarn.length > 10; }), pre.map(function (h) { return h.year; })); // 12 → 15: 1963, 1992 and 2016 set-pieces added (v8 content pass)
   check('the morning paper foreshadows a set-piece one year ahead (Town crier makes it near-certain)', (function () { var P = fresh('chen', 2, { perks: ['town_crier'], unlockedPerks: true }); P.S().year = 1913; P.Events.makePaper(); return P.S().paper.some(function (l) { return l.prewarn && l.text === D.prewarns[1914]; }); })()); // 1914 carries no cycle, so the jitter never moves it
   check('foreshadowing is noisy without the perk (appears in some seeds, not all)', (function () { var n = 0; for (var i = 0; i < 20; i++) { var P = fresh('chen', 100 + i); P.S().year = 1913; P.Events.makePaper(); if (P.S().paper.some(function (l) { return l.prewarn; })) n++; } return n >= 5 && n <= 18; })());
   check('5 era set-pieces with 2 choices each', ['gilded', 'crisis', 'boom', 'modern', 'digital'].every(function (e) { return D.eraSetPieces[e] && D.eraSetPieces[e].choices.length === 2 && D.eraSetPieces[e].title; }));
@@ -861,9 +861,10 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
     for (var i = 0; i < 5; i++) { P1.Rivals.taunt('wong', 'outbidYou'); P2.Rivals.taunt('wong', 'outbidYou'); }
     return P1.S().rngState === P2.S().rngState;
   })());
-  check('P3.1: taunt picks stay inside their pool', (function () {
-    var ok = true;
-    for (var i = 0; i < 40; i++) { var t = Rv.taunt('petrov', 'outbidYou'); if (D.taunts.Speculator.outbidYou.indexOf(t) < 0) ok = false; }
+  check('P3.1: taunt picks stay inside their pool (base + current era merged)', (function () {
+    var ok = true, eraPool = ((D.taunts.Speculator.byEra || {})[P.State.era().id] || {}).outbidYou || [];
+    var combined = eraPool.concat(D.taunts.Speculator.outbidYou);
+    for (var i = 0; i < 40; i++) { var t = Rv.taunt('petrov', 'outbidYou'); if (combined.indexOf(t) < 0) ok = false; }
     return ok;
   })());
   check('P3.1: adjustRelation keeps a capped relation log', (function () {
@@ -879,10 +880,43 @@ function isInt(v) { return typeof v === 'number' && Math.round(v) === v; }
     var Pn = fresh('chen', 13), pool = [];
     for (var y = 0; y < 10; y++) {
       clearEvents(Pn); Pn.Game.endYear();
-      for (var id in Pn.S().rivals) { var rv = Pn.S().rivals[id], T = D.taunts[P.Data.rivalById(id).archetype]; if (rv.lastAction) pool.push([].concat(T.ally, T.jab, T.greet, T.idle).indexOf(rv.lastAction) >= 0); }
+      for (var id in Pn.S().rivals) { var rv = Pn.S().rivals[id], T = D.taunts[P.Data.rivalById(id).archetype], lines = [].concat(T.ally, T.jab, T.greet, T.idle); for (var e in T.byEra) lines = lines.concat(T.byEra[e].ally || [], T.byEra[e].jab || [], T.byEra[e].greet || [], T.byEra[e].idle || []); if (rv.lastAction) pool.push(lines.indexOf(rv.lastAction) >= 0); }
     }
     var persona = pool.filter(Boolean).length;
     return pool.length > 0 && persona >= pool.length * 0.3;
+  })());
+  check('P3.1: era pools resolve — era-flavoured lines surface in their era and never leave the merged pool', (function () {
+    var Pe = fresh('chen', 14), ok = true, eraYears = { victorian: 1860, gilded: 1910, crisis: 1935, boom: 1960, modern: 1985, digital: 2015 };
+    var ridByArch = {}; [].concat(D.rivals, D.extraRivals).forEach(function (r) { ridByArch[r.archetype] = r.id; });
+    archetypes.forEach(function (a) {
+      var T = D.taunts[a], rid = ridByArch[a];
+      if (!Pe.S().rivals[rid]) Pe.S().rivals[rid] = {}; // Magnate needs a state stub so tauntCount varies the hash
+      for (var e in T.byEra) {
+        for (var k in T.byEra[e]) {
+          Pe.S().year = eraYears[e];
+          var combined = T.byEra[e][k].concat(T[k] || []), seenEra = false;
+          for (var t = 0; t < 30; t++) { var line = Pe.Rivals.taunt(rid, k); if (combined.indexOf(line) < 0) ok = false; if (T.byEra[e][k].indexOf(line) >= 0) seenEra = true; }
+          if (!seenEra) ok = false;
+        }
+      }
+    });
+    return ok;
+  })());
+  check('P3.1: kinds without era lines fall back to the base pool in any era', (function () {
+    var Pf = fresh('chen', 15); Pf.S().year = 1935; // crisis has era pools, but none define outbidAny
+    var ok = true;
+    for (var i = 0; i < 20; i++) { var t = Pf.Rivals.taunt('rothschild', 'outbidAny'); if (D.taunts.Banker.outbidAny.indexOf(t) < 0) ok = false; }
+    return ok;
+  })());
+  check('P3.1: voice corpus floor — 40+ lines per archetype (era pools roughly quadrupled the corpus; floor catches silent deletions)', (function () {
+    var ok = true;
+    archetypes.forEach(function (a) {
+      var T = D.taunts[a], n = 0, k, e;
+      for (k = 0; k < kinds.length; k++) n += (T[kinds[k]] || []).length;
+      for (e in T.byEra) for (k in T.byEra[e]) n += T.byEra[e][k].length;
+      if (n < 40) ok = false;
+    });
+    return ok;
   })());
   check('P3.1: >=1 rival interaction per 2 years across scripted competent runs', (function () {
     var pl = require('./players.js'), totalYears = 0, interactionYears = 0;

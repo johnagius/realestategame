@@ -35,7 +35,7 @@
     depression: { name: 'Depression', value: -0.35, rate: 0.015, vacancy: 2.0, tourismMult: 0.85, next: { stagnation: 0.5, growth: 0.5 }, len: [1, 1] }
   };
   /* Guaranteed historical crashes: year -> phase */
-  D.scriptedCycles = { 1866: 'recession', 1873: 'depression', 1890: 'recession', 1907: 'recession', 1920: 'recession', 1929: 'depression', 1931: 'recession', 1945: 'stagnation', 1955: 'boom', 1973: 'recession', 1974: 'depression', 1987: 'recession', 1990: 'recession', 2000: 'recession', 2008: 'depression', 2009: 'recession', 2020: 'recession', 2021: 'boom' };
+  D.scriptedCycles = { 1866: 'recession', 1873: 'depression', 1890: 'recession', 1907: 'recession', 1920: 'recession', 1929: 'depression', 1931: 'recession', 1945: 'stagnation', 1955: 'boom', 1973: 'recession', 1974: 'depression', 1987: 'recession', 1990: 'recession', 1992: 'recession', 2000: 'recession', 2008: 'depression', 2009: 'recession', 2020: 'recession', 2021: 'boom' };
 
   /* ---------- Condition bands (bible §3.2) ---------- */
   D.conditionBands = [
@@ -217,63 +217,135 @@
 
   /* ---------- Rival voice (P3.1): per-archetype taunts and reactions.
      Kinds: outbidYou (they raise against you), outbidAny (their bid in the log),
-     win (they take the lot), lose (you beat them), ally / jab / greet / idle. ---------- */
+     win (they take the lot), lose (you beat them), ally / jab / greet / idle.
+     byEra adds era-flavoured pools keyed by era id (victorian..digital); PE.Rivals.voicePool
+     merges era lines ahead of the base pool when the current era has the kind. ---------- */
   D.taunts = {
     Banker: {
       outbidYou: ['A pleasure to do business. Do try to keep up.', 'Sentiment is expensive, friend.', 'The bank thanks you for the rehearsal.'],
-      outbidAny: ['Rothschild.', 'A modest increment.', 'Money speaks quietly.'],
-      win: ['Sound assets find sound owners.', 'It will sit well in our column.'],
-      lose: ['You overpaid. The market will remind you.'],
-      ally: ['Dinner is at eight. Bring your books.'], jab: ['Leverage is a knife. You are holding the blade.', 'Interest accrues. So does regret.'], greet: ['Rothschild & Sons acknowledges you.'],
-      idle: ['Counting coupons.', 'Reviewing covenants.', 'Lending only to friends.']
+      outbidAny: ['Rothschild.', 'A modest increment.', 'Money speaks quietly.', 'A trifle more. Do keep bidding.', 'The house raises without raising its voice.'],
+      win: ['Sound assets find sound owners.', 'It will sit well in our column.', 'The ledger grows by one quiet line.'],
+      lose: ['You overpaid. The market will remind you.', 'A fair price for an unfair market. Enjoy.'],
+      ally: ['Dinner is at eight. Bring your books.', 'Partners, then. The vault door opens both ways.'],
+      jab: ['Leverage is a knife. You are holding the blade.', 'Interest accrues. So does regret.'],
+      greet: ['Rothschild & Sons acknowledges you.', 'Rothschild & Sons is pleased to see solvent friends.'],
+      idle: ['Counting coupons.', 'Reviewing covenants.', 'Lending only to friends.'],
+      byEra: {
+        victorian: { idle: ['The consol yield is a patient friend.', 'Our couriers ride before the news walks.'], jab: ['A man who counts bricks forgets to count interest.'], outbidYou: ['The house of Rothschild does not haggle.'], win: ['Entered in the ledger. Quietly.'], lose: ['Enjoy your purchase. The mortgage enjoys you.'] },
+        gilded: { idle: ['Reading the tape before it is printed.', 'Credit is a garden. We water ours daily.'], jab: ['The ticker tells me your price before you know it.'], outbidYou: ['A wire to New York settles this.'], win: ['The committee will approve. The committee is us.'], lose: ['Overpaying is a tax on the impatient.'] },
+        crisis: { idle: ['Gold sleeps in the vault. It does not dream of war.', 'Breadlines are long. Our line of credit is longer.'], jab: ['In a panic, amateurs sell. We are not amateurs.'], outbidYou: ['Even in the blackout, the ledger stays open.'], win: ['Distress sells cheaply to the calm.'], lose: ['Keep it. Rubble is a tenant that never pays.'] },
+        boom: { idle: ['The motorway will go where we have already bought.', 'Rates rise and fall. We remain.'], jab: ['Your tower block is tall. Our patience is taller.'], outbidYou: ['Our credit outlives your concrete.'], win: ['A sound corner of a loud decade.'], lose: ['Concrete cracks. Covenants hold.'] },
+        modern: { idle: ['The Big Bang made noise. We made arrangements.', 'Reviewing positions before the fax machine wakes.'], jab: ['Fax us when your cash-flow turns positive.'], outbidYou: ['Our Geneva colleagues find your bid nostalgic.'], win: ['Filed under inevitable.'], lose: ['Yours. The decade will test you.'] },
+        digital: { idle: ['The algorithm works for us. It does not know it.', 'Quiet money outperforms loud money, quarterly.'], jab: ['You check portals. We read central banks.'], outbidYou: ['Our wire cleared while your app was loading.'], win: ['Acquired between two heartbeats of the market.'], lose: ['Take it. We have already shorted the street.'] }
+      }
     },
     Trader: {
       outbidYou: ['Too slow, old sport.', 'I will flip it before you have found a pen.'],
-      outbidAny: ['Wong Dynasty bids.', 'Cheap at twice the price.'],
-      win: ['Bought well is half sold.', 'Another one for the ledger.'],
-      lose: ['Fine — it is your anchor to carry.'],
-      ally: ['Tips flow both ways between friends.'], jab: ['You collect deeds the way others collect dust.'], greet: ['The Wong Dynasty smells a deal.'],
-      idle: ['Watching the tape.', 'Three deals before breakfast.']
+      outbidAny: ['Wong Dynasty bids.', 'Cheap at twice the price.', 'Wong bids, Wong buys, Wong is gone.', 'Next! Keep the lots moving.'],
+      win: ['Bought well is half sold.', 'Another one for the ledger.', 'Cha-ching — the abacus applauds.'],
+      lose: ['Fine — it is your anchor to carry.', 'Your gain. I am already queued for the next lot.'],
+      ally: ['Tips flow both ways between friends.', 'My network is your network, commission-free. For now.'],
+      jab: ['You collect deeds the way others collect dust.'],
+      greet: ['The Wong Dynasty smells a deal.', 'A friend with cash is a friend indeed.'],
+      idle: ['Watching the tape.', 'Three deals before breakfast.'],
+      byEra: {
+        victorian: { idle: ['Buying at the docks, selling at the station.', 'A deed in each hand beats two in a drawer.'], jab: ['You walk to a deal. I am already back.'], outbidYou: ['Sold to me before you raised your finger.'], win: ['Bought at breakfast, sold by tea.'], lose: ['Take it — I flipped three while you bid.'] },
+        gilded: { idle: ['The tape never sleeps, and neither do I.', 'Margins thin, hands quick.'], jab: ['By the time your telegram lands, I have resold it.'], outbidYou: ['The tape waits for no one, old sport.'], win: ['In and out before the ink dries.'], lose: ['Keep the anchor. I keep the current.'] },
+        crisis: { idle: ['Breadlines are long; my queue of buyers is longer.', 'Even in the slump, a quick hand eats.'], jab: ['Fear sells cheap. I never buy it — I sell it.'], outbidYou: ['Quick hands eat while slow hands queue.'], win: ['War or no war, a deal is a deal.'], lose: ['Take it. I will buy it back cheaper by spring.'] },
+        boom: { idle: ['New motorway, new margins.', 'Flipping semis faster than they print the brochures.'], jab: ['You buy to hold. I buy to be gone.'], outbidYou: ['Gazumped! Learn the word, then fear it.'], win: ['On the market by Friday, gone by Monday.'], lose: ['Enjoy the paperwork. I am three deals ahead.'] },
+        modern: { idle: ['Fax the offer — I am already at the next one.', 'Yuppies want lofts; I want their deposits.'], jab: ['Your chain has six links. Mine is cash.'], outbidYou: ['My mobile weighs a brick and closes like one.'], win: ['Exchange today, complete yesterday.'], lose: ['Yours. I flipped its neighbour twice this morning.'] },
+        digital: { idle: ['The portal pings, I pounce.', 'Viewing by video, offer by return.'], jab: ['You refresh listings. I am the listing.'], outbidYou: ['My bid beat yours by one refresh.'], win: ['Clicked, bought, relisted.'], lose: ['Take it. The algorithm owed me one anyway.'] }
+      }
     },
     Hoarder: {
       outbidYou: ['It was never for sale to you.', 'What is bought is kept. Forever.'],
-      outbidAny: ['Al-Rashid.', 'It belongs with us.'],
-      win: ['It joins the collection.', 'Ours, as all fine things become.'],
-      lose: ['A rare loss. It will sting, eventually.'],
-      ally: ['Our houses are one house now.'], jab: ['You buy houses. We keep homes.'], greet: ['The Al-Rashids remember courtesy.'],
-      idle: ['Walking the holdings.', 'Cataloguing the collection.']
+      outbidAny: ['Al-Rashid.', 'It belongs with us.', 'The Al-Rashids add to the keeping.', 'One more for the cedar boxes.'],
+      win: ['It joins the collection.', 'Ours, as all fine things become.', 'Sealed. Kept. Ours.'],
+      lose: ['A rare loss. It will sting, eventually.', 'Take care of it. You are merely its borrower.'],
+      ally: ['Our houses are one house now.', 'Bound houses, bound fortunes. Permanently.'],
+      jab: ['You buy houses. We keep homes.'],
+      greet: ['The Al-Rashids remember courtesy.', 'The family remembers its friends by name and deed.'],
+      idle: ['Walking the holdings.', 'Cataloguing the collection.'],
+      byEra: {
+        victorian: { idle: ['Polishing nameplates that will outlive the Queen.', 'Dust settles. So do we. Forever.'], jab: ['You will sell. Everything you have, eventually, sells.'], outbidYou: ['This house was promised to our grandchildren.'], win: ['Sealed into the family vault of streets.'], lose: ['Keep it warm for us. We will inherit it.'] },
+        gilded: { idle: ['The collection grows by one sunrise a year.', 'Deeds in cedar boxes, older than your line.'], jab: ['Your fortune is a season. Ours is the calendar.'], outbidYou: ['You bid for a season. We bid for a century.'], win: ['Another street enters the eternal keeping of our name.'], lose: ['A century is long. We will wait for the resale.'] },
+        crisis: { idle: ['Bombs take houses. They do not take deeds kept deep.', 'While others hoard sugar, we hoard streets.'], jab: ['You scramble for rations. We ration nothing; we keep.'], outbidYou: ['Ruins are only houses waiting for us.'], win: ['What survives the war belongs to the patient.'], lose: ['Hold it through the sirens. Consider it lent.'] },
+        boom: { idle: ['They build towers; we keep the ground beneath them.', 'New towns rise around what we already own.'], jab: ['Concrete ages. Ownership does not.'], outbidYou: ['That plot was ours before your plans existed.'], win: ['Filed away for the next hundred years.'], lose: ['A delay, not a loss. We measure in decades.'] },
+        modern: { idle: ['Gentrify around us; we were always here.', 'The vault likes what the market forgets.'], jab: ['Your portfolio churns. Ours accretes.'], outbidYou: ['We do not chase yield. We keep ground.'], win: ['The vault opens, the deed enters, the vault closes.'], lose: ['Yours for now. Forever is a long for-now.'] },
+        digital: { idle: ['The cloud forgets. Our vault does not.', 'Servers crash. Deeds in cedar do not.'], jab: ['You trade at the speed of light and own nothing at dusk.'], outbidYou: ['Your app says sold. Our deed disagrees, and will for a century.'], win: ['Logged, sealed, kept.'], lose: ['Take it. We already own its future.'] }
+      }
     },
     Speculator: {
       outbidYou: ['Ha! Again! Higher!', 'The wave is rising — ride or drown!'],
-      outbidAny: ['Petrov bids!', 'To the moon!'],
-      win: ['Fortune favours the loud!', 'Told you. Always bet on Petrov.'],
-      lose: ['Luck turns. Mine returns.'],
-      ally: ['Together we are a storm.'], jab: ['Careful is just slow wearing a tie.'], greet: ['Petrov! Remember the name!'],
-      idle: ['Doubling down, somewhere.', 'Smelling a boom on the wind.']
+      outbidAny: ['Petrov bids!', 'To the moon!', 'Petrov raises! Petrov always raises!', 'Another lot! The boom is hungry!'],
+      win: ['Fortune favours the loud!', 'Told you. Always bet on Petrov.', 'To the stars, one deed at a time!'],
+      lose: ['Luck turns. Mine returns.', 'You win this hand. The deck, however, is mine.'],
+      ally: ['Together we are a storm.', 'Two gamblers, one table, no ceiling!'],
+      jab: ['Careful is just slow wearing a tie.'],
+      greet: ['Petrov! Remember the name!', 'Ah, my favourite fellow genius!'],
+      idle: ['Doubling down, somewhere.', 'Smelling a boom on the wind.'],
+      byEra: {
+        victorian: { idle: ['Railway shares, corner plots — everything is going up!', 'Credit! Glorious, generous credit!'], jab: ['Caution is bankruptcy spread over fifty years.'], outbidYou: ['Higher! This boom has no ceiling!'], win: ['Fortune favours the leveraged!'], lose: ['A setback! I shall buy twice as fast to recover!'] },
+        gilded: { idle: ['The ticker is singing and I am dancing.', 'Margin is just courage with paperwork.'], jab: ['You save. I multiply. We are not the same.'], outbidYou: ['Bids are cheap when the future pays!'], win: ['Petrov rides the wave, and the wave is mine!'], lose: ['Keep it — the next one doubles!'] },
+        crisis: { idle: ['They call it a depression. I call it a sale.', 'Buying rubble by the tonne — the rebuild will sing!'], jab: ['Fear is expensive. I never buy it.'], outbidYou: ['Cheap money, cheap houses, dear future!'], win: ['Bought at the bottom, wherever that turns out to be!'], lose: ['Ha! One less debt to charm the bank with.'] },
+        boom: { idle: ['Motorways! Towers! Everything triples!', 'Leverage is a ladder and I am on the roof.'], jab: ['You bought one house. Adorable.'], outbidYou: ['The decade is on my side!'], win: ['Told you! Always bet on Petrov!'], lose: ['A loss? No — a rehearsal.'] },
+        modern: { idle: ['Big Bang, big money, bigger Petrov.', 'Fax me a boom and I will ride it.'], jab: ['Yuppies dress the part. I am the part.'], outbidYou: ['One hundred percent mortgage, two hundred percent nerve!'], win: ['Champagne! Put it on the house I just bought!'], lose: ['Fine! Your funeral, my afterparty.'] },
+        digital: { idle: ['The market never sleeps and neither does my phone.', 'Leverage, apps, speed — the wave got faster!'], jab: ['You diversify. I amplify.'], outbidYou: ['Outbid before your page finished loading!'], win: ['Screenshot this moment, friend!'], lose: ['Luck caches. Mine reloads.'] }
+      }
     },
     Slumlord: {
       outbidYou: ['Nothing personal. It is all personal.', 'Every door has a price. You just paid mine.'],
-      outbidAny: ['Martinez bids.', 'Cash, no questions.'],
-      win: ['Keys are keys.', 'It will pay for itself by Friday.'],
-      lose: ['Enjoy the repairs.'],
-      ally: ['Keys for the family, then.'], jab: ['You polish yours. Mine pay.'], greet: ['Martinez. You know the name.'],
-      idle: ['Collecting. Always collecting.', 'Rent is due. Always.']
+      outbidAny: ['Martinez bids.', 'Cash, no questions.', 'Martinez takes the row.', 'Sold. The tenants will hear about it.'],
+      win: ['Keys are keys.', 'It will pay for itself by Friday.', 'The ring of keys grows by one street.'],
+      lose: ['Enjoy the repairs.', 'Take it. Every lock sticks a little.'],
+      ally: ['Keys for the family, then.', 'Your tenants, my tenants — one big rent day.'],
+      jab: ['You polish yours. Mine pay.'],
+      greet: ['Martinez. You know the name.', 'A friendly face. Rarer than a paying tenant.'],
+      idle: ['Collecting. Always collecting.', 'Rent is due. Always.'],
+      byEra: {
+        victorian: { idle: ['Rents due at dawn. My boots know every stair.', 'Forty doors on one street, and every lock knows me.'], jab: ['You have a parlour. I have forty keys.'], outbidYou: ['That row houses my people. Keep your gloves off.'], win: ['More keys for the ring.'], lose: ['Polish it. Tenants pay no extra for polish.'] },
+        gilded: { idle: ['The motor car breaks down. My rents never do.', 'Keys do not crash. Markets do.'], jab: ['Your mansion holds one family. My row holds forty payers.'], outbidYou: ['Every door I buy closes behind me.'], win: ['The ring gets heavier. Good.'], lose: ['Enjoy the upkeep. Paint costs more than tenants.'] },
+        crisis: { idle: ['Bombs clear bad tenants. I keep the good rooms.', 'Ration queues end at my rent book.'], jab: ['Your tenants fled. Mine cannot afford to.'], outbidYou: ['Rubble with a roofline still rents.'], win: ['Another door in the blackout that opens for me.'], lose: ['Take it. The roof leaks toward your side.'] },
+        boom: { idle: ['Tower blocks rise; my ground floors stay paid.', 'Slums, they call them. Yield, I call them.'], jab: ['They demolish streets; I buy what falls cheap.'], outbidYou: ['That block owes me a living already.'], win: ['Cash on the stairs, every Friday.'], lose: ['Yours. The damp comes included, free of charge.'] },
+        modern: { idle: ['Bedsits, basements, back rooms — all mine, all paying.', 'The yuppies renovate around my tenants. The tenants stay.'], jab: ['You sell dreams. I rent mattresses. Guess who sleeps better.'], outbidYou: ['I count rent, not wallpaper.'], win: ['Keys. Always keys.'], lose: ['Keep the view. I keep the rent book.'] },
+        digital: { idle: ['They pay by app now. The money lands the same.', 'Every notification is a tenant owing.'], jab: ['Your smart street still pays my old rents.'], outbidYou: ['Bidding by phone, collecting in person.'], win: ['One more door in the portfolio. It already owes.'], lose: ['Fine. The boiler was about to go anyway.'] }
+      }
     },
     Builder: {
       outbidYou: ['That plot had my mark on it already.', 'I know what that wall is hiding.'],
-      outbidAny: ['Okonkwo builds.', 'Ground worth keeping.'],
-      win: ['Good ground. I will make it great.', 'From ruin, we raise.'],
-      lose: ['Keep it standing straight, at least.'],
-      ally: ['Two houses, one scaffold.'], jab: ['Paper gains. I deal in brick.'], greet: ['Okonkwo builds. Remember it.'],
-      idle: ['Drawing plans by lamplight.', 'Pouring foundations before dawn.']
+      outbidAny: ['Okonkwo builds.', 'Ground worth keeping.', 'Okonkwo stakes the site.', 'Ground like this deserves a drawing board.'],
+      win: ['Good ground. I will make it great.', 'From ruin, we raise.', 'Surveyed, staked, ours.'],
+      lose: ['Keep it standing straight, at least.', 'Build it right or sell it back to me.'],
+      ally: ['Two houses, one scaffold.', 'Your capital, my cranes. A fair skyline.'],
+      jab: ['Paper gains. I deal in brick.'],
+      greet: ['Okonkwo builds. Remember it.', 'Well met. Mind the scaffold.'],
+      idle: ['Drawing plans by lamplight.', 'Pouring foundations before dawn.'],
+      byEra: {
+        victorian: { idle: ['Bricks at dawn, plans by lamplight.', 'Good mortar outlasts bad luck.'], jab: ['You buy what others built. I build what others buy.'], outbidYou: ['That plot takes a foundation, not a ledger entry.'], win: ['Level ground, true walls.'], lose: ['Mind the damp course. Nobody ever does.'] },
+        gilded: { idle: ['Steel frames now. The city grows upward.', 'Every crane is a promise I intend to keep.'], jab: ['Your deeds are paper. Mine are load-bearing.'], outbidYou: ['I priced that site by its footings, not its paint.'], win: ['Scaffold up by Monday.'], lose: ['Check the joists before you brag.'] },
+        crisis: { idle: ['Bomb sites are foundations that have not met me yet.', 'Where they clear rubble, I set lines.'], jab: ['You count losses. I count bricks that survived.'], outbidYou: ['I see a ruin. I also see the rebuild.'], win: ['From the crater, a street.'], lose: ['Yours. Check it for blast damage twice.'] },
+        boom: { idle: ['Motorways feed my mixer lorries.', 'The tower crane is my family crest now.'], jab: ['You buy flats. I pour them.'], outbidYou: ['That site is zoned for my mixer.'], win: ['Concrete by winter, tenants by spring.'], lose: ['Keep it. Call me when the subsidence starts.'] },
+        modern: { idle: ['Docklands is a building site with a future.', 'Skip the permits queue; I bring the crane.'], jab: ['Yuppies flip lofts. I built the lofts.'], outbidYou: ['I know the cost of every brick in that wall.'], win: ['Hard hats on. We rise.'], lose: ['Yours. My surveyor sends condolences.'] },
+        digital: { idle: ['Modular units, printed plans, the same honest brick.', 'The skyline updates; so do my drawings.'], jab: ['You trade pixels of houses. I pour the houses.'], outbidYou: ['My drone surveyed that plot last Tuesday.'], win: ['Site secured. Scaffold up.'], lose: ['Keep it plumb. I will check your work.'] }
+      }
     },
     Magnate: {
       outbidYou: ['You were bidding against a weather system.', 'How quaint.'],
-      outbidAny: ['Hartwell.', 'Acquired, shortly.'],
-      win: ['Of course.', 'The map fills in.'],
-      lose: ['Amusing.'],
-      ally: ['An empire accepts your map.'], jab: ['Small houses, small dreams.'], greet: ['The Hartwells see you.'],
-      idle: ['Reviewing the map.', 'Markets are moods. We are climate.']
+      outbidAny: ['Hartwell.', 'Acquired, shortly.', 'Hartwell concludes another acquisition.', 'Noted, priced, taken.'],
+      win: ['Of course.', 'The map fills in.', 'The expected outcome, on schedule.'],
+      lose: ['Amusing.', 'Yours. Frame the moment.'],
+      ally: ['An empire accepts your map.', 'A merger of manners and maps.'],
+      jab: ['Small houses, small dreams.'],
+      greet: ['The Hartwells see you.', 'The Hartwells acknowledge your existence. Warmly, even.'],
+      idle: ['Reviewing the map.', 'Markets are moods. We are climate.'],
+      byEra: {
+        victorian: { idle: ['Empires are built quietly, then all at once.', 'The map already knows our name.'], jab: ['A charming little street you have there.'], outbidYou: ['You brought a purse to a treasury fight.'], win: ['Naturally.'], lose: ['A rounding error, fondly remembered.'] },
+        gilded: { idle: ['Trusts form like weather. We are the season.', 'New money arrives daily. It works for us now.'], jab: ['Your ambition is noted. Filed. Disregarded.'], outbidYou: ['The Hartwells do not bid. They conclude.'], win: ['As expected.'], lose: ['How novel, losing to a newcomer. Once.'] },
+        crisis: { idle: ['Wars pass. Ownership persists.', 'Even shortages queue politely for the Hartwells.'], jab: ['Rationing is for households, not houses of this size.'], outbidYou: ['Your economy is a theatre we own.'], win: ['Inevitable, even in wartime.'], lose: ['Keep it through the sirens. We shall collect later.'] },
+        boom: { idle: ['Motorways bend toward what we own.', 'New towns are old plans of ours, pouring concrete.'], jab: ['Your tower is tall. Our horizon is wider.'], outbidYou: ['A suburb to you, a region to us.'], win: ['As drawn up years ago.'], lose: ['Amusing. Do it again in twenty years.'] },
+        modern: { idle: ['Big Bang? We were already the universe.', 'The yuppies work hard. For us, mostly.'], jab: ['Faxes and mobile phones — toys for the almost-rich.'], outbidYou: ['Your banker knows our banker. Awkward for you.'], win: ['Naturally so.'], lose: ['A memento of your brief relevance.'] },
+        digital: { idle: ['The algorithm reports to us quarterly.', 'Every market dip is a shopping list.'], jab: ['You are one notification away from irrelevance.'], outbidYou: ['Our servers decided before you clicked.'], win: ['Logged by history, briefly.'], lose: ['Take it. The cloud remembers where it is.'] }
+      }
     }
   };
 
@@ -556,16 +628,22 @@
       choices: [{ label: 'Sell your lowest-condition building to the council at 100% (no fee)', fx: { sellWeakest: 1.0 } }, { label: 'Tender for council contracts (renovations −30% for 5 years, +3 reputation)', fx: { renoDiscountYears: 5, reputation: 3 } }, { label: 'Lobby against clearance (−4 reputation, 2 extra distressed listings next year)', fx: { reputation: -4, extraDistressed: 2 } }] },
     { year: 1955, title: 'The suburbs', text: 'Cars, motorways, mortgages for everyone. Suburban houses appear on the board; fixed-rate loans are offered.', cycle: 'boom',
       choices: [{ label: 'Fix every variable mortgage (+1% rate, immune to the 1970s spike)', fx: { fixAll: true } }, { label: 'Stay variable and enjoy the boom', fx: {} }] },
+    { year: 1963, title: 'The white heat of redevelopment', text: 'Motorways, tower blocks, comprehensive redevelopment. The bulldozer is the decade\'s mascot and the compulsory purchase order its instrument.',
+      choices: [{ label: 'Sell your lowest-condition building to the corporation at 102% (no fee)', fx: { sellWeakest: 1.02 } }, { label: 'Tender for the redevelopment work (renovations −30% for 3 years, +2 reputation)', fx: { renoDiscountYears: 3, reputation: 2 } }, { label: 'Campaign against the bulldozers (−2 reputation; 2 extra distressed listings as other landlords bail out)', fx: { reputation: -2, extraDistressed: 2 } }] },
     { year: 1973, title: 'Oil shock', text: 'OPEC quadruples the oil price. Inflation and rates explode; the secondary banks go under.', cycle: 'recession',
       choices: [{ label: 'Sell your most leveraged property at 95%', fx: { sellMostLeveraged: 0.95 } }, { label: 'Raise all rents to 115% (cash now, vacancy later)', fx: { rentAll: 1.15 } }, { label: 'Do nothing', fx: {} }] },
     { year: 1980, title: 'Deregulation', text: 'A new era: the banks are unleashed, council tenants get the right to buy, and towers rise on the docks.',
       choices: [{ label: 'Refinance everything to 70% while the banks are generous', fx: { refiAll: 0.7 } }, { label: 'Sell your weakest building to its tenants at 95%', fx: { sellWeakest: 0.95 } }, { label: 'Stay cautious', fx: {} }] },
     { year: 1989, title: 'The Wall falls', text: 'Berlin reunites. Eastern districts are derelict, cheap and about to become the hippest addresses in Europe.',
       choices: [{ label: 'Buy a derelict Berlin block (pay 20% of cash; Berlin unlocked free)', fx: { unlockCity: 'berlin', giftProperty: { type: 'apartment', condition: 15, pct: 0.20, city: 'berlin' } } }, { label: 'Invest in Berlin momentum (Berlin districts trend up 5 years)', fx: { cityMomentum: { city: 'berlin', years: 5 } } }, { label: 'Watch from afar', fx: {} }] },
+    { year: 1992, title: 'Black Wednesday', text: 'Sterling is driven out of the exchange-rate mechanism. The bank rate touches 12% by lunch and is falling again by tea. Nobody knows what money costs any more.', cycle: 'recession',
+      choices: [{ label: 'Fix every variable mortgage before the next spike (+1% rate)', fx: { fixAll: true } }, { label: 'Bet against the pound alongside the speculators (55%: +3% of net worth; 45%: −3%)', fx: { gambleNW: { p: 0.55, win: 0.03, lose: 0.03 } } }, { label: 'Repay 15% of every mortgage while money is dear', fx: { repayPct: 0.15 } }] },
     { year: 2000, title: 'Dot-com bust', text: 'Tech stocks crater. Office tenants vanish in tech hubs; residential holds.', cycle: 'recession',
       choices: [{ label: 'Convert an office to flats (pay 10% of its value, +20 condition)', fx: { convertOffice: true } }, { label: 'Buy distressed offices (2 extra distressed listings next year)', fx: { extraDistressed: 2 } }, { label: 'Hold', fx: {} }] },
     { year: 2008, title: 'The Global Financial Crisis', text: 'Lehman fails. Lenders call covenants on everyone. Cash is king for two years, then it is free.', cycle: 'depression',
       choices: [{ label: 'Repay 25% of all mortgages now', fx: { repayPct: 0.25 } }, { label: 'Sell your two weakest properties at 88%', fx: { sellWeakest: 0.88, count: 2 } }, { label: 'Hold; buy the crash (4 extra distressed listings next year)', fx: { extraDistressed: 4 } }] },
+    { year: 2016, title: 'The referendum', text: 'Britain votes to leave. The pound slides, the agents\' phones go quiet, and the foreign buyers who propped up the top of the market are suddenly reading the small print.',
+      choices: [{ label: 'Sell your weakest building into the wobble at 100% (no fee)', fx: { sellWeakest: 1.0 } }, { label: 'Cut all rents 5% to hold nervous tenants (+2 reputation)', fx: { rentAll: 0.95, reputation: 2 } }, { label: 'Buy the uncertainty (the pound is cheap: 2 extra distressed listings next year; −1 reputation for gloating)', fx: { extraDistressed: 2, reputation: -1 } }] },
     { year: 2020, title: 'Pandemic', text: 'Cities lock down. Offices and shops empty; homes with gardens boom.', cycle: 'recession',
       choices: [{ label: 'Waive 20% of commercial rent this year (+6 reputation)', fx: { commercialRent: 0.8, reputation: 6 } }, { label: 'Evict commercial defaulters (−8 reputation, rent held)', fx: { reputation: -8 } }, { label: 'Sell a shop or office at 95%', fx: { sellCommercial: 0.95 } }] }
   ];
@@ -580,9 +658,12 @@
     1929: 'Wall Street has never been higher. A few bankers whisper of trouble.',
     1939: 'Gas masks are being issued. Builders expect requisitions.',
     1946: 'Ministers promise a rebuilding programme once the war is won.',
+    1963: 'The minister speaks of white heat and modernisation. Compulsory purchase orders are said to be drafted already.',
     1973: 'The oil producers are meeting in Vienna. Bankers whisper of trouble with rates.',
     1989: 'Crowds gather at the Berlin Wall. Eastern districts may open up.',
+    1992: 'Sterling is under pressure in the exchange-rate mechanism. Dealers whisper that the peg cannot hold.',
     2008: 'American mortgage bonds are souring. Lenders whisper of trouble next year.',
+    2016: 'The referendum polls are too close to call. Foreign buyers are pausing; the pound is jittery.',
     2020: 'A new virus is spreading in Asia. Shopkeepers are nervous.'
   };
   for (var hi = 0; hi < D.historicalEvents.length; hi++) if (D.prewarns[D.historicalEvents[hi].year]) D.historicalEvents[hi].prewarn = D.prewarns[D.historicalEvents[hi].year];
@@ -659,7 +740,7 @@
     { id: 'tax_assessor', weight: 3, minProps: 3, title: 'The assessor calls', text: 'The city is reassessing property for tax. Your buildings have been valued generously.',
       choices: [{ label: 'Appeal (pay 0.5% of net worth; 60%: no extra tax; 40%: pay 3% anyway)', fx: { cashPctNW: -0.005, gambleNW: { p: 0.6, win: 0, lose: 0.03 } } }, { label: 'Pay the extra assessment (2% of net worth; +1 reputation)', fx: { cashPctNW: -0.02, reputation: 1 } }] },
     // --- finance ---
-    { id: 'bank_call', weight: 2, minProps: 2, minDebt: true, title: 'The bank manager', text: 'Your lender is nervous and invites you to lunch. He would like to see less of your name on his books.',
+    { id: 'bank_call', weight: 3, minProps: 2, minDebt: true, title: 'The bank manager', text: 'Your lender is nervous and invites you to lunch. He would like to see less of your name on his books.',
       choices: [{ label: 'Repay 10% of every mortgage (lender reassured)', fx: { repayPct: 0.10 } }, { label: 'Charm him (50%: +1 reputation; 50%: −2; relation with the Rothschilds +)', fx: { repGamble: { p: 0.5, win: 1, lose: 2 }, namedRelation: { id: 'rothschild', delta: 8 } } }] },
     { id: 'bond_tip', weight: 2, minProps: 1, title: 'A tip from the Exchange', text: 'A broker friend swears the next issue of government stock will be oversubscribed.',
       choices: [{ label: 'Put 10% of cash in (60%: +25% on it; 40%: −15%)', fx: { gamble: { p: 0.6, win: 0.025, lose: 0.015 } } }, { label: 'Keep your powder dry', fx: {} }] },
@@ -695,7 +776,91 @@
     { id: 'press', weight: 2, minProps: 4, title: 'The press', text: 'A newspaper is writing about slum landlords in {city}. Your name may appear.',
       choices: [{ label: 'Patch every building (pay 2.5% of net worth; +2 reputation; every building +2 condition)', fx: { cashPctNW: -0.025, reputation: 2, decay: -2 } }, { label: 'Ignore the story (50%: nothing; 50%: −5 reputation)', fx: { repGamble: { p: 0.5, win: 0, lose: 5 } } }] },
     { id: 'apprentice', weight: 1, minProps: 2, minMembers: 2, title: 'An apprenticeship', text: '{member} wants to learn the trade with a surveyor rather than at school.',
-      choices: [{ label: 'Pay the premium (pay 1% of net worth; comps noise halved 5 years)', fx: { cashPctNW: -0.01, surveyorYears: 5 } }, { label: 'Keep them at home (+1 reputation)', fx: { reputation: 1 } }] }
+      choices: [{ label: 'Pay the premium (pay 1% of net worth; comps noise halved 5 years)', fx: { cashPctNW: -0.01, surveyorYears: 5 } }, { label: 'Keep them at home (+1 reputation)', fx: { reputation: 1 } }] },
+    // --- more tenants and buildings ---
+    { id: 'dry_rot', weight: 3, minProps: 2, title: 'Dry rot', text: 'The surveyor\'s penknife sinks into the skirting at {prop}. Dry rot, and it has had a head start.',
+      choices: [{ label: 'Strip it out now (pay 6% of its value)', fx: { propCostPct: 0.06 } }, { label: 'Treat and monitor (pay 1.5%; 60%: it holds; 40%: it spreads, condition −18)', fx: { propCostPct: 0.015, propGamble: { p: 0.6, loseCond: 18 } } }] },
+    { id: 'tenant_buys', weight: 0.5, minProps: 1, title: 'The tenant offers to buy', text: 'The sitting tenant at {prop} has saved for years and offers 103% of value for the freehold.',
+      choices: [{ label: 'Sell at 103% (no agent fee)', fx: { sellProp: 1.03 } }, { label: 'Decline and raise the rent to 110%', fx: { propRent: 1.1 } }] },
+    { id: 'sanitary_inspector', weight: 3, minProps: 2, toEra: 2, title: 'The sanitary inspector calls', text: 'The inspector condemns the drains at {prop}. Cholera is a word he uses twice.',
+      choices: [{ label: 'Re-lay the drains (pay 5% of its value; condition +3)', fx: { propCostPct: 0.05, propCondition: 3 } }, { label: 'A consideration to overlook it (pay 0.2% of net worth; 55%: he looks away; 45%: prosecution — pay 0.9% and −2 reputation)', fx: { cashPctNW: -0.002, gambleNW: { p: 0.55, win: 0, lose: 0.009, loseRep: 2 } } }] },
+    { id: 'servants_quarters', weight: 1, minProps: 1, fromEra: 1, toEra: 4, title: 'Nobody keeps servants any more', text: 'The servants\' quarters at {prop} stand empty. An architect suggests flats where the attic bedrooms were.',
+      choices: [{ label: 'Convert them (pay 4% of its value; value +6%)', fx: { propCostPct: 0.04, propQuality: 0.06 } }, { label: 'Leave them empty', fx: {} }] },
+    { id: 'sitting_tenant', weight: 1, minProps: 1, fromEra: 3, title: 'A protected tenancy', text: 'The tenant at {prop} claims statutory protection. You will never sell with vacant possession while they stay.',
+      choices: [{ label: 'Pay them to go (pay 4% of its value; empty, it is worth 5% more)', fx: { propCostPct: 0.04, propQuality: 0.05 } }, { label: 'Accept the protected rent (85%; +2 reputation with the council)', fx: { propRent: 0.85, reputation: 2 } }] },
+    { id: 'short_let', weight: 2, minProps: 1, fromEra: 5, title: 'The platform guarantee', text: 'A short-let platform offers guaranteed income for {prop}: 20% over market for two years. The neighbours are already composing letters.',
+      choices: [{ label: 'Sign up (rent 120% for 2 years; −2 reputation; wear and tear: condition −4)', fx: { lease: { years: 2, setting: 1.2 }, reputation: -2, propCondition: -4 } }, { label: 'Keep the long tenant (+1 reputation)', fx: { reputation: 1 } }] },
+    { id: 'retrofit', weight: 1, minProps: 2, fromEra: 4, title: 'A retrofit grant', text: 'A government scheme covers half the cost of modernising {prop} — insulation, wiring, the works — if you commit this year.',
+      choices: [{ label: 'Take the grant (pay 3% of its value; condition +4, value +3%)', fx: { propCostPct: 0.03, propCondition: 4, propQuality: 0.03 } }, { label: 'Skip the paperwork', fx: {} }] },
+    { id: 'asbestos', weight: 1, minProps: 2, fromEra: 4, title: 'Asbestos', text: 'Surveyors find asbestos in the service ducts at {prop}. Everyone speaks very calmly about it, which is worse.',
+      choices: [{ label: 'Strip it now (pay 4% of its value)', fx: { propCostPct: 0.04 } }, { label: 'Encapsulate and disclose (pay 1%; 65%: fine; 35%: a claim later — 4% of its value and −3 reputation)', fx: { propCostPct: 0.01, propGamble: { p: 0.65, loseCostPct: 0.04, loseRep: 3 } } }] },
+    { id: 'porters_strike', weight: 1, minProps: 3, fromEra: 4, title: 'The porters down tools', text: 'Porters and cleaners across your {city} buildings strike for a fortnight. The bins are eloquent.',
+      choices: [{ label: 'Settle: a pay rise (pay 0.9% of net worth; +1 reputation)', fx: { cashPctNW: -0.009, reputation: 1 } }, { label: 'Bring in contractors (pay 0.3% of net worth; 55%: it holds; 45%: the dispute drags on and costs another 0.7%)', fx: { cashPctNW: -0.003, gambleNW: { p: 0.55, win: 0, lose: 0.007 } } }] },
+    { id: 'wiring', weight: 1, minProps: 1, fromEra: 3, title: 'The coronation on television', text: 'The tenants at {prop} are clubbing together for a television set and ask you to wire the house properly.',
+      choices: [{ label: 'Wire it (pay 1% of its value; rent 105% for 3 years; condition +2)', fx: { propCostPct: 0.01, lease: { years: 3, setting: 1.05 }, propCondition: 2 } }, { label: 'Decline; the radio was good enough for you', fx: {} }] },
+    { id: 'milk_bar', weight: 1, minProps: 1, fromEra: 3, title: 'A milk bar', text: 'A milk bar — all chrome and jukebox — wants the ground floor of {prop}. The teenagers will congregate, say the neighbours, darkly.',
+      choices: [{ label: 'Let to them (a premium of 0.5% of net worth; −2 reputation with the neighbours)', fx: { cashPctNW: 0.005, reputation: -2 } }, { label: 'Keep the quiet grocer (+1 reputation)', fx: { reputation: 1 } }] },
+    // --- more city and market ---
+    { id: 'cattle_market', weight: 1, minProps: 2, toEra: 2, title: 'The cattle market moves', text: 'The corporation means to move the cattle market to {district}, {city}. Drovers and noise; but the shopkeepers are delighted.',
+      choices: [{ label: 'Welcome it (+1 reputation; trade lifts the district 2%, though the noise costs {prop} 4% of value)', fx: { reputation: 1, districtShock: 0.02, propQuality: -0.04 } }, { label: 'Sell {prop} to a drover syndicate at 102% and be done with it (no fee)', fx: { sellProp: 1.02 } }] },
+    { id: 'smoke_abatement', weight: 1, minProps: 2, toEra: 3, title: 'The smoke nuisance', text: 'A smoke-abatement society names {district} in its report. Soft-coal grates must go, it says, in every house you own.',
+      choices: [{ label: 'Convert every grate (pay 2.5% of net worth; every building +2 condition; +1 reputation)', fx: { cashPctNW: -0.025, decay: -2, reputation: 1 } }, { label: 'Fight the report (−1 reputation; 50%: it is forgotten; 50%: fines and mandated works of 1.7% of net worth)', fx: { reputation: -1, gambleNW: { p: 0.5, win: 0, lose: 0.017 } } }] },
+    { id: 'water_company', weight: 0.5, minProps: 1, toEra: 1, title: 'The water company', text: 'The new water company offers to lay mains into {district}: no more wells, for a connection fee per house.',
+      choices: [{ label: 'Connect {prop} (pay 2% of its value; condition +3, value +2%)', fx: { propCostPct: 0.02, propCondition: 3, propQuality: 0.02 } }, { label: 'Keep the well; it has never killed anyone you know of', fx: {} }] },
+    { id: 'motorway', weight: 1, minProps: 2, fromEra: 3, toEra: 4, title: 'The motorway box', text: 'The new motorway will take a corner of {district}. Compensation for blight is derisory, but the contractors pay cash for quick sales.',
+      choices: [{ label: 'Sell {prop} to the contractors at 99%, cash this week (no fee)', fx: { sellProp: 0.99 } }, { label: 'Hold out for the inquiry (−1 reputation; 50%: the line shifts and the address gains 7%; 50%: blight, value −6%)', fx: { reputation: -1, propValueGamble: { p: 0.5, win: 0.07, lose: 0.06 } } }] },
+    { id: 'heritage_listing', weight: 1, minProps: 1, fromEra: 3, title: 'A listing notice', text: 'The heritage society wants {prop} listed. Listed buildings cannot easily be altered — but the address gains a cachet.',
+      choices: [{ label: 'Support the listing (value +2%)', fx: { propQuality: 0.02 } }, { label: 'Object, loudly (pay 0.2% of net worth; 55%: refused, and the publicity helps: +5%; 45%: listed anyway: +2%)', fx: { cashPctNW: -0.002, propValueGamble: { p: 0.55, win: 0.05, lose: -0.02 } } }] },
+    { id: 'big_box', weight: 1, minProps: 2, fromEra: 4, title: 'A retail park', text: 'A supermarket chain wants to anchor a retail park on the edge of {district}, and covets {prop}\'s site.',
+      choices: [{ label: 'Sell them {prop} at 110% (agent fee applies)', fx: { sellPropFee: 1.10 } }, { label: 'Refuse; the traffic lifts the district 2% (−1 reputation with the chain\'s friends)', fx: { districtShock: 0.02, reputation: -1 } }] },
+    { id: 'garden_square', weight: 0.5, minProps: 2, toEra: 2, title: 'The garden square', text: 'The freeholder will sell the leaseholders of {district} the central garden — if every house subscribes. The railings, otherwise, stay locked forever.',
+      choices: [{ label: 'Subscribe 0.8% of net worth (the district trends up a year; +1 reputation)', fx: { cashPctNW: -0.008, districtMomentum: 1, reputation: 1 } }, { label: 'Decline (−1 reputation among the other houses)', fx: { reputation: -1 } }] },
+    { id: 'host_city', weight: 0.5, minProps: 2, fromEra: 5, title: 'The bid', text: '{city} is shortlisted to host the world\'s games. Property near the venues is already moving on rumour alone.',
+      choices: [{ label: 'Sell {prop} into the froth at 104% (no fee)', fx: { sellProp: 1.04 } }, { label: 'Bet on the bid (55%: it wins, +4% of cash; 45%: it loses, −1.8%)', fx: { gamble: { p: 0.55, win: 0.04, lose: 0.018 } } }] },
+    { id: 'students', weight: 2, minProps: 2, fromEra: 3, title: 'Student lodgings', text: 'The new university wants lodgings near {district}. Students pay well and care little.',
+      choices: [{ label: 'Let {prop} to students (rent 120%; the parties cost condition −5)', fx: { propRent: 1.2, propCondition: -5 } }, { label: 'Keep families (+1 reputation)', fx: { reputation: 1 } }] },
+    { id: 'department_store', weight: 1, minProps: 1, fromEra: 1, toEra: 3, title: 'A right of light', text: 'A grand department store is to rise behind {prop}. The light will go; the footfall will come.',
+      choices: [{ label: 'Sell them the right of light (value −3%; trade lifts the district 1%)', fx: { propQuality: -0.03, districtShock: 0.01 } }, { label: 'Defend your light (pay 0.3% of net worth in lawyers; 65%: upheld, and the stand adds cachet: +3%; 35%: lost, value −2% more)', fx: { cashPctNW: -0.003, propValueGamble: { p: 0.65, win: 0.03, lose: 0.02 } } }] },
+    { id: 'ground_rent', weight: 1, minProps: 2, toEra: 2, title: 'The speculative builder', text: 'A builder offers cash for the ground beside {prop}. He builds fast, cheap, and close.',
+      choices: [{ label: 'Take his money (+0.6% of net worth; the overlookers cost {prop} 3% of value)', fx: { cashPctNW: 0.006, propQuality: -0.03 } }, { label: 'Refuse (−1 reputation among the builders; 50%: he builds anyway, value −3%; 50%: he goes elsewhere and the scarcity helps: +5%)', fx: { reputation: -1, propValueGamble: { p: 0.5, win: 0.05, lose: 0.03 } } }] },
+    { id: 'slum_clearance', weight: 1, minProps: 3, fromEra: 3, toEra: 4, title: 'The clearance area', text: 'The council\'s clearance maps lap at {district}. Owners inside the line get improvement grants; owners beside it get blight.',
+      choices: [{ label: 'Apply for the grant (pay 0.2% of net worth in surveyor\'s fees; renovations −30% next year)', fx: { cashPctNW: -0.002, renoDiscountYears: 1 } }, { label: 'Ignore the maps', fx: {} }] },
+    { id: 'online_portal', weight: 2, minProps: 1, fromEra: 5, title: 'The portal calls', text: 'A property portal offers to feature your buildings: buyers from everywhere, for an annual fee.',
+      choices: [{ label: 'Subscribe (pay 0.5% of net worth; the best listing on the board is priced for you, and a distressed seller finds you next year)', fx: { cashPctNW: -0.005, revealBest: true, extraDistressed: 1 } }, { label: 'Keep to the shop window', fx: {} }] },
+    { id: 'crypto_buyer', weight: 0.5, minProps: 1, fromEra: 5, title: 'A buyer of the future', text: 'A buyer offers for {prop} — half in cash, half in something called coins. Your solicitor refuses to say the word aloud.',
+      choices: [{ label: 'Take the coins (50%: they hold, value +12%; 50%: they do not, −8%)', fx: { propValueGamble: { p: 0.5, win: 0.12, lose: 0.08 } } }, { label: 'Insist on pounds (sell at 102%, no fee)', fx: { sellProp: 1.02 } }] },
+    // --- more finance ---
+    { id: 'insurance_scandal', weight: 1, minProps: 3, fromEra: 1, title: 'Your insurer goes smash', text: 'The insurance office carrying your risks has failed. New cover costs double until the market settles.',
+      choices: [{ label: 'Re-insure at the new price (pay 0.9% of net worth; no fire or flood events for 6 years)', fx: { cashPctNW: -0.009, insuredYears: 6 } }, { label: 'Go bare and save the premium', fx: {} }] },
+    { id: 'foreign_loan', weight: 1, minProps: 2, minDebt: true, fromEra: 2, title: 'A loan in francs', text: 'A continental bank offers to take over your mortgages below the bank rate — repayable in francs. What could the exchange do?',
+      choices: [{ label: 'Take it (cash +0.5% of net worth now; 50%: the franc falls, +1% more; 50%: it rises, pay 1.5%)', fx: { cashPctNW: 0.005, gambleNW: { p: 0.5, win: 0.01, lose: 0.015 } } }, { label: 'Stay with your London bank', fx: {} }] },
+    { id: 'private_loan', weight: 1, minProps: 2, minDebt: true, title: 'The Rothschilds\' card', text: 'The Rothschilds will advance you money against your name alone. Your own bank will not be amused.',
+      choices: [{ label: 'Take it (cash +1% of net worth; your largest loan grows 2%; relation +)', fx: { cashPctNW: 0.01, debtForgive: -0.02, namedRelation: { id: 'rothschild', delta: 6 } } }, { label: 'Decline; they respect caution (relation +4)', fx: { namedRelation: { id: 'rothschild', delta: 4 } } }] },
+    { id: 'discount_house', weight: 1, minProps: 2, minDebt: true, title: 'Your mortgage is sold on', text: 'Your lender has sold your largest mortgage to a discount house. The new holder is… attentive.',
+      choices: [{ label: 'Repay 5% of every mortgage to placate them', fx: { repayPct: 0.05 } }, { label: 'Brazen it out (he trims 2% off the largest loan to be rid of the paperwork; 50%: −2 reputation when he mentions it at the club)', fx: { debtForgive: 0.02, repGamble: { p: 0.5, win: 0, lose: 2 } } }] },
+    { id: 'bond_opportunity', weight: 1, minProps: 1, fromEra: 3, title: 'The Consols are called', text: 'The Treasury is retiring the old 3% Consols the family holds. Cash at par, or new stock at a lower coupon.',
+      choices: [{ label: 'Take the cash (+0.6% of net worth)', fx: { cashPctNW: 0.006 } }, { label: 'Take the new stock and sell it on the market (50%: +1.4%; 50%: +0.1%)', fx: { gambleNW: { p: 0.5, win: 0.014, loseWin: 0.001 } } }] },
+    { id: 'refinance_boom', weight: 1, minProps: 3, minDebt: true, fromEra: 4, title: 'The banks are throwing money', text: 'Every lender in town will refinance a landlord to 70% and press the difference on you in cash. It feels like a trap because it is one.',
+      choices: [{ label: 'Refinance everything to 70% (cash now; interest forever)', fx: { refiAll: 0.7 } }, { label: 'Stay lean (the Rothschilds approve: relation +8)', fx: { namedRelation: { id: 'rothschild', delta: 8 } } }] },
+    { id: 'touts_tip', weight: 2, minProps: 1, title: 'The tout\'s nephew', text: 'A tout has a nephew in the auctioneer\'s office. For a consideration, the reserve on the best lot coming up.',
+      choices: [{ label: 'Pay him 1.5% of cash (the true value of the best listing, revealed)', fx: { cashPct: -0.015, revealBest: true } }, { label: 'Walk away; the family has standards (+1 reputation)', fx: { reputation: 1 } }] },
+    // --- more dynasty and reputation ---
+    { id: 'elder_son_folly', weight: 1, minProps: 1, minMembers: 2, toEra: 2, title: 'The racing stable', text: '{member} wishes to breed racehorses under the family name. The trainer\'s terms are remarkable in every sense.',
+      choices: [{ label: 'Stake the stable (pay 2% of net worth; 40%: a classic winner, +5% back; 60%: gone)', fx: { cashPctNW: -0.02, gambleNW: { p: 0.4, win: 0.05, lose: 0 } } }, { label: 'Refuse absolutely (−1 reputation; he sulks for a season)', fx: { reputation: -1 } }] },
+    { id: 'aunts_will', weight: 1, minProps: 0, minMembers: 2, title: 'The great-aunt\'s will', text: 'A great-aunt leaves {member} a legacy — if the family pays the death duties now. Probate is a lottery.',
+      choices: [{ label: 'Pay the duties (1% of net worth; 55%: the legacy yields +2.5%; 45%: only +0.5%)', fx: { cashPctNW: -0.01, gambleNW: { p: 0.55, win: 0.025, loseWin: 0.005 } } }, { label: 'Renounce it to the cousin (+1 reputation for generosity)', fx: { reputation: 1 } }] },
+    { id: 'libel_suit', weight: 1, minProps: 2, minMembers: 2, toEra: 3, title: 'A pamphlet', text: 'A scurrilous pamphlet names {member} and the word "rackrent" appears. Counsel advises action; counsel always advises action.',
+      choices: [{ label: 'Sue (pay 0.5% of net worth; 55%: vindicated, +5 reputation; 45%: laughed at, −3)', fx: { cashPctNW: -0.005, repGamble: { p: 0.55, win: 5, lose: 3 } } }, { label: 'Ignore it (−1 reputation as it circulates)', fx: { reputation: -1 } }] },
+    { id: 'finishing_school', weight: 1, minProps: 1, minMembers: 2, fromEra: 1, title: 'Finished abroad', text: '{member} could be finished abroad — languages, manners, a season in Paris. Great houses notice such things.',
+      choices: [{ label: 'Send them (pay 1% of net worth; +3 reputation; a great house warms: relation +8)', fx: { cashPctNW: -0.01, reputation: 3, rivalRelation: 8 } }, { label: 'The schoolroom at home is enough', fx: {} }] },
+    { id: 'family_pew', weight: 1, minProps: 1, toEra: 2, title: 'The church roof', text: 'The parish church needs a new roof. The family pew is in the front row — conspicuously.',
+      choices: [{ label: 'Roof the nave (pay 1.2% of net worth; +5 reputation)', fx: { cashPctNW: -0.012, reputation: 5 } }, { label: 'A modest subscription (pay 0.3%; +1 reputation)', fx: { cashPctNW: -0.003, reputation: 1 } }] },
+    { id: 'receiver_tip', weight: 0.5, minProps: 2, title: 'The receiver\'s hint', text: 'A receiver hints that a cousin of {rival}\'s house is being wound up quietly. There is room for one friend at the trough.',
+      choices: [{ label: 'Tip the receiver 0.5% of net worth (2 extra distressed listings next year; {rival} resent it: relation −6)', fx: { cashPctNW: -0.005, extraDistressed: 2, rivalRelation: -6 } }, { label: 'Tell {rival} first (relation +10)', fx: { rivalRelation: 10 } }] },
+    { id: 'club_membership', weight: 1, minProps: 3, fromEra: 1, title: 'The ballot', text: 'The club will ballot the head of the family. Election opens every door in town; a blackball is remembered for years.',
+      choices: [{ label: 'Stand (pay 0.4% of net worth; 65%: elected, +5 reputation; 35%: blackballed, −1)', fx: { cashPctNW: -0.004, repGamble: { p: 0.65, win: 5, lose: 1 } } }, { label: 'Clubs are for idlers (+1 reputation among the serious)', fx: { reputation: 1 } }] },
+    { id: 'war_office_stores', weight: 1, minProps: 2, fromEra: 2, toEra: 3, title: 'Requisition', text: 'The War Office needs stores and has looked at {prop}. The rent is fixed by act of parliament. Take it, or be taken.',
+      choices: [{ label: 'Sign the contract (4 years at 90%, never vacant; +2 reputation)', fx: { lease: { years: 4, setting: 0.9 }, reputation: 2 } }, { label: 'Refuse; they take it anyway (2 years at 85%; −1 reputation for obstructing the war effort)', fx: { lease: { years: 2, setting: 0.85 }, reputation: -1 } }] }
   ];
   D.randomEventById = function (id) { for (var i = 0; i < D.randomEvents.length; i++) if (D.randomEvents[i].id === id) return D.randomEvents[i]; return null; };
 

@@ -25,25 +25,37 @@
     }
     return s.relations[id] - before;
   };
+  /* Voice pool for a kind in the current era: when D.taunts[archetype].byEra[eraId] has lines
+     for the kind, the pool is the era lines followed by the base pool (merged BEFORE picking,
+     so callers still pick exactly once); otherwise the base pool alone. Deterministic — the
+     era id comes from the game year only, never from the RNG stream. */
+  Rv.voicePool = function (archetype, kind) {
+    var T = D.taunts[archetype];
+    if (!T) return [];
+    var base = T[kind] || [], era = T.byEra && T.byEra[St.era().id];
+    if (era && era[kind] && era[kind].length) return era[kind].concat(base);
+    return base.length ? base : (T.idle || []);
+  };
   /* A voiced line for a rival. kind: outbidYou/outbidAny/win/lose/ally/jab/greet/idle.
      Picked by hash, not PE.RNG: voice lines must never shift the gameplay stream. */
   Rv.taunt = function (id, kind) {
     var rd = Rv.def(id), T = rd && D.taunts[rd.archetype];
     if (!T) return '';
-    var pool = T[kind] || T.idle || [];
+    var pool = Rv.voicePool(rd.archetype, kind);
     if (!pool.length) return '';
     var s = PE.S(), rv = s.rivals[id];
     var n = rv ? (rv.tauntCount = (rv.tauntCount || 0) + 1) : 1;
     var h = PE.RNG.hashSeed(id + ':' + kind + ':' + (s.year || 0) + ':' + n);
     return pool[Math.abs(h) % pool.length];
   };
-  /* The year's line when the rival did nothing notable: persona by relation tier. */
+  /* The year's line when the rival did nothing notable: persona by relation tier.
+     Exactly one R.pick per call, over the era-merged pool — draw count unchanged. */
   Rv.idleLine = function (rv, rd) {
     var s = PE.S(), rel = s.relations[rv.id] || 0, T = D.taunts[rd.archetype];
-    if (rv.allied && T.ally) return R.pick(T.ally);
-    if (rel <= -30 && T.jab) return R.pick(T.jab);
-    if (rel >= 60 && T.greet) return R.pick(T.greet);
-    return R.pick(T.idle);
+    if (rv.allied && T.ally) return R.pick(Rv.voicePool(rd.archetype, 'ally'));
+    if (rel <= -30 && T.jab) return R.pick(Rv.voicePool(rd.archetype, 'jab'));
+    if (rel >= 60 && T.greet) return R.pick(Rv.voicePool(rd.archetype, 'greet'));
+    return R.pick(Rv.voicePool(rd.archetype, 'idle'));
   };
   Rv.setRelation = function (id, value) { var s = PE.S(); return Rv.adjustRelation(id, value - (s.relations[id] || 0)); };
   Rv.allies = function () { var s = PE.S(), out = []; for (var id in s.rivals) if (s.rivals[id].allied && !s.rivals[id].bankrupt) out.push(id); return out; };
