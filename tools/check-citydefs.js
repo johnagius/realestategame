@@ -130,6 +130,49 @@ function checkWaterGeometry(city, def) {
   }));
 }
 
+// LOCATION-SLICE §2: a cityDef's districtZones ("r,c" -> engine district name) must
+// cover every buildable/landmark cell, and every name must be a real engine district.
+// District names come from js/engine/data.js (an IIFE that sets PE.Data on window).
+const districtCache = new Map();
+function engineDistricts(city) {
+  if (!districtCache.has(city)) {
+    let set = null;
+    try {
+      const code = fs.readFileSync(path.join(ROOT, 'js', 'engine', 'data.js'), 'utf8');
+      const D = new Function('window', code + '\n;return window.PE && window.PE.Data;')({});
+      const c = D && D.cities && D.cities.find(x => x.id === city);
+      if (c) set = new Set(c.districts.map(d => d.name));
+    } catch (e) { /* reported below */ }
+    districtCache.set(city, set);
+  }
+  return districtCache.get(city);
+}
+function checkDistrictZones(city, def) {
+  const dz = def.districtZones;
+  if (!dz) {
+    if (city === 'london') bad(city, 'districtZones missing (LOCATION-SLICE requires it for London)');
+    return;
+  }
+  const names = engineDistricts(city);
+  if (!names) return bad(city, 'could not load engine districts (js/engine/data.js) to validate districtZones');
+  const zoned = new Set();
+  for (const k in dz) {
+    const m = /^(\d+),(\d+)$/.exec(k);
+    if (!m) { bad(city, `districtZones key '${k}' is not 'r,c'`); continue; }
+    const r = +m[1], c = +m[2];
+    if (!def.layout[r] || def.layout[r][c] === undefined) { bad(city, `districtZones key '${k}' is outside the layout`); continue; }
+    const t = def.layout[r][c];
+    const isLm = def.landmarks && def.landmarks[t];
+    if (!(t === 'B' || BLDG.has(t) || isLm)) bad(city, `districtZones key '${k}' covers non-buildable cell '${t}'`);
+    zoned.add(k);
+    if (!names.has(dz[k])) bad(city, `districtZones ${k} = '${dz[k]}' is not an engine district`);
+  }
+  def.layout.forEach((row, r) => row.forEach((t, c) => {
+    const isLm = def.landmarks && def.landmarks[t];
+    if ((t === 'B' || BLDG.has(t) || isLm) && !zoned.has(r + ',' + c)) bad(city, `districtZones missing cell ${r},${c} ('${t}')`);
+  }));
+}
+
 const files = fs.readdirSync(CITY_DIR).filter(f => f.endsWith('.js'));
 const missing = Object.entries(IDS).filter(([id, g]) => !files.includes(id + '.js'));
 missing.forEach(([id]) => bad('registry', `no file for city id '${id}'`));
@@ -144,6 +187,7 @@ for (const [id, g] of Object.entries(IDS)) {
   checkProfile(id, def);
   checkLayout(id, def);
   checkWaterGeometry(id, def);
+  checkDistrictZones(id, def);
   if (!findings) process.stdout.write(`ok ${id}  `);
 }
 console.log('');

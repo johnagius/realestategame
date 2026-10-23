@@ -48,6 +48,23 @@ var CityDef_London = {
 
   landmarkGround: { TBR:'W' },
 
+  /* District zones (LOCATION-SLICE §2): tile "r,c" → engine district name, covering
+     every buildable slot and landmark cell. Placement prefers a free slot in the
+     property's own district (City3D._pickFreeSlot). Names must match the engine's
+     London districts (PE.Data.cities) exactly — tools/check-citydefs.js enforces
+     both coverage and names. Cosmetic only; no economic effect reads a position.
+     Geography: Hampstead/Camden hold the north, Mayfair wraps Big Ben, the East
+     End toward Tower Bridge is Shoreditch, the tower cluster east is Canary Wharf,
+     and the south-west bank is Chelsea/Kensington/Notting Hill. */
+  districtZones: {
+    '1,0': 'Hampstead',   '1,6': 'Shoreditch',
+    '2,0': 'Camden',      '2,2': 'Mayfair',      '2,4': 'Mayfair',      '2,6': 'Canary Wharf',
+    '3,3': 'Shoreditch',
+    '4,0': 'Chelsea',     '4,6': 'Canary Wharf',
+    '5,0': 'Kensington',  '5,2': 'Notting Hill', '5,4': 'Shoreditch',   '5,6': 'Canary Wharf',
+    '6,1': 'Chelsea',     '6,6': 'Shoreditch',
+  },
+
   // Era gating (DESIGN-DIRECTION §4): the city grows with the eras. Tower Bridge
   // opens 1894 (gilded+), The Shard rises 2012 (digital only); Big Ben stands from 1859.
   landmarkEras: { TBR:'gilded', SHD:'digital' },

@@ -181,6 +181,9 @@
     document.getElementById('dirname').textContent = cityDef().name + ' · ' + (DIR ? DIRS[DIR].name : 'city profile');
     document.querySelectorAll('[data-dir]').forEach(function(x) { x.classList.toggle('on', (x.dataset.dir || null) === DIR); });
     if (CAMDIR) { var cd = CAMDIR.split(',').map(Number); if (cd.length === 3 && cd.every(function(n) { return isFinite(n); })) { City3D._camDir = new THREE.Vector3(cd[0], cd[1], cd[2]).normalize(); City3D._fitCamera(City3D._container.clientWidth / Math.max(1, City3D._container.clientHeight)); } }
+    // ?districts=1 paints the district-overlay sample (LOCATION-SLICE §6); ratings
+    // are the engine's London visitor bands, hardcoded here (test tool only).
+    if (qs.get('districts') === '1') City3D.setDistrictOverlay(true, { Mayfair: 2, Kensington: 1, Chelsea: 1, 'Notting Hill': 1, Camden: 1, Shoreditch: 1, Hampstead: 0, 'Canary Wharf': 0 });
     if (SKETCH && window.SkylineSketch) setTimeout(function() { SkylineSketch.apply(); }, 60);
   }
   render();

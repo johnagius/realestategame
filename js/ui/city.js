@@ -11,7 +11,7 @@
   function PE() { return root.PE; }
   function shape(p, isListing) {
     var t = PE().Data.propertyTypes[p.type];
-    return { id: p.id, type: p.type, model3d: t ? t.model3d : p.model3d, era: p.era, ownerId: p.ownerId, condition: p.condition, renovation: p.renovation || null, isListing: !!isListing, name: p.name };
+    return { id: p.id, type: p.type, model3d: t ? t.model3d : p.model3d, era: p.era, ownerId: p.ownerId, condition: p.condition, renovation: p.renovation || null, isListing: !!isListing, name: p.name, district: p.district, letMode: p.letMode || 'long' };
   }
   function cityProps(cityId) {
     var st = PE().Game.state(), out = [], k;
@@ -20,13 +20,62 @@
     for (k in st.properties) if (st.properties[k].cityId === cityId && st.properties[k].ownerId !== 'player') out.push(shape(st.properties[k], false));
     return out;
   }
-  function hashShape(s) { return [s.model3d, s.ownerId, Math.round(s.condition / 5), s.renovation ? s.renovation.tier : '', s.isListing].join('|'); }
+  function hashShape(s) { return [s.model3d, s.ownerId, Math.round(s.condition / 5), s.renovation ? s.renovation.tier : '', s.isListing, s.letMode].join('|'); }
 
   /* Atmosphere (DESIGN-DIRECTION §4): dusk by default, rain in recessions, fog in the
      Victorian smog, and the Digital era glows after dark. */
   var ERA_NIGHT = { victorian: 0.3, gilded: 0.32, crisis: 0.36, boom: 0.3, modern: 0.38, digital: 0.6 };
   function nightFor(eraId) { return ERA_NIGHT[eraId] != null ? ERA_NIGHT[eraId] : 0.35; }
   function weatherFor(s) { return (s.cycle === 'recession' || s.cycle === 'depression') ? 'rain' : (s.eraId === 'victorian' ? 'fog' : 'clear'); }
+
+  /* District overlay (LOCATION-SLICE §6): opt-in tint of the city's authored district
+     zones by visitor rating, with a text legend; the same info lives in the district
+     list as words, so the fallback view loses nothing. Default off; hidden when the
+     3D view is not running or the city has no zones. Ratings are engine payloads
+     (PE.Property.visitorRating) — the UI only paints them. */
+  function zoneDef() { var d = root[DEF[cs.id]]; return d && d.districtZones ? d : null; }
+  function overlayRatings() {
+    var out = {}, list = PE().Cities.list();
+    if (!list.ok) return out;
+    for (var i = 0; i < list.cities.length; i++) if (list.cities[i].id === cs.id) {
+      var ds = list.cities[i].districts;
+      for (var j = 0; j < ds.length; j++) out[ds[j].name] = PE().Property.visitorRating(cs.id, ds[j].name);
+    }
+    return out;
+  }
+  function applyOverlay() {
+    if (!cs.renderedId || !root.City3D) return;
+    try { root.City3D.setDistrictOverlay(!!(cs.overlay && zoneDef()), overlayRatings()); } catch (e) {}
+  }
+  function syncDistrictBtn(el) {
+    var b = el && el.querySelector('[data-action="city-districts"]'); if (!b) return;
+    var can = !!(cs.renderedId && zoneDef());
+    b.style.display = can ? '' : 'none';
+    b.setAttribute('aria-pressed', String(can && !!cs.overlay));
+    b.style.borderColor = can && cs.overlay ? '#d9b45c' : '';
+    b.style.background = can && cs.overlay ? 'rgba(217,180,92,0.35)' : '';
+  }
+  function legend(el) {
+    var s = PEUI.summary(), leg = el.querySelector('#city-legend'); PEUI.empty(leg);
+    // Above 640px the legend would sit under the bottom nav (the phone media query
+    // lifts it; desktop/tablet never did), so lift it here — the overlay toggle and
+    // its legend chips must be reachable on every layout.
+    leg.style.bottom = phoneLayout() ? '' : 'calc(var(--nav-h) + var(--safe-bottom) + var(--sp-3))';
+    leg.appendChild(h('span', {}, [h('i', { style: 'background:' + s.color }), 'You']));
+    leg.appendChild(h('span', {}, [h('i', { style: 'background:#6b8fbf' }), 'Rivals']));
+    leg.appendChild(h('span', {}, [h('i', { style: 'background:#d9b45c' }), 'For sale']));
+    // Overlay toggle lives in the legend, not the tools row: the tools row sits
+    // under the HUD on desktop (pre-existing overlap), the legend never does.
+    var canOverlay = !!(cs.renderedId && zoneDef());
+    var tb = h('button', { type: 'button', class: 'btn btn--secondary', 'data-action': 'city-districts', 'aria-pressed': String(canOverlay && !!cs.overlay), 'aria-label': 'District overlay: tint zones by visitor draw', style: 'min-height:0;height:24px;padding:0 10px;font-size:11px;font-weight:800;border-radius:999px' + (canOverlay ? '' : ';display:none') }, [icon('map', 'ic--sm'), h('span', { text: 'Districts' })]);
+    if (canOverlay && cs.overlay) { tb.style.background = 'rgba(217,180,92,0.4)'; tb.style.borderColor = '#d9b45c'; tb.style.color = '#F4EFE4'; }
+    leg.appendChild(tb);
+    if (canOverlay && cs.overlay) {
+      leg.appendChild(h('span', {}, [h('i', { style: 'background:#e08a3c' }), 'Visitor draw: strong']));
+      leg.appendChild(h('span', {}, [h('i', { style: 'background:#d9b45c' }), 'some']));
+      leg.appendChild(h('span', {}, [h('i', { style: 'background:#8a94a6' }), 'none']));
+    }
+  }
 
   function render3D(el) {
     var host = el.querySelector('.city-view__canvas'), fb = el.querySelector('.city-view__fallback');
@@ -42,6 +91,7 @@
     if (!ok) PEUI.setText(fb, 'The 3D view could not start (WebGL unavailable).');
     cs.renderedId = ok ? cs.id : null; cs.era = s.eraId; cs.cycle = s.cycle; cs.shapes = {};
     for (var i = 0; i < props.length; i++) cs.shapes[props[i].id] = hashShape(props[i]);
+    applyOverlay(); syncDistrictBtn(el);
   }
   function syncProps() {
     if (!cs.renderedId || !root.City3D) return;
@@ -53,6 +103,7 @@
     var s = PEUI.summary();
     if (s.eraId !== cs.era) { try { root.City3D.setEra(s.eraId, 1200); root.City3D.setNight(nightFor(s.eraId)); } catch (e) {} cs.era = s.eraId; }
     if (s.cycle !== cs.cycle) { try { root.City3D.setWeather(weatherFor(s)); } catch (e) {} cs.cycle = s.cycle; }
+    if (cs.overlay) applyOverlay(); // landmark boosts shift ratings with the era
   }
   /* Camera language: a slow push-in on the newest purchase the first time it shows. */
   function focusNewPurchase() {
@@ -75,6 +126,7 @@
     if (!cs.renderedId || !root.City3D || !eraId || cs.era === eraId) return;
     try { root.City3D.setEra(eraId, 1200); root.City3D.setNight(nightFor(eraId)); } catch (e) {}
     cs.era = eraId;
+    if (cs.overlay) applyOverlay();
   };
   PEUI.cityHas = function (id) { return !!(cs.renderedId && cs.shapes[id] !== undefined); };
 
@@ -161,9 +213,15 @@
     box.appendChild(card);
     var dl = h('section', { class: 'card card--flat', 'aria-label': 'Districts' });
     dl.appendChild(h('div', { class: 'kicker', text: 'Districts' }));
+    var visitorData = !!(PE().Data.districtVisitor && PE().Data.districtVisitor[cs.id]);
     for (var j = 0; j < info.districts.length; j++) {
       var d = info.districts[j];
-      dl.appendChild(h('div', { class: 'district-row' }, [h('span', { text: d.name + (d.playerShare ? ' · you own ' + d.playerShare + '%' : '') }), h('span', { class: 'num muted small', text: fmt.psqm(d.pricePerSqm) }), PEUI.trend(d.trend)]));
+      var row = [h('span', { text: d.name + (d.playerShare ? ' · you own ' + d.playerShare + '%' : '') }), h('span', { class: 'num muted small', text: fmt.psqm(d.pricePerSqm) }), PEUI.trend(d.trend)];
+      if (visitorData) {
+        var vr = PE().Property.visitorRating(cs.id, d.name); // engine payload: 0 none / 1 some / 2 strong
+        row.push(h('span', { class: 'small muted', style: 'grid-column:1/-1;display:inline-flex;align-items:center;gap:4px' }, [icon('users', 'ic--sm'), h('span', { text: 'Visitor draw: ' + (vr >= 2 ? 'strong' : (vr === 1 ? 'some' : '—')) })]));
+      }
+      dl.appendChild(h('div', { class: 'district-row' }, row));
     }
     box.appendChild(dl);
   }
@@ -202,21 +260,26 @@
         bindSheet(el);
         bindCanvasResize(el);
       }
-      var leg2 = el.querySelector('#city-legend'); PEUI.empty(leg2);
-      leg2.appendChild(h('span', {}, [h('i', { style: 'background:' + s.color }), 'You']));
-      leg2.appendChild(h('span', {}, [h('i', { style: 'background:#6b8fbf' }), 'Rivals']));
-      leg2.appendChild(h('span', {}, [h('i', { style: 'background:#d9b45c' }), 'For sale']));
+      legend(el);
       this.update(el);
     },
     update: function (el) {
-      tabs(el); cityPanel(el);
+      tabs(el); cityPanel(el); syncDistrictBtn(el);
       if (cs.renderedId !== cs.id) { var self = this; requestAnimationFrame(function () { if (PEUI.current === 'city') { render3D(el); focusNewPurchase(); } }); }
       else { syncProps(); focusNewPurchase(); }
     },
     unmount: function () { /* renderer stays alive; it pauses itself while hidden */ }
   });
-  PEUI.destroyCity = function () { if (root.City3D && cs.renderedId) { try { root.City3D.destroy(); } catch (e) {} } if (cs.ro) { cs.ro.disconnect(); cs.ro = null; } cs.renderedId = null; cs.mounted = false; cs.id = null; cs.sheetOpen = false; };
+  PEUI.destroyCity = function () { if (root.City3D && cs.renderedId) { try { root.City3D.destroy(); } catch (e) {} } if (cs.ro) { cs.ro.disconnect(); cs.ro = null; } cs.renderedId = null; cs.mounted = false; cs.id = null; cs.sheetOpen = false; cs.overlay = false; };
   PEUI.actions['city-tab'] = function (b, d) { cs.id = d.id; PEUI.refresh(); };
+  PEUI.actions['city-districts'] = function () {
+    if (!cs.renderedId || !zoneDef()) return;
+    cs.overlay = !cs.overlay;
+    var el = document.getElementById('screen-city');
+    applyOverlay();
+    if (el) { legend(el); syncDistrictBtn(el); }
+    PEUI.sound('page');
+  };
   PEUI.actions['city-sheet-toggle'] = function () {
     if (cs.suppressSheetTap) { cs.suppressSheetTap = false; return; }
     if (!phoneLayout()) return;

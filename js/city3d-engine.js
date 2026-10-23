@@ -12,12 +12,13 @@
      City3D.focus(propertyId)
      City3D.setEra(era, fadeMs)
      City3D.setNight(0..1)
+     City3D.setDistrictOverlay(on, ratings)  // LOCATION-SLICE §6: tint districtZones by visitor rating
      City3D.setAutoOrbit(bool|speed)
      City3D.destroy()
 
    Property shape (all optional — missing fields fall back):
      { id, type, model3d, era, ownerId:'player'|'rival:<id>'|null, condition:0..100|string,
-       renovation:{tier,yearsLeft}|null, isListing, name }
+       renovation:{tier,yearsLeft}|null, isListing, name, district, letMode:'long'|'short' }
 
    City definition helpers used by js/cities/*.js are preserved:
      bx, cy, sphr, gabledRoof, hipRoof, flatPlane, makeLabel, _addWinSimple, M.*
@@ -443,8 +444,8 @@ var City3D = {
     return mesh;
   },
 
-  // Configure a window mesh for owner / condition
-  _dressWindows: function(mesh, litHex, cond) {
+  // Configure a window mesh for owner / condition / letting mode
+  _dressWindows: function(mesh, litHex, cond, lively) {
     var W = mesh.userData.win; if (!W) return;
     W.lit.setHex(litHex);
     var c = this._condNum(cond);
@@ -455,6 +456,8 @@ var City3D = {
       if (c < 20) s.kind = 1;                         // boarded
       else if (c < 50 && rng() < (50 - c) / 50 * 0.6) s.kind = 2; // broken
       else if (rng() < 0.12) s.kind = 3;              // permanently dark (tenant away)
+      else if (lively && rng() < 0.35) s.kind = 4;    // short let: guests come and go, lights blink
+      if (lively && s.kind !== 1) s.th *= 0.55;       // short lets light up earlier at dusk
     });
     W.dirty = true;
   },
@@ -479,6 +482,10 @@ var City3D = {
         if (s.kind === 1) want = -1;           // boarded
         else if (s.kind === 2) want = -2;      // broken
         else if (s.kind === 3) want = 0;
+        else if (s.kind === 4) {               // short let: turnover flicker once past dusk
+          if (night <= s.th) want = 0;
+          else { var u = ts * 0.0011 + i * 2.39; want = (Math.sin(u) + Math.sin(u * 2.7 + 1.3)) > -0.4 ? 1 : 0; }
+        }
         else want = night > s.th ? 1 : 0;
         var cur = s.on;
         if (want === 1 && cur < 1) {
@@ -888,7 +895,8 @@ var City3D = {
     var ownerCol = this._ownerColor(prop);
     var cond = prop ? this._condNum(prop.condition) : 80;
     var lit = !prop || !prop.ownerId ? this.WIN_LIT_NONE : (prop.ownerId === 'player' ? this.WIN_LIT_PLAYER : this.WIN_LIT_RIVAL);
-    bg.traverse(function(m) { if (m.userData && m.userData.win) self._dressWindows(m, lit, cond); });
+    var shortLet = !!(prop && prop.letMode === 'short'); // LOCATION-SLICE §6: guest turnover reads at dusk
+    bg.traverse(function(m) { if (m.userData && m.userData.win) self._dressWindows(m, lit, cond, shortLet); });
     var fx = new THREE.Group(); fx.userData.fx = true;
     bg.add(fx);
 
@@ -2078,7 +2086,13 @@ var City3D = {
     var buildingSlots = [];
     layout.forEach(function(row, r) { row.forEach(function(t, c) { if (t === 'B' || self.BLDG_TYPES.has(t)) buildingSlots.push({ r: r, c: c, origType: t }); }); });
     var slotAssignments = {};
-    this._properties.forEach(function(p, i) { if (i < buildingSlots.length) slotAssignments[buildingSlots[i].r + ',' + buildingSlots[i].c] = p; });
+    var freeSlots = buildingSlots.slice();
+    this._properties.forEach(function(p) {
+      var pick = self._pickFreeSlot(freeSlots, p);
+      if (!pick) return;
+      slotAssignments[pick.r + ',' + pick.c] = p;
+      freeSlots.splice(freeSlots.indexOf(pick), 1);
+    });
 
     var batches = {};
     var shadowCells = [];
@@ -2167,6 +2181,22 @@ var City3D = {
     g.traverse(function(m) { if (m.isMesh && m.geometry) m.geometry.dispose(); });
   },
 
+  /* District-aware slot preference (LOCATION-SLICE §2): a cityDef may carry
+     districtZones ("r,c" → engine district name; London only). Placement prefers a
+     free slot in the property's own district, ties broken by a hash of the property
+     id so the same property lands on the same tile for a given free set, then falls
+     back to any free slot when the district is full. Cities without zones keep
+     first-free scan order. Cosmetic only — no economics ever reads a position. */
+  _idHash: function(id) { var h = 0, s = String(id == null ? '' : id); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; },
+  _pickFreeSlot: function(free, prop) {
+    if (!free.length) return null;
+    var dz = this._cityDef && this._cityDef.districtZones;
+    if (!dz || !prop || !prop.district) return free[0];
+    var pref = free.filter(function(s) { return dz[s.r + ',' + s.c] === prop.district; });
+    var pool = pref.length ? pref : free;
+    return pool[this._idHash(prop.id) % pool.length];
+  },
+
   _placeBuilding: function(cell, tileType, prop, animate) {
     var seed = this._hash(cell.r + 1, cell.c + 1);
     var era = (prop && prop.era && this.ERAS[prop.era]) ? prop.era : this._era;
@@ -2242,8 +2272,12 @@ var City3D = {
   updateProperty: function(prop, o) {
     var cell = this._findCell(prop.id);
     if (!cell) {
-      // Place in the first free filler slot
-      if (this._grid) for (var r = 0; r < this._grid.length && !cell; r++) for (var c = 0; c < this._grid[r].length; c++) { var cc = this._grid[r][c]; if (cc.filler) { cell = cc; break; } }
+      // Place in a free filler slot (district-preferred when the city has zones)
+      if (this._grid) {
+        var free = [];
+        for (var r = 0; r < this._grid.length; r++) for (var c = 0; c < this._grid[r].length; c++) { var cc = this._grid[r][c]; if (cc.filler) free.push(cc); }
+        cell = this._pickFreeSlot(free, prop);
+      }
       if (!cell) return false;
       this._properties.push(prop);
     } else {
@@ -2345,6 +2379,45 @@ var City3D = {
 
   setNight: function(n) { this._night = Math.max(0, Math.min(1, n)); this._applyLighting(); this._retintSurroundings(this._era, 700); },
   setAutoOrbit: function(v) { this._orbit = v === true ? 0.08 : (v || 0); },
+
+  /* District overlay (LOCATION-SLICE §6): opt-in tint of the authored districtZones by
+     visitor rating — one merged mesh per band (none/some/strong) added to the pivot.
+     Water-ground cells (Tower Bridge) are skipped so the river stays clean. The
+     ratings map comes from the UI (engine data); this layer only paints it. */
+  DISTRICT_TINT: [
+    { color: 0x8a94a6, opacity: 0.16 },   // none
+    { color: 0xd9b45c, opacity: 0.34 },   // some
+    { color: 0xe08a3c, opacity: 0.5 },    // strong
+  ],
+  _districtOverlay: null,
+  setDistrictOverlay: function(on, ratings) {
+    if (this._districtOverlay) { this._disposeObj(this._districtOverlay); this._districtOverlay = null; }
+    if (!on || !this._pivot || !this._grid) return;
+    var dz = this._cityDef && this._cityDef.districtZones;
+    if (!dz) return;
+    var T = this.TILE, self = this, bands = [[], [], []];
+    var tmpMat = new THREE.MeshBasicMaterial();
+    this._grid.forEach(function(row) { row.forEach(function(cell) {
+      var name = dz[cell.r + ',' + cell.c];
+      if (!name || cell.terrain === 'W' || cell.terrain === 'HB') return;
+      var v = ratings && ratings[name] != null ? ratings[name] : 0;
+      var p = self.flatPlane(T - 1.5, T - 1.5, tmpMat);
+      p.position.set(cell.x, 0.5, cell.z);
+      bands[v >= 2 ? 2 : (v === 1 ? 1 : 0)].push(p);
+    }); });
+    var g = new THREE.Group();
+    bands.forEach(function(list, i) {
+      if (!list.length) return;
+      var t = self.DISTRICT_TINT[i];
+      var mesh = new THREE.Mesh(self._mergeMeshes(list), new THREE.MeshBasicMaterial({ color: t.color, transparent: true, opacity: t.opacity, depthWrite: false, toneMapped: false, fog: false }));
+      mesh.renderOrder = 2;
+      g.add(mesh);
+      list.forEach(function(p) { p.geometry.dispose(); });
+    });
+    tmpMat.dispose();
+    this._pivot.add(g);
+    this._districtOverlay = g;
+  },
 
   /* Weather: 'clear' | 'rain' | 'fog'. Rain lerps in with falling streak points and a
      closing fog bank; fog is a milky Victorian blanket. Driven per frame in animate. */
@@ -2620,7 +2693,7 @@ var City3D = {
     this._stars = null; this._moon = null; this._clouds = null; this._cityDef = null; this._onBuildingClick = null; this._opts = null;
     this._fades = []; this._winMeshes = null; this._signs = null; this._animated = null; this._textures = null; this._skins = null; this._dying = null;
     this._rain = null; this._weather = 'clear'; this._weatherK = 0; this._fogGoal = null;
-    this._terrain = null; this._terrainGroup = null; this._bldgGroup = null; this._orbit = 0; this._zoomGoal = 1; this._frameMs = 0;
+    this._terrain = null; this._terrainGroup = null; this._bldgGroup = null; this._orbit = 0; this._zoomGoal = 1; this._frameMs = 0; this._districtOverlay = null;
     this._profile = null; this._profCache = null; this._contactShadow = null; this._surround = null; this._life = null; this._detailQ = null; this._detailMeshes = null; this._lmAccents = null; if (this._composer) { this._composer.passes.forEach(function(p) { if (p.dispose) p.dispose(); }); if (this._composer.renderTarget1) this._composer.renderTarget1.dispose(); if (this._composer.renderTarget2) this._composer.renderTarget2.dispose(); } if (this._envRT && this._envRT.dispose) this._envRT.dispose(); this._composer = null; this._bloom = null; this._ssao = null; this._grade = null; this._env = null; this._envRT = null; this._envEra = null; this._post = false; this._assetsOn = false; this._kitCache = null; this._kitLive = null; this._kitTex = null;
     this._dragState = { active: false, prevX: 0, prevY: 0, startX: 0, startY: 0, moved: false };
     this._visible = true; this._tabVisible = true;
