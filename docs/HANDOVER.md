@@ -6,7 +6,9 @@ first, then `docs/REDESIGN.md` (the design bible, which is the law), then
 
 ---
 
-## 1. One-paragraph state
+**Read §13 first — it is the current release state and supersedes §1/§9.**
+
+## 1. One-paragraph state (v8.1-era; see §13)
 
 The old v7.3 game (a 280-year monthly rent-compounding tycoon that players
 only ever auto-advanced) was audited and replaced. v8 is a new game on the same
@@ -257,3 +259,36 @@ Committed on `main` after the v8.1 merge, in order:
 
 Test count grew 354 → 379. Quick balance table stayed 10/10 + 4/4 after each engine change (full run due at release).
 Known deliberate gaps: 3D trophies in the home city (P5.5) and the remaining phases were handed to subagents in the same session — see TASKS.md for their state.
+
+---
+
+## 13. Release state — v8.11 (current; supersedes §1 and §9)
+
+Written after the Phase 8 release gate and the Phase 9 visitor-economy slice.
+All phases of `docs/TASKS.md` are complete except **P6.7 soft launch** (a
+store-console action, not repo work) and **P8.7 human playtest** (owner must
+play; instrument ready — see below). P8.8's evidence report is written and
+stays open until the playtest answers land in its §7.
+
+- Version: `PEUI.VERSION` v8.11, `Game.version` 8.11.0, `CACHE_NAME`
+  property-empire-v8.11. Deployed to `main` (GitHub Pages).
+- Verification on the release build: `node js/sim/tests.js` 695/695;
+  `node js/sim/balance.js` 11/11 targets + 4/4 family guards (full table);
+  `node js/sim/contest.js` 8/8 guards; 30-year scripted UI playthrough
+  (`tools/playwright/play.js`) 0 page/console errors; campaign completed
+  through the real UI (`tools/playwright/campaign.js` 6/6); no-WebGL fallback
+  (`tools/playwright/no-webgl.js`) 10/10 including the DOM property list that
+  replaces the canvas; owner playtest save import/playthrough
+  (`tools/playwright/playtest-save-check.js`) 5/5.
+- Evidence: `docs/audit/06-p8-evidence.md` (tested-path matrix, distributions,
+  run classes, 8 residual balance concerns in §9 — all tagged as playtest
+  questions, with `contest.js probe` repro coordinates).
+- Playtest instrument for the owner: import `tools/playtest-save.json` via
+  Dynasty → Settings → Import (Chen, 1872, 14 properties incl. a Mayfair
+  short let); answer `docs/audit/05-playtest.md`.
+- Rival succession: bankrupt rivals return after `rivalReturnYears` (6) with
+  one freehold and scaled cash; legacy saves get `returnYear` scheduled on
+  first tick. Balance floor for competent bankruptcy moved 5→4 (bible §14/§16.6,
+  measured 4.8).
+- New agent starting here: do not re-do Phase 8. The next real work comes from
+  the owner's playtest answers; until then, change nothing that touches balance.
